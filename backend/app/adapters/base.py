@@ -2,7 +2,7 @@ from abc import ABC,abstractmethod
 from dataclasses import dataclass
 from PIL import Image
 import base64,io,time
-from ..schemas import EngineResult
+from ..schemas import EngineResult\nfrom ..taxonomy import apply_taxonomy
 @dataclass
 class AdapterMeta:
     id:str
@@ -21,7 +21,7 @@ class EngineAdapter(ABC):
     def run(self,image:Image.Image):
         t=time.perf_counter()
         try:
-            out=self.predict(image); out.latency_ms=(time.perf_counter()-t)*1000; return out
+            out=self.predict(image); out.latency_ms=(time.perf_counter()-t)*1000; return apply_taxonomy(out)
         except ModuleNotFoundError as e:
             return EngineResult(engine_id=self.meta.id,name=self.meta.name,task=self.meta.task,status="missing_dependency",latency_ms=(time.perf_counter()-t)*1000,message=str(e))
         except FileNotFoundError as e:

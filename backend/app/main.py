@@ -3,9 +3,9 @@ from fastapi import FastAPI,File,Form,HTTPException,UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from .registry import REGISTRY
-from .schemas import CompareResponse,EngineInfo
+from .schemas import CompareResponse,EngineInfo\nfrom .taxonomy import build_consensus
 
-app=FastAPI(title="SHM Vision Lab API",version="0.6.0")
+app=FastAPI(title="SHM Vision Lab API",version="0.7.0")
 _default_origins="http://localhost:5173,https://aaronkadima.github.io"
 _origins=[x.strip().rstrip("/") for x in os.getenv("CORS_ORIGINS",_default_origins).split(",") if x.strip()]
 app.add_middleware(CORSMiddleware,allow_origins=_origins,allow_credentials=False,allow_methods=["GET","POST","OPTIONS"],allow_headers=["*"])
@@ -48,7 +48,7 @@ async def startup_event():
         asyncio.create_task(_warmup_compact_engines())
 
 @app.get("/")
-def root():return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":"0.6.0"}
+def root():return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":"0.7.0"}
 @app.get("/health")
 def health():
     ready=sum(1 for e in REGISTRY.values() if e.availability()[0])
@@ -90,4 +90,4 @@ async def compare(file:UploadFile=File(...),engines:str=Form("recommended")):
     if unknown:raise HTTPException(400,"Motores desconhecidos: "+str(unknown))
     async def one(i):
         async with _engine_sem:return await asyncio.to_thread(REGISTRY[i].run,image.copy())
-    return CompareResponse(image_width=image.width,image_height=image.height,results=await asyncio.gather(*(one(i) for i in ids)))
+    results=await asyncio.gather(*(one(i) for i in ids))\n    return CompareResponse(image_width=image.width,image_height=image.height,results=results,consensus=build_consensus(results))

@@ -1,4 +1,5 @@
 import asyncio,io,os,shutil,time,uuid
+from datetime import datetime,timezone
 from fastapi import FastAPI,File,Form,HTTPException,UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
@@ -7,7 +8,8 @@ from .schemas import CompareResponse,EngineInfo
 from .taxonomy import build_consensus
 from .spatial_consensus import build_spatial_consensus,render_spatial_consensus
 
-app=FastAPI(title="SHM Vision Lab API",version="0.9.1")
+API_VERSION="0.10.0"
+app=FastAPI(title="SHM Vision Lab API",version=API_VERSION)
 _default_origins="http://localhost:5173,https://aaronkadima.github.io"
 _origins=[x.strip().rstrip("/") for x in os.getenv("CORS_ORIGINS",_default_origins).split(",") if x.strip()]
 app.add_middleware(CORSMiddleware,allow_origins=_origins,allow_credentials=False,allow_methods=["GET","POST","OPTIONS"],allow_headers=["*"])
@@ -68,9 +70,20 @@ async def _run_engine(engine_id,image):
     async with _engine_sem:
         return await asyncio.to_thread(REGISTRY[engine_id].run,image.copy())
 
-def _assemble_response(image,results):
-    spatial=build_spatial_consensus(results,float(os.getenv("SHM_CONSENSUS_IOU","0.25")))
+def _assemble_response(image,results,analysis_id=None):
+    consensus_iou=float(os.getenv("SHM_CONSENSUS_IOU","0.25"))
+    spatial=build_spatial_consensus(results,consensus_iou)
     overlay=render_spatial_consensus(image,spatial) if spatial else None
+    metadata={
+        "analysis_id":analysis_id or uuid.uuid4().hex,
+        "api_version":API_VERSION,
+        "generated_at":datetime.now(timezone.utc).isoformat(),
+        "engine_ids":[r.engine_id for r in results],
+        "successful_engine_count":sum(1 for r in results if r.status=="ok"),
+        "engine_count":len(results),
+        "consensus_iou":consensus_iou,
+        "max_image_side":MAX_SIDE,
+    }
     return CompareResponse(
         image_width=image.width,
         image_height=image.height,
@@ -78,6 +91,7 @@ def _assemble_response(image,results):
         consensus=build_consensus(results),
         spatial_consensus=spatial,
         consensus_overlay_png_base64=overlay,
+        metadata=metadata,
     )
 
 async def _run_compare_job(job_id,image,ids):
@@ -95,7 +109,7 @@ async def _run_compare_job(job_id,image,ids):
             results.append(result)
             job["completed"]=idx
             job["updated_at"]=time.time()
-        response=_assemble_response(image,results)
+        response=_assemble_response(image,results,job_id)
         job["result"]=response.model_dump()
         job["state"]="done"
         job["current_engine"]=None
@@ -143,12 +157,12 @@ async def startup_event():
 
 @app.get("/")
 def root():
-    return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":"0.9.1","async_jobs":True}
+    return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":API_VERSION,"async_jobs":True}
 
 @app.get("/health")
 def health():
     ready=sum(1 for e in REGISTRY.values() if e.availability()[0])
-    return {"status":"ok","engines":len(REGISTRY),"ready":ready,"max_parallel_engines":MAX_PARALLEL,"max_active_jobs":MAX_ACTIVE_JOBS,"warmup":WARMUP_STATUS["state"],"async_jobs":True}
+    return {"status":"ok","version":API_VERSION,"engines":len(REGISTRY),"ready":ready,"max_parallel_engines":MAX_PARALLEL,"max_active_jobs":MAX_ACTIVE_JOBS,"warmup":WARMUP_STATUS["state"],"async_jobs":True}
 
 @app.get("/warmup-status")
 def warmup_status():
@@ -168,7 +182,7 @@ def status():
     for e in REGISTRY.values():
         ready,reason=e.availability()
         rows.append({"id":e.meta.id,"ready":ready,"reason":reason,"recommended":e.meta.recommended,"domain_mode":e.meta.domain_mode})
-    return {"engines":rows,"max_upload_mb":MAX_UPLOAD_MB,"max_image_side":MAX_SIDE,"max_parallel_engines":MAX_PARALLEL,"warmup":WARMUP_STATUS,"async_jobs":True}
+    return {"version":API_VERSION,"engines":rows,"max_upload_mb":MAX_UPLOAD_MB,"max_image_side":MAX_SIDE,"max_parallel_engines":MAX_PARALLEL,"max_active_jobs":MAX_ACTIVE_JOBS,"warmup":WARMUP_STATUS,"async_jobs":True}
 
 @app.get("/engines",response_model=list[EngineInfo])
 def engines():
@@ -185,7 +199,7 @@ async def compare(file:UploadFile=File(...),engines:str=Form("recommended")):
     image=_decode_image(await file.read())
     ids=_resolve_ids(engines)
     results=await asyncio.gather(*(_run_engine(i,image) for i in ids))
-    return _assemble_response(image,results)
+    return _assemble_response(image,results,uuid.uuid4().hex)
 
 @app.post("/jobs/compare")
 async def create_compare_job(file:UploadFile=File(...),engines:str=Form("recommended")):

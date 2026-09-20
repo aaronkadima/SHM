@@ -1,26 +1,67 @@
 # SHM Vision Lab
 
-Plataforma full-stack para comparar, com uma única imagem, múltiplos motores de visão computacional usados ou adaptáveis à inspeção visual de OAEs/SHM.
+Plataforma full-stack para comparar, a partir de **uma única imagem de inspeção**, múltiplos motores de visão computacional usados ou adaptáveis ao SHM e à inspeção visual de OAEs.
 
-## Implementado
-- Upload único e execução concorrente dos motores selecionados.
-- Saída normalizada para detecção, segmentação, open-vocabulary, anomalia e baseline clássico.
-- Comparação lado a lado com overlays, latência, achados e estado.
-- OpenCV determinístico funcional sem checkpoint.
-- Ultralytics YOLO11/YOLOv8/RT-DETR funcionais quando pacote/pesos estão disponíveis.
-- Grounding DINO zero-shot por texto.
-- U-Net e SegNet nativos para checkpoints SHM.
-- Registry de Detectron2, MMDetection/MMSegmentation, YOLO-NAS e Anomalib.
-- Docker Compose para frontend + backend.
+## Uso online — sem Docker local
 
-Arquitetura não é sinônimo de detector de patologia. Modelos supervisionados precisam de checkpoints treinados/validados para fissura, corrosão, desplacamento, armadura exposta etc. O sistema mantém arquitetura e checkpoint separados para comparação cientificamente rastreável.
+- Frontend: https://aaronkadima.github.io/SHM/
+- Backend de inferência: https://shm-api-production-01f8.up.railway.app
+- Swagger/OpenAPI: https://shm-api-production-01f8.up.railway.app/docs
 
-Famílias contempladas: YOLO11/YOLOv8, RT-DETR, Grounding DINO, SAM2/Grounded-SAM, Mask/Faster/Cascade R-CNN, PointRend, RTMDet, SOLO/SOLOv2, YOLACT, CondInst, SparseInst, U-Net, SegNet, DeepLabV3(+), SegFormer, HRNet/OCR, Mask2Former, YOLO-NAS, PatchCore, PaDiM, FastFlow e OpenCV.
+O frontend é publicado pelo GitHub Pages. A inferência roda no backend Railway, portanto o usuário final não precisa instalar Docker, Python ou modelos localmente.
 
-## Executar
-1. Instale Docker Desktop.
-2. Execute: docker compose up --build
-3. Frontend: http://localhost:5173
-4. Swagger: http://localhost:8000/docs
+## Fluxo implementado
 
-Pesos locais ficam em models/. O repositório não redistribui checkpoints de terceiros; verifique a licença de cada engine/checkpoint.
+1. Carregar uma imagem JPG, PNG ou WEBP.
+2. Selecionar motores recomendados, todos os motores prontos ou motores específicos.
+3. Executar a comparação em fila assíncrona, com progresso por motor.
+4. Comparar imagem original, overlays, latência, achados e métricas.
+5. Consultar concordância por categoria e mapa espacial de consenso.
+6. Exportar JSON, CSV, mapa de consenso e overlays individuais.
+
+Cada execução recebe um **analysis_id**, versão da API e timestamp UTC para rastreabilidade e reprodutibilidade.
+
+## Perfil cloud verificado
+
+O perfil de produção prioriza checkpoints públicos treinados para patologias de infraestrutura e descarrega modelos após cada inferência para limitar RAM. O warmup online verifica atualmente:
+
+- YOLO Crack Detector — fissuras.
+- YOLOv8 Structural Damage Segmentation — danos estruturais multiclasse.
+- GlassEye YOLO — triagem de defeitos.
+- YOLOv8 Corrosion Segmentation — corrosão/ferrugem.
+- YOLOv8n Crack Segmentation — segmentação de fissuras.
+- U-Net Concrete Crack — segmentação binária de fissuras.
+- SegFormer-B0 Crack Segmentation — segmentação Transformer de fissuras.
+
+O YOLO11 de corrosão e motores foundation/genéricos mais pesados permanecem registrados, mas não fazem parte do perfil cloud padrão quando excedem o envelope de memória disponível.
+
+## Famílias registradas
+
+YOLO11/YOLOv8, RT-DETR, Grounding DINO, OWLv2, CLIPSeg, SAM2/Grounded-SAM, Mask/Faster/Cascade R-CNN, PointRend, RTMDet, SOLOv2, CondInst, U-Net, SegNet, DeepLabV3+, SegFormer, HRNet/OCR, Mask2Former, YOLO-NAS, PatchCore, PaDiM, FastFlow e baseline OpenCV.
+
+> Arquitetura não é sinônimo de detector de patologia. Para comparação científica, o sistema separa arquitetura, checkpoint, licença e modo de domínio. Motores supervisionados só devem ser interpretados como detectores da patologia para a qual o checkpoint foi treinado/validado.
+
+## Arquitetura
+
+- **Frontend:** React + Vite, publicado no GitHub Pages.
+- **Backend:** FastAPI.
+- **Inferência:** PyTorch/Transformers/Ultralytics/OpenCV.
+- **Cache persistente:** volume Railway montado em `/models`.
+- **Fila:** jobs assíncronos com limite de concorrência e retenção curta.
+- **CI:** compilação do backend e build/deploy do frontend.
+- **Proteção de deploy:** `python -m compileall -q app` antes do runtime no Railway.
+
+## Execução local opcional
+
+Docker continua disponível apenas para desenvolvimento local:
+
+```bash
+docker compose up --build
+```
+
+Frontend local: http://localhost:5173  
+Swagger local: http://localhost:8000/docs
+
+## Licenças e checkpoints
+
+O repositório não deve redistribuir checkpoints de terceiros sem necessidade. Os adaptadores registram a fonte e a licença declarada do modelo/checkpoint. Antes de uso comercial, publicação de resultados ou redistribuição, confirme os termos do artefato original.

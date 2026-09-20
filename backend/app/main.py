@@ -14,6 +14,7 @@ _default_origins="http://localhost:5173,https://aaronkadima.github.io"
 _origins=[x.strip().rstrip("/") for x in os.getenv("CORS_ORIGINS",_default_origins).split(",") if x.strip()]
 app.add_middleware(CORSMiddleware,allow_origins=_origins,allow_credentials=False,allow_methods=["GET","POST","OPTIONS"],allow_headers=["*"])
 
+ROLE=os.getenv("SHM_ROLE","hybrid").strip().lower()
 MAX_UPLOAD_MB=float(os.getenv("SHM_MAX_UPLOAD_MB","20"))
 MAX_SIDE=int(os.getenv("SHM_MAX_IMAGE_SIDE","1600"))
 MAX_PARALLEL=max(1,int(os.getenv("SHM_MAX_PARALLEL_ENGINES","1")))
@@ -52,6 +53,11 @@ def _decode_image(raw):
         image.thumbnail((MAX_SIDE,MAX_SIDE),Image.Resampling.LANCZOS)
     return image
 
+def _enforce_role_cardinality(ids):
+    if ROLE=="comparator" and len(ids)<2:
+        raise HTTPException(400,"Este backend Railway opera somente como comparador multi-engine. Selecione dois ou mais motores. Para inferência individual, use o backend standalone do repositório.")
+    return ids
+
 def _resolve_ids(engines):
     if engines=="all":
         ids=list(REGISTRY)
@@ -64,7 +70,7 @@ def _resolve_ids(engines):
         raise HTTPException(400,"Motores desconhecidos: "+str(unknown))
     if not ids:
         raise HTTPException(400,"Nenhum motor selecionado.")
-    return ids
+    return _enforce_role_cardinality(ids)
 
 async def _run_engine(engine_id,image):
     async with _engine_sem:
@@ -163,12 +169,12 @@ async def startup_event():
 
 @app.get("/")
 def root():
-    return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":API_VERSION,"async_jobs":True}
+    return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":API_VERSION,"role":ROLE,"async_jobs":True}
 
 @app.get("/health")
 def health():
     ready=sum(1 for e in REGISTRY.values() if e.availability()[0])
-    return {"status":"ok","version":API_VERSION,"engines":len(REGISTRY),"ready":ready,"max_parallel_engines":MAX_PARALLEL,"max_active_jobs":MAX_ACTIVE_JOBS,"warmup":WARMUP_STATUS["state"],"async_jobs":True}
+    return {"status":"ok","version":API_VERSION,"role":ROLE,"engines":len(REGISTRY),"ready":ready,"max_parallel_engines":MAX_PARALLEL,"max_active_jobs":MAX_ACTIVE_JOBS,"warmup":WARMUP_STATUS["state"],"async_jobs":True}
 
 @app.get("/warmup-status")
 def warmup_status():

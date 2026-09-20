@@ -1,28 +1,35 @@
-import asyncio,io,os
+import asyncio,io,os,shutil
 from fastapi import FastAPI,File,Form,HTTPException,UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from .registry import REGISTRY
 from .schemas import CompareResponse,EngineInfo
 
-app=FastAPI(title="SHM Vision Lab API",version="0.4.0")
+app=FastAPI(title="SHM Vision Lab API",version="0.5.0")
 _default_origins="http://localhost:5173,https://aaronkadima.github.io"
 _origins=[x.strip().rstrip("/") for x in os.getenv("CORS_ORIGINS",_default_origins).split(",") if x.strip()]
 app.add_middleware(CORSMiddleware,allow_origins=_origins,allow_credentials=False,allow_methods=["GET","POST","OPTIONS"],allow_headers=["*"])
-MAX_UPLOAD_MB=float(os.getenv("SHM_MAX_UPLOAD_MB","20")); MAX_SIDE=int(os.getenv("SHM_MAX_IMAGE_SIDE","1600"))
-MAX_PARALLEL=max(1,int(os.getenv("SHM_MAX_PARALLEL_ENGINES","1"))); _engine_sem=asyncio.Semaphore(MAX_PARALLEL)
+MAX_UPLOAD_MB=float(os.getenv("SHM_MAX_UPLOAD_MB","20"));MAX_SIDE=int(os.getenv("SHM_MAX_IMAGE_SIDE","1600"))
+MAX_PARALLEL=max(1,int(os.getenv("SHM_MAX_PARALLEL_ENGINES","1")));_engine_sem=asyncio.Semaphore(MAX_PARALLEL)
 
 @app.get("/")
-def root(): return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":"0.4.0"}
+def root():return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":"0.5.0"}
 @app.get("/health")
 def health():
     ready=sum(1 for e in REGISTRY.values() if e.availability()[0])
     return {"status":"ok","engines":len(REGISTRY),"ready":ready,"max_parallel_engines":MAX_PARALLEL}
+@app.get("/storage")
+def storage():
+    path=os.getenv("SHM_COMPACT_MODEL_CACHE","/models/compact")
+    base="/models" if os.path.exists("/models") else "/"
+    usage=shutil.disk_usage(base)
+    return {"path":path,"volume_root":base,"total_mb":round(usage.total/1024/1024,1),
+        "used_mb":round(usage.used/1024/1024,1),"free_mb":round(usage.free/1024/1024,1)}
 @app.get("/status")
 def status():
     rows=[]
     for e in REGISTRY.values():
-        ready,reason=e.availability(); rows.append({"id":e.meta.id,"ready":ready,"reason":reason,"recommended":e.meta.recommended,"domain_mode":e.meta.domain_mode})
+        ready,reason=e.availability();rows.append({"id":e.meta.id,"ready":ready,"reason":reason,"recommended":e.meta.recommended,"domain_mode":e.meta.domain_mode})
     return {"engines":rows,"max_upload_mb":MAX_UPLOAD_MB,"max_image_side":MAX_SIDE,"max_parallel_engines":MAX_PARALLEL}
 @app.get("/engines",response_model=list[EngineInfo])
 def engines():
@@ -36,7 +43,7 @@ def engines():
 @app.post("/compare",response_model=CompareResponse)
 async def compare(file:UploadFile=File(...),engines:str=Form("recommended")):
     raw=await file.read()
-    if len(raw)>MAX_UPLOAD_MB*1024*1024: raise HTTPException(413,f"Arquivo excede {MAX_UPLOAD_MB:g} MB")
+    if len(raw)>MAX_UPLOAD_MB*1024*1024:raise HTTPException(413,f"Arquivo excede {MAX_UPLOAD_MB:g} MB")
     try:image=Image.open(io.BytesIO(raw)).convert("RGB")
     except Exception as e:raise HTTPException(400,"Imagem inválida: "+str(e))
     if max(image.size)>MAX_SIDE:image.thumbnail((MAX_SIDE,MAX_SIDE),Image.Resampling.LANCZOS)

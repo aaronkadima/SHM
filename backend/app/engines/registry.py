@@ -10,6 +10,7 @@ from .morphology import MorphologyEngine
 from .research_engine import Detectron2Engine, MMSegEngine, ONNXEngine
 from .sam2_engine import SAM2Engine
 from .smp_engine import SMPEngine
+from .torchvision_engine import TorchvisionEngine
 from .ultralytics_engine import UltralyticsEngine
 
 
@@ -36,6 +37,8 @@ class EngineRegistry:
             engine = HuggingFaceEngine(spec)
         elif adapter == "smp":
             engine = SMPEngine(spec)
+        elif adapter == "torchvision":
+            engine = TorchvisionEngine(spec)
         elif adapter == "detectron2":
             engine = Detectron2Engine(spec)
         elif adapter == "mmseg":

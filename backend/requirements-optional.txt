@@ -1,0 +1,9 @@
+# Instale apenas conforme os motores necessários.
+# git+https://github.com/facebookresearch/detectron2.git
+# git+https://github.com/facebookresearch/sam2.git
+mmengine>=0.10.0
+mmcv>=2.1.0
+mmdet>=3.3.0
+mmsegmentation>=1.2.0
+super-gradients>=3.7.1
+anomalib>=2.0.0

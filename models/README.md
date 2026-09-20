@@ -1,0 +1,6 @@
+# Checkpoints SHM
+Coloque checkpoints locais aqui (não versionados).
+
+Variáveis: SHM_YOLO_WEIGHTS, SHM_YOLOV8_WEIGHTS, SHM_RTDETR_WEIGHTS, SHM_UNET_WEIGHTS, SHM_SEGNET_WEIGHTS, SHM_SAM2_CHECKPOINT, SHM_SAM2_CONFIG, SHM_DETECTRON_CONFIG, SHM_DETECTRON_WEIGHTS, SHM_MMDET_CONFIG, SHM_MMDET_WEIGHTS, SHM_MMSEG_CONFIG, SHM_MMSEG_WEIGHTS, SHM_YOLONAS_WEIGHTS, SHM_ANOMALIB_CHECKPOINT.
+
+Classes SHM sugeridas: crack, spalling, corrosion, exposed_rebar, efflorescence, moisture, delamination, other.

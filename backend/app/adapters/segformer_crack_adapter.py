@@ -20,7 +20,7 @@ class SegFormerCrackAdapter(EngineAdapter):
         "Transformers / Hugging Face",
         "semantic_segmentation",
         "SegFormer-B0 compacto treinado para segmentação de fissuras, adicionando uma arquitetura Transformer à comparação.",
-        False,False,"public_shm_checkpoint",
+        False,True,"public_shm_checkpoint",
         "https://huggingface.co/onebeans/segformer_crack_detection","MIT"
     )
     def __init__(self):

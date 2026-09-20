@@ -13,6 +13,8 @@ class AdapterMeta:
     requires_weights:bool=False
     recommended:bool=False
     domain_mode:str="generic"
+    source_url:str|None=None
+    license:str|None=None
 class EngineAdapter(ABC):
     meta:AdapterMeta
     def availability(self): return True,None

@@ -2,12 +2,15 @@ from .adapters.opencv_adapter import OpenCVCrackAdapter
 from .adapters.ultralytics_adapter import UltralyticsAdapter
 from .adapters.grounding_adapter import GroundingDINOAdapter
 from .adapters.zeroshot_adapters import OWLv2Adapter,CLIPSegAdapter
+from .adapters.hf_pathology_adapters import public_pathology_catalog
 from .adapters.custom_segmentation import CustomSegAdapter
 from .adapters.optional_runtime import Detectron2Adapter,MMDetectionAdapter,MMSegAdapter,YoloNASAdapter,AnomalibAdapter,GroundedSAM2Adapter
 
 def build():
     x=[
-      OpenCVCrackAdapter(),GroundingDINOAdapter(),OWLv2Adapter(),CLIPSegAdapter(),GroundedSAM2Adapter(),
+      OpenCVCrackAdapter(),
+      *public_pathology_catalog(),
+      GroundingDINOAdapter(),OWLv2Adapter(),CLIPSegAdapter(),GroundedSAM2Adapter(),
       UltralyticsAdapter("yolo11","YOLO11","SHM_YOLO_WEIGHTS","yolo11n.pt"),
       UltralyticsAdapter("yolov8","YOLOv8","SHM_YOLOV8_WEIGHTS","yolov8n.pt"),
       UltralyticsAdapter("rtdetr","RT-DETR","SHM_RTDETR_WEIGHTS","rtdetr-l.pt"),
@@ -23,16 +26,14 @@ def build():
       MMSegAdapter("segformer","SegFormer","SHM_SEGFORMER_CONFIG","SHM_SEGFORMER_WEIGHTS"),
       MMSegAdapter("hrnet_ocr","HRNet/OCR","SHM_HRNET_CONFIG","SHM_HRNET_WEIGHTS"),
       MMSegAdapter("mask2former","Mask2Former","SHM_MASK2FORMER_CONFIG","SHM_MASK2FORMER_WEIGHTS"),
-      YoloNASAdapter(),
-      AnomalibAdapter("patchcore","PatchCore","SHM_PATCHCORE_CHECKPOINT"),
-      AnomalibAdapter("padim","PaDiM","SHM_PADIM_CHECKPOINT"),
-      AnomalibAdapter("fastflow","FastFlow","SHM_FASTFLOW_CHECKPOINT"),
+      YoloNASAdapter(),AnomalibAdapter("patchcore","PatchCore","SHM_PATCHCORE_CHECKPOINT"),
+      AnomalibAdapter("padim","PaDiM","SHM_PADIM_CHECKPOINT"),AnomalibAdapter("fastflow","FastFlow","SHM_FASTFLOW_CHECKPOINT"),
     ]
-    # Metadata científico/UX: zero-shot e baseline clássico são utilizáveis sem pesos SHM.
     for e in x:
-        if e.meta.id in {"opencv_crack","grounding_dino","owlv2","clipseg"}:
-            e.meta.recommended=True
-            e.meta.domain_mode="zero_shot" if e.meta.id!="opencv_crack" else "classical"
+        if e.meta.id=="opencv_crack":
+            e.meta.recommended=True; e.meta.domain_mode="classical"
+        elif e.meta.id in {"grounding_dino","owlv2","clipseg"}:
+            e.meta.domain_mode="zero_shot"
         elif e.meta.requires_weights:
             e.meta.domain_mode="shm_checkpoint"
         elif e.meta.id in {"yolo11","yolov8","rtdetr"}:

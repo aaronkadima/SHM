@@ -18,6 +18,8 @@ class EngineInfo(BaseModel):
     requires_weights:bool=False
     recommended:bool=False
     domain_mode:str="generic"
+    source_url:str|None=None
+    license:str|None=None
 class EngineResult(BaseModel):
     engine_id:str
     name:str

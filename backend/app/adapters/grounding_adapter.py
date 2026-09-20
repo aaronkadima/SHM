@@ -6,10 +6,13 @@ PROMPTS=["crack","concrete spalling","rust corrosion","exposed reinforcement bar
 class GroundingDINOAdapter(EngineAdapter):
     meta=AdapterMeta("grounding_dino","Grounding DINO","Transformers","open_vocabulary","Detecção zero-shot por prompts de manifestações patológicas.")
     def __init__(self): self.pipe=None
+    def availability(self):
+        enabled=os.getenv("SHM_ENABLE_HEAVY_ZEROSHOT","0").lower() in {"1","true","yes"}
+        return enabled,None if enabled else "Desativado no perfil cloud compacto; requer mais armazenamento/RAM (SHM_ENABLE_HEAVY_ZEROSHOT=1)."
     def _load(self):
+        from transformers import pipeline
         if self.pipe is None:
-            from transformers import pipeline
-            self.pipe=pipeline("zero-shot-object-detection",model=os.getenv("SHM_GROUNDING_MODEL","IDEA-Research/grounding-dino-tiny"),device_map="auto")
+            self.pipe=pipeline("zero-shot-object-detection",model=os.getenv("SHM_GROUNDING_MODEL","IDEA-Research/grounding-dino-tiny"),device=-1)
         return self.pipe
     def predict(self,image):
         raw=self._load()(image.convert("RGB"),candidate_labels=PROMPTS,threshold=float(os.getenv("SHM_GROUNDING_THRESHOLD",".22")))

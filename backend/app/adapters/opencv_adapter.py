@@ -17,4 +17,4 @@ class OpenCVCrackAdapter(EngineAdapter):
             if a<min_area: continue
             ds.append(Detection(label="crack_candidate",box=[x,y,x+w,y+h],area_px=float(a)))
             cv2.rectangle(out,(x,y),(x+w,y+h),(255,80,30),2)
-        return EngineResult(engine_id=self.meta.id,name=self.meta.name,task=self.meta.task,status="ok",detections=ds,overlay_png_base64=png_b64(Image.fromarray(out)),metrics={"candidate_count":len(ds),"mask_area_ratio":round(float((mask>0).mean()),6)})
+        return EngineResult(engine_id=self.meta.id,name=self.meta.name,task=self.meta.task,status="ok",detections=ds,overlay_png_base64=png_b64(Image.fromarray(out)),metrics={"candidate_count":len(ds),"mask_area_ratio":round(float((mask>0).mean()),6),"kernel":"15x15","open_kernel":"2x2","implementation":"blackhat-15x15-otsu-open2-v1","runtime":"python-opencv"})

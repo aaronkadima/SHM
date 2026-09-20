@@ -128,5 +128,13 @@ def public_pathology_catalog():
             "Decizez/yolov-corrosion-detection","Lite_YOLO8_v1.pt","instance_segmentation",
             "YOLOv8-Seg especializado em corrosão/ferrugem; complementar ao detector multiclasse de danos estruturais.",
             "MIT","https://huggingface.co/Decizez/yolov-corrosion-detection",default_conf=".25"),
+        HFUltralyticsAdapter("yolo11_public_corrosion","YOLO11 Corrosion Segmentation (public)",
+            "Decizez/yolov-corrosion-detection","Basic_YOLO11_v1.pt","instance_segmentation",
+            "YOLO11-Seg especializado em corrosão/ferrugem, incluído como segundo motor supervisionado independente para comparação.",
+            "MIT","https://huggingface.co/Decizez/yolov-corrosion-detection",default_conf=".25"),
+        HFUltralyticsAdapter("yolov8n_public_crack_seg","YOLOv8n Crack Segmentation (OpenSistemas)",
+            "OpenSistemas/YOLOv8-crack-seg","yolov8n/weights/best.pt","instance_segmentation",
+            "YOLOv8n-Seg treinado no Crack-seg para segmentação de fissuras em superfícies de infraestrutura.",
+            "AGPL-3.0","https://huggingface.co/OpenSistemas/YOLOv8-crack-seg",default_conf=".25"),
         SamirUNetCrackAdapter(),
     ]

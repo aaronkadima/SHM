@@ -89,7 +89,6 @@ async def _run_compare_job(job_id,image,ids):
             result=await _run_engine(engine_id,image)
             results.append(result)
             job["completed"]=idx
-            job["partial_results"]=[r.model_dump() for r in results]
             job["updated_at"]=time.time()
         response=_assemble_response(image,results)
         job["result"]=response.model_dump()
@@ -193,7 +192,7 @@ async def create_compare_job(file:UploadFile=File(...),engines:str=Form("recomme
     JOBS[job_id]={
         "id":job_id,"state":"queued","created_at":now,"updated_at":now,"finished_at":None,
         "total":len(ids),"completed":0,"current_index":0,"current_engine":None,
-        "engine_ids":ids,"partial_results":[],"result":None,"error":None,
+        "engine_ids":ids,"result":None,"error":None,
         "image_width":image.width,"image_height":image.height,
     }
     asyncio.create_task(_run_compare_job(job_id,image,ids))

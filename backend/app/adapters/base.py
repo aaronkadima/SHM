@@ -2,7 +2,8 @@ from abc import ABC,abstractmethod
 from dataclasses import dataclass
 from PIL import Image
 import base64,io,time
-from ..schemas import EngineResult\nfrom ..taxonomy import apply_taxonomy
+from ..schemas import EngineResult
+from ..taxonomy import apply_taxonomy
 @dataclass
 class AdapterMeta:
     id:str

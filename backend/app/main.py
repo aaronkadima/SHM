@@ -3,7 +3,8 @@ from fastapi import FastAPI,File,Form,HTTPException,UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from .registry import REGISTRY
-from .schemas import CompareResponse,EngineInfo\nfrom .taxonomy import build_consensus
+from .schemas import CompareResponse,EngineInfo
+from .taxonomy import build_consensus
 
 app=FastAPI(title="SHM Vision Lab API",version="0.7.0")
 _default_origins="http://localhost:5173,https://aaronkadima.github.io"
@@ -90,4 +91,5 @@ async def compare(file:UploadFile=File(...),engines:str=Form("recommended")):
     if unknown:raise HTTPException(400,"Motores desconhecidos: "+str(unknown))
     async def one(i):
         async with _engine_sem:return await asyncio.to_thread(REGISTRY[i].run,image.copy())
-    results=await asyncio.gather(*(one(i) for i in ids))\n    return CompareResponse(image_width=image.width,image_height=image.height,results=results,consensus=build_consensus(results))
+    results=await asyncio.gather(*(one(i) for i in ids))
+    return CompareResponse(image_width=image.width,image_height=image.height,results=results,consensus=build_consensus(results))

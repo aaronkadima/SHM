@@ -6,7 +6,7 @@ Plataforma para inspeção visual de OAEs e SHM com **motores independentes no p
 
 **O GitHub é a fonte dos motores. O Railway não é backend obrigatório dos motores.**
 
-- **1 motor selecionado:** a inferência é executada por um backend standalone do próprio repositório, local ou em qualquer servidor compatível. Railway não participa.
+- **1 motor selecionado:** se houver runtime browser, a inferência ocorre diretamente no navegador; caso contrário, usa o backend standalone do próprio repositório. Railway não participa.
 - **2 ou mais motores selecionados:** a mesma imagem é enviada ao **comparador Railway**, que orquestra os motores e devolve resultados normalizados, consenso e benchmark.
 - Todos os adaptadores, pré/pós-processamentos e integrações de modelos permanecem versionados em `backend/app/adapters/`.
 - O catálogo estático dos motores fica em `engines/catalog.json`.
@@ -191,3 +191,30 @@ Um modelo supervisionado só deve ser interpretado como detector da manifestaç�
 ## Licenças e pesos
 
 Os adaptadores registram fonte e licença declarada dos checkpoints públicos. Pesos de terceiros não devem ser redistribuídos sem necessidade. Para uso comercial ou publicação de resultados, confirme sempre os termos do artefato original.
+
+
+## Execução direta no navegador
+
+O primeiro motor totalmente independente de servidor já está ativo:
+
+- `opencv_crack` → JavaScript/Canvas no próprio GitHub Pages;
+- pipeline alinhado ao backend Python: black-hat aproximado com kernel 15×15, suavização 3×3, limiar de Otsu, abertura 2×2 e componentes conectados;
+- a imagem não é enviada ao Railway nem a um backend standalone;
+- o resultado inclui overlay, componentes, área relativa da máscara e assinatura de implementação.
+
+O catálogo possui os campos `browser_ready`, `browser_runtime` e `browser_candidate`.
+
+Os próximos candidatos já possuem pipeline de exportação ONNX no repositório:
+
+- `yolov8n_public_crack_seg`;
+- `unet_public_crack`;
+- `segformer_public_crack`.
+
+Use:
+
+```bash
+pip install -r tools/requirements-browser-export.txt
+python tools/export_browser_models.py --engine yolov8n_public_crack_seg
+```
+
+Os artefatos só devem ser promovidos para `browser_ready: true` depois da validação numérica entre ONNX/Web e o backend Python.

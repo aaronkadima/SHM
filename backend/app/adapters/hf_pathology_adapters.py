@@ -135,6 +135,6 @@ def public_pathology_catalog():
         HFUltralyticsAdapter("yolov8n_public_crack_seg","YOLOv8n Crack Segmentation (OpenSistemas)",
             "OpenSistemas/YOLOv8-crack-seg","yolov8n/weights/best.pt","instance_segmentation",
             "YOLOv8n-Seg treinado no Crack-seg para segmentação de fissuras em superfícies de infraestrutura.",
-            "AGPL-3.0","https://huggingface.co/OpenSistemas/YOLOv8-crack-seg",default_conf=".25"),
+            "AGPL-3.0","https://huggingface.co/OpenSistemas/YOLOv8-crack-seg",default_conf=".25",recommended=False),
         SamirUNetCrackAdapter(),
     ]

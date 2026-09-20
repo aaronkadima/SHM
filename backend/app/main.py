@@ -7,7 +7,7 @@ from .schemas import CompareResponse,EngineInfo
 from .taxonomy import build_consensus
 from .spatial_consensus import build_spatial_consensus,render_spatial_consensus
 
-app=FastAPI(title="SHM Vision Lab API",version="0.8.0")
+app=FastAPI(title="SHM Vision Lab API",version="0.8.1")
 _default_origins="http://localhost:5173,https://aaronkadima.github.io"
 _origins=[x.strip().rstrip("/") for x in os.getenv("CORS_ORIGINS",_default_origins).split(",") if x.strip()]
 app.add_middleware(CORSMiddleware,allow_origins=_origins,allow_credentials=False,allow_methods=["GET","POST","OPTIONS"],allow_headers=["*"])
@@ -50,7 +50,7 @@ async def startup_event():
         asyncio.create_task(_warmup_compact_engines())
 
 @app.get("/")
-def root():return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":"0.8.0"}
+def root():return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":"0.8.1"}
 @app.get("/health")
 def health():
     ready=sum(1 for e in REGISTRY.values() if e.availability()[0])

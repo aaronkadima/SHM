@@ -15,10 +15,13 @@ def _truthy(name,default="1"):
     return os.getenv(name,default).lower() in {"1","true","yes","on"}
 
 class HFUltralyticsAdapter(EngineAdapter):
-    def __init__(self,eid,name,repo_id,filename,task,description,license_name,source_url,conf_env="SHM_PUBLIC_YOLO_CONF",default_conf=".25",imgsz=None):
-        self.repo_id=repo_id;self.filename=filename;self.model=None;self.conf_env=conf_env;self.default_conf=default_conf;self.imgsz=imgsz
-        self.meta=AdapterMeta(eid,name,"Ultralytics / Hugging Face",task,description,False,True,"public_shm_checkpoint",source_url,license_name)
-    def availability(self): return True,None
+    def __init__(self,eid,name,repo_id,filename,task,description,license_name,source_url,conf_env="SHM_PUBLIC_YOLO_CONF",default_conf=".25",imgsz=None,recommended=True,enabled_env=None):
+        self.repo_id=repo_id;self.filename=filename;self.model=None;self.conf_env=conf_env;self.default_conf=default_conf;self.imgsz=imgsz;self.enabled_env=enabled_env
+        self.meta=AdapterMeta(eid,name,"Ultralytics / Hugging Face",task,description,False,recommended,"public_shm_checkpoint",source_url,license_name)
+    def availability(self):
+        if self.enabled_env and not _truthy(self.enabled_env,"0"):
+            return False,f"Desativado no perfil cloud atual; habilite {self.enabled_env}=1 em ambiente com RAM suficiente."
+        return True,None
     def _load(self):
         if self.model is None:
             from ultralytics import YOLO
@@ -131,7 +134,8 @@ def public_pathology_catalog():
         HFUltralyticsAdapter("yolo11_public_corrosion","YOLO11 Corrosion Segmentation (public)",
             "Decizez/yolov-corrosion-detection","Basic_YOLO11_v1.pt","instance_segmentation",
             "YOLO11-Seg especializado em corrosão/ferrugem, incluído como segundo motor supervisionado independente para comparação.",
-            "MIT","https://huggingface.co/Decizez/yolov-corrosion-detection",default_conf=".25"),
+            "MIT","https://huggingface.co/Decizez/yolov-corrosion-detection",default_conf=".25",
+            recommended=False,enabled_env="SHM_ENABLE_YOLO11_CORROSION"),
         HFUltralyticsAdapter("yolov8n_public_crack_seg","YOLOv8n Crack Segmentation (OpenSistemas)",
             "OpenSistemas/YOLOv8-crack-seg","yolov8n/weights/best.pt","instance_segmentation",
             "YOLOv8n-Seg treinado no Crack-seg para segmentação de fissuras em superfícies de infraestrutura.",

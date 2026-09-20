@@ -23,7 +23,9 @@ async def _warmup_compact_engines():
     WARMUP_STATUS={"state":"running","started_at":time.time(),"finished_at":None,"engines":{}}
     await asyncio.sleep(float(os.getenv("SHM_PREWARM_DELAY_SECONDS","3")))
     probe=Image.new("RGB",(320,320),(145,145,145))
-    candidates=[e for e in REGISTRY.values() if e.meta.domain_mode=="public_shm_checkpoint" and e.availability()[0]]
+    default_ids="yolov8_public_crack,yolov8_public_damage_seg,yolo_public_glasseye,yolov8_public_corrosion,unet_public_crack"
+    requested=[x.strip() for x in os.getenv("SHM_PREWARM_ENGINE_IDS",default_ids).split(",") if x.strip()]
+    candidates=[REGISTRY[x] for x in requested if x in REGISTRY and REGISTRY[x].availability()[0]]
     for e in candidates:
         started=time.perf_counter()
         try:

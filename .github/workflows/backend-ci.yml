@@ -26,3 +26,22 @@ jobs:
           python-version: "3.11"
       - name: Compile backend
         run: python -m compileall -q backend/app
+      - name: Validate HF adapter constructor calls
+        run: |
+          python - <<'PY'
+          import ast, pathlib
+          p=pathlib.Path("backend/app/adapters/hf_pathology_adapters.py")
+          tree=ast.parse(p.read_text(encoding="utf-8"))
+          cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=="HFUltralyticsAdapter")
+          init=next(n for n in cls.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)) and n.name=="__init__")
+          allowed={a.arg for a in init.args.args+init.args.kwonlyargs}
+          bad=[]
+          for node in ast.walk(tree):
+              if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id=="HFUltralyticsAdapter":
+                  for kw in node.keywords:
+                      if kw.arg and kw.arg not in allowed:
+                          bad.append((node.lineno,kw.arg))
+          if bad:
+              raise SystemExit(f"Unsupported HFUltralyticsAdapter keyword(s): {bad}")
+          print("HF adapter call signatures OK")
+          PY

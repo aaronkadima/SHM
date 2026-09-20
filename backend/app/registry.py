@@ -3,6 +3,7 @@ from .adapters.ultralytics_adapter import UltralyticsAdapter
 from .adapters.grounding_adapter import GroundingDINOAdapter
 from .adapters.zeroshot_adapters import OWLv2Adapter,CLIPSegAdapter
 from .adapters.hf_pathology_adapters import public_pathology_catalog
+from .adapters.segformer_crack_adapter import SegFormerCrackAdapter
 from .adapters.custom_segmentation import CustomSegAdapter
 from .adapters.optional_runtime import Detectron2Adapter,MMDetectionAdapter,MMSegAdapter,YoloNASAdapter,AnomalibAdapter,GroundedSAM2Adapter
 
@@ -10,6 +11,7 @@ def build():
     x=[
       OpenCVCrackAdapter(),
       *public_pathology_catalog(),
+      SegFormerCrackAdapter(),
       GroundingDINOAdapter(),OWLv2Adapter(),CLIPSegAdapter(),GroundedSAM2Adapter(),
       UltralyticsAdapter("yolo11","YOLO11","SHM_YOLO_WEIGHTS","yolo11n.pt"),
       UltralyticsAdapter("yolov8","YOLOv8","SHM_YOLOV8_WEIGHTS","yolov8n.pt"),

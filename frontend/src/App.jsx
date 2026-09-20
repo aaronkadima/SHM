@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useState}from"react";
 import{Upload,Play,CheckCircle2,AlertTriangle,Clock3,Layers3,Server,Save,Wifi,WifiOff}from"lucide-react";
 
-const BUILD_API=(import.meta.env.VITE_API_URL||"").replace(/\/$/,"");
+const BUILD_API=(import.meta.env.VITE_API_URL||"https://shm-api-production.up.railway.app").replace(/\/$/,"");
 const txt={ok:"Concluído",missing_dependency:"Dependência ausente",missing_weights:"Pesos ausentes",error:"Erro",skipped:"Registrado"};
 
 function initialApi(){

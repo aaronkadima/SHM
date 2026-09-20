@@ -1,67 +1,193 @@
 # SHM Vision Lab
 
-Plataforma full-stack para comparar, a partir de **uma única imagem de inspeção**, múltiplos motores de visão computacional usados ou adaptáveis ao SHM e à inspeção visual de OAEs.
+Plataforma para inspeção visual de OAEs e SHM com **motores independentes no próprio repositório** e comparação multi-engine opcional em nuvem.
 
-## Uso online — sem Docker local
+## Princípio arquitetural
 
-- Frontend: https://aaronkadima.github.io/SHM/
-- Backend de inferência: https://shm-api-production-01f8.up.railway.app
-- Swagger/OpenAPI: https://shm-api-production-01f8.up.railway.app/docs
+**O GitHub é a fonte dos motores. O Railway não é backend obrigatório dos motores.**
 
-O frontend é publicado pelo GitHub Pages. A inferência roda no backend Railway, portanto o usuário final não precisa instalar Docker, Python ou modelos localmente.
+- **1 motor selecionado:** a inferência é executada por um backend standalone do próprio repositório, local ou em qualquer servidor compatível. Railway não participa.
+- **2 ou mais motores selecionados:** a mesma imagem é enviada ao **comparador Railway**, que orquestra os motores e devolve resultados normalizados, consenso e benchmark.
+- Todos os adaptadores, pré/pós-processamentos e integrações de modelos permanecem versionados em `backend/app/adapters/`.
+- O catálogo estático dos motores fica em `engines/catalog.json`.
 
-## Fluxo implementado
+## Frontend
 
-1. Carregar uma imagem JPG, PNG ou WEBP.
-2. Selecionar motores recomendados, todos os motores prontos ou motores específicos.
-3. Executar a comparação em fila assíncrona, com progresso por motor.
-4. Comparar imagem original, overlays, latência, achados e métricas.
-5. Consultar concordância por categoria e mapa espacial de consenso.
-6. Exportar JSON, CSV, mapa de consenso e overlays individuais.
+GitHub Pages:
 
-Cada execução recebe um **analysis_id**, versão da API e timestamp UTC para rastreabilidade e reprodutibilidade.
+https://aaronkadima.github.io/SHM/
 
-## Perfil cloud verificado
+A página possui dois runtimes separados:
 
-O perfil de produção prioriza checkpoints públicos treinados para patologias de infraestrutura e descarrega modelos após cada inferência para limitar RAM. O warmup online verifica atualmente:
+1. **Motor individual — standalone**
+   - padrão: `http://127.0.0.1:8001`;
+   - usado somente quando exatamente um motor está selecionado;
+   - não faz request de inferência ao Railway.
 
-- YOLO Crack Detector — fissuras.
-- YOLOv8 Structural Damage Segmentation — danos estruturais multiclasse.
-- GlassEye YOLO — triagem de defeitos.
-- YOLOv8 Corrosion Segmentation — corrosão/ferrugem.
-- YOLOv8n Crack Segmentation — segmentação de fissuras.
-- U-Net Concrete Crack — segmentação binária de fissuras.
-- SegFormer-B0 Crack Segmentation — segmentação Transformer de fissuras.
+2. **Comparador multi-engine — Railway**
+   - produção: `https://shm-api-production-01f8.up.railway.app`;
+   - usado somente quando dois ou mais motores estão selecionados.
 
-O YOLO11 de corrosão e motores foundation/genéricos mais pesados permanecem registrados, mas não fazem parte do perfil cloud padrão quando excedem o envelope de memória disponível.
+## Executar um motor isoladamente
 
-## Famílias registradas
+No diretório `backend`:
 
-YOLO11/YOLOv8, RT-DETR, Grounding DINO, OWLv2, CLIPSeg, SAM2/Grounded-SAM, Mask/Faster/Cascade R-CNN, PointRend, RTMDet, SOLOv2, CondInst, U-Net, SegNet, DeepLabV3+, SegFormer, HRNet/OCR, Mask2Former, YOLO-NAS, PatchCore, PaDiM, FastFlow e baseline OpenCV.
+```bash
+python run_engine.py --engine segformer_public_crack --port 8001
+```
 
-> Arquitetura não é sinônimo de detector de patologia. Para comparação científica, o sistema separa arquitetura, checkpoint, licença e modo de domínio. Motores supervisionados só devem ser interpretados como detectores da patologia para a qual o checkpoint foi treinado/validado.
+Ou iniciar um servidor standalone capaz de receber qualquer motor registrado:
 
-## Arquitetura
+```bash
+python run_engine.py --port 8001
+```
 
-- **Frontend:** React + Vite, publicado no GitHub Pages.
-- **Backend:** FastAPI.
-- **Inferência:** PyTorch/Transformers/Ultralytics/OpenCV.
-- **Cache persistente:** volume Railway montado em `/models`.
-- **Fila:** jobs assíncronos com limite de concorrência e retenção curta.
-- **CI:** compilação do backend e build/deploy do frontend.
-- **Proteção de deploy:** `python -m compileall -q app` antes do runtime no Railway.
+Endpoints standalone:
 
-## Execução local opcional
+- `GET /health`
+- `GET /engines`
+- `POST /infer` com `file` e `engine_id`
 
-Docker continua disponível apenas para desenvolvimento local:
+Exemplos:
+
+```bash
+python run_engine.py --engine opencv_crack --port 8001
+python run_engine.py --engine yolov8n_public_crack_seg --port 8001
+python run_engine.py --engine unet_public_crack --port 8001
+python run_engine.py --engine segformer_public_crack --port 8001
+```
+
+O servidor standalone usa exatamente o mesmo código de motor que o comparador.
+
+## Comparação multi-engine
+
+O Railway é configurado com:
+
+```text
+SHM_ROLE=comparator
+```
+
+Nesse modo, o backend rejeita inferência comparativa com menos de dois motores. A responsabilidade do Railway é apenas:
+
+- fila e controle de concorrência;
+- execução sequencial/segura dos motores;
+- normalização das saídas;
+- consenso categórico;
+- consenso espacial por IoU;
+- medição de latência;
+- exportação do resultado consolidado.
+
+Endpoints principais:
+
+- `GET /health`
+- `GET /engines`
+- `POST /jobs/compare`
+- `GET /jobs/{id}`
+- `POST /jobs/{id}/cancel`
+
+## Motores registrados
+
+Atualmente o catálogo contém **33 motores/configurações**, incluindo:
+
+- OpenCV Crack Baseline;
+- YOLOv8/YOLO11 para fissura, danos estruturais e corrosão;
+- U-Net;
+- SegFormer-B0;
+- Grounding DINO;
+- OWLv2;
+- CLIPSeg;
+- Grounded SAM2;
+- RT-DETR;
+- Mask R-CNN;
+- PointRend;
+- Faster R-CNN;
+- Cascade Mask R-CNN;
+- RTMDet;
+- SOLOv2;
+- CondInst;
+- DeepLabV3+;
+- HRNet/OCR;
+- Mask2Former;
+- YOLO-NAS;
+- PatchCore;
+- PaDiM;
+- FastFlow.
+
+Alguns possuem checkpoints públicos de patologia estrutural já integrados; outros exigem dependências, configuração e/ou checkpoints específicos do usuário.
+
+## Resultados
+
+A plataforma apresenta:
+
+- imagem original;
+- resultado individual de cada motor;
+- sobreposição/segmentação;
+- número de achados;
+- latência;
+- métricas específicas;
+- taxonomia normalizada de patologias;
+- concordância entre motores;
+- mapa espacial de consenso;
+- exportação JSON;
+- exportação CSV;
+- download dos overlays;
+- `analysis_id`, versão da API e timestamp para rastreabilidade.
+
+## Estrutura
+
+```text
+SHM/
+├── engines/
+│   ├── catalog.json
+│   └── README.md
+├── backend/
+│   ├── run_engine.py
+│   └── app/
+│       ├── standalone.py
+│       ├── main.py
+│       ├── registry.py
+│       └── adapters/
+├── frontend/
+└── .github/workflows/
+```
+
+### Responsabilidades
+
+`standalone.py`  
+Backend independente para **um motor por inferência**.
+
+`main.py`  
+Orquestrador multi-engine. Em produção Railway opera com `SHM_ROLE=comparator`.
+
+`registry.py`  
+Registro central dos motores disponíveis.
+
+`engines/catalog.json`  
+Catálogo estático consumido pelo frontend sem precisar consultar Railway.
+
+## Desenvolvimento local completo
+
+O Docker permanece disponível como conveniência de desenvolvimento, mas não é requisito para uso individual dos motores:
 
 ```bash
 docker compose up --build
 ```
 
-Frontend local: http://localhost:5173  
-Swagger local: http://localhost:8000/docs
+## Validade científica
 
-## Licenças e checkpoints
+Arquitetura de rede neural não equivale, por si só, a detector de patologia. O sistema distingue:
 
-O repositório não deve redistribuir checkpoints de terceiros sem necessidade. Os adaptadores registram a fonte e a licença declarada do modelo/checkpoint. Antes de uso comercial, publicação de resultados ou redistribuição, confirme os termos do artefato original.
+- arquitetura;
+- checkpoint;
+- fonte;
+- licença;
+- modo de domínio;
+- status cloud;
+- resultado individual;
+- consenso multi-engine.
+
+Um modelo supervisionado só deve ser interpretado como detector da manifestação patológica para a qual seu checkpoint foi treinado e validado.
+
+## Licenças e pesos
+
+Os adaptadores registram fonte e licença declarada dos checkpoints públicos. Pesos de terceiros não devem ser redistribuídos sem necessidade. Para uso comercial ou publicação de resultados, confirme sempre os termos do artefato original.

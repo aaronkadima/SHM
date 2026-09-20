@@ -16,7 +16,8 @@ MAX_UPLOAD_MB=float(os.getenv("SHM_MAX_UPLOAD_MB","20"))
 MAX_SIDE=int(os.getenv("SHM_MAX_IMAGE_SIDE","1600"))
 MAX_PARALLEL=max(1,int(os.getenv("SHM_MAX_PARALLEL_ENGINES","1")))
 JOB_TTL_SECONDS=max(300,int(os.getenv("SHM_JOB_TTL_SECONDS","1800")))
-MAX_STORED_JOBS=max(2,int(os.getenv("SHM_MAX_STORED_JOBS","6")))\nMAX_ACTIVE_JOBS=max(1,int(os.getenv("SHM_MAX_ACTIVE_JOBS","2")))
+MAX_STORED_JOBS=max(2,int(os.getenv("SHM_MAX_STORED_JOBS","6")))
+MAX_ACTIVE_JOBS=max(1,int(os.getenv("SHM_MAX_ACTIVE_JOBS","2")))
 _engine_sem=asyncio.Semaphore(MAX_PARALLEL)
 WARMUP_STATUS={"state":"disabled","started_at":None,"finished_at":None,"engines":{}}
 JOBS={}

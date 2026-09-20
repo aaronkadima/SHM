@@ -7,7 +7,7 @@ from .schemas import CompareResponse,EngineInfo
 from .taxonomy import build_consensus
 from .spatial_consensus import build_spatial_consensus,render_spatial_consensus
 
-app=FastAPI(title="SHM Vision Lab API",version="0.9.0")
+app=FastAPI(title="SHM Vision Lab API",version="0.9.1")
 _default_origins="http://localhost:5173,https://aaronkadima.github.io"
 _origins=[x.strip().rstrip("/") for x in os.getenv("CORS_ORIGINS",_default_origins).split(",") if x.strip()]
 app.add_middleware(CORSMiddleware,allow_origins=_origins,allow_credentials=False,allow_methods=["GET","POST","OPTIONS"],allow_headers=["*"])
@@ -142,7 +142,7 @@ async def startup_event():
 
 @app.get("/")
 def root():
-    return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":"0.9.0","async_jobs":True}
+    return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":"0.9.1","async_jobs":True}
 
 @app.get("/health")
 def health():

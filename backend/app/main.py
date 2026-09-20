@@ -30,11 +30,11 @@ def _truthy(name,default="0"):
 def _cleanup_jobs():
     now=time.time()
     for jid,j in list(JOBS.items()):
-        if j.get("state") in {"done","error"} and now-j.get("updated_at",now)>JOB_TTL_SECONDS:
+        if j.get("state") in {"done","error","cancelled"} and now-j.get("updated_at",now)>JOB_TTL_SECONDS:
             JOBS.pop(jid,None)
     if len(JOBS)>MAX_STORED_JOBS:
         removable=sorted(
-            [(jid,j) for jid,j in JOBS.items() if j.get("state") in {"done","error"}],
+            [(jid,j) for jid,j in JOBS.items() if j.get("state") in {"done","error","cancelled"}],
             key=lambda kv:kv[1].get("updated_at",0)
         )
         excess=len(JOBS)-MAX_STORED_JOBS
@@ -102,6 +102,12 @@ async def _run_compare_job(job_id,image,ids):
     results=[]
     try:
         for idx,engine_id in enumerate(ids,1):
+            if job.get("cancel_requested"):
+                job["state"]="cancelled"
+                job["current_engine"]=None
+                job["finished_at"]=time.time()
+                job["updated_at"]=job["finished_at"]
+                return
             job["current_engine"]=engine_id
             job["current_index"]=idx
             job["updated_at"]=time.time()
@@ -214,7 +220,7 @@ async def create_compare_job(file:UploadFile=File(...),engines:str=Form("recomme
     JOBS[job_id]={
         "id":job_id,"state":"queued","created_at":now,"updated_at":now,"finished_at":None,
         "total":len(ids),"completed":0,"current_index":0,"current_engine":None,
-        "engine_ids":ids,"result":None,"error":None,
+        "engine_ids":ids,"result":None,"error":None,"cancel_requested":False,
         "image_width":image.width,"image_height":image.height,
     }
     asyncio.create_task(_run_compare_job(job_id,image,ids))
@@ -227,3 +233,15 @@ def get_compare_job(job_id:str):
     if not job:
         raise HTTPException(404,"Job não encontrado ou expirado.")
     return job
+
+@app.post("/jobs/{job_id}/cancel")
+def cancel_compare_job(job_id:str):
+    _cleanup_jobs()
+    job=JOBS.get(job_id)
+    if not job:
+        raise HTTPException(404,"Job não encontrado ou expirado.")
+    if job.get("state") in {"done","error","cancelled"}:
+        return {"job_id":job_id,"state":job.get("state"),"cancel_requested":bool(job.get("cancel_requested"))}
+    job["cancel_requested"]=True
+    job["updated_at"]=time.time()
+    return {"job_id":job_id,"state":job.get("state"),"cancel_requested":True}

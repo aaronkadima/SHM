@@ -1,0 +1,4 @@
+onnx>=1.17,<2
+onnxruntime>=1.20,<2
+onnxslim>=0.1.48
+huggingface_hub>=0.27,<1

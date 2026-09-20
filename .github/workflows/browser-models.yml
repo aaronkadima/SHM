@@ -1,0 +1,35 @@
+name: Export browser ONNX model
+on:
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: Compact SHM engine to export
+        required: true
+        type: choice
+        options:
+          - yolov8n_public_crack_seg
+          - unet_public_crack
+          - segformer_public_crack
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install backend
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: Install ONNX export dependencies
+        run: pip install -r tools/requirements-browser-export.txt
+      - name: Export
+        run: python tools/export_browser_models.py --engine "${{ inputs.engine }}"
+      - name: Upload ONNX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shm-browser-${{ inputs.engine }}
+          path: browser-models/artifacts/${{ inputs.engine }}/model.onnx
+          if-no-files-found: error

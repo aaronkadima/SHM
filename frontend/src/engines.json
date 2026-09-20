@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "engines": [
     {
       "id": "opencv_crack",
@@ -9,7 +9,9 @@
       "description": "Baseline morfológico determinístico para candidatos a fissura.",
       "recommended": true,
       "cloud_verified": true,
-      "domain_mode": "classical"
+      "domain_mode": "classical",
+      "browser_ready": true,
+      "browser_runtime": "builtin-js"
     },
     {
       "id": "yolov8_public_crack",
@@ -21,7 +23,9 @@
       "cloud_verified": true,
       "domain_mode": "public_shm_checkpoint",
       "license": "Apache-2.0",
-      "source_url": "https://huggingface.co/Utbird/crack_detection"
+      "source_url": "https://huggingface.co/Utbird/crack_detection",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "yolov8_public_damage_seg",
@@ -33,7 +37,9 @@
       "cloud_verified": true,
       "domain_mode": "public_shm_checkpoint",
       "license": "Apache-2.0",
-      "source_url": "https://huggingface.co/iloveass/kompon-damage-severity-detection"
+      "source_url": "https://huggingface.co/iloveass/kompon-damage-severity-detection",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "yolo_public_glasseye",
@@ -45,7 +51,9 @@
       "cloud_verified": true,
       "domain_mode": "public_shm_checkpoint",
       "license": "MIT",
-      "source_url": "https://huggingface.co/sanjeevafk/glasseye-yolo"
+      "source_url": "https://huggingface.co/sanjeevafk/glasseye-yolo",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "yolov8_public_corrosion",
@@ -57,7 +65,9 @@
       "cloud_verified": true,
       "domain_mode": "public_shm_checkpoint",
       "license": "MIT",
-      "source_url": "https://huggingface.co/Decizez/yolov-corrosion-detection"
+      "source_url": "https://huggingface.co/Decizez/yolov-corrosion-detection",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "yolo11_public_corrosion",
@@ -69,7 +79,9 @@
       "cloud_verified": false,
       "domain_mode": "public_shm_checkpoint",
       "license": "MIT",
-      "source_url": "https://huggingface.co/Decizez/yolov-corrosion-detection"
+      "source_url": "https://huggingface.co/Decizez/yolov-corrosion-detection",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "yolov8n_public_crack_seg",
@@ -81,7 +93,11 @@
       "cloud_verified": true,
       "domain_mode": "public_shm_checkpoint",
       "license": "AGPL-3.0",
-      "source_url": "https://huggingface.co/OpenSistemas/YOLOv8-crack-seg"
+      "source_url": "https://huggingface.co/OpenSistemas/YOLOv8-crack-seg",
+      "browser_ready": false,
+      "browser_runtime": null,
+      "browser_candidate": true,
+      "browser_target": "onnx-web"
     },
     {
       "id": "unet_public_crack",
@@ -93,7 +109,11 @@
       "cloud_verified": true,
       "domain_mode": "public_shm_checkpoint",
       "license": "MIT",
-      "source_url": "https://huggingface.co/samir-mohamed/concrete-crack-segmentation"
+      "source_url": "https://huggingface.co/samir-mohamed/concrete-crack-segmentation",
+      "browser_ready": false,
+      "browser_runtime": null,
+      "browser_candidate": true,
+      "browser_target": "onnx-web"
     },
     {
       "id": "segformer_public_crack",
@@ -105,7 +125,11 @@
       "cloud_verified": true,
       "domain_mode": "public_shm_checkpoint",
       "license": "MIT",
-      "source_url": "https://huggingface.co/onebeans/segformer_crack_detection"
+      "source_url": "https://huggingface.co/onebeans/segformer_crack_detection",
+      "browser_ready": false,
+      "browser_runtime": null,
+      "browser_candidate": true,
+      "browser_target": "onnx-web"
     },
     {
       "id": "grounding_dino",
@@ -115,7 +139,9 @@
       "description": "Detecção zero-shot guiada por texto.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "zero_shot"
+      "domain_mode": "zero_shot",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "owlv2",
@@ -125,7 +151,9 @@
       "description": "Detecção zero-shot por texto.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "zero_shot"
+      "domain_mode": "zero_shot",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "clipseg",
@@ -135,7 +163,9 @@
       "description": "Segmentação zero-shot guiada por texto.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "zero_shot"
+      "domain_mode": "zero_shot",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "grounded_sam2",
@@ -145,7 +175,9 @@
       "description": "Propostas textuais seguidas de segmentação SAM2.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "yolo11",
@@ -155,7 +187,9 @@
       "description": "Arquitetura YOLO11; use checkpoint SHM próprio.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "generic_pretrained"
+      "domain_mode": "generic_pretrained",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "yolov8",
@@ -165,7 +199,9 @@
       "description": "Arquitetura YOLOv8; use checkpoint SHM próprio.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "generic_pretrained"
+      "domain_mode": "generic_pretrained",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "rtdetr",
@@ -175,7 +211,9 @@
       "description": "RT-DETR; use checkpoint SHM próprio.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "generic_pretrained"
+      "domain_mode": "generic_pretrained",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "unet",
@@ -185,7 +223,9 @@
       "description": "U-Net customizável; requer checkpoint SHM local.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "shm_checkpoint"
+      "domain_mode": "shm_checkpoint",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "segnet",
@@ -195,7 +235,9 @@
       "description": "SegNet customizável; requer checkpoint SHM local.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "shm_checkpoint"
+      "domain_mode": "shm_checkpoint",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "mask_rcnn",
@@ -205,7 +247,9 @@
       "description": "Mask R-CNN via Detectron2.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "pointrend",
@@ -215,7 +259,9 @@
       "description": "PointRend via Detectron2.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "faster_rcnn",
@@ -225,7 +271,9 @@
       "description": "Faster R-CNN via MMDetection.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "cascade_mask_rcnn",
@@ -235,7 +283,9 @@
       "description": "Cascade Mask R-CNN via MMDetection.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "rtmdet",
@@ -245,7 +295,9 @@
       "description": "RTMDet via MMDetection.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "solov2",
@@ -255,7 +307,9 @@
       "description": "SOLOv2 via MMDetection.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "condinst",
@@ -265,7 +319,9 @@
       "description": "CondInst via MMDetection.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "deeplabv3plus",
@@ -275,7 +331,9 @@
       "description": "DeepLabV3+ via MMSegmentation.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "segformer",
@@ -285,7 +343,9 @@
       "description": "SegFormer via MMSegmentation.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "hrnet_ocr",
@@ -295,7 +355,9 @@
       "description": "HRNet/OCR via MMSegmentation.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "mask2former",
@@ -305,7 +367,9 @@
       "description": "Mask2Former via MMSegmentation.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "yolo_nas",
@@ -315,7 +379,9 @@
       "description": "YOLO-NAS via SuperGradients.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "patchcore",
@@ -325,7 +391,9 @@
       "description": "Detecção de anomalias PatchCore.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "padim",
@@ -335,7 +403,9 @@
       "description": "Detecção de anomalias PaDiM.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     },
     {
       "id": "fastflow",
@@ -345,7 +415,9 @@
       "description": "Detecção de anomalias FastFlow.",
       "recommended": false,
       "cloud_verified": false,
-      "domain_mode": "optional_runtime"
+      "domain_mode": "optional_runtime",
+      "browser_ready": false,
+      "browser_runtime": null
     }
   ]
 }

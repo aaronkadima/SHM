@@ -14,3 +14,6 @@
 .localHint{font-size:11px;line-height:1.45;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:9px;color:#475569}
 .localHint code{background:#eef2f6;border-radius:4px;padding:1px 4px}
 @media(max-width:900px){.runtimeGrid{grid-template-columns:1fr}.runtimeInputs{grid-template-columns:1fr auto}.runtimeInputs .secondary{grid-column:1/-1;justify-content:center}}
+
+.engine b em.browserBadge{background:#ede9fe;color:#6d28d9}
+.browserHint{background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6}

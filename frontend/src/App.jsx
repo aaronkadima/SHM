@@ -4,6 +4,7 @@ import{
   FlaskConical,ExternalLink,HardDrive,Download,FileJson,FileSpreadsheet,MonitorCog,CloudCog
 }from"lucide-react";
 import catalog from"./engines.json";
+import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
 
 const DEFAULT_COMPARATOR="https://shm-api-production-01f8.up.railway.app";
 const DEFAULT_INDIVIDUAL="http://127.0.0.1:8001";
@@ -85,11 +86,13 @@ export default function App(){
   const runMode=selected.length===1?"individual":selected.length>=2?"comparison":"none";
   const recommended=engines.filter(e=>e.recommended).length;
   const cloudVerified=engines.filter(e=>e.cloud_verified).length;
+  const browserReady=engines.filter(e=>e.browser_ready).length;
   const visibleEng=useMemo(()=>{
     const q=engineQuery.trim().toLowerCase();
     return engines.filter(e=>{
       if(engineFilter==="recommended"&&!e.recommended)return false;
       if(engineFilter==="verified"&&!e.cloud_verified)return false;
+      if(engineFilter==="browser"&&!e.browser_ready)return false;
       if(engineFilter==="public"&&e.domain_mode!=="public_shm_checkpoint")return false;
       if(engineFilter==="optional"&&e.domain_mode!=="optional_runtime"&&e.domain_mode!=="shm_checkpoint"&&e.domain_mode!=="generic_pretrained")return false;
       if(!q)return true;
@@ -132,6 +135,11 @@ export default function App(){
 
   async function runIndividual(){
     const engineId=selected[0];
+    const meta=engines.find(e=>e.id===engineId);
+    if(meta?.browser_ready&&browserEngineSupported(engineId)){
+      setRes(await runBrowserEngine(engineId,file));
+      return;
+    }
     const fd=new FormData();fd.append("file",file);fd.append("engine_id",engineId);
     const r=await fetch(individualApi+"/infer",{method:"POST",body:fd});
     if(!r.ok)throw new Error(await r.text());
@@ -186,18 +194,18 @@ export default function App(){
   return <main>
     <header>
       <div><div className="eye"><Layers3 size={16}/> SHM · OAEs · COMPUTER VISION</div><h1>SHM Vision Lab</h1><p>Motor individual independente; Railway somente para comparação com dois ou mais motores.</p></div>
-      <div className="sum"><b>{engines.length}</b><span>motores no repositório</span><b>{recommended}</b><span>recomendados</span><b>{cloudVerified}</b><span>verificados no perfil cloud</span></div>
+      <div className="sum"><b>{engines.length}</b><span>motores no repositório</span><b>{recommended}</b><span>recomendados</span><b>{cloudVerified}</b><span>verificados no perfil cloud</span><b>{browserReady}</b><span>executa direto no navegador</span></div>
     </header>
 
     <section className="runtimeGrid">
       <div className={"runtimeCard "+(runMode==="individual"?"active":"")}>
-        <div className="runtimeTitle"><MonitorCog size={19}/><div><b>Motor individual</b><span>Execução standalone · sem Railway</span></div></div>
+        <div className="runtimeTitle"><MonitorCog size={19}/><div><b>Motor individual</b><span>{selected.length===1&&engines.find(e=>e.id===selected[0])?.browser_ready?"Execução no navegador · zero servidor":"Backend standalone do repositório"} · sem Railway</span></div></div>
         <div className="runtimeInputs">
           <input value={individualDraft} onChange={e=>setIndividualDraft(e.target.value)} placeholder="http://127.0.0.1:8001"/>
           <button onClick={saveIndividual}><Save size={15}/> Salvar</button>
           <button className="secondary" onClick={testIndividual}>Testar</button>
         </div>
-        <small>{individualOnline===true?<><Wifi size={12}/> Backend standalone conectado</>:individualOnline===false?<><WifiOff size={12}/> Backend standalone não acessível</>:"Selecione exatamente 1 motor para usar este backend."}</small>
+        <small>{selected.length===1&&engines.find(e=>e.id===selected[0])?.browser_ready?<><CheckCircle2 size={12}/> Este motor executa integralmente no navegador</>:individualOnline===true?<><Wifi size={12}/> Backend standalone conectado</>:individualOnline===false?<><WifiOff size={12}/> Backend standalone não acessível</>:"Motores sem runtime browser usam o backend standalone."}</small>
       </div>
 
       <div className={"runtimeCard "+(runMode==="comparison"?"active":"")}>
@@ -211,7 +219,7 @@ export default function App(){
     </section>
 
     <div className={"scienceNote "+(runMode==="individual"?"individualMode":runMode==="comparison"?"comparisonMode":"")}>
-      <FlaskConical size={17}/><span><b>Modo atual:</b> {runMode==="individual"?"inferência individual pelo backend standalone do repositório; nenhum request de inferência é enviado ao Railway.":runMode==="comparison"?"comparação multi-engine; o Railway atua somente como orquestrador da mesma base de motores do repositório.":"selecione um motor para modo individual ou dois ou mais para comparação."}</span>
+      <FlaskConical size={17}/><span><b>Modo atual:</b> {runMode==="individual"?(engines.find(e=>e.id===selected[0])?.browser_ready?"inferência individual executada diretamente no navegador; nenhum servidor recebe a imagem.":"inferência individual pelo backend standalone do repositório; nenhum request de inferência é enviado ao Railway."):runMode==="comparison"?"comparação multi-engine; o Railway atua somente como orquestrador da mesma base de motores do repositório.":"selecione um motor para modo individual ou dois ou mais para comparação."}</span>
     </div>
 
     <section className="work">
@@ -222,7 +230,7 @@ export default function App(){
           {busy&&jobId&&runMode==="comparison"&&<button className="cancelRun" onClick={cancelRun}>Cancelar</button>}
         </div>
         {busy&&progress&&<div className="jobProgress"><div className="jobProgressTop"><span>{progress.current_engine?`Motor: ${engines.find(e=>e.id===progress.current_engine)?.name||progress.current_engine}`:"Preparando fila..."}</span><b>{progress.completed}/{progress.total}</b></div><div className="jobTrack"><i style={{width:`${progress.total?Math.round(progress.completed/progress.total*100):0}%`}}/></div></div>}
-        {runMode==="individual"&&<div className="localHint"><b>Backend individual:</b> no diretório <code>backend</code>, execute <code>python run_engine.py --engine {selected[0]||"ID_DO_MOTOR"} --port 8001</code>.</div>}
+        {runMode==="individual"&&(engines.find(e=>e.id===selected[0])?.browser_ready?<div className="localHint browserHint"><b>Execução local no navegador:</b> esta imagem não é enviada ao Railway nem exige servidor Python.</div>:<div className="localHint"><b>Backend individual:</b> no diretório <code>backend</code>, execute <code>python run_engine.py --engine {selected[0]||"ID_DO_MOTOR"} --port 8001</code>.</div>)}
         {err&&<div className="error">{err}</div>}
       </div>
 
@@ -231,10 +239,10 @@ export default function App(){
         <div className="engineFilterBar">
           <input aria-label="Buscar motores" value={engineQuery} onChange={e=>setEngineQuery(e.target.value)} placeholder="Buscar motor, família ou tarefa..."/>
           <select value={engineFilter} onChange={e=>setEngineFilter(e.target.value)}>
-            <option value="all">Todos ({engines.length})</option><option value="recommended">Recomendados ({recommended})</option><option value="verified">Cloud verificados ({cloudVerified})</option><option value="public">Checkpoints SHM públicos</option><option value="optional">Requerem configuração/runtime</option>
+            <option value="all">Todos ({engines.length})</option><option value="browser">Direto no navegador ({browserReady})</option><option value="recommended">Recomendados ({recommended})</option><option value="verified">Cloud verificados ({cloudVerified})</option><option value="public">Checkpoints SHM públicos</option><option value="optional">Requerem configuração/runtime</option>
           </select>
         </div>
-        <div className="elist">{visibleEng.map(e=><label className="engine" key={e.id}><input type="checkbox" checked={sel.has(e.id)} onChange={()=>toggle(e.id)}/><div><b>{e.name}{e.recommended&&<em> recomendado</em>}{e.cloud_verified&&<em className="verified"> cloud validado</em>}</b><span>{e.family} · {e.task.replaceAll("_"," ")} · {modeLabel(e)}</span><small>{e.description}</small>{e.license&&<small className="license">Licença: {e.license}{e.source_url&&<> · <a href={e.source_url} target="_blank" rel="noreferrer" onClick={ev=>ev.stopPropagation()}>fonte <ExternalLink size={10}/></a></>}</small>}</div><CheckCircle2 className="ok" size={18}/></label>)}{visibleEng.length===0&&<div className="engineEmpty">Nenhum motor corresponde ao filtro atual.</div>}</div>
+        <div className="elist">{visibleEng.map(e=><label className="engine" key={e.id}><input type="checkbox" checked={sel.has(e.id)} onChange={()=>toggle(e.id)}/><div><b>{e.name}{e.browser_ready&&<em className="browserBadge"> navegador</em>}{e.recommended&&<em> recomendado</em>}{e.cloud_verified&&<em className="verified"> cloud validado</em>}</b><span>{e.family} · {e.task.replaceAll("_"," ")} · {modeLabel(e)}</span><small>{e.description}</small>{e.license&&<small className="license">Licença: {e.license}{e.source_url&&<> · <a href={e.source_url} target="_blank" rel="noreferrer" onClick={ev=>ev.stopPropagation()}>fonte <ExternalLink size={10}/></a></>}</small>}</div><CheckCircle2 className="ok" size={18}/></label>)}{visibleEng.length===0&&<div className="engineEmpty">Nenhum motor corresponde ao filtro atual.</div>}</div>
       </div>
     </section>
 

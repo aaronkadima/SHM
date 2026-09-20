@@ -8,10 +8,20 @@ class Detection(BaseModel):
     polygon:list[list[float]]|None=None
     area_px:float|None=None
 class EngineInfo(BaseModel):
-    id:str; name:str; family:str; task:Task; description:str; ready:bool
-    reason:str|None=None; requires_weights:bool=False
+    id:str
+    name:str
+    family:str
+    task:Task
+    description:str
+    ready:bool
+    reason:str|None=None
+    requires_weights:bool=False
+    recommended:bool=False
+    domain_mode:str="generic"
 class EngineResult(BaseModel):
-    engine_id:str; name:str; task:Task
+    engine_id:str
+    name:str
+    task:Task
     status:Literal["ok","missing_dependency","missing_weights","error","skipped"]
     latency_ms:float=0.0
     detections:list[Detection]=Field(default_factory=list)
@@ -19,4 +29,6 @@ class EngineResult(BaseModel):
     metrics:dict=Field(default_factory=dict)
     message:str|None=None
 class CompareResponse(BaseModel):
-    image_width:int; image_height:int; results:list[EngineResult]
+    image_width:int
+    image_height:int
+    results:list[EngineResult]

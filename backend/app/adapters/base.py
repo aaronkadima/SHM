@@ -5,7 +5,14 @@ import base64,io,time
 from ..schemas import EngineResult
 @dataclass
 class AdapterMeta:
-    id:str; name:str; family:str; task:str; description:str; requires_weights:bool=False
+    id:str
+    name:str
+    family:str
+    task:str
+    description:str
+    requires_weights:bool=False
+    recommended:bool=False
+    domain_mode:str="generic"
 class EngineAdapter(ABC):
     meta:AdapterMeta
     def availability(self): return True,None

@@ -1,12 +1,13 @@
 from .adapters.opencv_adapter import OpenCVCrackAdapter
 from .adapters.ultralytics_adapter import UltralyticsAdapter
 from .adapters.grounding_adapter import GroundingDINOAdapter
+from .adapters.zeroshot_adapters import OWLv2Adapter,CLIPSegAdapter
 from .adapters.custom_segmentation import CustomSegAdapter
 from .adapters.optional_runtime import Detectron2Adapter,MMDetectionAdapter,MMSegAdapter,YoloNASAdapter,AnomalibAdapter,GroundedSAM2Adapter
 
 def build():
     x=[
-      OpenCVCrackAdapter(),GroundingDINOAdapter(),GroundedSAM2Adapter(),
+      OpenCVCrackAdapter(),GroundingDINOAdapter(),OWLv2Adapter(),CLIPSegAdapter(),GroundedSAM2Adapter(),
       UltralyticsAdapter("yolo11","YOLO11","SHM_YOLO_WEIGHTS","yolo11n.pt"),
       UltralyticsAdapter("yolov8","YOLOv8","SHM_YOLOV8_WEIGHTS","yolov8n.pt"),
       UltralyticsAdapter("rtdetr","RT-DETR","SHM_RTDETR_WEIGHTS","rtdetr-l.pt"),
@@ -27,5 +28,14 @@ def build():
       AnomalibAdapter("padim","PaDiM","SHM_PADIM_CHECKPOINT"),
       AnomalibAdapter("fastflow","FastFlow","SHM_FASTFLOW_CHECKPOINT"),
     ]
+    # Metadata científico/UX: zero-shot e baseline clássico são utilizáveis sem pesos SHM.
+    for e in x:
+        if e.meta.id in {"opencv_crack","grounding_dino","owlv2","clipseg"}:
+            e.meta.recommended=True
+            e.meta.domain_mode="zero_shot" if e.meta.id!="opencv_crack" else "classical"
+        elif e.meta.requires_weights:
+            e.meta.domain_mode="shm_checkpoint"
+        elif e.meta.id in {"yolo11","yolov8","rtdetr"}:
+            e.meta.domain_mode="generic_pretrained"
     return {e.meta.id:e for e in x}
 REGISTRY=build()

@@ -24,7 +24,7 @@ No Railway, conecte o repositório `aaronkadima/SHM` e configure o serviço com:
 - Root Directory: `/backend`
 - Dockerfile detectado automaticamente: `backend/Dockerfile`
 - Healthcheck: `/health`
-- Gere um domínio público HTTPS.
+- Domínio público atual: `https://shm-api-production-01f8.up.railway.app` (porta 8080).
 - Variável `CORS_ORIGINS=https://aaronkadima.github.io`
 
 O Docker é construído no servidor do Railway; nada precisa ser instalado no computador local.
@@ -42,3 +42,18 @@ Os checkpoints não são colocados no Git por padrão. Configure-os no volume/ar
 Push em `main`:
 - GitHub Pages recompila o frontend automaticamente.
 - O provedor do backend pode ser configurado para autodeploy a partir do mesmo repositório.
+
+
+## Estado atual da produção
+
+- Railway project: `SHM Vision Lab`
+- Service: `shm-api`
+- Branch: `main`
+- Root directory: `/backend`
+- Autodeploy watch: `backend/**`
+- Healthcheck: `/health`
+- Backend público: `https://shm-api-production-01f8.up.railway.app`
+- GitHub Pages frontend esperado: `https://aaronkadima.github.io/SHM/`
+- Último backend validado pelo healthcheck Railway: HTTP 200.
+
+O domínio Railway antigo em porta 8000 não deve ser usado pelo frontend.

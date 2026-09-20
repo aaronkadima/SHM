@@ -16,7 +16,7 @@ MAX_UPLOAD_MB=float(os.getenv("SHM_MAX_UPLOAD_MB","20"))
 MAX_SIDE=int(os.getenv("SHM_MAX_IMAGE_SIDE","1600"))
 MAX_PARALLEL=max(1,int(os.getenv("SHM_MAX_PARALLEL_ENGINES","1")))
 JOB_TTL_SECONDS=max(300,int(os.getenv("SHM_JOB_TTL_SECONDS","1800")))
-MAX_STORED_JOBS=max(2,int(os.getenv("SHM_MAX_STORED_JOBS","6")))
+MAX_STORED_JOBS=max(2,int(os.getenv("SHM_MAX_STORED_JOBS","6")))\nMAX_ACTIVE_JOBS=max(1,int(os.getenv("SHM_MAX_ACTIVE_JOBS","2")))
 _engine_sem=asyncio.Semaphore(MAX_PARALLEL)
 WARMUP_STATUS={"state":"disabled","started_at":None,"finished_at":None,"engines":{}}
 JOBS={}
@@ -30,8 +30,12 @@ def _cleanup_jobs():
         if j.get("state") in {"done","error"} and now-j.get("updated_at",now)>JOB_TTL_SECONDS:
             JOBS.pop(jid,None)
     if len(JOBS)>MAX_STORED_JOBS:
-        ordered=sorted(JOBS.items(),key=lambda kv:kv[1].get("updated_at",0))
-        for jid,_ in ordered[:len(JOBS)-MAX_STORED_JOBS]:
+        removable=sorted(
+            [(jid,j) for jid,j in JOBS.items() if j.get("state") in {"done","error"}],
+            key=lambda kv:kv[1].get("updated_at",0)
+        )
+        excess=len(JOBS)-MAX_STORED_JOBS
+        for jid,_ in removable[:excess]:
             JOBS.pop(jid,None)
 
 def _decode_image(raw):
@@ -143,7 +147,7 @@ def root():
 @app.get("/health")
 def health():
     ready=sum(1 for e in REGISTRY.values() if e.availability()[0])
-    return {"status":"ok","engines":len(REGISTRY),"ready":ready,"max_parallel_engines":MAX_PARALLEL,"warmup":WARMUP_STATUS["state"],"async_jobs":True}
+    return {"status":"ok","engines":len(REGISTRY),"ready":ready,"max_parallel_engines":MAX_PARALLEL,"max_active_jobs":MAX_ACTIVE_JOBS,"warmup":WARMUP_STATUS["state"],"async_jobs":True}
 
 @app.get("/warmup-status")
 def warmup_status():
@@ -185,6 +189,9 @@ async def compare(file:UploadFile=File(...),engines:str=Form("recommended")):
 @app.post("/jobs/compare")
 async def create_compare_job(file:UploadFile=File(...),engines:str=Form("recommended")):
     _cleanup_jobs()
+    active=sum(1 for j in JOBS.values() if j.get("state") in {"queued","running"})
+    if active>=MAX_ACTIVE_JOBS:
+        raise HTTPException(429,"Servidor ocupado com comparações em andamento. Tente novamente em instantes.")
     image=_decode_image(await file.read())
     ids=_resolve_ids(engines)
     job_id=uuid.uuid4().hex

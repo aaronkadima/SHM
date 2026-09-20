@@ -1,0 +1,351 @@
+{
+  "version": "1.0.0",
+  "engines": [
+    {
+      "id": "opencv_crack",
+      "name": "OpenCV Crack Baseline",
+      "family": "OpenCV",
+      "task": "classical",
+      "description": "Baseline morfológico determinístico para candidatos a fissura.",
+      "recommended": true,
+      "cloud_verified": true,
+      "domain_mode": "classical"
+    },
+    {
+      "id": "yolov8_public_crack",
+      "name": "YOLO Crack Detector (public)",
+      "family": "Ultralytics / Hugging Face",
+      "task": "detection",
+      "description": "YOLO treinado especificamente para fissuras em superfícies de infraestrutura.",
+      "recommended": true,
+      "cloud_verified": true,
+      "domain_mode": "public_shm_checkpoint",
+      "license": "Apache-2.0",
+      "source_url": "https://huggingface.co/Utbird/crack_detection"
+    },
+    {
+      "id": "yolov8_public_damage_seg",
+      "name": "YOLOv8 Structural Damage Segmentation (public)",
+      "family": "Ultralytics / Hugging Face",
+      "task": "instance_segmentation",
+      "description": "Segmentação multiclasse de fissura estrutural, corrosão, desplacamento, microfissura e dano severo.",
+      "recommended": true,
+      "cloud_verified": true,
+      "domain_mode": "public_shm_checkpoint",
+      "license": "Apache-2.0",
+      "source_url": "https://huggingface.co/iloveass/kompon-damage-severity-detection"
+    },
+    {
+      "id": "yolo_public_glasseye",
+      "name": "GlassEye Infrastructure Defect Detector (public)",
+      "family": "Ultralytics / Hugging Face",
+      "task": "detection",
+      "description": "YOLOv8n leve para triagem de defeitos de infraestrutura de concreto.",
+      "recommended": true,
+      "cloud_verified": true,
+      "domain_mode": "public_shm_checkpoint",
+      "license": "MIT",
+      "source_url": "https://huggingface.co/sanjeevafk/glasseye-yolo"
+    },
+    {
+      "id": "yolov8_public_corrosion",
+      "name": "YOLOv8 Corrosion Segmentation (public)",
+      "family": "Ultralytics / Hugging Face",
+      "task": "instance_segmentation",
+      "description": "YOLOv8-Seg especializado em corrosão e ferrugem.",
+      "recommended": true,
+      "cloud_verified": true,
+      "domain_mode": "public_shm_checkpoint",
+      "license": "MIT",
+      "source_url": "https://huggingface.co/Decizez/yolov-corrosion-detection"
+    },
+    {
+      "id": "yolo11_public_corrosion",
+      "name": "YOLO11 Corrosion Segmentation (public)",
+      "family": "Ultralytics / Hugging Face",
+      "task": "instance_segmentation",
+      "description": "YOLO11-Seg especializado em corrosão; exige envelope de memória maior.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "public_shm_checkpoint",
+      "license": "MIT",
+      "source_url": "https://huggingface.co/Decizez/yolov-corrosion-detection"
+    },
+    {
+      "id": "yolov8n_public_crack_seg",
+      "name": "YOLOv8n Crack Segmentation (OpenSistemas)",
+      "family": "Ultralytics / Hugging Face",
+      "task": "instance_segmentation",
+      "description": "YOLOv8n-Seg treinado no Crack-seg para segmentação de fissuras.",
+      "recommended": true,
+      "cloud_verified": true,
+      "domain_mode": "public_shm_checkpoint",
+      "license": "AGPL-3.0",
+      "source_url": "https://huggingface.co/OpenSistemas/YOLOv8-crack-seg"
+    },
+    {
+      "id": "unet_public_crack",
+      "name": "U-Net Concrete Crack (public)",
+      "family": "PyTorch / Hugging Face",
+      "task": "semantic_segmentation",
+      "description": "U-Net treinada para segmentação binária de fissuras em concreto.",
+      "recommended": true,
+      "cloud_verified": true,
+      "domain_mode": "public_shm_checkpoint",
+      "license": "MIT",
+      "source_url": "https://huggingface.co/samir-mohamed/concrete-crack-segmentation"
+    },
+    {
+      "id": "segformer_public_crack",
+      "name": "SegFormer-B0 Crack Segmentation (public)",
+      "family": "Transformers / Hugging Face",
+      "task": "semantic_segmentation",
+      "description": "SegFormer-B0 compacto treinado para segmentação de fissuras.",
+      "recommended": true,
+      "cloud_verified": true,
+      "domain_mode": "public_shm_checkpoint",
+      "license": "MIT",
+      "source_url": "https://huggingface.co/onebeans/segformer_crack_detection"
+    },
+    {
+      "id": "grounding_dino",
+      "name": "Grounding DINO",
+      "family": "Transformers",
+      "task": "open_vocabulary",
+      "description": "Detecção zero-shot guiada por texto.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "zero_shot"
+    },
+    {
+      "id": "owlv2",
+      "name": "OWLv2",
+      "family": "Transformers",
+      "task": "open_vocabulary",
+      "description": "Detecção zero-shot por texto.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "zero_shot"
+    },
+    {
+      "id": "clipseg",
+      "name": "CLIPSeg",
+      "family": "Transformers",
+      "task": "semantic_segmentation",
+      "description": "Segmentação zero-shot guiada por texto.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "zero_shot"
+    },
+    {
+      "id": "grounded_sam2",
+      "name": "Grounded SAM2",
+      "family": "Grounding DINO + SAM2",
+      "task": "instance_segmentation",
+      "description": "Propostas textuais seguidas de segmentação SAM2.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "yolo11",
+      "name": "YOLO11",
+      "family": "Ultralytics",
+      "task": "detection",
+      "description": "Arquitetura YOLO11; use checkpoint SHM próprio.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "generic_pretrained"
+    },
+    {
+      "id": "yolov8",
+      "name": "YOLOv8",
+      "family": "Ultralytics",
+      "task": "detection",
+      "description": "Arquitetura YOLOv8; use checkpoint SHM próprio.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "generic_pretrained"
+    },
+    {
+      "id": "rtdetr",
+      "name": "RT-DETR",
+      "family": "Ultralytics",
+      "task": "detection",
+      "description": "RT-DETR; use checkpoint SHM próprio.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "generic_pretrained"
+    },
+    {
+      "id": "unet",
+      "name": "U-Net",
+      "family": "PyTorch",
+      "task": "semantic_segmentation",
+      "description": "U-Net customizável; requer checkpoint SHM local.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "shm_checkpoint"
+    },
+    {
+      "id": "segnet",
+      "name": "SegNet",
+      "family": "PyTorch",
+      "task": "semantic_segmentation",
+      "description": "SegNet customizável; requer checkpoint SHM local.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "shm_checkpoint"
+    },
+    {
+      "id": "mask_rcnn",
+      "name": "Mask R-CNN (Detectron2)",
+      "family": "Detectron2",
+      "task": "instance_segmentation",
+      "description": "Mask R-CNN via Detectron2.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "pointrend",
+      "name": "PointRend (Detectron2)",
+      "family": "Detectron2",
+      "task": "instance_segmentation",
+      "description": "PointRend via Detectron2.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "faster_rcnn",
+      "name": "Faster R-CNN",
+      "family": "MMDetection",
+      "task": "detection",
+      "description": "Faster R-CNN via MMDetection.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "cascade_mask_rcnn",
+      "name": "Cascade Mask R-CNN",
+      "family": "MMDetection",
+      "task": "instance_segmentation",
+      "description": "Cascade Mask R-CNN via MMDetection.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "rtmdet",
+      "name": "RTMDet",
+      "family": "MMDetection",
+      "task": "detection",
+      "description": "RTMDet via MMDetection.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "solov2",
+      "name": "SOLOv2",
+      "family": "MMDetection",
+      "task": "instance_segmentation",
+      "description": "SOLOv2 via MMDetection.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "condinst",
+      "name": "CondInst",
+      "family": "MMDetection",
+      "task": "instance_segmentation",
+      "description": "CondInst via MMDetection.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "deeplabv3plus",
+      "name": "DeepLabV3+",
+      "family": "MMSegmentation",
+      "task": "semantic_segmentation",
+      "description": "DeepLabV3+ via MMSegmentation.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "segformer",
+      "name": "SegFormer",
+      "family": "MMSegmentation",
+      "task": "semantic_segmentation",
+      "description": "SegFormer via MMSegmentation.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "hrnet_ocr",
+      "name": "HRNet/OCR",
+      "family": "MMSegmentation",
+      "task": "semantic_segmentation",
+      "description": "HRNet/OCR via MMSegmentation.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "mask2former",
+      "name": "Mask2Former",
+      "family": "MMSegmentation",
+      "task": "semantic_segmentation",
+      "description": "Mask2Former via MMSegmentation.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "yolo_nas",
+      "name": "YOLO-NAS",
+      "family": "SuperGradients",
+      "task": "detection",
+      "description": "YOLO-NAS via SuperGradients.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "patchcore",
+      "name": "PatchCore",
+      "family": "Anomalib",
+      "task": "anomaly",
+      "description": "Detecção de anomalias PatchCore.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "padim",
+      "name": "PaDiM",
+      "family": "Anomalib",
+      "task": "anomaly",
+      "description": "Detecção de anomalias PaDiM.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    },
+    {
+      "id": "fastflow",
+      "name": "FastFlow",
+      "family": "Anomalib",
+      "task": "anomaly",
+      "description": "Detecção de anomalias FastFlow.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "optional_runtime"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      args:
+        INSTALL_AI: ${INSTALL_AI:-1}
+    env_file:
+      - .env
+    volumes:
+      - ./models:/models
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    restart: unless-stopped

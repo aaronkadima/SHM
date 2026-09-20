@@ -1,6 +1,33 @@
 # Checkpoints SHM
-Coloque checkpoints locais aqui (não versionados).
 
-Variáveis: SHM_YOLO_WEIGHTS, SHM_YOLOV8_WEIGHTS, SHM_RTDETR_WEIGHTS, SHM_UNET_WEIGHTS, SHM_SEGNET_WEIGHTS, SHM_SAM2_CHECKPOINT, SHM_SAM2_CONFIG, SHM_DETECTRON_CONFIG, SHM_DETECTRON_WEIGHTS, SHM_MMDET_CONFIG, SHM_MMDET_WEIGHTS, SHM_MMSEG_CONFIG, SHM_MMSEG_WEIGHTS, SHM_YOLONAS_WEIGHTS, SHM_ANOMALIB_CHECKPOINT.
+Pesos/configs ficam nesta pasta e não são versionados.
 
-Classes SHM sugeridas: crack, spalling, corrosion, exposed_rebar, efflorescence, moisture, delamination, other.
+## Motores supervisionados
+- YOLO11: SHM_YOLO_WEIGHTS
+- YOLOv8: SHM_YOLOV8_WEIGHTS
+- RT-DETR: SHM_RTDETR_WEIGHTS
+- U-Net: SHM_UNET_WEIGHTS
+- SegNet: SHM_SEGNET_WEIGHTS
+- Mask R-CNN Detectron2: SHM_MASKRCNN_CONFIG + SHM_MASKRCNN_WEIGHTS
+- PointRend: SHM_POINTREND_CONFIG + SHM_POINTREND_WEIGHTS
+- Faster R-CNN: SHM_FRCNN_CONFIG + SHM_FRCNN_WEIGHTS
+- Cascade Mask R-CNN: SHM_CASCADE_CONFIG + SHM_CASCADE_WEIGHTS
+- RTMDet: SHM_RTMDET_CONFIG + SHM_RTMDET_WEIGHTS
+- SOLOv2: SHM_SOLOV2_CONFIG + SHM_SOLOV2_WEIGHTS
+- CondInst: SHM_CONDINST_CONFIG + SHM_CONDINST_WEIGHTS
+- DeepLabV3+: SHM_DEEPLAB_CONFIG + SHM_DEEPLAB_WEIGHTS
+- SegFormer: SHM_SEGFORMER_CONFIG + SHM_SEGFORMER_WEIGHTS
+- HRNet/OCR: SHM_HRNET_CONFIG + SHM_HRNET_WEIGHTS
+- Mask2Former: SHM_MASK2FORMER_CONFIG + SHM_MASK2FORMER_WEIGHTS
+- YOLO-NAS: SHM_YOLONAS_WEIGHTS (+ SHM_YOLONAS_ARCH opcional)
+
+## Foundation/open-vocabulary
+- Grounding DINO baixa o modelo configurado em SHM_GROUNDING_MODEL (default IDEA-Research/grounding-dino-tiny).
+- Grounded SAM2: SHM_SAM2_CONFIG + SHM_SAM2_CHECKPOINT.
+
+## Anomalia
+- SHM_PATCHCORE_CHECKPOINT
+- SHM_PADIM_CHECKPOINT
+- SHM_FASTFLOW_CHECKPOINT
+
+As classes e a ordem de índices precisam coincidir com o treinamento. O frontend exibe class_N quando o framework não fornece nomes no checkpoint/config.

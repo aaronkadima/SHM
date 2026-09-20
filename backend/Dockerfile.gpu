@@ -1,0 +1,12 @@
+FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends git build-essential libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt requirements-optional.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+# Instale opcionalmente no build específico do seu CUDA/PyTorch:
+# RUN pip install --no-cache-dir -r requirements-optional.txt
+# RUN pip install --no-cache-dir 'git+https://github.com/facebookresearch/detectron2.git'
+# RUN pip install --no-cache-dir 'git+https://github.com/facebookresearch/sam2.git'
+COPY app ./app
+EXPOSE 8000
+CMD ["uvicorn","app.main:app","--host","0.0.0.0","--port","8000"]

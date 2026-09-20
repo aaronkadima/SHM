@@ -5,8 +5,9 @@ from PIL import Image
 from .registry import REGISTRY
 from .schemas import CompareResponse,EngineInfo
 from .taxonomy import build_consensus
+from .spatial_consensus import build_spatial_consensus,render_spatial_consensus
 
-app=FastAPI(title="SHM Vision Lab API",version="0.7.0")
+app=FastAPI(title="SHM Vision Lab API",version="0.8.0")
 _default_origins="http://localhost:5173,https://aaronkadima.github.io"
 _origins=[x.strip().rstrip("/") for x in os.getenv("CORS_ORIGINS",_default_origins).split(",") if x.strip()]
 app.add_middleware(CORSMiddleware,allow_origins=_origins,allow_credentials=False,allow_methods=["GET","POST","OPTIONS"],allow_headers=["*"])
@@ -49,7 +50,7 @@ async def startup_event():
         asyncio.create_task(_warmup_compact_engines())
 
 @app.get("/")
-def root():return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":"0.7.0"}
+def root():return {"name":"SHM Vision Lab API","status":"online","docs":"/docs","version":"0.8.0"}
 @app.get("/health")
 def health():
     ready=sum(1 for e in REGISTRY.values() if e.availability()[0])
@@ -92,4 +93,6 @@ async def compare(file:UploadFile=File(...),engines:str=Form("recommended")):
     async def one(i):
         async with _engine_sem:return await asyncio.to_thread(REGISTRY[i].run,image.copy())
     results=await asyncio.gather(*(one(i) for i in ids))
-    return CompareResponse(image_width=image.width,image_height=image.height,results=results,consensus=build_consensus(results))
+    spatial=build_spatial_consensus(results,float(os.getenv("SHM_CONSENSUS_IOU","0.25")))
+    overlay=render_spatial_consensus(image,spatial) if spatial else None
+    return CompareResponse(image_width=image.width,image_height=image.height,results=results,consensus=build_consensus(results),spatial_consensus=spatial,consensus_overlay_png_base64=overlay)

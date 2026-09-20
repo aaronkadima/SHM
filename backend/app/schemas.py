@@ -41,3 +41,5 @@ class CompareResponse(BaseModel):
     image_height:int
     results:list[EngineResult]
     consensus:dict=Field(default_factory=dict)
+    spatial_consensus:list[dict]=Field(default_factory=list)
+    consensus_overlay_png_base64:str|None=None

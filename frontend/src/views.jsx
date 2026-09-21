@@ -48,7 +48,7 @@ export function NavRail({active,onSelect}){
   </aside>
 }
 
-export function DashboardView({engines,res,selected,prev,comparatorOnline,individualOnline,onNavigate}){
+export function DashboardView({engines,res,selected,prev,comparatorOnline,individualOnline,history,inspection,onNavigate}){
   const detections=detectionsFrom(res);
   const successful=(res?.results||[]).filter(r=>r.status==="ok").length;
   const failed=(res?.results||[]).filter(r=>r.status!=="ok").length;
@@ -63,13 +63,13 @@ export function DashboardView({engines,res,selected,prev,comparatorOnline,indivi
       <div className="kpiCard"><span>MOTORES REGISTRADOS</span><b>{engines.length}</b><small>{engines.filter(e=>e.recommended).length} recomendados</small></div>
       <div className="kpiCard"><span>SELECIONADOS</span><b>{selected.length}</b><small>{selected.length===1?"modo individual":selected.length>=2?"comparação multi-engine":"nenhum"}</small></div>
       <div className="kpiCard"><span>ACHADOS DA SESSÃO</span><b>{detections.length}</b><small>{res?"dados da última execução":"sem execução nesta sessão"}</small></div>
-      <div className="kpiCard"><span>MOTORES CONCLUÍDOS</span><b>{successful}</b><small>{failed?failed+" com pendência/erro":"nenhuma pendência registrada"}</small></div>
+      <div className="kpiCard"><span>INSPEÇÕES SALVAS</span><b>{history?.length||0}</b><small>{successful?successful+" motores concluídos na sessão":failed?failed+" com pendência/erro":"histórico local persistente"}</small></div>
     </div>
     <div className="dashboardGrid">
       <article className="surface liveSurface">
         <div className="surfaceHead"><div><b>INSPEÇÃO DA SESSÃO</b><span>{res?"Último resultado disponível":"Nenhum resultado processado"}</span></div><span className={"statusPill "+(res?"success":"neutral")}>{res?"RESULTADO":"AGUARDANDO"}</span></div>
         <div className="dashboardPreview">{preview?<img src={preview} alt="Inspeção atual"/>:<EmptyView icon={ImageIcon} title="Nenhuma imagem carregada">Carregue uma imagem na tela de Análise para iniciar a sessão.</EmptyView>}</div>
-        <div className="previewFoot"><span>{res?res.image_width+" × "+res.image_height+" px":"Entrada visual não definida"}</span><span>{res?.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleString("pt-BR"):"—"}</span></div>
+        <div className="previewFoot"><span>{res?res.image_width+" × "+res.image_height+" px":"Entrada visual não definida"} · {inspection?.oae_id||"OAE não identificada"} · {inspection?.element_id||"elemento não identificado"}</span><span>{res?.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleString("pt-BR"):"—"}</span></div>
       </article>
       <div className="dashboardSide">
         <article className="surface runtimeSummary">
@@ -87,7 +87,7 @@ export function DashboardView({engines,res,selected,prev,comparatorOnline,indivi
   </section>
 }
 
-export function CamerasView({prev,res,onNavigate}){
+export function CamerasView({prev,res,inspection,onNavigate}){
   return <section className="viewPage">
     <SectionHead eyebrow="ENTRADA VISUAL" title="Câmeras & fontes" description="A versão atual trabalha com imagem de inspeção carregada pelo usuário; streaming de câmera ainda não está conectado ao backend." actions={<button onClick={()=>onNavigate("analysis")}>Carregar imagem <Camera size={14}/></button>}/>
     <div className="cameraGrid">
@@ -97,7 +97,7 @@ export function CamerasView({prev,res,onNavigate}){
       </article>
       <article className="surface sourceMeta">
         <div className="surfaceHead"><div><b>METADADOS</b><span>Disponíveis na sessão atual</span></div></div>
-        <dl><div><dt>Origem</dt><dd>{prev?"Upload do navegador":"—"}</dd></div><div><dt>Dimensão processada</dt><dd>{res?res.image_width+" × "+res.image_height+" px":"—"}</dd></div><div><dt>Análise</dt><dd>{res?.metadata?.analysis_id?String(res.metadata.analysis_id).slice(0,18):"—"}</dd></div><div><dt>Streaming</dt><dd>Não configurado</dd></div></dl>
+        <dl><div><dt>Origem</dt><dd>{prev?"Upload do navegador":"—"}</dd></div><div><dt>OAE / estrutura</dt><dd>{inspection?.oae_id||"—"}</dd></div><div><dt>Elemento</dt><dd>{inspection?.element_id||"—"}</dd></div><div><dt>Fonte / câmera</dt><dd>{inspection?.source_id||"—"}</dd></div><div><dt>Campanha</dt><dd>{inspection?.inspection_label||"—"}</dd></div><div><dt>Dimensão processada</dt><dd>{res?res.image_width+" × "+res.image_height+" px":"—"}</dd></div><div><dt>Análise</dt><dd>{res?.metadata?.analysis_id?String(res.metadata.analysis_id).slice(0,18):"—"}</dd></div><div><dt>Streaming</dt><dd>Não configurado</dd></div></dl>
         <div className="scienceWarning"><AlertTriangle size={16}/><span>O painel não declara uma transmissão ao vivo enquanto nenhuma fonte de vídeo estiver implementada.</span></div>
       </article>
     </div>
@@ -140,25 +140,40 @@ export function EnginesView({engines,visibleEng,engineQuery,setEngineQuery,engin
   </section>
 }
 
-export function AlertsView({res,onNavigate}){
+export function AlertsView({res,history,historyBusy,historyErr,onOpenHistory,onDeleteHistory,onClearHistory,onNavigate}){
   const detections=detectionsFrom(res);
   const errors=(res?.results||[]).filter(r=>r.status!=="ok");
   return <section className="viewPage">
-    <SectionHead eyebrow="EVENTOS DA SESSÃO" title="Alertas & histórico" description="Eventos derivados apenas da última inferência disponível; a plataforma não fabrica histórico ou severidade clínica/estrutural." actions={<button onClick={()=>onNavigate("analysis")}>Nova análise <Activity size={14}/></button>}/>
+    <SectionHead eyebrow="EVENTOS & PERSISTÊNCIA" title="Alertas & histórico" description="Achados da sessão atual e inspeções persistidas no IndexedDB deste navegador, incluindo imagem original, metadados e resultados." actions={<><button onClick={()=>onNavigate("analysis")}>Nova análise <Activity size={14}/></button>{history?.length>0&&<button className="dangerAction" onClick={onClearHistory}>Limpar histórico</button>}</>}/>
     <div className="alertSummary">
-      <div><b>{detections.length}</b><span>achados</span></div>
+      <div><b>{detections.length}</b><span>achados da sessão</span></div>
       <div><b>{errors.length}</b><span>motores com pendência</span></div>
-      <div><b>{res?.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleDateString("pt-BR"):"—"}</b><span>última sessão</span></div>
+      <div><b>{history?.length||0}</b><span>inspeções persistidas</span></div>
     </div>
+    <article className="surface historySurface">
+      <div className="surfaceHead"><div><b>HISTÓRICO DE INSPEÇÕES</b><span>{historyBusy?"Carregando registros...":"Persistência local independente do Railway"}</span></div><span className="statusPill success">INDEXEDDB</span></div>
+      {historyErr&&<div className="historyError">{historyErr}</div>}
+      {history?.length?<div className="historyList">
+        <div className="historyRow historyHeader"><span>Data</span><span>OAE / elemento</span><span>Fonte</span><span>Modo</span><span>Achados</span><span>Ações</span></div>
+        {history.map(h=><div className="historyRow" key={h.id}>
+          <span>{h.created_at?new Date(h.created_at).toLocaleString("pt-BR"):"—"}</span>
+          <span><b>{h.inspection?.oae_id||"OAE não identificada"}</b><small>{h.inspection?.element_id||"elemento não identificado"}{h.inspection?.inspection_label?" · "+h.inspection.inspection_label:""}</small></span>
+          <span>{h.inspection?.source_id||h.file_meta?.name||"—"}</span>
+          <span>{h.summary?.mode||"—"} · {h.summary?.engines_total||0} motor(es)</span>
+          <span>{h.summary?.detections||0}</span>
+          <span className="historyActions"><button onClick={()=>onOpenHistory(h.id,"reports")}>Abrir</button><button className="dangerAction" onClick={()=>onDeleteHistory(h.id)}>Excluir</button></span>
+        </div>)}
+      </div>:<div className="compactEmpty">{historyBusy?"Carregando histórico...":"Nenhuma inspeção persistida ainda."}</div>}
+    </article>
     <article className="surface alertSurface">
-      <div className="surfaceHead"><div><b>LINHA DO TEMPO</b><span>Achados normalizados da sessão atual</span></div></div>
-      {detections.length?<div className="alertList">{detections.map((d,i)=><div className="alertRow" key={(d.engine_id||"e")+"-"+i}><i/><div className="alertTime">{res?.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"—"}</div><div className="alertMain"><b>{d.canonical_label||d.label||"Achado sem classe"}</b><span>{d.engine_name||d.engine_id||"motor"} · {d.score!=null?"confiança "+(d.score*100).toFixed(1)+"%":"confiança não informada"}</span></div><span className="statusPill warning">REVISAR</span></div>)}</div>:<EmptyView icon={Bell} title="Nenhum alerta da sessão">Execute um ou mais motores na tela de Análise. Os achados reais aparecerão aqui.</EmptyView>}
+      <div className="surfaceHead"><div><b>LINHA DO TEMPO DA SESSÃO ATUAL</b><span>Achados normalizados da inspeção aberta</span></div></div>
+      {detections.length?<div className="alertList">{detections.map((d,i)=><div className="alertRow" key={(d.engine_id||"e")+"-"+i}><i/><div className="alertTime">{res?.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"—"}</div><div className="alertMain"><b>{d.canonical_label||d.label||"Achado sem classe"}</b><span>{d.engine_name||d.engine_id||"motor"} · {d.score!=null?"confiança "+(d.score*100).toFixed(1)+"%":"confiança não informada"}</span></div><span className="statusPill warning">REVISAR</span></div>)}</div>:<EmptyView icon={Bell} title="Nenhum alerta da sessão">Execute uma análise ou abra uma inspeção do histórico.</EmptyView>}
       {errors.length>0&&<div className="runtimeIssues"><b>Pendências de runtime</b>{errors.map(r=><span key={r.engine_id}><AlertTriangle size={13}/>{r.name}: {r.message||r.status}</span>)}</div>}
     </article>
   </section>
 }
 
-export function ReportsView({res,onJson,onCsv,onMap,onNavigate}){
+export function ReportsView({res,inspection,onJson,onCsv,onMap,onNavigate}){
   const det=detectionsFrom(res);
   const ok=(res?.results||[]).filter(r=>r.status==="ok").length;
   return <section className="viewPage">
@@ -173,7 +188,7 @@ export function ReportsView({res,onJson,onCsv,onMap,onNavigate}){
         <button className="exportCard" onClick={onCsv}><FileSpreadsheet size={23}/><div><b>CSV tabular</b><span>Uma linha por detecção e motor</span></div><Download size={16}/></button>
         <button className="exportCard" onClick={onMap} disabled={!res.consensus_overlay_png_base64}><ImageIcon size={23}/><div><b>Mapa de consenso</b><span>{res.consensus_overlay_png_base64?"PNG da sobreposição espacial":"Não disponível nesta execução"}</span></div><Download size={16}/></button>
       </div>
-      <article className="surface reportTrace"><div className="surfaceHead"><div><b>RASTREABILIDADE</b><span>Metadados fornecidos pela execução</span></div></div><dl><div><dt>API</dt><dd>{res.metadata?.api_version||"—"}</dd></div><div><dt>Modo</dt><dd>{res.metadata?.mode||"—"}</dd></div><div><dt>ID</dt><dd>{res.metadata?.analysis_id||"—"}</dd></div><div><dt>Motores</dt><dd>{(res.metadata?.engine_ids||[]).join(", ")||"—"}</dd></div></dl></article>
+      <article className="surface reportTrace"><div className="surfaceHead"><div><b>RASTREABILIDADE</b><span>Identificação da OAE e metadados fornecidos pela execução</span></div></div><dl><div><dt>OAE / estrutura</dt><dd>{inspection?.oae_id||"—"}</dd></div><div><dt>Elemento</dt><dd>{inspection?.element_id||"—"}</dd></div><div><dt>Fonte / câmera</dt><dd>{inspection?.source_id||"—"}</dd></div><div><dt>Campanha</dt><dd>{inspection?.inspection_label||"—"}</dd></div><div><dt>API</dt><dd>{res.metadata?.api_version||"—"}</dd></div><div><dt>Modo</dt><dd>{res.metadata?.mode||"—"}</dd></div><div><dt>ID</dt><dd>{res.metadata?.analysis_id||"—"}</dd></div><div><dt>Motores</dt><dd>{(res.metadata?.engine_ids||[]).join(", ")||"—"}</dd></div></dl></article>
     </>}
   </section>
 }

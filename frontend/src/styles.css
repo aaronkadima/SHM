@@ -264,3 +264,27 @@ a{color:inherit}
 @media(max-width:1100px){.dashboardGrid,.cameraGrid{grid-template-columns:1fr}.dashboardPreview,.cameraViewport{height:430px}.catalogToolbar{grid-template-columns:1fr 1fr auto auto auto}.reportHero{flex-direction:column}.reportStats{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:850px){.kpiGrid{grid-template-columns:1fr 1fr}.engineTableHead,.engineTableRow{grid-template-columns:28px minmax(180px,1.2fr) minmax(140px,1fr) minmax(130px,.8fr)}.engineTableHead span:last-child,.engineTableRow>.flagGroup{display:none}.settingsGrid,.reportGrid{grid-template-columns:1fr}.catalogToolbar{grid-template-columns:1fr 1fr}.catalogToolbar button{justify-content:center}.alertSummary{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.viewHead{align-items:flex-start;flex-direction:column}.kpiGrid,.alertSummary{grid-template-columns:1fr}.dashboardPreview,.cameraViewport{height:300px}.catalogToolbar{grid-template-columns:1fr}.engineTableHead,.engineTableRow{grid-template-columns:24px 1fr}.engineTableHead span:nth-child(n+3),.engineTableRow>span,.engineTableRow>.flagGroup{display:none}.alertRow{grid-template-columns:7px 1fr auto}.alertTime{display:none}.reportStats{grid-template-columns:1fr 1fr}.settingsActions{flex-wrap:wrap}.settingsActions .statusPill{margin-left:0}}
+
+
+/* Persistent inspection identity & history */
+.inspectionIdentity{margin:10px 0;overflow:hidden}
+.inspectionIdentityHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border-bottom:1px solid var(--border)}
+.inspectionIdentityHead>div{display:flex;flex-direction:column;gap:2px}.inspectionIdentityHead b{font-size:9px}.inspectionIdentityHead span{font-size:7.5px;color:var(--muted)}
+.inspectionIdentityHead strong{font-size:7px;color:var(--cyan);border:1px solid rgba(25,211,207,.24);background:rgba(25,211,207,.05);border-radius:999px;padding:4px 7px;white-space:nowrap}
+.inspectionIdentityGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;padding:10px 12px}
+.inspectionIdentityGrid label{display:flex;flex-direction:column;gap:4px}.inspectionIdentityGrid label>span{font-size:7px;color:var(--muted);font-weight:800;letter-spacing:.45px;text-transform:uppercase}
+.inspectionIdentityGrid input{width:100%;background:#08131e;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 9px;outline:0;font-size:8.5px}
+.inspectionIdentityGrid input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(25,211,207,.06)}
+.historyInlineError,.historyError{font-size:8px;color:var(--red);background:rgba(255,100,112,.06);border-top:1px solid rgba(255,100,112,.18);padding:8px 12px}
+.historySurface{overflow:hidden}
+.historyList{overflow:auto}
+.historyRow{display:grid;grid-template-columns:150px minmax(210px,1.3fr) minmax(130px,.8fr) minmax(135px,.7fr) 70px 120px;gap:9px;align-items:center;padding:9px 12px;border-top:1px solid var(--border);font-size:7.8px;color:var(--muted);min-width:880px}
+.historyRow:first-child{border-top:0}.historyHeader{position:sticky;top:0;z-index:2;background:var(--panel-2);font-size:6.8px;font-weight:850;letter-spacing:.45px;text-transform:uppercase;color:#7893a2}
+.historyRow>span:nth-child(2){display:flex;flex-direction:column;gap:2px}.historyRow b{font-size:8.4px;color:var(--text)}.historyRow small{font-size:7px;color:var(--muted)}
+.historyActions{display:flex!important;flex-direction:row!important;align-items:center;gap:5px}
+.historyActions button,.dangerAction{border:1px solid rgba(25,211,207,.24);background:rgba(25,211,207,.055);color:var(--cyan);border-radius:7px;padding:5px 7px;font-size:7px;font-weight:800;cursor:pointer}
+.historyActions button:hover{border-color:var(--cyan)}
+button.dangerAction,.historyActions button.dangerAction{border-color:rgba(255,100,112,.24);background:rgba(255,100,112,.05);color:var(--red)}
+.viewActions>.dangerAction{display:flex;align-items:center}
+@media(max-width:1100px){.inspectionIdentityGrid{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.inspectionIdentityHead{align-items:flex-start;flex-direction:column}.inspectionIdentityGrid{grid-template-columns:1fr}.historyRow{min-width:820px}}

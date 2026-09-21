@@ -1,7 +1,8 @@
 import React,{useMemo,useState,useEffect}from"react";
 import{
   Upload,Play,CheckCircle2,AlertTriangle,Clock3,Layers3,Server,Save,Wifi,WifiOff,
-  FlaskConical,ExternalLink,HardDrive,Download,FileJson,FileSpreadsheet,MonitorCog,CloudCog
+  FlaskConical,ExternalLink,HardDrive,Download,FileJson,FileSpreadsheet,MonitorCog,CloudCog,
+  LayoutDashboard,Camera,Bell,FileText,Cpu,Settings,Activity
 }from"lucide-react";
 import catalog from"./engines.json";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
@@ -45,6 +46,22 @@ function exportCsv(res){
   downloadBlob("shm-comparison.csv","text/csv;charset=utf-8","\uFEFF"+rows.map(x=>x.map(csvCell).join(",")).join("\n"));
 }
 function downloadConsensus(res){if(res.consensus_overlay_png_base64)saveBase64("shm-consensus.png",res.consensus_overlay_png_base64)}
+
+function NavRail(){
+  const items=[
+    [LayoutDashboard,"Dashboard"],
+    [Camera,"Câmeras"],
+    [Activity,"Análise"],
+    [Bell,"Alertas"],
+    [FileText,"Relatórios"],
+    [Cpu,"Motores"],
+    [Settings,"Config."]
+  ];
+  return <aside className="navRail">
+    <div className="navLogo"><Layers3 size={22}/></div>
+    <nav>{items.map(([Icon,label])=><button key={label} className={label==="Análise"?"active":""} title={label}><Icon size={19}/><span>{label}</span></button>)}</nav>
+  </aside>
+}
 
 function Card({r}){
   return <article className="card">
@@ -191,10 +208,22 @@ export default function App(){
     }catch(e){setErr("Falha ao solicitar cancelamento: "+String(e))}
   }
 
-  return <main>
-    <header>
-      <div><div className="eye"><Layers3 size={16}/> SHM · OAEs · COMPUTER VISION</div><h1>SHM Vision Lab</h1><p>Motor individual independente; Railway somente para comparação com dois ou mais motores.</p></div>
-      <div className="sum"><b>{engines.length}</b><span>motores no repositório</span><b>{recommended}</b><span>recomendados</span><b>{cloudVerified}</b><span>verificados no perfil cloud</span><b>{browserReady}</b><span>executa direto no navegador</span></div>
+  return <div className="appShell">
+    <NavRail/>
+    <main className="appMain">
+    <header className="topbar">
+      <div className="brandBlock">
+        <div className="eye"><Layers3 size={15}/> SHM · OAEs · COMPUTER VISION</div>
+        <h1>PLATAFORMA SHM · OAE BRASIL</h1>
+        <p>Inspeção visual multi-motor com execução individual independente e comparação cloud controlada.</p>
+      </div>
+      <div className="liveStatus"><i/> SISTEMA ONLINE</div>
+      <div className="sum">
+        <div><b>{engines.length}</b><span>motores</span></div>
+        <div><b>{recommended}</b><span>recomendados</span></div>
+        <div><b>{cloudVerified}</b><span>cloud</span></div>
+        <div><b>{browserReady}</b><span>browser</span></div>
+      </div>
     </header>
 
     <section className="runtimeGrid">
@@ -253,5 +282,6 @@ export default function App(){
       <div className="compareTable"><div className="compareRow compareHeader"><span>Motor</span><span>Estado</span><span>Achados</span><span>Latência</span></div>{[...(res.results||[])].sort((a,b)=>(a.latency_ms||0)-(b.latency_ms||0)).map(r=><div className="compareRow" key={r.engine_id}><span>{r.name}</span><span>{txt[r.status]||r.status}</span><span>{r.detections?.length||0}</span><span>{Number(r.latency_ms||0).toFixed(0)} ms</span></div>)}</div>
       <div className="grid">{prev&&<article className="card originalCard"><div className="head"><div><h3>Imagem original</h3><span className="badge">Entrada comum</span></div></div><img src={prev}/><div className="metrics"><span>Fonte usada na inferência</span></div></article>}{(res.results||[]).map(r=><Card key={r.engine_id} r={r}/>)}</div>
     </section>}
-  </main>
+    </main>
+  </div>
 }

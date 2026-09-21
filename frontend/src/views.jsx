@@ -1,0 +1,199 @@
+import React,{useMemo}from"react";
+import{
+  Layers3,LayoutDashboard,Camera,Activity,Bell,FileText,Cpu,Settings,
+  CheckCircle2,Wifi,WifiOff,Clock3,ExternalLink,Download,FileJson,FileSpreadsheet,
+  ShieldCheck,MonitorCog,CloudCog,AlertTriangle,Search,Database,Image as ImageIcon
+}from"lucide-react";
+
+const NAV=[
+  ["dashboard",LayoutDashboard,"Dashboard"],
+  ["cameras",Camera,"Câmeras"],
+  ["analysis",Activity,"Análise"],
+  ["alerts",Bell,"Alertas"],
+  ["reports",FileText,"Relatórios"],
+  ["engines",Cpu,"Motores"],
+  ["settings",Settings,"Config."]
+];
+
+function engineModeLabel(e){
+  if(e.domain_mode==="public_shm_checkpoint")return"Checkpoint SHM público";
+  if(e.domain_mode==="zero_shot")return"Zero-shot";
+  if(e.domain_mode==="classical")return"Baseline clássico";
+  if(e.domain_mode==="shm_checkpoint")return"Checkpoint SHM local";
+  if(e.domain_mode==="generic_pretrained")return"Pré-treinado genérico";
+  if(e.domain_mode==="optional_runtime")return"Runtime opcional";
+  return e.domain_mode||"Registrado";
+}
+function detectionsFrom(res){
+  const out=[];
+  for(const r of res?.results||[]){
+    for(const d of r.detections||[])out.push({...d,engine_id:r.engine_id,engine_name:r.name,status:r.status});
+  }
+  return out.sort((a,b)=>(b.score||0)-(a.score||0));
+}
+function SectionHead({eyebrow,title,description,actions}){
+  return <div className="viewHead">
+    <div><span>{eyebrow}</span><h2>{title}</h2>{description&&<p>{description}</p>}</div>
+    {actions&&<div className="viewActions">{actions}</div>}
+  </div>
+}
+function EmptyView({icon:Icon=Database,title,children,action}){
+  return <div className="viewEmpty"><Icon size={30}/><b>{title}</b><p>{children}</p>{action}</div>
+}
+
+export function NavRail({active,onSelect}){
+  return <aside className="navRail">
+    <button className="navLogo" onClick={()=>onSelect("dashboard")} title="SHM Vision Lab"><Layers3 size={22}/></button>
+    <nav>{NAV.map(([key,Icon,label])=><button key={key} onClick={()=>onSelect(key)} className={active===key?"active":""} title={label}><Icon size={19}/><span>{label}</span></button>)}</nav>
+  </aside>
+}
+
+export function DashboardView({engines,res,selected,prev,comparatorOnline,individualOnline,onNavigate}){
+  const detections=detectionsFrom(res);
+  const successful=(res?.results||[]).filter(r=>r.status==="ok").length;
+  const failed=(res?.results||[]).filter(r=>r.status!=="ok").length;
+  const preview=res?.consensus_overlay_png_base64
+    ?"data:image/png;base64,"+res.consensus_overlay_png_base64
+    :(res?.results||[]).find(r=>r.overlay_png_base64)?.overlay_png_base64
+      ?"data:image/png;base64,"+(res.results.find(r=>r.overlay_png_base64)?.overlay_png_base64)
+      :prev;
+  return <section className="viewPage">
+    <SectionHead eyebrow="VISÃO OPERACIONAL" title="Dashboard" description="Estado atual da sessão de inspeção e dos runtimes configurados." actions={<button onClick={()=>onNavigate("analysis")}>Abrir análise <Activity size={14}/></button>}/>
+    <div className="kpiGrid">
+      <div className="kpiCard"><span>MOTORES REGISTRADOS</span><b>{engines.length}</b><small>{engines.filter(e=>e.recommended).length} recomendados</small></div>
+      <div className="kpiCard"><span>SELECIONADOS</span><b>{selected.length}</b><small>{selected.length===1?"modo individual":selected.length>=2?"comparação multi-engine":"nenhum"}</small></div>
+      <div className="kpiCard"><span>ACHADOS DA SESSÃO</span><b>{detections.length}</b><small>{res?"dados da última execução":"sem execução nesta sessão"}</small></div>
+      <div className="kpiCard"><span>MOTORES CONCLUÍDOS</span><b>{successful}</b><small>{failed?failed+" com pendência/erro":"nenhuma pendência registrada"}</small></div>
+    </div>
+    <div className="dashboardGrid">
+      <article className="surface liveSurface">
+        <div className="surfaceHead"><div><b>INSPEÇÃO DA SESSÃO</b><span>{res?"Último resultado disponível":"Nenhum resultado processado"}</span></div><span className={"statusPill "+(res?"success":"neutral")}>{res?"RESULTADO":"AGUARDANDO"}</span></div>
+        <div className="dashboardPreview">{preview?<img src={preview} alt="Inspeção atual"/>:<EmptyView icon={ImageIcon} title="Nenhuma imagem carregada">Carregue uma imagem na tela de Análise para iniciar a sessão.</EmptyView>}</div>
+        <div className="previewFoot"><span>{res?res.image_width+" × "+res.image_height+" px":"Entrada visual não definida"}</span><span>{res?.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleString("pt-BR"):"—"}</span></div>
+      </article>
+      <div className="dashboardSide">
+        <article className="surface runtimeSummary">
+          <div className="surfaceHead"><div><b>RUNTIMES</b><span>Conectividade observada nesta sessão</span></div></div>
+          <div className="runtimeLine"><MonitorCog size={16}/><div><b>Standalone</b><span>Inferência individual</span></div><strong className={individualOnline===true?"good":individualOnline===false?"bad":""}>{individualOnline===true?"ONLINE":individualOnline===false?"OFFLINE":"NÃO TESTADO"}</strong></div>
+          <div className="runtimeLine"><CloudCog size={16}/><div><b>Railway Comparator</b><span>Somente 2+ motores</span></div><strong className={comparatorOnline===true?"good":comparatorOnline===false?"bad":""}>{comparatorOnline===true?"ONLINE":comparatorOnline===false?"OFFLINE":"NÃO TESTADO"}</strong></div>
+          <div className="runtimeLine"><ShieldCheck size={16}/><div><b>Browser</b><span>Execução sem servidor</span></div><strong className="good">{engines.filter(e=>e.browser_ready).length} MOTORES</strong></div>
+        </article>
+        <article className="surface">
+          <div className="surfaceHead"><div><b>ACHADOS RECENTES</b><span>Somente dados reais da última execução</span></div></div>
+          <div className="eventList">{detections.length?detections.slice(0,6).map((d,i)=><div className="eventRow" key={(d.engine_id||"e")+"-"+i}><i/><div><b>{d.canonical_label||d.label||"Achado"}</b><span>{d.engine_name||d.engine_id||"motor"} · {d.score!=null?(d.score*100).toFixed(1)+"%":"sem confiança"}</span></div><small>REVISAR</small></div>):<div className="compactEmpty">Nenhum achado disponível nesta sessão.</div>}</div>
+        </article>
+      </div>
+    </div>
+  </section>
+}
+
+export function CamerasView({prev,res,onNavigate}){
+  return <section className="viewPage">
+    <SectionHead eyebrow="ENTRADA VISUAL" title="Câmeras & fontes" description="A versão atual trabalha com imagem de inspeção carregada pelo usuário; streaming de câmera ainda não está conectado ao backend." actions={<button onClick={()=>onNavigate("analysis")}>Carregar imagem <Camera size={14}/></button>}/>
+    <div className="cameraGrid">
+      <article className="surface cameraPrimary">
+        <div className="surfaceHead"><div><b>FONTE DA SESSÃO</b><span>Imagem usada pelos motores selecionados</span></div><span className={"statusPill "+(prev?"success":"neutral")}>{prev?"CARREGADA":"SEM FONTE"}</span></div>
+        <div className="cameraViewport">{prev?<img src={prev} alt="Fonte de inspeção"/>:<EmptyView icon={Camera} title="Sem fonte de câmera">Nenhuma imagem foi carregada nesta sessão.</EmptyView>}</div>
+      </article>
+      <article className="surface sourceMeta">
+        <div className="surfaceHead"><div><b>METADADOS</b><span>Disponíveis na sessão atual</span></div></div>
+        <dl><div><dt>Origem</dt><dd>{prev?"Upload do navegador":"—"}</dd></div><div><dt>Dimensão processada</dt><dd>{res?res.image_width+" × "+res.image_height+" px":"—"}</dd></div><div><dt>Análise</dt><dd>{res?.metadata?.analysis_id?String(res.metadata.analysis_id).slice(0,18):"—"}</dd></div><div><dt>Streaming</dt><dd>Não configurado</dd></div></dl>
+        <div className="scienceWarning"><AlertTriangle size={16}/><span>O painel não declara uma transmissão ao vivo enquanto nenhuma fonte de vídeo estiver implementada.</span></div>
+      </article>
+    </div>
+  </section>
+}
+
+export function EnginesView({engines,visibleEng,engineQuery,setEngineQuery,engineFilter,setEngineFilter,browserReady,recommended,cloudVerified,sel,toggle,selectRecommended,selectVerified,clearSelection,individualOnline,comparatorOnline}){
+  return <section className="viewPage">
+    <SectionHead eyebrow="CATÁLOGO & RUNTIME" title="Motores" description="Inventário dos motores registrados no repositório, seus modos de execução e disponibilidade declarada."/>
+    <div className="kpiGrid engineKpis">
+      <div className="kpiCard"><span>TOTAL</span><b>{engines.length}</b><small>motores registrados</small></div>
+      <div className="kpiCard"><span>BROWSER</span><b>{browserReady}</b><small>execução sem servidor</small></div>
+      <div className="kpiCard"><span>RECOMENDADOS</span><b>{recommended}</b><small>marcados no catálogo</small></div>
+      <div className="kpiCard"><span>CLOUD VERIFICADO</span><b>{cloudVerified}</b><small>perfil cloud validado</small></div>
+    </div>
+    <div className="runtimeStrip">
+      <span><MonitorCog size={15}/> Standalone <b className={individualOnline===true?"good":individualOnline===false?"bad":""}>{individualOnline===true?"online":individualOnline===false?"offline":"não testado"}</b></span>
+      <span><CloudCog size={15}/> Comparator <b className={comparatorOnline===true?"good":comparatorOnline===false?"bad":""}>{comparatorOnline===true?"online":comparatorOnline===false?"offline":"não testado"}</b></span>
+    </div>
+    <article className="surface enginesSurface">
+      <div className="catalogToolbar">
+        <div className="searchBox"><Search size={14}/><input value={engineQuery} onChange={e=>setEngineQuery(e.target.value)} placeholder="Buscar motor, família ou tarefa..."/></div>
+        <select value={engineFilter} onChange={e=>setEngineFilter(e.target.value)}>
+          <option value="all">Todos ({engines.length})</option><option value="browser">Direto no navegador ({browserReady})</option><option value="recommended">Recomendados ({recommended})</option><option value="verified">Cloud verificados ({cloudVerified})</option><option value="public">Checkpoints SHM públicos</option><option value="optional">Requerem configuração/runtime</option>
+        </select>
+        <button onClick={selectRecommended}>Recomendados</button><button onClick={selectVerified}>Cloud</button><button onClick={clearSelection}>Limpar</button>
+      </div>
+      <div className="engineTable">
+        <div className="engineTableHead"><span></span><span>Motor</span><span>Família / tarefa</span><span>Modo</span><span>Flags</span></div>
+        {visibleEng.map(e=><label className="engineTableRow" key={e.id}>
+          <input type="checkbox" checked={sel.has(e.id)} onChange={()=>toggle(e.id)}/>
+          <div><b>{e.name}</b>{e.description&&<small>{e.description}</small>}</div>
+          <span>{e.family} · {(e.task||"").replaceAll("_"," ")}</span>
+          <span>{engineModeLabel(e)}</span>
+          <div className="flagGroup">{e.browser_ready&&<em>browser</em>}{e.recommended&&<em>recomendado</em>}{e.cloud_verified&&<em>cloud</em>}{e.source_url&&<a href={e.source_url} target="_blank" rel="noreferrer">fonte <ExternalLink size={10}/></a>}</div>
+        </label>)}
+        {!visibleEng.length&&<div className="compactEmpty">Nenhum motor corresponde ao filtro atual.</div>}
+      </div>
+    </article>
+  </section>
+}
+
+export function AlertsView({res,onNavigate}){
+  const detections=detectionsFrom(res);
+  const errors=(res?.results||[]).filter(r=>r.status!=="ok");
+  return <section className="viewPage">
+    <SectionHead eyebrow="EVENTOS DA SESSÃO" title="Alertas & histórico" description="Eventos derivados apenas da última inferência disponível; a plataforma não fabrica histórico ou severidade clínica/estrutural." actions={<button onClick={()=>onNavigate("analysis")}>Nova análise <Activity size={14}/></button>}/>
+    <div className="alertSummary">
+      <div><b>{detections.length}</b><span>achados</span></div>
+      <div><b>{errors.length}</b><span>motores com pendência</span></div>
+      <div><b>{res?.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleDateString("pt-BR"):"—"}</b><span>última sessão</span></div>
+    </div>
+    <article className="surface alertSurface">
+      <div className="surfaceHead"><div><b>LINHA DO TEMPO</b><span>Achados normalizados da sessão atual</span></div></div>
+      {detections.length?<div className="alertList">{detections.map((d,i)=><div className="alertRow" key={(d.engine_id||"e")+"-"+i}><i/><div className="alertTime">{res?.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"—"}</div><div className="alertMain"><b>{d.canonical_label||d.label||"Achado sem classe"}</b><span>{d.engine_name||d.engine_id||"motor"} · {d.score!=null?"confiança "+(d.score*100).toFixed(1)+"%":"confiança não informada"}</span></div><span className="statusPill warning">REVISAR</span></div>)}</div>:<EmptyView icon={Bell} title="Nenhum alerta da sessão">Execute um ou mais motores na tela de Análise. Os achados reais aparecerão aqui.</EmptyView>}
+      {errors.length>0&&<div className="runtimeIssues"><b>Pendências de runtime</b>{errors.map(r=><span key={r.engine_id}><AlertTriangle size={13}/>{r.name}: {r.message||r.status}</span>)}</div>}
+    </article>
+  </section>
+}
+
+export function ReportsView({res,onJson,onCsv,onMap,onNavigate}){
+  const det=detectionsFrom(res);
+  const ok=(res?.results||[]).filter(r=>r.status==="ok").length;
+  return <section className="viewPage">
+    <SectionHead eyebrow="RELATÓRIO DA SESSÃO" title="Relatórios & exportação" description="Exportação rastreável dos resultados existentes, sem preenchimento de dados ausentes." actions={<button onClick={()=>onNavigate("analysis")}>Abrir análise <Activity size={14}/></button>}/>
+    {!res?<EmptyView icon={FileText} title="Nenhum relatório disponível">Uma execução precisa ser concluída antes de gerar arquivos de relatório.</EmptyView>:<>
+      <div className="reportHero surface">
+        <div><span>ANÁLISE</span><h3>{String(res.metadata?.analysis_id||"sessão atual").slice(0,24)}</h3><p>{res.image_width} × {res.image_height}px · {res.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleString("pt-BR"):"data não informada"}</p></div>
+        <div className="reportStats"><div><b>{(res.results||[]).length}</b><span>motores</span></div><div><b>{ok}</b><span>concluídos</span></div><div><b>{det.length}</b><span>achados</span></div><div><b>{Object.keys(res.consensus||{}).length}</b><span>classes em consenso</span></div></div>
+      </div>
+      <div className="reportGrid">
+        <button className="exportCard" onClick={onJson}><FileJson size={23}/><div><b>JSON técnico</b><span>Resultados, metadados, boxes e métricas</span></div><Download size={16}/></button>
+        <button className="exportCard" onClick={onCsv}><FileSpreadsheet size={23}/><div><b>CSV tabular</b><span>Uma linha por detecção e motor</span></div><Download size={16}/></button>
+        <button className="exportCard" onClick={onMap} disabled={!res.consensus_overlay_png_base64}><ImageIcon size={23}/><div><b>Mapa de consenso</b><span>{res.consensus_overlay_png_base64?"PNG da sobreposição espacial":"Não disponível nesta execução"}</span></div><Download size={16}/></button>
+      </div>
+      <article className="surface reportTrace"><div className="surfaceHead"><div><b>RASTREABILIDADE</b><span>Metadados fornecidos pela execução</span></div></div><dl><div><dt>API</dt><dd>{res.metadata?.api_version||"—"}</dd></div><div><dt>Modo</dt><dd>{res.metadata?.mode||"—"}</dd></div><div><dt>ID</dt><dd>{res.metadata?.analysis_id||"—"}</dd></div><div><dt>Motores</dt><dd>{(res.metadata?.engine_ids||[]).join(", ")||"—"}</dd></div></dl></article>
+    </>}
+  </section>
+}
+
+export function SettingsView({individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,err}){
+  return <section className="viewPage">
+    <SectionHead eyebrow="CONFIGURAÇÃO" title="Runtimes & endpoints" description="Endereços usados pelo modo individual e pelo comparador. As configurações ficam salvas neste navegador."/>
+    <div className="settingsGrid">
+      <article className="surface settingsCard">
+        <div className="settingsIcon"><MonitorCog size={22}/></div><div><h3>Standalone Backend</h3><p>Usado por um único motor quando não houver execução direta no navegador.</p></div>
+        <input value={individualDraft} onChange={e=>setIndividualDraft(e.target.value)} placeholder="http://127.0.0.1:8001"/>
+        <div className="settingsActions"><button onClick={saveIndividual}>Salvar</button><button className="outline" onClick={testIndividual}>Testar conexão</button><span className={"statusPill "+(individualOnline===true?"success":individualOnline===false?"danger":"neutral")}>{individualOnline===true?<><Wifi size={11}/> ONLINE</>:individualOnline===false?<><WifiOff size={11}/> OFFLINE</>:"NÃO TESTADO"}</span></div>
+      </article>
+      <article className="surface settingsCard">
+        <div className="settingsIcon"><CloudCog size={22}/></div><div><h3>Railway Comparator</h3><p>Usado somente quando dois ou mais motores forem selecionados.</p></div>
+        <input value={comparatorDraft} onChange={e=>setComparatorDraft(e.target.value)} placeholder="https://...up.railway.app"/>
+        <div className="settingsActions"><button onClick={saveComparator}>Salvar</button><button className="outline" onClick={testComparator}>Testar conexão</button><span className={"statusPill "+(comparatorOnline===true?"success":comparatorOnline===false?"danger":"neutral")}>{comparatorOnline===true?<><Wifi size={11}/> ONLINE</>:comparatorOnline===false?<><WifiOff size={11}/> OFFLINE</>:"NÃO TESTADO"}</span></div>
+      </article>
+    </div>
+    <div className="scienceWarning"><ShieldCheck size={16}/><span>O Railway permanece reservado à comparação multi-engine. O modo individual não é redirecionado silenciosamente para o comparador.</span></div>
+    {err&&<div className="error">{err}</div>}
+  </section>
+}

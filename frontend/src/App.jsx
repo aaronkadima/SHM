@@ -1,11 +1,11 @@
 import React,{useMemo,useState,useEffect}from"react";
 import{
   Upload,Play,CheckCircle2,AlertTriangle,Clock3,Layers3,Server,Save,Wifi,WifiOff,
-  FlaskConical,ExternalLink,HardDrive,Download,FileJson,FileSpreadsheet,MonitorCog,CloudCog,
-  LayoutDashboard,Camera,Bell,FileText,Cpu,Settings,Activity
+  FlaskConical,ExternalLink,HardDrive,Download,FileJson,FileSpreadsheet,MonitorCog,CloudCog
 }from"lucide-react";
 import catalog from"./engines.json";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
+import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView,SettingsView}from"./views.jsx";
 
 const DEFAULT_COMPARATOR="https://shm-api-production-01f8.up.railway.app";
 const DEFAULT_INDIVIDUAL="http://127.0.0.1:8001";
@@ -47,22 +47,6 @@ function exportCsv(res){
 }
 function downloadConsensus(res){if(res.consensus_overlay_png_base64)saveBase64("shm-consensus.png",res.consensus_overlay_png_base64)}
 
-function NavRail(){
-  const items=[
-    [LayoutDashboard,"Dashboard"],
-    [Camera,"Câmeras"],
-    [Activity,"Análise"],
-    [Bell,"Alertas"],
-    [FileText,"Relatórios"],
-    [Cpu,"Motores"],
-    [Settings,"Config."]
-  ];
-  return <aside className="navRail">
-    <div className="navLogo"><Layers3 size={22}/></div>
-    <nav>{items.map(([Icon,label])=><button key={label} className={label==="Análise"?"active":""} title={label}><Icon size={19}/><span>{label}</span></button>)}</nav>
-  </aside>
-}
-
 function Card({r}){
   return <article className="card">
     <div className="head">
@@ -96,8 +80,24 @@ export default function App(){
   const[jobId,setJobId]=useState(null);
   const[progress,setProgress]=useState(null);
   const[err,setErr]=useState("");
+  const[activeView,setActiveView]=useState(()=>{
+    const v=window.location.hash.replace(/^#\//,"");
+    return ["dashboard","cameras","analysis","alerts","reports","engines","settings"].includes(v)?v:"analysis";
+  });
 
   useEffect(()=>()=>{if(prev)URL.revokeObjectURL(prev)},[prev]);
+  useEffect(()=>{
+    const sync=()=>{
+      const v=window.location.hash.replace(/^#\//,"");
+      if(["dashboard","cameras","analysis","alerts","reports","engines","settings"].includes(v))setActiveView(v);
+    };
+    window.addEventListener("hashchange",sync);
+    return()=>window.removeEventListener("hashchange",sync);
+  },[]);
+  function navigate(view){
+    setActiveView(view);
+    if(window.location.hash!=="#/"+view)window.location.hash="#/"+view;
+  }
 
   const selected=[...sel];
   const runMode=selected.length===1?"individual":selected.length>=2?"comparison":"none";
@@ -140,6 +140,11 @@ export default function App(){
     if(j.role&&j.role!=="comparator")throw new Error("O backend informado não está em modo comparator.");
     setComparatorOnline(true);
     return j;
+  }
+  async function testComparator(){
+    setErr("");setComparatorOnline(null);
+    try{await ensureComparator()}
+    catch(e){setComparatorOnline(false);setErr("Comparador indisponível: "+String(e))}
   }
   function pick(f){
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
@@ -209,7 +214,7 @@ export default function App(){
   }
 
   return <div className="appShell">
-    <NavRail/>
+    <NavRail active={activeView} onSelect={navigate}/>
     <main className="appMain">
     <header className="topbar">
       <div className="brandBlock">
@@ -226,6 +231,9 @@ export default function App(){
       </div>
     </header>
 
+    {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} onNavigate={navigate}/>}
+    {activeView==="cameras"&&<CamerasView prev={prev} res={res} onNavigate={navigate}/>}
+    {activeView==="analysis"&&<>
     <section className="runtimeGrid">
       <div className={"runtimeCard "+(runMode==="individual"?"active":"")}>
         <div className="runtimeTitle"><MonitorCog size={19}/><div><b>Motor individual</b><span>{selected.length===1&&engines.find(e=>e.id===selected[0])?.browser_ready?"Execução no navegador · zero servidor":"Backend standalone do repositório"} · sem Railway</span></div></div>
@@ -282,6 +290,11 @@ export default function App(){
       <div className="compareTable"><div className="compareRow compareHeader"><span>Motor</span><span>Estado</span><span>Achados</span><span>Latência</span></div>{[...(res.results||[])].sort((a,b)=>(a.latency_ms||0)-(b.latency_ms||0)).map(r=><div className="compareRow" key={r.engine_id}><span>{r.name}</span><span>{txt[r.status]||r.status}</span><span>{r.detections?.length||0}</span><span>{Number(r.latency_ms||0).toFixed(0)} ms</span></div>)}</div>
       <div className="grid">{prev&&<article className="card originalCard"><div className="head"><div><h3>Imagem original</h3><span className="badge">Entrada comum</span></div></div><img src={prev}/><div className="metrics"><span>Fonte usada na inferência</span></div></article>}{(res.results||[]).map(r=><Card key={r.engine_id} r={r}/>)}</div>
     </section>}
+    </>}
+    {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
+    {activeView==="alerts"&&<AlertsView res={res} onNavigate={navigate}/>}
+    {activeView==="reports"&&<ReportsView res={res} onJson={()=>res&&exportJson(res)} onCsv={()=>res&&exportCsv(res)} onMap={()=>res&&downloadConsensus(res)} onNavigate={navigate}/>}
+    {activeView==="settings"&&<SettingsView individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} err={err}/>}
     </main>
   </div>
 }

@@ -3255,6 +3255,7 @@ def parse_cli_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     p.add_argument("--stroke_width", type=float, default=1.0)
     p.add_argument("--export_csv", action="store_true")
     p.add_argument("--compare_previous", action="store_true")
+    p.add_argument("--alignment_method", choices=["translation_auto","resize"], default="translation_auto")
     p.add_argument("--calibration_mode", default="px_only")
     p.add_argument("--mm_per_px", type=float, default=0.0)
     p.add_argument("--reference_length_px", type=float, default=0.0)
@@ -3305,6 +3306,7 @@ def cli_main(argv: Optional[Sequence[str]] = None) -> int:
         stroke_width=args.stroke_width,
         export_csv=args.export_csv,
         compare_previous=args.compare_previous,
+        alignment_method=args.alignment_method,
         calibration_mode=args.calibration_mode,
         mm_per_px=args.mm_per_px,
         reference_length_px=args.reference_length_px,

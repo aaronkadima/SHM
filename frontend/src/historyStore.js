@@ -70,6 +70,7 @@ export async function saveInspection({result,file,referenceFile,inspection}){
   const created_at=result.metadata?.generated_at||now;
   const cdmTemporal=(result.results||[]).find(r=>r.engine_id==="cdm_1")?.metrics?.temporal||null;
   const temporalAlignment=cdmTemporal?.alignment||null;
+  const temporalQuality=cdmTemporal?.quality||null;
   const record={
     id,
     created_at,
@@ -99,6 +100,15 @@ export async function saveInspection({result,file,referenceFile,inspection}){
         dy_px:Number(temporalAlignment?.dy_px||0),
         improvement:Number(temporalAlignment?.improvement||0),
         reason:temporalAlignment?.reason||""
+      }:null,
+      temporal_quality:cdmTemporal?.enabled?{
+        status:temporalQuality?.status||"unknown",
+        validated:temporalQuality?.validated_for_change_quantification===true,
+        issues:[...(temporalQuality?.issues||[])],
+        warnings:[...(temporalQuality?.warnings||[])],
+        overlap_ratio:Number(temporalQuality?.metrics?.overlap_ratio||0),
+        illumination_delta:Number(temporalQuality?.metrics?.illumination_delta||0),
+        sharpness_ratio:Number(temporalQuality?.metrics?.sharpness_ratio||0)
       }:null
     }
   };

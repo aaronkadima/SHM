@@ -37,6 +37,7 @@ function toSummary(record){
     updated_at:record.updated_at,
     inspection:record.inspection||{},
     file_meta:record.file_meta||{},
+    reference_file_meta:record.reference_file_meta||{},
     summary:record.summary||{}
   };
 }
@@ -62,7 +63,7 @@ export async function requestPersistentStorage(){
   }catch{}
   return false;
 }
-export async function saveInspection({result,file,inspection}){
+export async function saveInspection({result,file,referenceFile,inspection}){
   if(!result)throw new Error("Resultado ausente.");
   const now=new Date().toISOString();
   const id=String(result.metadata?.analysis_id||("inspection-"+crypto.randomUUID()));
@@ -74,6 +75,8 @@ export async function saveInspection({result,file,inspection}){
     inspection:{...inspection},
     file_meta:file?{name:file.name,type:file.type,size:file.size,lastModified:file.lastModified}: {},
     image_blob:file||null,
+    reference_file_meta:referenceFile?{name:referenceFile.name,type:referenceFile.type,size:referenceFile.size,lastModified:referenceFile.lastModified}: {},
+    reference_image_blob:referenceFile||null,
     result,
     summary:{
       mode:result.metadata?.mode||"unknown",
@@ -84,7 +87,9 @@ export async function saveInspection({result,file,inspection}){
       detections:totalDetections(result),
       image_width:result.image_width||null,
       image_height:result.image_height||null,
-      consensus_classes:Object.keys(result.consensus||{}).length
+      consensus_classes:Object.keys(result.consensus||{}).length,
+      has_reference_image:!!referenceFile,
+      temporal_comparison:(result.results||[]).some(r=>r.engine_id==="cdm_1"&&r.metrics?.temporal?.enabled===true)
     }
   };
   const db=await openDb();

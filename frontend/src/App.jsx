@@ -126,18 +126,27 @@ export default function App(){
       const record=await getInspection(id);
       if(!record)throw new Error("Inspeção não encontrada.");
       const blob=record.image_blob;
+      const referenceBlob=record.reference_image_blob;
       let restoredFile=null;
       let restoredPreview=null;
+      let restoredReferenceFile=null;
+      let restoredReferencePreview=null;
       if(blob){
         const meta=record.file_meta||{};
         restoredFile=new File([blob],meta.name||"inspecao",{type:meta.type||blob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
         restoredPreview=URL.createObjectURL(blob);
       }
+      if(referenceBlob){
+        const meta=record.reference_file_meta||{};
+        restoredReferenceFile=new File([referenceBlob],meta.name||"referencia-t0",{type:meta.type||referenceBlob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
+        restoredReferencePreview=URL.createObjectURL(referenceBlob);
+      }
+      if(prev)URL.revokeObjectURL(prev);
+      if(referencePrev)URL.revokeObjectURL(referencePrev);
       setFile(restoredFile);
       setPrev(restoredPreview);
-      setReferenceFile(null);
-      if(referencePrev)URL.revokeObjectURL(referencePrev);
-      setReferencePrev(null);
+      setReferenceFile(restoredReferenceFile);
+      setReferencePrev(restoredReferencePreview);
       setRes(record.result||null);
       setInspectionMeta({...EMPTY_INSPECTION,...(record.inspection||{})});
       setSel(new Set(record.summary?.engine_ids||record.result?.metadata?.engine_ids||[]));
@@ -281,7 +290,7 @@ export default function App(){
       if(result){
         try{
           await requestPersistentStorage();
-          await saveInspection({result,file,inspection:inspectionMeta});
+          await saveInspection({result,file,referenceFile,inspection:inspectionMeta});
           await refreshHistory();
         }catch(storageError){
           setHistoryErr("A análise foi concluída, mas não pôde ser persistida no histórico local: "+String(storageError));

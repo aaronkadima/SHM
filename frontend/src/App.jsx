@@ -76,6 +76,7 @@ function exportCdm(result,fileName,format,inspection={}){
     if(format==="bim")downloadBlob("cdm-1-bim-overlay.json","application/json",JSON.stringify(buildCdmBimJson(payload,inspection),null,2));
     if(format==="ifc")downloadBlob("cdm-1-anotacoes.ifc","application/x-step;charset=utf-8",buildCdmIfc(payload,inspection));
     if(format==="html")downloadBlob("cdm-1-relatorio.html","text/html;charset=utf-8",buildCdmHtml(payload,fileName,inspection));
+    if(format==="aligned_t0"&&result.metrics?.temporal?.aligned_reference_png_base64)saveBase64("cdm-1-t0-alinhado.png",result.metrics.temporal.aligned_reference_png_base64);
   }catch(e){window.alert(e?.message||String(e))}
 }
 

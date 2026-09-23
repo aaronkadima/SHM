@@ -49,6 +49,7 @@ function formatCampaignDate(value){
   return Number.isNaN(date.getTime())?"—":date.toLocaleDateString("pt-BR");
 }
 function formatSigned(value,digits=1){
+  if(value==null||value==="")return"—";
   const n=Number(value);
   if(!Number.isFinite(n))return"—";
   return (n>0?"+":"")+n.toFixed(digits);
@@ -202,7 +203,7 @@ export function AlertsView({res,history,historyBusy,historyErr,onOpenHistory,onD
             return <div className="campaignEvent" key={item.id}>
               <span><b>{formatCampaignDate(item.created_at)}</b><small>{item.inspection?.inspection_label||item.inspection?.source_id||item.file_meta?.name||"inspeção"}</small></span>
               <span>{snap?<><b>{snap.total_objects} achados</b><small>{cond?"NT "+cond.NT_img+" · EC "+cond.EC_DNIT_img+" · GDE "+Number(cond.GDE_img||0).toFixed(2):"sem classificação"}</small></>:<><b>{item.summary?.detections||0} achados</b><small>registro anterior ao snapshot CDM</small></>}</span>
-              <span>{strongest&&quality?.validated?<><b>{CDM_PATHOLOGY_LABELS[strongest[0]]||strongest[0]}</b><small>Δ/t0 {formatSigned(strongest[1]?.net_area_change_vs_t0_pct)}%</small></>:<><b>{quality?.status==="fail"?"Temporal não validada":"Sem Δ validado"}</b><small>{quality?.issues?.join(", ")||"—"}</small></>}</span>
+              <span>{strongest&&quality?.validated?<><b>{CDM_PATHOLOGY_LABELS[strongest[0]]||strongest[0]}</b><small>Δ/t0 {strongest[1]?.net_area_change_vs_t0_pct==null?"—":formatSigned(strongest[1]?.net_area_change_vs_t0_pct)+"%"}</small></>:<><b>{quality?.status==="fail"?"Temporal não validada":"Sem Δ validado"}</b><small>{quality?.issues?.join(", ")||"—"}</small></>}</span>
               <button onClick={()=>onOpenHistory(item.id,"reports")}>Abrir</button>
             </div>
           })}</div>

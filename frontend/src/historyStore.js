@@ -68,6 +68,8 @@ export async function saveInspection({result,file,referenceFile,inspection}){
   const now=new Date().toISOString();
   const id=String(result.metadata?.analysis_id||("inspection-"+crypto.randomUUID()));
   const created_at=result.metadata?.generated_at||now;
+  const cdmTemporal=(result.results||[]).find(r=>r.engine_id==="cdm_1")?.metrics?.temporal||null;
+  const temporalAlignment=cdmTemporal?.alignment||null;
   const record={
     id,
     created_at,
@@ -89,7 +91,15 @@ export async function saveInspection({result,file,referenceFile,inspection}){
       image_height:result.image_height||null,
       consensus_classes:Object.keys(result.consensus||{}).length,
       has_reference_image:!!referenceFile,
-      temporal_comparison:(result.results||[]).some(r=>r.engine_id==="cdm_1"&&r.metrics?.temporal?.enabled===true)
+      temporal_comparison:cdmTemporal?.enabled===true,
+      temporal_alignment:cdmTemporal?.enabled?{
+        method:cdmTemporal.alignment_method||temporalAlignment?.method_applied||"resize",
+        accepted:!!temporalAlignment?.accepted,
+        dx_px:Number(temporalAlignment?.dx_px||0),
+        dy_px:Number(temporalAlignment?.dy_px||0),
+        improvement:Number(temporalAlignment?.improvement||0),
+        reason:temporalAlignment?.reason||""
+      }:null
     }
   };
   const db=await openDb();

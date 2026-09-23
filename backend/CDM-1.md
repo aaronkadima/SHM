@@ -341,3 +341,36 @@ inspections.
 The history header reports the browser's real storage estimate and whether
 persistent storage has been granted. These values are reported by the browser;
 SHM does not synthesize a storage quota or usage estimate.
+
+
+## Temporal reference identity integrity
+
+Historical t0 references now carry explicit identity provenance in addition to the
+image itself. For a t0 linked from history, SHM stores:
+
+- the active \`reference_inspection_id\`;
+- the persistent \`reference_origin_inspection_id\`;
+- the reference inspection's OAE, element, source and label metadata;
+- compatibility flags for OAE, element and source.
+
+Before a linked historical t0 can be analyzed against a new t1, OAE and element
+must match exactly. A mismatch blocks execution. A source/camera change does not
+block execution, because registration and the temporal-quality gate may still
+validate the pair, but it is recorded as a provenance warning.
+
+The analysis layer panel shows the reference state before execution:
+
+- compatible historical link;
+- same OAE/element with a different source;
+- incompatible OAE/element.
+
+Campaigns audit historical chains without rewriting legacy records. Linked pairs
+created before identity tracking are marked as legacy/unknown rather than
+silently treated as valid. Campaign summaries count compatible links, source
+changes, unknown legacy links and identity incompatibilities.
+
+If a referenced t0 inspection is deleted and its image is materialized into a
+dependent record, the original inspection id is retained in
+\`reference_origin_inspection_id\`. Campaign CSV/JSON exports therefore preserve
+the original t0 provenance even after storage maintenance or deletion of the
+source inspection.

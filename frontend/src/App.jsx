@@ -95,6 +95,7 @@ export default function App(){
   const[prev,setPrev]=useState(null);
   const[referenceFile,setReferenceFile]=useState(null);
   const[referencePrev,setReferencePrev]=useState(null);
+  const[referenceInspectionId,setReferenceInspectionId]=useState(null);
   const[res,setRes]=useState(null);
   const[busy,setBusy]=useState(false);
   const[jobId,setJobId]=useState(null);
@@ -164,6 +165,7 @@ export default function App(){
       setPrev(restoredPreview);
       setReferenceFile(restoredReferenceFile);
       setReferencePrev(restoredReferencePreview);
+      setReferenceInspectionId(record.reference_inspection_id||record.summary?.reference_inspection_id||null);
       setRes(record.result||null);
       setInspectionMeta({...EMPTY_INSPECTION,...(record.inspection||{})});
       setSel(new Set(record.summary?.engine_ids||record.result?.metadata?.engine_ids||[]));
@@ -184,6 +186,7 @@ export default function App(){
       if(prev)URL.revokeObjectURL(prev);
       setReferenceFile(restoredReferenceFile);
       setReferencePrev(URL.createObjectURL(blob));
+      setReferenceInspectionId(record.id);
       setFile(null);
       setPrev(null);
       setRes(null);
@@ -269,7 +272,7 @@ export default function App(){
     if(prev)URL.revokeObjectURL(prev);setPrev(f?URL.createObjectURL(f):null);
   }
   function pickReference(f){
-    setReferenceFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
+    setReferenceFile(f);setReferenceInspectionId(null);setRes(null);setProgress(null);setJobId(null);setErr("");
     if(referencePrev)URL.revokeObjectURL(referencePrev);
     setReferencePrev(f?URL.createObjectURL(f):null);
   }
@@ -333,7 +336,7 @@ export default function App(){
   async function run(){
     if(!file||!selected.length||busy)return;
     const runId=++runSeq.current,controller=new AbortController(),mode=runMode;
-    const sourceFile=file,sourceReference=referenceFile,engineIds=[...selected],inspection={...inspectionMeta};
+    const sourceFile=file,sourceReference=referenceFile,sourceReferenceInspectionId=referenceInspectionId,engineIds=[...selected],inspection={...inspectionMeta};
     activeRun.current?.controller?.abort();
     activeRun.current={id:runId,controller,mode};
     setBusy(true);setErr("");setRes(null);setProgress({state:"starting",completed:0,total:mode==="individual"?100:engineIds.length,current_engine:"Preparando análise"});
@@ -346,7 +349,7 @@ export default function App(){
       try{
         await requestPersistentStorage();
         if(controller.signal.aborted||activeRun.current?.id!==runId)return;
-        await saveInspection({result,file:sourceFile,referenceFile:sourceReference,inspection});
+        await saveInspection({result,file:sourceFile,referenceFile:sourceReference,referenceInspectionId:sourceReferenceInspectionId,inspection});
         await refreshHistory();
       }catch(storageError){
         if(activeRun.current?.id===runId)setHistoryErr("A análise foi concluída, mas não pôde ser persistida no histórico local: "+String(storageError));

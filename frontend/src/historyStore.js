@@ -45,6 +45,7 @@ function toSummary(record){
     file_meta:record.file_meta||{},
     reference_file_meta:record.reference_file_meta||{},
     reference_inspection_id:record.reference_inspection_id||null,
+    reference_origin_inspection_id:record.reference_origin_inspection_id||record.reference_inspection_id||null,
     reference_inspection_meta:record.reference_inspection_meta||null,
     summary:record.summary||{}
   };
@@ -134,6 +135,7 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
     image_blob:file||null,
     reference_file_meta:referenceFile?{name:referenceFile.name,type:referenceFile.type,size:referenceFile.size,lastModified:referenceFile.lastModified}: {},
     reference_inspection_id:referenceInspectionId||null,
+    reference_origin_inspection_id:referenceInspectionId||null,
     reference_inspection_meta:normalizedReferenceMeta,
     reference_image_blob:referenceFile&&!referenceInspectionId?referenceFile:null,
     result,
@@ -151,6 +153,7 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
       reference_storage:referenceInspectionId?"linked_inspection":referenceFile?"embedded_blob":null,
       temporal_comparison:cdmTemporal?.enabled===true,
       reference_inspection_id:referenceInspectionId||null,
+      reference_origin_inspection_id:referenceInspectionId||null,
       reference_compatibility:referenceCompatibility,
       temporal_alignment:cdmTemporal?.enabled?{
         method:cdmTemporal.alignment_method||temporalAlignment?.method_applied||"resize",
@@ -240,11 +243,13 @@ export async function deleteInspection(id){
       row.reference_image_blob=materialized;
       row.reference_file_meta=row.reference_file_meta&&Object.keys(row.reference_file_meta).length?row.reference_file_meta:(target.file_meta||{});
       row.reference_inspection_meta=row.reference_inspection_meta||target.inspection||null;
+      row.reference_origin_inspection_id=row.reference_origin_inspection_id||id;
       row.reference_inspection_id=null;
       row.updated_at=new Date().toISOString();
       row.summary={
         ...(row.summary||{}),
         reference_inspection_id:null,
+        reference_origin_inspection_id:row.reference_origin_inspection_id||id,
         reference_storage:materialized?"materialized_history":"missing_reference",
         has_reference_image:!!materialized
       };

@@ -94,7 +94,7 @@ function estimateTranslationRegistration(current,previous){
   const cur=registrationEdgeMap(current),prev=registrationEdgeMap(previous);
   const base={method_requested:"translation_auto",method_applied:"resize",accepted:false,reason:"registration_grid_mismatch",dx_px:0,dy_px:0,estimated_dx_px:0,estimated_dy_px:0,score_before:0,score_after:0,improvement:0,downsample_step:cur.step,search_radius_px:0};
   if(cur.step!==prev.step||cur.width!==prev.width||cur.height!==prev.height)return base;
-  const sw=cur.width,sh=cur.height,searchFull=Math.min(64,Math.max(4,Math.round(Math.min(current.width,current.height)*.08)));
+  const sw=cur.width,sh=cur.height,searchFull=Math.min(96,Math.max(6,Math.round(Math.min(current.width,current.height)*.12)));
   let radius=Math.max(1,Math.ceil(searchFull/cur.step));
   radius=Math.min(radius,Math.max(1,Math.floor((Math.min(sw,sh)-6)/2)));
   const x0=radius+1,x1=sw-radius-1,y0=radius+1,y1=sh-radius-1;
@@ -118,14 +118,15 @@ function estimateTranslationRegistration(current,previous){
   }
   const improvement=Number.isFinite(scoreZero)?(scoreZero-best.score)/Math.max(scoreZero,1e-6):0;
   const estimatedDx=best.dx*cur.step,estimatedDy=best.dy*cur.step;
-  const accepted=(best.dx!==0||best.dy!==0)&&improvement>=.035;
+  const boundaryHit=Math.abs(best.dx)>=radius||Math.abs(best.dy)>=radius;
+  const accepted=(best.dx!==0||best.dy!==0)&&improvement>=.035&&!boundaryHit;
   return {
     method_requested:"translation_auto",method_applied:accepted?"translation_auto":"resize",accepted,
-    reason:accepted?"translation_improved_edge_match":"no_reliable_translation_gain",
+    reason:accepted?"translation_improved_edge_match":(boundaryHit?"search_boundary_hit":"no_reliable_translation_gain"),
     dx_px:accepted?estimatedDx:0,dy_px:accepted?estimatedDy:0,
     estimated_dx_px:estimatedDx,estimated_dy_px:estimatedDy,
     score_before:scoreZero,score_after:accepted?best.score:scoreZero,
-    improvement:Math.max(0,improvement),downsample_step:cur.step,search_radius_px:radius*cur.step
+    improvement:Math.max(0,improvement),boundary_hit:boundaryHit,downsample_step:cur.step,search_radius_px:radius*cur.step
   };
 }
 function applyTranslationRegistration(current,previous,dx,dy){

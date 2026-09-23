@@ -92,6 +92,13 @@ for(const cls of ["growth","reduction"]){
   const count=temporal.records.filter(r=>r.class===cls).length;
   check(count===expected.temporal_counts[cls],`${cls} temporal record count ${count} != ${expected.temporal_counts[cls]}`);
 }
+for(const [sourceClass,counts] of Object.entries(expected.temporal_by_source||{})){
+  for(const changeClass of ["growth","reduction"]){
+    const got=temporal.records.filter(r=>r.class===changeClass&&r.source_class===sourceClass).length;
+    check(got===counts[changeClass],`${changeClass} ${sourceClass} count ${got} != ${counts[changeClass]}`);
+  }
+}
+check(temporal.records.every(r=>typeof r.source_class==="string"&&r.source_class.length>0),"temporal records must expose source_class");
 
 const staged=[];
 const core=__cdmTest.computeCdmCore(imageData(fixture.t1_rgb),imageData(fixture.t0_rgb),cfg,p=>staged.push(p));

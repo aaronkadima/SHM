@@ -7,7 +7,7 @@ import {PLYLoader} from "three/addons/loaders/PLYLoader.js";
 import {STLLoader} from "three/addons/loaders/STLLoader.js";
 
 export default function ModelViewport({file}){
-  const mount=useRef(null),[error,setError]=useState("");
+  const mount=useRef(null),view=useRef(null),[error,setError]=useState("");
   useEffect(()=>{
     if(!file||!mount.current)return;
     const el=mount.current,scene=new THREE.Scene();scene.background=new THREE.Color(0xdce4e7);
@@ -19,14 +19,16 @@ export default function ModelViewport({file}){
     const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
     scene.add(new THREE.HemisphereLight(0xffffff,0x8195a0,2));
     const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(3,5,7);scene.add(light);
-    const resize=()=>{const w=el.clientWidth,h=el.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h)};
+    const resize=()=>{const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h)};
     const observer=new ResizeObserver(resize);observer.observe(el);resize();
     let disposed=false,model=null;const url=URL.createObjectURL(file),ext=file.name.split(".").pop().toLowerCase();
     const fit=obj=>{
       if(disposed)return;model=obj;scene.add(obj);
       const bounds=new THREE.Box3().setFromObject(obj),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
       if(!Number.isFinite(size.length())||size.length()===0){scene.remove(obj);fail(new Error("Geometria vazia."));return}
-      controls.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(size.length()*.9,size.length()*.7,size.length()*.9));camera.near=Math.max(.001,size.length()/10000);camera.far=Math.max(100,size.length()*100);camera.updateProjectionMatrix();controls.update()
+      const radius=Math.max(size.length(),.01)*1.35;
+      view.current={camera,controls,center:center.clone(),radius};
+      controls.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(radius,radius*.65,radius));camera.near=Math.max(.001,size.length()/10000);camera.far=Math.max(100,size.length()*100);camera.updateProjectionMatrix();controls.update()
     };
     const fail=e=>!disposed&&setError("Não foi possível abrir o modelo: "+(e?.message||String(e)));
     try{
@@ -38,7 +40,16 @@ export default function ModelViewport({file}){
       }else fail(new Error("Formato 3D não suportado pelo visualizador."));
     }catch(e){fail(e)}
     let animation;const draw=()=>{animation=requestAnimationFrame(draw);controls.update();renderer.render(scene,camera)};draw();
-    return()=>{disposed=true;cancelAnimationFrame(animation);observer.disconnect();controls.dispose();scene.remove(model);model?.traverse?.(n=>{n.geometry?.dispose();if(n.material){const materials=Array.isArray(n.material)?n.material:[n.material];materials.forEach(m=>m.dispose())}});renderer.dispose();renderer.domElement.remove();URL.revokeObjectURL(url)}
+    return()=>{disposed=true;view.current=null;cancelAnimationFrame(animation);observer.disconnect();controls.dispose();scene.remove(model);model?.traverse?.(n=>{n.geometry?.dispose();if(n.material){const materials=Array.isArray(n.material)?n.material:[n.material];materials.forEach(m=>m.dispose())}});renderer.dispose();renderer.domElement.remove();URL.revokeObjectURL(url)}
   },[file]);
-  return <div className="modelViewport" ref={mount}>{error&&<div className="modelError" role="alert">{error}</div>}<div className="modelHint">3D · arraste para orbitar · roda para ampliar · botão direito para deslocar</div></div>
+  function setView(direction){
+    const data=view.current;if(!data)return;
+    const {camera,controls,center,radius}=data;
+    const offsets={perspective:[1,.65,1],front:[0,0,1],top:[0,1,0],side:[1,0,0]};
+    const offset=new THREE.Vector3(...offsets[direction]).normalize().multiplyScalar(radius*1.7);
+    camera.position.copy(center).add(offset);camera.up.set(0,1,0);
+    if(direction==="top")camera.up.set(0,0,-1);
+    controls.target.copy(center);camera.lookAt(center);controls.update()
+  }
+  return <div className="modelViewport" ref={mount}>{error&&<div className="modelError" role="alert">{error}</div>}<div className="modelViews" aria-label="Vistas do modelo 3D"><button onClick={()=>setView("perspective")}>Perspectiva</button><button onClick={()=>setView("front")}>Frontal</button><button onClick={()=>setView("top")}>Superior</button><button onClick={()=>setView("side")}>Lateral</button></div><div className="modelHint">3D · arraste para orbitar · roda para ampliar · botão direito para deslocar</div></div>
 }

@@ -4,6 +4,7 @@ import{
   FlaskConical,ExternalLink,HardDrive,Download,FileJson,FileSpreadsheet,MonitorCog,CloudCog
 }from"lucide-react";
 import catalog from"./engines.json";
+import AnalysisWorkspace from"./AnalysisWorkspace.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
 import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView,SettingsView}from"./views.jsx";
 import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,clearInspections,requestPersistentStorage}from"./historyStore.js";
@@ -295,6 +296,8 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
+    <AnalysisWorkspace file={file} prev={prev} res={res} busy={busy} progress={progress} selected={selected} engines={engines} onFile={pick} onRun={run} onCancel={jobId?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)}/>
+    <div className="legacyAnalysis">
     <section className="runtimeGrid">
       <div className={"runtimeCard "+(runMode==="individual"?"active":"")}>
         <div className="runtimeTitle"><MonitorCog size={19}/><div><b>Motor individual</b><span>{selected.length===1&&engines.find(e=>e.id===selected[0])?.browser_ready?"Execução no navegador · zero servidor":"Backend standalone do repositório"} · sem Railway</span></div></div>
@@ -362,11 +365,11 @@ export default function App(){
       <div className="compareTable"><div className="compareRow compareHeader"><span>Motor</span><span>Estado</span><span>Achados</span><span>Latência</span></div>{[...(res.results||[])].sort((a,b)=>(a.latency_ms||0)-(b.latency_ms||0)).map(r=><div className="compareRow" key={r.engine_id}><span>{r.name}</span><span>{txt[r.status]||r.status}</span><span>{r.detections?.length||0}</span><span>{Number(r.latency_ms||0).toFixed(0)} ms</span></div>)}</div>
       <div className="grid">{prev&&<article className="card originalCard"><div className="head"><div><h3>Imagem original</h3><span className="badge">Entrada comum</span></div></div><img src={prev}/><div className="metrics"><span>Fonte usada na inferência</span></div></article>}{(res.results||[]).map(r=><Card key={r.engine_id} r={r}/>)}</div>
     </section>}
-    </>}
+    </div></>}
     {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} onOpenHistory={openHistory} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>}
     {activeView==="reports"&&<ReportsView res={res} inspection={inspectionMeta} onJson={()=>res&&exportJson(res)} onCsv={()=>res&&exportCsv(res)} onMap={()=>res&&downloadConsensus(res)} onNavigate={navigate}/>}
-    {activeView==="settings"&&<SettingsView individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} err={err}/>}
+    {activeView==="settings"&&<><section className="engineSettings surface"><h2>Motores da análise</h2><p>Selecione um motor para execução individual ou dois ou mais para comparação.</p><div className="engineSettingsList">{engines.map(e=><label key={e.id}><input type="checkbox" checked={sel.has(e.id)} onChange={()=>toggle(e.id)}/><span><b>{e.name}</b><small>{e.family} · {modeLabel(e)}</small></span></label>)}</div><button onClick={()=>navigate("analysis")}>Voltar ao canvas · {selected.length} selecionado(s)</button></section><SettingsView individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} err={err}/></>}
     </main>
   </div>
 }

@@ -68,9 +68,31 @@ export async function saveInspection({result,file,referenceFile,inspection}){
   const now=new Date().toISOString();
   const id=String(result.metadata?.analysis_id||("inspection-"+crypto.randomUUID()));
   const created_at=result.metadata?.generated_at||now;
-  const cdmTemporal=(result.results||[]).find(r=>r.engine_id==="cdm_1")?.metrics?.temporal||null;
+  const cdmResult=(result.results||[]).find(r=>r.engine_id==="cdm_1")||null;
+  const cdmTemporal=cdmResult?.metrics?.temporal||null;
   const temporalAlignment=cdmTemporal?.alignment||null;
   const temporalQuality=cdmTemporal?.quality||null;
+  const cdmRecords=cdmResult?.metrics?.records||[];
+  const areasByClass={};
+  for(const row of cdmRecords){
+    if(!row?.class)continue;
+    areasByClass[row.class]=(areasByClass[row.class]||0)+Number(row.area_px2||0);
+  }
+  const cdmRating=cdmResult?.metrics?.summary?.condition_rating||null;
+  const validatedTemporalByClass={};
+  if(cdmTemporal?.enabled&&temporalQuality?.validated_for_change_quantification===true){
+    for(const [cls,st] of Object.entries(cdmTemporal.stats||{})){
+      validatedTemporalByClass[cls]={
+        previous_area_px2:Number(st.previous_area_px2||0),
+        current_area_px2:Number(st.current_area_px2||0),
+        net_area_change_px2:Number(st.net_area_change_px2||0),
+        net_area_change_vs_t0_pct:st.net_area_change_vs_t0_pct==null?null:Number(st.net_area_change_vs_t0_pct),
+        previous_area_mm2:st.previous_area_mm2==null?null:Number(st.previous_area_mm2),
+        current_area_mm2:st.current_area_mm2==null?null:Number(st.current_area_mm2),
+        net_area_change_mm2:st.net_area_change_mm2==null?null:Number(st.net_area_change_mm2)
+      };
+    }
+  }
   const record={
     id,
     created_at,
@@ -110,6 +132,21 @@ export async function saveInspection({result,file,referenceFile,inspection}){
         illumination_delta:Number(temporalQuality?.metrics?.illumination_delta||0),
         sharpness_ratio:Number(temporalQuality?.metrics?.sharpness_ratio||0),
         edge_similarity:Number(temporalQuality?.metrics?.edge_similarity||0)
+      }:null,
+      cdm_snapshot:cdmResult?{
+        total_objects:Number(cdmResult.metrics?.summary?.total_objects||0),
+        crack_count:Number(cdmResult.metrics?.summary?.crack_count||0),
+        spalling_area_px2:Number(cdmResult.metrics?.summary?.spalling_area_px2||0),
+        rebar_area_px2:Number(cdmResult.metrics?.summary?.rebar_area_px2||0),
+        mm_per_px:Number(cdmResult.metrics?.mm_per_px||0)||null,
+        areas_by_class:areasByClass,
+        condition:cdmRating?.enabled?{
+          NT_img:cdmRating.NT_img??null,
+          EC_DNIT_img:cdmRating.EC_DNIT_img??null,
+          GDE_img:Number(cdmRating.GDE_img||0),
+          GDE_level:cdmRating.GDE_level||""
+        }:null,
+        validated_temporal_by_class:validatedTemporalByClass
       }:null
     }
   };

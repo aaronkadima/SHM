@@ -53,12 +53,12 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
   function dragEnd(){drag.current=null}
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
-      <div><strong>Workspace de inspeção</strong><span>{file?.name||"Nenhum arquivo aberto"} {kind&&"· "+kind.toUpperCase()}</span></div>
+      <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><span className="editorMenus"><span>Arquivo</span><span>Editar</span><span>Visualizar</span><span>Análise</span></span></div>
+      <div className="editorFileTitle">{file?.name||"Nova inspeção"} {kind&&"· "+kind.toUpperCase()}</div>
       <div className="editorTopActions">
         <input ref={picker} hidden type="file" accept="image/*,.glb,.gltf,.obj,.ply,.stl" onChange={e=>onFile(e.target.files?.[0]||null)}/>
         <button onClick={()=>picker.current?.click()}><ImagePlus size={16}/> Importar</button>
-        <button onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
-        <button onClick={onSettings}><Settings2 size={16}/> Configurar motores</button>
+        <button onClick={onSettings}><Settings2 size={16}/> Configurar</button>
         <button className="editorPrimary" disabled={!file||kind!=="2d"||!selected.length||busy} onClick={onRun}><Play size={16}/> Analisar</button>
       </div>
     </div>
@@ -74,6 +74,8 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
       </aside>}
       <div className="editorViewport" ref={surface}>
         {!layersOpen&&<button className="editorExpand" onClick={()=>setLayersOpen(true)} title="Mostrar camadas"><ChevronRight size={18}/></button>}
+        <button className="editorCameraEntry" onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
+        {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
         <div className={"editorImage "+(comparison==="side"?"editorSide":"")} style={{transform:`scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>

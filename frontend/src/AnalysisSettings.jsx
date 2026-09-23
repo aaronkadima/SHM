@@ -2,7 +2,7 @@ import React from "react";
 import {ArrowLeft,Check,Settings2} from "lucide-react";
 import "./analysis-settings.css";
 
-export default function AnalysisSettings({engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,error}){
+export default function AnalysisSettings({engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,cdmOptions,setCdmOptions,error}){
   return <section className="analysisSettings" aria-label="Configurações da análise">
     <header className="settingsTop"><div><span className="editorMark">S</span><b>SHM Studio</b></div><button onClick={onBack}><ArrowLeft size={16}/> Voltar ao canvas</button></header>
     <main className="settingsContent">
@@ -10,6 +10,9 @@ export default function AnalysisSettings({engines,selected,toggle,onBack,individ
       <div className="analysisSettingsCard"><h2>Motores disponíveis</h2><p>Um motor executa uma análise individual. Dois ou mais ativam a comparação.</p>
         <div className="settingsEngines">{engines.map(e=><label key={e.id} className="settingsEngine"><span><b>{e.name}</b><small>{e.family} · {e.task.replaceAll("_"," ")}</small></span><input type="checkbox" checked={selected.includes(e.id)} onChange={()=>toggle(e.id)}/><span className="settingsSwitch" aria-hidden="true"/></label>)}</div>
       </div>
+      {selected.includes("cdm_1")&&<details className="analysisSettingsCard"><summary>CDM-1 · Parâmetros morfológicos</summary><p>Valores iniciais da extensão CDM 2.8.5. Aplicados à execução individual no backend standalone; na comparação, o motor usa os valores iniciais.</p><div className="settingsMeta">
+        {[["cdm_threshold","Limiar T",1,255,1],["cdm_kernel_size","Kernel black-hat",3,99,1],["cdm_min_area","Área mínima (px²)",1,1000000,1],["cdm_min_aspect_ratio","Alongamento mínimo",1,50,.1]].map(([key,label,min,max,step])=><label key={key} className="settingsField">{label}<input type="number" min={min} max={max} step={step} value={cdmOptions[key]} onChange={e=>setCdmOptions(v=>({...v,[key]:Number(e.target.value)}))}/></label>)}
+      </div></details>}
       <details className="analysisSettingsCard"><summary>Conexões dos motores</summary><p>Os motores com execução no navegador funcionam diretamente. Os demais exigem um backend standalone acessível por HTTPS. O comparador atende apenas seleções de dois ou mais motores.</p>
         <label className="settingsField">Backend individual<input type="url" placeholder="https://seu-backend-standalone.exemplo" value={individualDraft} onChange={e=>setIndividualDraft(e.target.value)}/></label><div className="analysisSettingsActions"><button onClick={saveIndividual}>Salvar endereço</button><button onClick={testIndividual}>Testar conexão</button><span>{individualOnline===true?"Conectado":individualOnline===false?"Indisponível":""}</span></div>
         <label className="settingsField">Comparador<input value={comparatorDraft} onChange={e=>setComparatorDraft(e.target.value)}/></label><div className="analysisSettingsActions"><button onClick={saveComparator}>Salvar endereço</button><button onClick={testComparator}>Testar conexão</button><span>{comparatorOnline===true?"Conectado":comparatorOnline===false?"Indisponível":""}</span></div>

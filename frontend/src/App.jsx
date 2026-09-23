@@ -10,6 +10,7 @@ import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,cle
 const DEFAULT_COMPARATOR="https://shm-api-production-01f8.up.railway.app";
 const DEFAULT_INDIVIDUAL="";
 const EMPTY_INSPECTION={oae_id:"",element_id:"",source_id:"",inspection_label:""};
+const CDM_DEFAULTS={cdm_threshold:35,cdm_kernel_size:15,cdm_min_area:30,cdm_min_aspect_ratio:2};
 
 function stored(key,fallback){
   const v=localStorage.getItem(key);
@@ -69,6 +70,7 @@ export default function App(){
   const[progress,setProgress]=useState(null);
   const[err,setErr]=useState("");
   const[inspectionMeta,setInspectionMeta]=useState(()=>storedJson("shmInspectionMetaDraft",EMPTY_INSPECTION));
+  const[cdmOptions,setCdmOptions]=useState(()=>storedJson("shmCdm1Options",CDM_DEFAULTS));
   const[history,setHistory]=useState([]);
   const[historyBusy,setHistoryBusy]=useState(false);
   const[historyErr,setHistoryErr]=useState("");
@@ -80,6 +82,7 @@ export default function App(){
   useEffect(()=>()=>{if(prev)URL.revokeObjectURL(prev)},[prev]);
   useEffect(()=>{localStorage.setItem("shmSelectedEngines",JSON.stringify([...sel]))},[sel]);
   useEffect(()=>{localStorage.setItem("shmInspectionMetaDraft",JSON.stringify(inspectionMeta))},[inspectionMeta]);
+  useEffect(()=>{localStorage.setItem("shmCdm1Options",JSON.stringify(cdmOptions))},[cdmOptions]);
   useEffect(()=>{refreshHistory()},[]);
   useEffect(()=>{
     const sync=()=>{
@@ -207,6 +210,7 @@ export default function App(){
       return result;
     }
     const fd=new FormData();fd.append("file",file);fd.append("engine_id",engineId);
+    if(engineId==="cdm_1")for(const [key,value] of Object.entries(cdmOptions))fd.append(key,String(value));
     const r=await fetch(individualEndpoint()+"/infer",{method:"POST",body:fd});
     if(!r.ok)throw new Error(await r.text());
     const x=await r.json();setIndividualOnline(true);
@@ -294,7 +298,7 @@ export default function App(){
     {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} onOpenHistory={openHistory} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>}
     {activeView==="reports"&&<ReportsView res={res} inspection={inspectionMeta} onJson={()=>res&&exportJson(res)} onCsv={()=>res&&exportCsv(res)} onMap={()=>res&&downloadConsensus(res)} onNavigate={navigate}/>}
-    {activeView==="settings"&&<AnalysisSettings engines={engines} selected={selected} toggle={toggle} onBack={()=>navigate("analysis")} individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} inspectionMeta={inspectionMeta} updateInspectionMeta={updateInspectionMeta} error={err}/>}
+    {activeView==="settings"&&<AnalysisSettings engines={engines} selected={selected} toggle={toggle} onBack={()=>navigate("analysis")} individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} inspectionMeta={inspectionMeta} updateInspectionMeta={updateInspectionMeta} cdmOptions={cdmOptions} setCdmOptions={setCdmOptions} error={err}/>}
     </main>
   </div>
 }

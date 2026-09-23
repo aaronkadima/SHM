@@ -330,3 +330,6 @@ button.dangerAction,.historyActions button.dangerAction{border-color:rgba(255,10
 .engineSettings{margin:20px;padding:22px}.engineSettings p{color:var(--muted)}.engineSettingsList{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:8px;max-height:420px;overflow:auto;margin:18px 0}.engineSettingsList label{display:flex;gap:10px;align-items:center;border:1px solid var(--border);padding:12px;border-radius:7px}.engineSettingsList input{accent-color:#0d766e}.engineSettingsList span{display:grid;gap:3px}.engineSettingsList small{color:var(--muted)}
 @media(max-width:1100px){.editorMenus{display:none}.editorFileTitle{display:none}}
 @media(max-width:900px){.editorTopActions button{font-size:0}.editorTopActions svg{width:18px}.editorLayers{width:170px}.editorFloating{width:265px}.editorImage{width:95%}}
+.pathologyLayer { padding-left: 26px; }
+.pathologySwatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.overlayPane .pathologyOverlay { position: absolute; inset: 0; width: 100%; height: 100%; }

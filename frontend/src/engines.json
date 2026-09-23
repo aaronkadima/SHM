@@ -14,6 +14,18 @@
       "browser_runtime": "builtin-js"
     },
     {
+      "id": "cdm_1",
+      "name": "CDM-1",
+      "family": "Concrete Damage Morphology",
+      "task": "classical",
+      "description": "CDM 2.8.5: fissuras, desplacamento, armadura exposta, corrosão e eflorescência em camadas independentes.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "classical",
+      "browser_ready": false,
+      "browser_runtime": null
+    },
+    {
       "id": "yolov8_public_crack",
       "name": "YOLO Crack Detector (public)",
       "family": "Ultralytics / Hugging Face",

@@ -6,7 +6,7 @@ Task=Literal["detection","instance_segmentation","semantic_segmentation","open_v
 class Detection(BaseModel):
     label:str
     canonical_label:str|None=None
-    score:float=1.0
+    score:float|None=1.0
     box:list[float]|None=None
     polygon:list[list[float]]|None=None
     area_px:float|None=None

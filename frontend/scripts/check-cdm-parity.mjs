@@ -152,11 +152,16 @@ const dxf=buildCdmDxf(exportResult);
 const bim=buildCdmBimJson(exportResult,{oae_id:"OAE-TEST",element_id:"E-1",source_id:"CAM-1"});
 const ifc=buildCdmIfc(exportResult,{oae_id:"OAE-TEST",element_id:"E-1"});
 check(csv.includes('"source_class"'),"CSV must expose source_class");
+check(csv.includes('"temporal_alignment"'),"CSV must expose temporal alignment provenance");
 check(svg.includes('data-source-class='),"SVG must expose data-source-class");
+check(svg.includes('cdm-temporal-alignment'),"SVG must embed temporal alignment metadata");
 check(svg.includes('layer-growth:cracks')||!expected.temporal_by_source?.cracks?.growth,"SVG must preserve growth-by-cracks layer");
 check(dxf.includes("SHM_TEMPORAL_GROWTH_CRACKS")||!expected.temporal_by_source?.cracks?.growth,"DXF must split temporal layer by source pathology");
+check(dxf.includes("CDM_TEMPORAL_ALIGNMENT"),"DXF must embed temporal alignment provenance");
 check(bim.features.some(f=>f.damage_class==="growth"&&f.source_class),"BIM JSON temporal feature must expose source_class");
+check(bim.temporal?.alignment!=null,"BIM JSON must expose temporal alignment provenance");
 check(ifc.includes("SourcePathology"),"IFC property set must expose SourcePathology");
+check(ifc.includes("TemporalAlignmentDxPx"),"IFC property set must expose temporal alignment displacement");
 console.log("exports traceability: SVG/CSV/DXF/BIM/IFC checked");
 
 const registrationCase=fixture.registration_case;

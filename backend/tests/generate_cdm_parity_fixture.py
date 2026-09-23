@@ -127,6 +127,13 @@ def main(output_path: str):
                 "growth": sum(r.damage_class == "growth" for r in change_records),
                 "reduction": sum(r.damage_class == "reduction" for r in change_records),
             },
+            "temporal_by_source": {
+                cls: {
+                    "growth": sum(r.time_label == f"growth_{cls}" for r in change_records),
+                    "reduction": sum(r.time_label == f"reduction_{cls}" for r in change_records),
+                }
+                for cls in cdm.PATHOLOGY_FAMILY_ORDER
+            },
         },
     }
     path = Path(output_path)

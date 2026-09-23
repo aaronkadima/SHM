@@ -374,3 +374,54 @@ dependent record, the original inspection id is retained in
 \`reference_origin_inspection_id\`. Campaign CSV/JSON exports therefore preserve
 the original t0 provenance even after storage maintenance or deletion of the
 source inspection.
+
+
+## Temporal chain continuity audit
+
+Longitudinal campaigns now audit the actual t0→t1 linkage between saved
+inspections instead of assuming chronological order implies temporal continuity.
+
+For every campaign inspection SHM derives one of the following states:
+
+- \`baseline\`: first non-temporal snapshot;
+- \`snapshot\`: later non-temporal snapshot;
+- \`continuous\`: t0 is exactly the immediately preceding saved inspection;
+- \`branch\`: t0 points to an older campaign inspection while one or more newer
+  snapshots exist in between;
+- \`external_reference\`: temporal comparison used a manual/external t0 without a
+  history inspection id;
+- \`materialized_origin\`: the historical t0 was deleted but its image and
+  original inspection id were preserved in the dependent record;
+- \`legacy_unlinked\`: an older temporal record predates explicit t0 provenance;
+- \`missing_origin\`: a linked historical t0 cannot be resolved;
+- \`invalid_order\`: t0 points to the same or a chronologically later campaign
+  inspection.
+
+Missing origins and invalid order are hard failures. Branches, external
+references, materialized origins and legacy links are retained as auditable
+warnings. OAE/element identity incompatibility remains an independent hard
+integrity condition.
+
+The history query includes referenced ancestor inspections in addition to the
+normal recent-record limit, so a protected old t0 is not falsely classified as
+missing merely because it falls outside the newest 75 inspections.
+
+Campaign CSV/JSON exports carry chain status and expected predecessor ids.
+The frontend CI runs a deterministic chain-audit regression covering continuous,
+branch, external, materialized, missing, invalid-order and legacy cases.
+
+## Calibrated pathology snapshot trends
+
+Campaigns can also display descriptive affected-area series for each pathology,
+but only when at least two saved snapshots contain a positive physical
+calibration (\`mm_per_px > 0\`). Snapshot areas are converted from pixel area to
+mm² using the calibration stored with that inspection.
+
+These sparklines are descriptive recorded-state series only. SHM does not infer
+growth from their slope and does not interpolate between inspections. Structural
+growth/reduction continues to be reported only by validated pairwise t0→t1
+temporal deltas.
+
+The calibrated snapshot series is included in campaign JSON and as
+\`snapshot_pathology_area\` rows in the campaign CSV, with an explicit note that
+it is not a validated temporal delta.

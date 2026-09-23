@@ -151,6 +151,8 @@ function campaignConditionSeries(group){
 }
 function campaignTemporalEvents(group){
   const events=[];
+  const chain=group.chain||campaignChainAudit(group);
+  const edgeByInspection=new Map((chain.edges||[]).map(edge=>[edge.inspection_id,edge]));
   for(const item of group.items||[]){
     if(item.summary?.temporal_quality?.validated!==true)continue;
     const snapshot=item.summary?.cdm_snapshot;
@@ -176,7 +178,8 @@ function campaignTemporalEvents(group){
         current_area_mm2:st.current_area_mm2,
         net_area_change_mm2:st.net_area_change_mm2,
         quality:item.summary?.temporal_quality||null,
-        alignment:item.summary?.temporal_alignment||null
+        alignment:item.summary?.temporal_alignment||null,
+        chain:edgeByInspection.get(item.id)||null
       });
     }
   }
@@ -206,8 +209,13 @@ function exportCampaignJson(group){
       linked_pairs:group.linkedCount||0,
       identity_issues:group.identityIssues||0,
       identity_unknown:group.identityUnknown||0,
-      source_changes:group.sourceChanges||0
+      source_changes:group.sourceChanges||0,
+      continuity_status:group.chain?.status||"unknown",
+      continuity_counts:group.chain?.counts||{},
+      continuity_hard_issues:group.chain?.hard_issues||0,
+      continuity_warnings:group.chain?.warnings||0
     },
+    chain_edges:group.chain?.edges||[],
     condition_series,
     validated_temporal_events,
     inspections:group.items.map(item=>({
@@ -232,11 +240,11 @@ function campaignCsvCell(value){
 function exportCampaignCsv(group){
   const rows=[[
     "record_type","inspection_id","date","oae_id","element_id","inspection_label","source_id",
-    "reference_inspection_id","reference_origin_inspection_id","reference_storage","reference_source_id","same_oae","same_element","same_source","pathology","metric","value","unit","quality_status","validated","notes"
+    "reference_inspection_id","reference_origin_inspection_id","reference_storage","reference_source_id","same_oae","same_element","same_source","chain_status","expected_previous_id","pathology","metric","value","unit","quality_status","validated","notes"
   ]];
   for(const point of campaignConditionSeries(group)){
     for(const [metric,value] of [["NT_img",point.NT],["EC_DNIT_img",point.EC],["GDE_img",point.GDE]]){
-      rows.push(["condition",point.id,point.created_at,group.oae,group.element,point.label,"","","","","","","","","",metric,value,"","",true,point.GDE_level||""]);
+      rows.push(["condition",point.id,point.created_at,group.oae,group.element,point.label,"","","","","","","","","","","",metric,value,"","",true,point.GDE_level||""]);
     }
   }
   for(const event of campaignTemporalEvents(group)){
@@ -246,7 +254,7 @@ function exportCampaignCsv(group){
       ["net_area_change_vs_t0_pct",event.net_area_change_vs_t0_pct,"%"]
     ];
     for(const [metric,value,unit] of metrics){
-      rows.push(["temporal",event.inspection_id,event.created_at,group.oae,group.element,event.inspection_label,event.source_id,event.reference_inspection_id||"",event.reference_origin_inspection_id||"",event.reference_storage||"",event.reference_inspection_meta?.source_id||"",event.reference_compatibility?.same_oae??"",event.reference_compatibility?.same_element??"",event.reference_compatibility?.same_source??"",event.pathology,metric,value,unit,event.quality?.status||"",true,event.pathology_label]);
+      rows.push(["temporal",event.inspection_id,event.created_at,group.oae,group.element,event.inspection_label,event.source_id,event.reference_inspection_id||"",event.reference_origin_inspection_id||"",event.reference_storage||"",event.reference_inspection_meta?.source_id||"",event.reference_compatibility?.same_oae??"",event.reference_compatibility?.same_element??"",event.reference_compatibility?.same_source??"",event.chain?.status||"",event.chain?.expected_previous_id||"",event.pathology,metric,value,unit,event.quality?.status||"",true,event.pathology_label]);
     }
   }
   const body="\uFEFF"+rows.map(row=>row.map(campaignCsvCell).join(";")).join("\n");

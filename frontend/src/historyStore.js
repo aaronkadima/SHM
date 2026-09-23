@@ -202,21 +202,22 @@ export async function listInspectionSummaries(limit=75){
   const db=await openDb();
   const tx=db.transaction(STORE,"readonly");
   const store=tx.objectStore(STORE);
-  const idx=store.index("created_at");
-  const out=[];
-  await new Promise((resolve,reject)=>{
-    const req=idx.openCursor(null,"prev");
-    req.onerror=()=>reject(req.error||new Error("Falha ao listar histórico."));
-    req.onsuccess=e=>{
-      const cursor=e.target.result;
-      if(!cursor||out.length>=limit){resolve();return}
-      out.push(toSummary(cursor.value));
-      cursor.continue();
-    };
-  });
+  const records=await requestResult(store.getAll(),"Falha ao listar histórico.");
   await txDone(tx);
   db.close();
-  return out;
+  records.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  const byId=new Map(records.map(row=>[row.id,row]));
+  const selected=new Set(records.slice(0,limit).map(row=>row.id));
+  let expanded=true;
+  while(expanded){
+    expanded=false;
+    for(const id of [...selected]){
+      const row=byId.get(id);
+      const ref=row?.reference_inspection_id||null;
+      if(ref&&byId.has(ref)&&!selected.has(ref)){selected.add(ref);expanded=true}
+    }
+  }
+  return records.filter(row=>selected.has(row.id)).map(toSummary);
 }
 export async function getInspection(id){
   const db=await openDb();

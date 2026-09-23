@@ -90,6 +90,8 @@ function campaignTemporalEvents(group){
         inspection_label:item.inspection?.inspection_label||"",
         source_id:item.inspection?.source_id||"",
         reference_inspection_id:item.reference_inspection_id||item.summary?.reference_inspection_id||null,
+        reference_inspection_meta:item.reference_inspection_meta||null,
+        reference_compatibility:item.summary?.reference_compatibility||null,
         pathology:cls,
         pathology_label:CDM_PATHOLOGY_LABELS[cls]||cls,
         previous_area_px2:st.previous_area_px2,
@@ -133,6 +135,9 @@ function exportCampaignJson(group){
       created_at:item.created_at,
       inspection:item.inspection||{},
       file_meta:item.file_meta||{},
+      reference_inspection_id:item.reference_inspection_id||item.summary?.reference_inspection_id||null,
+      reference_inspection_meta:item.reference_inspection_meta||null,
+      reference_compatibility:item.summary?.reference_compatibility||null,
       summary:item.summary||{}
     }))
   };
@@ -145,11 +150,11 @@ function campaignCsvCell(value){
 function exportCampaignCsv(group){
   const rows=[[
     "record_type","inspection_id","date","oae_id","element_id","inspection_label","source_id",
-    "reference_inspection_id","pathology","metric","value","unit","quality_status","validated","notes"
+    "reference_inspection_id","reference_source_id","same_oae","same_element","same_source","pathology","metric","value","unit","quality_status","validated","notes"
   ]];
   for(const point of campaignConditionSeries(group)){
     for(const [metric,value] of [["NT_img",point.NT],["EC_DNIT_img",point.EC],["GDE_img",point.GDE]]){
-      rows.push(["condition",point.id,point.created_at,group.oae,group.element,point.label,"","","",metric,value,"","",true,point.GDE_level||""]);
+      rows.push(["condition",point.id,point.created_at,group.oae,group.element,point.label,"","","","","","",metric,value,"","",true,point.GDE_level||""]);
     }
   }
   for(const event of campaignTemporalEvents(group)){
@@ -159,7 +164,7 @@ function exportCampaignCsv(group){
       ["net_area_change_vs_t0_pct",event.net_area_change_vs_t0_pct,"%"]
     ];
     for(const [metric,value,unit] of metrics){
-      rows.push(["temporal",event.inspection_id,event.created_at,group.oae,group.element,event.inspection_label,event.source_id,event.reference_inspection_id||"",event.pathology,metric,value,unit,event.quality?.status||"",true,event.pathology_label]);
+      rows.push(["temporal",event.inspection_id,event.created_at,group.oae,group.element,event.inspection_label,event.source_id,event.reference_inspection_id||"",event.reference_inspection_meta?.source_id||"",event.reference_compatibility?.same_oae??"",event.reference_compatibility?.same_element??"",event.reference_compatibility?.same_source??"",event.pathology,metric,value,unit,event.quality?.status||"",true,event.pathology_label]);
     }
   }
   const body="\uFEFF"+rows.map(row=>row.map(campaignCsvCell).join(";")).join("\n");
@@ -325,7 +330,7 @@ export function AlertsView({res,history,historyBusy,historyErr,storageStatus,onO
             <div className="campaignAuditStats"><span><b>{conditionSeries.length}</b><small>snapshots classificados</small></span><span><b>{temporalEvents.length}</b><small>deltas temporais validados</small></span><span><b>{group.items.length-conditionSeries.length}</b><small>sem snapshot de condição</small></span></div>
             <div className="campaignExportActions"><button onClick={e=>{e.preventDefault();onUseAsReference?.(group.latest.id)}}><Activity size={12}/> Nova t1 · último como t0</button><button onClick={e=>{e.preventDefault();exportCampaignCsv(group)}}><FileSpreadsheet size={12}/> CSV campanha</button><button onClick={e=>{e.preventDefault();exportCampaignJson(group)}}><FileJson size={12}/> JSON campanha</button></div>
           </div>
-          {temporalEvents.length>0&&<div className="campaignTemporalEvents"><div className="campaignTemporalHead"><b>DELTAS TEMPORAIS VALIDADOS</b><span>Par a par; sem acumulação automática</span></div>{temporalEvents.slice().reverse().map(event=><div className="campaignTemporalRow" key={event.id}><span><b>{formatCampaignDate(event.created_at)}</b><small>{event.inspection_label||event.source_id||"inspeção"}</small></span><span><b>{event.pathology_label}</b><small>{event.reference_inspection_id?"t0 vinculado · "+String(event.reference_inspection_id).slice(0,12):"t0 manual/externo"} · {event.quality?.status||"validada"}</small></span><span><b>{event.net_area_change_vs_t0_pct==null?"—":formatSigned(event.net_area_change_vs_t0_pct)+"%"}</b><small>Δ/t0</small></span><span><b>{event.net_area_change_mm2!=null?formatSigned(event.net_area_change_mm2,1)+" mm²":formatSigned(event.net_area_change_px2,0)+" px²"}</b><small>Δ líquido</small></span></div>)}</div>}
+          {temporalEvents.length>0&&<div className="campaignTemporalEvents"><div className="campaignTemporalHead"><b>DELTAS TEMPORAIS VALIDADOS</b><span>Par a par; sem acumulação automática</span></div>{temporalEvents.slice().reverse().map(event=><div className="campaignTemporalRow" key={event.id}><span><b>{formatCampaignDate(event.created_at)}</b><small>{event.inspection_label||event.source_id||"inspeção"}</small></span><span><b>{event.pathology_label}</b><small>{event.reference_inspection_id?"t0 vinculado · "+String(event.reference_inspection_id).slice(0,12):"t0 manual/externo"}{event.reference_compatibility?.same_source===false?" · fonte diferente":""} · {event.quality?.status||"validada"}</small></span><span><b>{event.net_area_change_vs_t0_pct==null?"—":formatSigned(event.net_area_change_vs_t0_pct)+"%"}</b><small>Δ/t0</small></span><span><b>{event.net_area_change_mm2!=null?formatSigned(event.net_area_change_mm2,1)+" mm²":formatSigned(event.net_area_change_px2,0)+" px²"}</b><small>Δ líquido</small></span></div>)}</div>}
           <div className="campaignTimeline">{group.items.slice().reverse().map(item=>{
             const snap=item.summary?.cdm_snapshot,cond=snap?.condition,quality=item.summary?.temporal_quality;
             const deltas=snap?.validated_temporal_by_class||{};
@@ -348,7 +353,7 @@ export function AlertsView({res,history,historyBusy,historyErr,storageStatus,onO
         {history.map(h=><div className="historyRow" key={h.id}>
           <span>{h.created_at?new Date(h.created_at).toLocaleString("pt-BR"):"—"}</span>
           <span><b>{h.inspection?.oae_id||"OAE não identificada"}</b><small>{h.inspection?.element_id||"elemento não identificado"}{h.inspection?.inspection_label?" · "+h.inspection.inspection_label:""}</small></span>
-          <span>{h.inspection?.source_id||h.file_meta?.name||"—"}{h.summary?.has_reference_image?<small>t0: {h.reference_file_meta?.name||"referência salva"}{h.reference_inspection_id?" · vinculada "+String(h.reference_inspection_id).slice(0,10):h.summary?.reference_storage==="materialized_history"?" · histórica materializada":h.summary?.reference_storage==="missing_reference"?" · referência ausente":" · manual/externa"}</small>:null}</span>
+          <span>{h.inspection?.source_id||h.file_meta?.name||"—"}{h.summary?.has_reference_image?<small>t0: {h.reference_file_meta?.name||"referência salva"}{h.reference_inspection_id?" · vinculada "+String(h.reference_inspection_id).slice(0,10):h.summary?.reference_storage==="materialized_history"?" · histórica materializada":h.summary?.reference_storage==="missing_reference"?" · referência ausente":" · manual/externa"}{h.summary?.reference_compatibility?.same_source===false?" · fonte diferente":""}</small>:null}</span>
           <span>{h.summary?.mode||"—"} · {h.summary?.engines_total||0} motor(es){h.summary?.temporal_comparison?<small>t0→t1{h.summary?.temporal_alignment?.accepted?` · Δx ${h.summary.temporal_alignment.dx_px}px · Δy ${h.summary.temporal_alignment.dy_px}px`:" · sem translação"} · {h.summary?.temporal_quality?.status==="pass"?"qualidade aprovada":h.summary?.temporal_quality?.status==="warning"?"com ressalvas":h.summary?.temporal_quality?.status==="fail"?"não validada":"qualidade não informada"}</small>:null}</span>
           <span>{h.summary?.detections||0}</span>
           <span className="historyActions"><button onClick={()=>onOpenHistory(h.id,"reports")}>Abrir</button><button className="dangerAction" onClick={()=>onDeleteHistory(h.id)}>Excluir</button></span>

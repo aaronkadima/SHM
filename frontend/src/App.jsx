@@ -144,7 +144,12 @@ export default function App(){
       const record=await getInspection(id);
       if(!record)throw new Error("Inspeção não encontrada.");
       const blob=record.image_blob;
-      const referenceBlob=record.reference_image_blob;
+      let referenceBlob=record.reference_image_blob;
+      let linkedReferenceRecord=null;
+      if(!referenceBlob&&record.reference_inspection_id){
+        linkedReferenceRecord=await getInspection(record.reference_inspection_id);
+        referenceBlob=linkedReferenceRecord?.image_blob||null;
+      }
       let restoredFile=null;
       let restoredPreview=null;
       let restoredReferenceFile=null;
@@ -155,7 +160,7 @@ export default function App(){
         restoredPreview=URL.createObjectURL(blob);
       }
       if(referenceBlob){
-        const meta=record.reference_file_meta||{};
+        const meta=(record.reference_file_meta&&Object.keys(record.reference_file_meta).length?record.reference_file_meta:linkedReferenceRecord?.file_meta)||{};
         restoredReferenceFile=new File([referenceBlob],meta.name||"referencia-t0",{type:meta.type||referenceBlob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
         restoredReferencePreview=URL.createObjectURL(referenceBlob);
       }

@@ -744,6 +744,107 @@ def align_previous_rgb(current_rgb: np.ndarray, previous_rgb: np.ndarray, method
     return aligned, metrics
 
 
+def temporal_quality_assessment(
+    current_rgb: np.ndarray,
+    aligned_previous_rgb: np.ndarray,
+    alignment: Optional[Dict[str, object]] = None,
+) -> Dict[str, object]:
+    """Deterministic gate for whether t0→t1 change quantification is trustworthy.
+
+    This does not decide whether damage exists. It checks acquisition/registration
+    compatibility so temporal growth/reduction is not presented without a quality
+    flag when illumination, sharpness, overlap or registration are unsuitable.
+    """
+    if current_rgb.shape != aligned_previous_rgb.shape:
+        raise ValueError("Temporal quality requires equal current/previous image shapes.")
+    alignment = alignment or {}
+    h, w = current_rgb.shape[:2]
+    step = max(1, int(math.ceil(max(h, w) / 320.0)))
+    cur = rgb_to_gray(current_rgb)[::step, ::step].astype(np.float32, copy=False)
+    prev = rgb_to_gray(aligned_previous_rgb)[::step, ::step].astype(np.float32, copy=False)
+
+    mean_cur = float(np.mean(cur)) if cur.size else 0.0
+    mean_prev = float(np.mean(prev)) if prev.size else 0.0
+    illumination_delta = abs(mean_cur - mean_prev) / 255.0
+
+    def edge_energy(gray: np.ndarray) -> float:
+        if gray.shape[0] < 3 or gray.shape[1] < 3:
+            return 0.0
+        edge = (
+            np.abs(gray[1:-1, 2:] - gray[1:-1, :-2])
+            + np.abs(gray[2:, 1:-1] - gray[:-2, 1:-1])
+        )
+        return float(np.mean(edge)) if edge.size else 0.0
+
+    sharp_cur = edge_energy(cur)
+    sharp_prev = edge_energy(prev)
+    sharp_max = max(sharp_cur, sharp_prev)
+    sharpness_ratio = min(sharp_cur, sharp_prev) / sharp_max if sharp_max > 1e-6 else 1.0
+
+    clipped_cur = float(np.mean((cur <= 5.0) | (cur >= 250.0))) if cur.size else 0.0
+    clipped_prev = float(np.mean((prev <= 5.0) | (prev >= 250.0))) if prev.size else 0.0
+    clipped_max = max(clipped_cur, clipped_prev)
+
+    dx = abs(int(alignment.get("dx_px", 0) or 0))
+    dy = abs(int(alignment.get("dy_px", 0) or 0))
+    overlap_ratio = max(0.0, float(max(0, w - dx) * max(0, h - dy)) / max(1.0, float(w * h)))
+
+    issues: List[str] = []
+    warnings: List[str] = []
+    reason = str(alignment.get("reason", "") or "")
+    if reason in {"search_boundary_hit", "registration_grid_mismatch", "image_too_small"}:
+        issues.append("registration_unreliable")
+    if overlap_ratio < 0.85:
+        issues.append("insufficient_overlap")
+    elif overlap_ratio < 0.92:
+        warnings.append("reduced_overlap")
+    if illumination_delta > 0.22:
+        issues.append("illumination_mismatch")
+    elif illumination_delta > 0.12:
+        warnings.append("illumination_difference")
+    if sharpness_ratio < 0.45:
+        issues.append("sharpness_mismatch")
+    elif sharpness_ratio < 0.65:
+        warnings.append("sharpness_difference")
+    if clipped_max > 0.35:
+        issues.append("exposure_clipping")
+    elif clipped_max > 0.20:
+        warnings.append("exposure_warning")
+    if sharp_max < 3.0:
+        warnings.append("low_texture")
+
+    status = "fail" if issues else ("warning" if warnings else "pass")
+    return {
+        "schema": "cdm_temporal_quality_v1",
+        "status": status,
+        "validated_for_change_quantification": not bool(issues),
+        "issues": issues,
+        "warnings": warnings,
+        "metrics": {
+            "overlap_ratio": float(overlap_ratio),
+            "illumination_delta": float(illumination_delta),
+            "mean_luminance_t1": mean_cur,
+            "mean_luminance_t0_aligned": mean_prev,
+            "sharpness_t1": float(sharp_cur),
+            "sharpness_t0_aligned": float(sharp_prev),
+            "sharpness_ratio": float(sharpness_ratio),
+            "clipped_fraction_t1": float(clipped_cur),
+            "clipped_fraction_t0_aligned": float(clipped_prev),
+            "sample_step": int(step),
+        },
+        "thresholds": {
+            "min_overlap_fail": 0.85,
+            "min_overlap_warning": 0.92,
+            "max_illumination_delta_fail": 0.22,
+            "max_illumination_delta_warning": 0.12,
+            "min_sharpness_ratio_fail": 0.45,
+            "min_sharpness_ratio_warning": 0.65,
+            "max_clipped_fraction_fail": 0.35,
+            "max_clipped_fraction_warning": 0.20,
+        },
+    }
+
+
 def _pad_for_filter(arr: np.ndarray, k: int) -> np.ndarray:
     pad = k // 2
     return np.pad(arr, ((pad, pad), (pad, pad)), mode="edge")

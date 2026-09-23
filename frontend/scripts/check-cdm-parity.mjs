@@ -199,6 +199,15 @@ check(farRegistration.metrics.reason==="search_boundary_hit","out-of-range camer
 check(farRegistration.metrics.dx_px===0&&farRegistration.metrics.dy_px===0,"rejected registration must apply zero translation");
 check(farRegistration.metrics.boundary_hit===true,"out-of-range registration must mark boundary_hit");
 
+const resizeOnly=__cdmTest.registerPrevious(
+  imageData(registrationCase.current_rgb),
+  imageData(registrationCase.previous_rgb),
+  "resize"
+);
+check(resizeOnly.metrics.accepted===false,"resize mode must not apply translation");
+check(resizeOnly.metrics.dx_px===0&&resizeOnly.metrics.dy_px===0,"resize mode must keep zero translation");
+check(resizeOnly.metrics.reason==="translation_registration_disabled","resize mode must report disabled translation registration");
+
 if(failures.length){
   console.error("\nCDM parity failures:");
   for(const f of failures)console.error(" - "+f);

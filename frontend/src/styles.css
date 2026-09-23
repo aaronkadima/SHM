@@ -357,3 +357,5 @@ button.dangerAction,.historyActions button.dangerAction{border-color:rgba(255,10
 .editorCdmWarning{margin-top:7px!important;padding:7px 8px;border-left:2px solid #a66a1f;background:#fff8ed;color:#765022!important;border-radius:4px;font-size:10px!important;line-height:1.45!important}
 
 .editorTemporalQuality{margin-top:7px!important;padding:7px 8px;border-radius:4px;font-size:10px!important;line-height:1.45!important;border-left:2px solid #5c7a82;background:#f4f8f9;color:#4f6870!important}.editorTemporalQuality.pass{border-left-color:#0d766e;background:#f0f8f6;color:#285d58!important}.editorTemporalQuality.warning{border-left-color:#a66a1f;background:#fff8ed;color:#765022!important}.editorTemporalQuality.fail{border-left-color:#aa3d3d;background:#fff2f2;color:#7b3333!important}
+
+.temporalLayerGroup.pass>summary small{color:#0d766e}.temporalLayerGroup.warning>summary small{color:#9a641f}.temporalLayerGroup.fail>summary small{color:#a23f3f;font-weight:700}

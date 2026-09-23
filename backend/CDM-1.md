@@ -301,3 +301,43 @@ presented visually as confirmed change.
 
 Residual geometric similarity is persisted in local history and exported in the
 browser CSV, BIM/IFC/HTML outputs and native CDM CSV/result text.
+
+
+## Longitudinal campaigns
+
+The local SHM history now groups persisted inspections by
+\`OAE + element_id\` into longitudinal campaigns. Campaigns use only saved
+inspection summaries and previously validated pairwise temporal deltas. They do
+not interpolate missing inspections, recompute old images, or accumulate
+growth/reduction across unrelated pairs.
+
+Each new CDM-1 history entry stores a lightweight snapshot containing pathology
+areas, NT/EC/GDE condition values and validated temporal deltas. Legacy entries
+without that snapshot remain readable and are explicitly identified as older
+records.
+
+Campaign panels expose:
+
+- inspection count and covered date range;
+- latest NT/EC/GDE condition state;
+- a GDE sparkline based only on recorded condition snapshots;
+- validated pairwise temporal events by pathology;
+- CSV and JSON campaign audit exports;
+- a “Nova t1 · último como t0” workflow that prepares the latest saved image as
+  the reference for the next CDM-1 inspection.
+
+When the latest inspection is reused as t0, the new record persists the
+\`reference_inspection_id\`. Manually supplied references remain explicitly
+unlinked. The campaign CSV/JSON exports carry this provenance so a temporal pair
+can be traced back to the historical inspection that supplied t0.
+
+Linked historical t0 images are deduplicated in IndexedDB: the dependent record
+references the original inspection instead of storing the same image blob again.
+When a referenced inspection is manually deleted, its image is materialized into
+the dependent record before deletion so the temporal pair remains reopenable.
+Automatic history pruning preserves records that are still referenced by newer
+inspections.
+
+The history header reports the browser's real storage estimate and whether
+persistent storage has been granted. These values are reported by the browser;
+SHM does not synthesize a storage quota or usage estimate.

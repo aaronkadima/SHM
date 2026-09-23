@@ -8,7 +8,7 @@ import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from
 import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,clearInspections,requestPersistentStorage}from"./historyStore.js";
 
 const DEFAULT_COMPARATOR="https://shm-api-production-01f8.up.railway.app";
-const DEFAULT_INDIVIDUAL="http://127.0.0.1:8001";
+const DEFAULT_INDIVIDUAL="";
 const EMPTY_INSPECTION={oae_id:"",element_id:"",source_id:"",inspection_label:""};
 
 function stored(key,fallback){
@@ -153,18 +153,28 @@ export default function App(){
   function saveIndividual(){
     const v=individualDraft.trim().replace(/\/$/,"");localStorage.setItem("shmIndividualApiUrl",v);setIndividualApi(v);setIndividualOnline(null);
   }
+  function individualEndpoint(){
+    if(!individualApi)throw new Error("Configure o endereço HTTPS de um backend standalone em Configurações → Conexões dos motores. Este motor não executa no navegador.");
+    let url;
+    try{url=new URL(individualApi)}catch{throw new Error("O endereço do backend individual não é uma URL válida.")}
+    if((url.protocol!=="https:" || ["localhost","127.0.0.1"].includes(url.hostname)) && !(location.hostname==="localhost"||location.hostname==="127.0.0.1")){
+      throw new Error("O site público exige um backend individual acessível por HTTPS; o endereço local não funciona para outros usuários.");
+    }
+    if(!["https:","http:"].includes(url.protocol))throw new Error("O backend deve usar HTTP ou HTTPS.");
+    return individualApi;
+  }
   function saveComparator(){
     const v=comparatorDraft.trim().replace(/\/$/,"");localStorage.setItem("shmComparatorApiUrl",v);setComparatorApi(v);setComparatorOnline(null);
   }
   async function testIndividual(){
     setErr("");setIndividualOnline(null);
     try{
-      const r=await fetch(individualApi+"/health",{signal:AbortSignal.timeout(8000)});
+      const r=await fetch(individualEndpoint()+"/health",{signal:AbortSignal.timeout(8000)});
       if(!r.ok)throw new Error("HTTP "+r.status);
       const j=await r.json();
       if(j.role!=="standalone")throw new Error("O endpoint não declarou role=standalone.");
       setIndividualOnline(true);
-    }catch(e){setIndividualOnline(false);setErr("Backend individual indisponível: "+String(e))}
+    }catch(e){setIndividualOnline(false);setErr("Backend individual indisponível: "+(e instanceof TypeError?"Não foi possível acessar o endereço. Confira HTTPS, disponibilidade do serviço e CORS.":e.message||String(e)))}
   }
   async function ensureComparator(){
     const r=await fetch(comparatorApi+"/health",{signal:AbortSignal.timeout(12000)});
@@ -197,7 +207,7 @@ export default function App(){
       return result;
     }
     const fd=new FormData();fd.append("file",file);fd.append("engine_id",engineId);
-    const r=await fetch(individualApi+"/infer",{method:"POST",body:fd});
+    const r=await fetch(individualEndpoint()+"/infer",{method:"POST",body:fd});
     if(!r.ok)throw new Error(await r.text());
     const x=await r.json();setIndividualOnline(true);
     const result={

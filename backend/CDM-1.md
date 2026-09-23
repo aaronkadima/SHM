@@ -168,3 +168,42 @@ layers, BIM JSON and IFC `Pset_ConcreteDamageAssessment.SourcePathology`.
 
 The parity CI also validates monotonic progress stages and temporal source-class
 propagation through these export formats.
+
+
+## Automatic t0→t1 registration
+
+Temporal comparison now supports `translation_auto` (default) in addition to
+plain `resize`. After resizing t0 to the processed t1 dimensions, CDM builds a
+low-resolution luminance-edge representation and searches a fixed central ROI
+for the integer translation that minimizes edge mismatch. The search radius is
+12% of the smaller processed image dimension, capped at 96 px.
+
+A non-zero translation is applied only when it improves the edge-match score by
+at least 3.5% and the optimum is not on the search boundary. If the optimum hits
+that boundary, the registration is rejected with
+`reason=search_boundary_hit`; this avoids silently accepting a partial
+correction when the camera moved farther than the supported search range.
+Invalid translated borders are filled with t1 pixels so missing t0 coverage does
+not create artificial growth/reduction along the image edges.
+
+The temporal result records:
+
+- requested/applied method;
+- accepted/rejected state and reason;
+- applied and estimated Δx/Δy in processed pixels;
+- edge-match score before/after;
+- relative improvement;
+- downsample step and search radius.
+
+When a translation is actually applied, SHM also produces an aligned t0 preview.
+The canvas uses that aligned reference in the t0/t1 view and lets the operator
+toggle back to the raw t0 for visual verification. The aligned preview is not
+duplicated in history when no translation was applied.
+
+Current scope is translation registration only. Rotation, scale variation and
+projective/perspective changes are not corrected by this stage and should be
+controlled during image acquisition or handled by a later registration stage.
+
+The cross-runtime CI includes a known camera-shift fixture. A t0 image shifted
++6 px in X and -4 px in Y must be recovered as Δx=-6 px and Δy=+4 px by both
+Python and the browser implementation.

@@ -111,6 +111,9 @@ class CDM1Adapter(EngineAdapter):
                 (width, height), Image.Resampling.BILINEAR
             )
             previous_rgb = np.asarray(previous_resized, dtype=np.uint8)
+            previous_rgb, alignment_info = cdm.align_previous_rgb(
+                rgb, previous_rgb, cfg.alignment_method
+            )
             previous_masks, previous_pipeline = cdm.detect_masks(
                 previous_rgb, cfg, run_tag="t0"
             )
@@ -139,7 +142,8 @@ class CDM1Adapter(EngineAdapter):
                     })
             temporal = {
                 "enabled": True,
-                "alignment_method": "resize",
+                "alignment_method": alignment_info.get("method_applied", "resize"),
+                "alignment": alignment_info,
                 "stats": temporal_stats,
                 "records": [_record_payload(r) for r in change_records],
                 "layers": temporal_layers,

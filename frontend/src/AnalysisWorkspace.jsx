@@ -1,5 +1,5 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
-import {Camera,ChevronLeft,ChevronRight,Download,ImagePlus,Layers3,Maximize2,Minus,Move,Play,Plus,Settings2,X,VideoOff} from "lucide-react";
+import {Camera,ChevronLeft,ChevronRight,Download,ImagePlus,Layers3,Maximize2,Minus,Play,Plus,Settings2,X} from "lucide-react";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
 const MODEL_EXT=/\.(glb|gltf|obj|ply|stl)$/i;
@@ -11,7 +11,7 @@ export function detectAsset(file){
   return "unknown";
 }
 
-export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,engines,onFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap}){
+export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,onFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap}){
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(true),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(.75),[comparison,setComparison]=useState("overlay");

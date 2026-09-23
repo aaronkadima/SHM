@@ -108,3 +108,28 @@ docker run --rm -p 8000:8000 shm-cdm-1
 
 The `app/cdm_v285.py` source should remain synchronized with future approved
 versions of the Inkscape CDM extension.
+
+
+## Python ↔ browser parity
+
+The repository includes a deterministic cross-runtime regression:
+
+- `backend/tests/generate_cdm_parity_fixture.py` creates controlled t0/t1 RGB
+  inputs and computes the reference outputs with the Python CDM 2.8.5 source;
+- `frontend/scripts/check-cdm-parity.mjs` runs the same pixels through the
+  browser morphology core and checks masks, accepted records, summary metrics,
+  NT/EC/GDE and temporal growth/reduction;
+- `.github/workflows/cdm-parity.yml` executes this comparison automatically
+  whenever the Python or browser CDM implementation changes.
+
+The current synthetic regression exercises all five pathology masks and accepted
+records for cracks, spalling, exposed reinforcement, apparent corrosion and
+efflorescence. It also exercises t0→t1 growth statistics.
+
+## Temporal history persistence
+
+When a CDM-1 inspection contains a t0 reference, SHM stores both the current
+image and the reference image in the local IndexedDB record. Reopening the
+inspection restores the two source files and keeps the t0/t1 canvas mode
+available. History summaries identify records with a saved reference and a
+temporal comparison.

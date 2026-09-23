@@ -97,6 +97,7 @@ check(mainQuality.status===expQuality.status,`main quality status ${mainQuality.
 check(mainQuality.validated_for_change_quantification===expQuality.validated_for_change_quantification,"main temporal validation mismatch");
 check(near(mainQuality.metrics.illumination_delta,expQuality.metrics?.illumination_delta??0,.002,.03),"main illumination quality mismatch");
 check(near(mainQuality.metrics.sharpness_ratio,expQuality.metrics?.sharpness_ratio??0,.02,.04),"main sharpness quality mismatch");
+check(near(mainQuality.metrics.edge_similarity,expQuality.metrics?.edge_similarity??0,.02,.05),"main edge similarity mismatch");
 for(const [cls,exp] of Object.entries(expected.temporal_stats)){
   const got=temporal.stats[cls];
   console.log(`temporal ${cls}: IoU=${got.iou.toFixed(6)}/${Number(exp.iou).toFixed(6)} growth=${got.growth_area_px2}/${exp.growth_area_px2} reduction=${got.reduction_area_px2}/${exp.reduction_area_px2}`);
@@ -221,6 +222,13 @@ const resizeOnly=__cdmTest.registerPrevious(
 check(resizeOnly.metrics.accepted===false,"resize mode must not apply translation");
 check(resizeOnly.metrics.dx_px===0&&resizeOnly.metrics.dy_px===0,"resize mode must keep zero translation");
 check(resizeOnly.metrics.reason==="translation_registration_disabled","resize mode must report disabled translation registration");
+const resizeQuality=__cdmTest.temporalQualityAssessment(imageData(registrationCase.current_rgb),resizeOnly.image,resizeOnly.metrics);
+const expResizeQuality=registrationCase.expected.resize_quality;
+console.log("quality resize-only shifted",JSON.stringify({got:resizeQuality,expected:expResizeQuality}));
+check(resizeQuality.status===expResizeQuality.status,"resize-only shifted quality status mismatch");
+check(resizeQuality.validated_for_change_quantification===false,"resize-only shifted pair must not be validated");
+check(resizeQuality.issues.includes("geometric_mismatch"),"resize-only shifted pair must include geometric_mismatch");
+check(near(resizeQuality.metrics.edge_similarity,expResizeQuality.metrics.edge_similarity,.02,.05),"resize-only edge similarity mismatch");
 
 function checkQualityCase(name,testCase,expectedIssue){
   const current=imageData(testCase.current_rgb),previous=imageData(testCase.previous_rgb);

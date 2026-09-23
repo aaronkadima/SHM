@@ -40,7 +40,14 @@ function campaignSummaries(history){
     const latest=group.items.at(-1),first=group.items[0];
     const validated=group.items.filter(x=>x.summary?.temporal_quality?.validated===true).length;
     const failed=group.items.filter(x=>x.summary?.temporal_quality?.status==="fail").length;
-    return {...group,latest,first,validated,failed};
+    const linked=group.items.filter(x=>x.reference_inspection_id||x.reference_origin_inspection_id||x.summary?.reference_origin_inspection_id);
+    const identityIssues=linked.filter(x=>{
+      const comp=x.summary?.reference_compatibility;
+      return comp&&(comp.same_oae===false||comp.same_element===false);
+    }).length;
+    const identityUnknown=linked.filter(x=>!x.summary?.reference_compatibility).length;
+    const sourceChanges=linked.filter(x=>x.summary?.reference_compatibility?.same_oae===true&&x.summary?.reference_compatibility?.same_element===true&&x.summary?.reference_compatibility?.same_source===false).length;
+    return {...group,latest,first,validated,failed,linkedCount:linked.length,identityIssues,identityUnknown,sourceChanges};
   }).sort((a,b)=>new Date(b.latest?.created_at||0)-new Date(a.latest?.created_at||0));
 }
 function formatCampaignDate(value){
@@ -90,6 +97,8 @@ function campaignTemporalEvents(group){
         inspection_label:item.inspection?.inspection_label||"",
         source_id:item.inspection?.source_id||"",
         reference_inspection_id:item.reference_inspection_id||item.summary?.reference_inspection_id||null,
+        reference_origin_inspection_id:item.reference_origin_inspection_id||item.summary?.reference_origin_inspection_id||item.reference_inspection_id||item.summary?.reference_inspection_id||null,
+        reference_storage:item.summary?.reference_storage||null,
         reference_inspection_meta:item.reference_inspection_meta||null,
         reference_compatibility:item.summary?.reference_compatibility||null,
         pathology:cls,
@@ -128,6 +137,12 @@ function exportCampaignJson(group){
     first_inspection_at:group.first?.created_at||null,
     latest_inspection_at:group.latest?.created_at||null,
     note:"Somente snapshots persistidos e deltas temporais previamente validados. Não há interpolação, extrapolação ou acumulação de crescimento.",
+    chain_integrity:{
+      linked_pairs:group.linkedCount||0,
+      identity_issues:group.identityIssues||0,
+      identity_unknown:group.identityUnknown||0,
+      source_changes:group.sourceChanges||0
+    },
     condition_series,
     validated_temporal_events,
     inspections:group.items.map(item=>({
@@ -136,6 +151,8 @@ function exportCampaignJson(group){
       inspection:item.inspection||{},
       file_meta:item.file_meta||{},
       reference_inspection_id:item.reference_inspection_id||item.summary?.reference_inspection_id||null,
+      reference_origin_inspection_id:item.reference_origin_inspection_id||item.summary?.reference_origin_inspection_id||item.reference_inspection_id||item.summary?.reference_inspection_id||null,
+      reference_storage:item.summary?.reference_storage||null,
       reference_inspection_meta:item.reference_inspection_meta||null,
       reference_compatibility:item.summary?.reference_compatibility||null,
       summary:item.summary||{}
@@ -150,11 +167,11 @@ function campaignCsvCell(value){
 function exportCampaignCsv(group){
   const rows=[[
     "record_type","inspection_id","date","oae_id","element_id","inspection_label","source_id",
-    "reference_inspection_id","reference_source_id","same_oae","same_element","same_source","pathology","metric","value","unit","quality_status","validated","notes"
+    "reference_inspection_id","reference_origin_inspection_id","reference_storage","reference_source_id","same_oae","same_element","same_source","pathology","metric","value","unit","quality_status","validated","notes"
   ]];
   for(const point of campaignConditionSeries(group)){
     for(const [metric,value] of [["NT_img",point.NT],["EC_DNIT_img",point.EC],["GDE_img",point.GDE]]){
-      rows.push(["condition",point.id,point.created_at,group.oae,group.element,point.label,"","","","","","","",metric,value,"","",true,point.GDE_level||""]);
+      rows.push(["condition",point.id,point.created_at,group.oae,group.element,point.label,"","","","","","","","","","",metric,value,"","",true,point.GDE_level||""]);
     }
   }
   for(const event of campaignTemporalEvents(group)){
@@ -164,7 +181,7 @@ function exportCampaignCsv(group){
       ["net_area_change_vs_t0_pct",event.net_area_change_vs_t0_pct,"%"]
     ];
     for(const [metric,value,unit] of metrics){
-      rows.push(["temporal",event.inspection_id,event.created_at,group.oae,group.element,event.inspection_label,event.source_id,event.reference_inspection_id||"",event.reference_inspection_meta?.source_id||"",event.reference_compatibility?.same_oae??"",event.reference_compatibility?.same_element??"",event.reference_compatibility?.same_source??"",event.pathology,metric,value,unit,event.quality?.status||"",true,event.pathology_label]);
+      rows.push(["temporal",event.inspection_id,event.created_at,group.oae,group.element,event.inspection_label,event.source_id,event.reference_inspection_id||"",event.reference_origin_inspection_id||"",event.reference_storage||"",event.reference_inspection_meta?.source_id||"",event.reference_compatibility?.same_oae??"",event.reference_compatibility?.same_element??"",event.reference_compatibility?.same_source??"",event.pathology,metric,value,unit,event.quality?.status||"",true,event.pathology_label]);
     }
   }
   const body="\uFEFF"+rows.map(row=>row.map(campaignCsvCell).join(";")).join("\n");
@@ -320,17 +337,17 @@ export function AlertsView({res,history,historyBusy,historyErr,storageStatus,onO
         return <details className="campaignCard" key={group.key}>
           <summary>
             <span><b>{group.oae}</b><small>{group.element}</small></span>
-            <span><b>{group.items.length}</b><small>inspeções</small></span>
+            <span><b>{group.items.length}</b><small>inspeções{group.identityIssues?" · "+group.identityIssues+" vínculo(s) inválido(s)":group.identityUnknown?" · "+group.identityUnknown+" vínculo(s) legado(s)":""}</small></span>
             <span><b>{formatCampaignDate(group.first?.created_at)} → {formatCampaignDate(group.latest?.created_at)}</b><small>{group.validated} temporal(is) validada(s){group.failed?" · "+group.failed+" reprovada(s)":""}</small></span>
             <span>{condition?<><b>NT {condition.NT_img} · EC {condition.EC_DNIT_img}</b><small>GDE {Number(condition.GDE_img||0).toFixed(2)} · {condition.GDE_level||"—"}</small></>:<><b>Sem classificação</b><small>snapshot CDM ausente</small></>}</span>
             <span className={"campaignQuality "+(latestTemporal?.status||"unknown")}>{latestTemporal?.status==="pass"?"APROVADA":latestTemporal?.status==="warning"?"RESSALVAS":latestTemporal?.status==="fail"?"NÃO VALIDADA":"SEM TEMPORAL"}</span>
           </summary>
           <div className="campaignOverview">
             <div className="campaignTrendBlock"><span>GDE REGISTRADO</span><CampaignSparkline points={conditionSeries}/><small>{conditionSeries.length>=2?formatSigned(conditionSeries.at(-1).GDE-conditionSeries[0].GDE,2)+" desde o primeiro snapshot":"mínimo de 2 snapshots classificados"}</small></div>
-            <div className="campaignAuditStats"><span><b>{conditionSeries.length}</b><small>snapshots classificados</small></span><span><b>{temporalEvents.length}</b><small>deltas temporais validados</small></span><span><b>{group.items.length-conditionSeries.length}</b><small>sem snapshot de condição</small></span></div>
+            <div className="campaignAuditStats"><span><b>{conditionSeries.length}</b><small>snapshots classificados</small></span><span><b>{temporalEvents.length}</b><small>deltas temporais validados</small></span><span><b>{group.linkedCount||0}</b><small>pares históricos vinculados</small></span><span className={group.identityIssues?"auditBad":group.identityUnknown?"auditWarn":"auditGood"}><b>{group.identityIssues||group.identityUnknown||0}</b><small>{group.identityIssues?"identidade incompatível":group.identityUnknown?"identidade não auditada":"cadeia íntegra"}</small></span></div>
             <div className="campaignExportActions"><button onClick={e=>{e.preventDefault();onUseAsReference?.(group.latest.id)}}><Activity size={12}/> Nova t1 · último como t0</button><button onClick={e=>{e.preventDefault();exportCampaignCsv(group)}}><FileSpreadsheet size={12}/> CSV campanha</button><button onClick={e=>{e.preventDefault();exportCampaignJson(group)}}><FileJson size={12}/> JSON campanha</button></div>
           </div>
-          {temporalEvents.length>0&&<div className="campaignTemporalEvents"><div className="campaignTemporalHead"><b>DELTAS TEMPORAIS VALIDADOS</b><span>Par a par; sem acumulação automática</span></div>{temporalEvents.slice().reverse().map(event=><div className="campaignTemporalRow" key={event.id}><span><b>{formatCampaignDate(event.created_at)}</b><small>{event.inspection_label||event.source_id||"inspeção"}</small></span><span><b>{event.pathology_label}</b><small>{event.reference_inspection_id?"t0 vinculado · "+String(event.reference_inspection_id).slice(0,12):"t0 manual/externo"}{event.reference_compatibility?.same_source===false?" · fonte diferente":""} · {event.quality?.status||"validada"}</small></span><span><b>{event.net_area_change_vs_t0_pct==null?"—":formatSigned(event.net_area_change_vs_t0_pct)+"%"}</b><small>Δ/t0</small></span><span><b>{event.net_area_change_mm2!=null?formatSigned(event.net_area_change_mm2,1)+" mm²":formatSigned(event.net_area_change_px2,0)+" px²"}</b><small>Δ líquido</small></span></div>)}</div>}
+          {temporalEvents.length>0&&<div className="campaignTemporalEvents"><div className="campaignTemporalHead"><b>DELTAS TEMPORAIS VALIDADOS</b><span>Par a par; sem acumulação automática</span></div>{temporalEvents.slice().reverse().map(event=><div className="campaignTemporalRow" key={event.id}><span><b>{formatCampaignDate(event.created_at)}</b><small>{event.inspection_label||event.source_id||"inspeção"}</small></span><span><b>{event.pathology_label}</b><small>{event.reference_inspection_id?"t0 vinculado · "+String(event.reference_inspection_id).slice(0,12):event.reference_storage==="materialized_history"?"t0 histórico materializado · "+String(event.reference_origin_inspection_id||"").slice(0,12):"t0 manual/externo"}{event.reference_compatibility?.same_source===false?" · fonte diferente":""} · {event.quality?.status||"validada"}</small></span><span><b>{event.net_area_change_vs_t0_pct==null?"—":formatSigned(event.net_area_change_vs_t0_pct)+"%"}</b><small>Δ/t0</small></span><span><b>{event.net_area_change_mm2!=null?formatSigned(event.net_area_change_mm2,1)+" mm²":formatSigned(event.net_area_change_px2,0)+" px²"}</b><small>Δ líquido</small></span></div>)}</div>}
           <div className="campaignTimeline">{group.items.slice().reverse().map(item=>{
             const snap=item.summary?.cdm_snapshot,cond=snap?.condition,quality=item.summary?.temporal_quality;
             const deltas=snap?.validated_temporal_by_class||{};

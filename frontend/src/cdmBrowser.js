@@ -369,12 +369,33 @@ function renderLayer(records,w,h,color){
   return c.toDataURL("image/png").split(",")[1];
 }
 function temporalCompare(cur,prev,w,h,cfg){
-  const stats={},records=[];
+  const stats={},records=[],mm2Factor=cfg.mmPerPx>0?cfg.mmPerPx*cfg.mmPerPx:null;
   for(const cls of Object.keys(cur)){
     const a=cur[cls],b=prev[cls];if(!b)continue;
-    const growth=new Uint8Array(a.length),reduction=new Uint8Array(a.length);let inter=0,union=0,g=0,r=0;
-    for(let i=0;i<a.length;i++){if(a[i]&&b[i])inter++;if(a[i]||b[i])union++;if(a[i]&&!b[i]){growth[i]=1;g++}if(b[i]&&!a[i]){reduction[i]=1;r++}}
-    stats[cls]={iou:union?inter/union:1,growth_area_px2:g,reduction_area_px2:r};
+    const growth=new Uint8Array(a.length),reduction=new Uint8Array(a.length);let inter=0,union=0,g=0,r=0,currentArea=0,previousArea=0;
+    for(let i=0;i<a.length;i++){
+      if(a[i])currentArea++;
+      if(b[i])previousArea++;
+      if(a[i]&&b[i])inter++;
+      if(a[i]||b[i])union++;
+      if(a[i]&&!b[i]){growth[i]=1;g++}
+      if(b[i]&&!a[i]){reduction[i]=1;r++}
+    }
+    const net=currentArea-previousArea;
+    stats[cls]={
+      iou:union?inter/union:1,
+      intersection_area_px2:inter,union_area_px2:union,
+      previous_area_px2:previousArea,current_area_px2:currentArea,
+      growth_area_px2:g,reduction_area_px2:r,net_area_change_px2:net,
+      growth_rate_vs_t0_pct:previousArea>0?100*g/previousArea:null,
+      reduction_rate_vs_t0_pct:previousArea>0?100*r/previousArea:null,
+      net_area_change_vs_t0_pct:previousArea>0?100*net/previousArea:null,
+      previous_area_mm2:mm2Factor==null?null:previousArea*mm2Factor,
+      current_area_mm2:mm2Factor==null?null:currentArea*mm2Factor,
+      growth_area_mm2:mm2Factor==null?null:g*mm2Factor,
+      reduction_area_mm2:mm2Factor==null?null:r*mm2Factor,
+      net_area_change_mm2:mm2Factor==null?null:net*mm2Factor
+    };
     const gr=recordsFromMask(growth,w,h,"growth","growth_"+cls,cfg),rr=recordsFromMask(reduction,w,h,"reduction","reduction_"+cls,cfg);
     gr.forEach(x=>{x.source_class=cls;x.confidence_note+=" Classe base: "+LABELS[cls]+"."});
     rr.forEach(x=>{x.source_class=cls;x.confidence_note+=" Classe base: "+LABELS[cls]+"."});

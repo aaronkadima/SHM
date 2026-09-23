@@ -577,6 +577,171 @@ def contrast_stretch(gray: np.ndarray) -> np.ndarray:
     return np.clip(out, 0, 255).astype(np.float32)
 
 
+def _registration_edge_map(rgb: np.ndarray, max_side: int = 160) -> Tuple[np.ndarray, int]:
+    """Low-cost luminance edge map used for deterministic translation registration."""
+    gray = rgb_to_gray(rgb)
+    h, w = gray.shape
+    step = max(1, int(math.ceil(max(h, w) / float(max_side))))
+    small = gray[::step, ::step].astype(np.float32, copy=False)
+    edge = np.zeros_like(small, dtype=np.float32)
+    if small.shape[0] >= 3 and small.shape[1] >= 3:
+        edge[1:-1, 1:-1] = (
+            np.abs(small[1:-1, 2:] - small[1:-1, :-2])
+            + np.abs(small[2:, 1:-1] - small[:-2, 1:-1])
+        )
+    return edge, step
+
+
+def estimate_translation_registration(current_rgb: np.ndarray, previous_rgb: np.ndarray) -> Dict[str, object]:
+    """Estimate a conservative integer translation of t0 into t1 coordinates.
+
+    The score compares a fixed central ROI on low-resolution luminance edge maps.
+    Keeping the ROI fixed makes every candidate use the same number of samples and
+    avoids favoring large shifts merely because they reduce overlap.
+    """
+    if current_rgb.shape != previous_rgb.shape:
+        raise ValueError("Registration requires equal current/previous image shapes.")
+    edge_cur, step = _registration_edge_map(current_rgb)
+    edge_prev, step_prev = _registration_edge_map(previous_rgb)
+    if step_prev != step or edge_prev.shape != edge_cur.shape:
+        return {
+            "method_requested": "translation_auto",
+            "method_applied": "resize",
+            "accepted": False,
+            "reason": "registration_grid_mismatch",
+            "dx_px": 0,
+            "dy_px": 0,
+            "estimated_dx_px": 0,
+            "estimated_dy_px": 0,
+            "score_before": 0.0,
+            "score_after": 0.0,
+            "improvement": 0.0,
+            "downsample_step": int(step),
+            "search_radius_px": 0,
+        }
+
+    hs, ws = edge_cur.shape
+    full_h, full_w = current_rgb.shape[:2]
+    search_full = min(64, max(4, int(round(min(full_h, full_w) * 0.08))))
+    radius = max(1, int(math.ceil(search_full / float(step))))
+    radius = min(radius, max(1, (min(hs, ws) - 6) // 2))
+    x0, x1 = radius + 1, ws - radius - 1
+    y0, y1 = radius + 1, hs - radius - 1
+    if x1 <= x0 or y1 <= y0:
+        return {
+            "method_requested": "translation_auto",
+            "method_applied": "resize",
+            "accepted": False,
+            "reason": "image_too_small",
+            "dx_px": 0,
+            "dy_px": 0,
+            "estimated_dx_px": 0,
+            "estimated_dy_px": 0,
+            "score_before": 0.0,
+            "score_after": 0.0,
+            "improvement": 0.0,
+            "downsample_step": int(step),
+            "search_radius_px": int(radius * step),
+        }
+
+    sample_stride = 2 if min(x1 - x0, y1 - y0) >= 48 else 1
+
+    def score(dx: int, dy: int) -> float:
+        cur = edge_cur[y0:y1:sample_stride, x0:x1:sample_stride]
+        prev = edge_prev[y0 - dy:y1 - dy:sample_stride, x0 - dx:x1 - dx:sample_stride]
+        return float(np.mean(np.abs(cur - prev))) if cur.size else float("inf")
+
+    score_zero = score(0, 0)
+    best = (score_zero, 0, 0)
+    coarse_step = 2 if radius >= 5 else 1
+    for dy in range(-radius, radius + 1, coarse_step):
+        for dx in range(-radius, radius + 1, coarse_step):
+            s = score(dx, dy)
+            key = (s, abs(dx) + abs(dy), abs(dy), abs(dx), dy, dx)
+            best_key = (best[0], abs(best[1]) + abs(best[2]), abs(best[2]), abs(best[1]), best[2], best[1])
+            if key < best_key:
+                best = (s, dx, dy)
+
+    _, coarse_dx, coarse_dy = best
+    for dy in range(max(-radius, coarse_dy - 2), min(radius, coarse_dy + 2) + 1):
+        for dx in range(max(-radius, coarse_dx - 2), min(radius, coarse_dx + 2) + 1):
+            s = score(dx, dy)
+            key = (s, abs(dx) + abs(dy), abs(dy), abs(dx), dy, dx)
+            best_key = (best[0], abs(best[1]) + abs(best[2]), abs(best[2]), abs(best[1]), best[2], best[1])
+            if key < best_key:
+                best = (s, dx, dy)
+
+    best_score, best_dx_small, best_dy_small = best
+    improvement = (score_zero - best_score) / max(score_zero, 1e-6) if math.isfinite(score_zero) else 0.0
+    estimated_dx = int(best_dx_small * step)
+    estimated_dy = int(best_dy_small * step)
+    accepted = (best_dx_small != 0 or best_dy_small != 0) and improvement >= 0.035
+    applied_dx = estimated_dx if accepted else 0
+    applied_dy = estimated_dy if accepted else 0
+    return {
+        "method_requested": "translation_auto",
+        "method_applied": "translation_auto" if accepted else "resize",
+        "accepted": bool(accepted),
+        "reason": "translation_improved_edge_match" if accepted else "no_reliable_translation_gain",
+        "dx_px": int(applied_dx),
+        "dy_px": int(applied_dy),
+        "estimated_dx_px": int(estimated_dx),
+        "estimated_dy_px": int(estimated_dy),
+        "score_before": float(score_zero),
+        "score_after": float(best_score if accepted else score_zero),
+        "improvement": float(improvement if accepted else max(0.0, improvement)),
+        "downsample_step": int(step),
+        "search_radius_px": int(radius * step),
+    }
+
+
+def apply_translation_registration(current_rgb: np.ndarray, previous_rgb: np.ndarray, dx: int, dy: int) -> np.ndarray:
+    """Translate previous into current coordinates; invalid borders copy t1.
+
+    Copying current pixels into non-overlap avoids generating false temporal
+    damage along borders where t0 has no valid observation.
+    """
+    if current_rgb.shape != previous_rgb.shape:
+        raise ValueError("Registration requires equal current/previous image shapes.")
+    if dx == 0 and dy == 0:
+        return previous_rgb.copy()
+    h, w = current_rgb.shape[:2]
+    aligned = current_rgb.copy()
+    dst_x0, dst_x1 = max(0, dx), min(w, w + dx)
+    dst_y0, dst_y1 = max(0, dy), min(h, h + dy)
+    if dst_x1 <= dst_x0 or dst_y1 <= dst_y0:
+        return aligned
+    src_x0, src_x1 = dst_x0 - dx, dst_x1 - dx
+    src_y0, src_y1 = dst_y0 - dy, dst_y1 - dy
+    aligned[dst_y0:dst_y1, dst_x0:dst_x1] = previous_rgb[src_y0:src_y1, src_x0:src_x1]
+    return aligned
+
+
+def align_previous_rgb(current_rgb: np.ndarray, previous_rgb: np.ndarray, method: str = "translation_auto") -> Tuple[np.ndarray, Dict[str, object]]:
+    method = (method or "translation_auto").strip().lower()
+    if method != "translation_auto":
+        return previous_rgb.copy(), {
+            "method_requested": method,
+            "method_applied": "resize",
+            "accepted": False,
+            "reason": "translation_registration_disabled",
+            "dx_px": 0,
+            "dy_px": 0,
+            "estimated_dx_px": 0,
+            "estimated_dy_px": 0,
+            "score_before": None,
+            "score_after": None,
+            "improvement": 0.0,
+            "downsample_step": 1,
+            "search_radius_px": 0,
+        }
+    metrics = estimate_translation_registration(current_rgb, previous_rgb)
+    aligned = apply_translation_registration(
+        current_rgb, previous_rgb, int(metrics["dx_px"]), int(metrics["dy_px"])
+    )
+    return aligned, metrics
+
+
 def _pad_for_filter(arr: np.ndarray, k: int) -> np.ndarray:
     pad = k // 2
     return np.pad(arr, ((pad, pad), (pad, pad)), mode="edge")

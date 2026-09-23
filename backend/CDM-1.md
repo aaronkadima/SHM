@@ -133,3 +133,15 @@ image and the reference image in the local IndexedDB record. Reopening the
 inspection restores the two source files and keeps the t0/t1 canvas mode
 available. History summaries identify records with a saved reference and a
 temporal comparison.
+
+
+## Browser performance
+
+The browser runtime executes the morphology core in a dedicated module Web
+Worker. Image decoding and final overlay rasterization remain on the UI thread,
+while percentile estimation, morphology, connected components, record geometry,
+condition rating and temporal comparison run off the main thread. If Web Workers
+are unavailable or fail to initialize, SHM re-decodes the source images and
+falls back to the validated synchronous core. The result records the selected
+runtime in `metrics.runtime` and exposes any fallback error in
+`metrics.worker_error`.

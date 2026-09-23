@@ -154,7 +154,7 @@ function exportCampaignCsv(group){
   ]];
   for(const point of campaignConditionSeries(group)){
     for(const [metric,value] of [["NT_img",point.NT],["EC_DNIT_img",point.EC],["GDE_img",point.GDE]]){
-      rows.push(["condition",point.id,point.created_at,group.oae,group.element,point.label,"","","","","","",metric,value,"","",true,point.GDE_level||""]);
+      rows.push(["condition",point.id,point.created_at,group.oae,group.element,point.label,"","","","","","","",metric,value,"","",true,point.GDE_level||""]);
     }
   }
   for(const event of campaignTemporalEvents(group)){

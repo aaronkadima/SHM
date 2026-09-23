@@ -117,6 +117,12 @@ def main(output_path: str):
     registration_aligned, registration_metrics = cdm.align_previous_rgb(
         registration_current, registration_previous, "translation_auto"
     )
+    registration_resize_aligned, registration_resize_metrics = cdm.align_previous_rgb(
+        registration_current, registration_previous, "resize"
+    )
+    registration_resize_quality = cdm.temporal_quality_assessment(
+        registration_current, registration_resize_aligned, registration_resize_metrics
+    )
     registration_error_before = float(
         np.mean(np.abs(registration_current.astype(np.float32) - registration_previous.astype(np.float32)))
     )
@@ -202,6 +208,8 @@ def main(output_path: str):
             "known_camera_shift": {"x": 6, "y": -4},
             "expected": {
                 "alignment": registration_metrics,
+                "resize_alignment": registration_resize_metrics,
+                "resize_quality": registration_resize_quality,
                 "mean_abs_error_before": registration_error_before,
                 "mean_abs_error_after": registration_error_after,
             },

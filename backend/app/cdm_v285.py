@@ -2945,6 +2945,15 @@ def run_processing(current_path: str, cfg: DetectorConfig, existing_root=None, s
         "dx_px": 0,
         "dy_px": 0,
     }
+    temporal_quality: Dict[str, object] = {
+        "schema": "cdm_temporal_quality_v1",
+        "status": "not_run",
+        "validated_for_change_quantification": False,
+        "issues": [],
+        "warnings": [],
+        "metrics": {},
+        "thresholds": {},
+    }
 
     if cfg.compare_previous and cfg.previous_image_path and Path(cfg.previous_image_path).exists():
         with profiler.stage("t0 | image decoding + resize"):
@@ -2952,6 +2961,7 @@ def run_processing(current_path: str, cfg: DetectorConfig, existing_root=None, s
             prev_arr = np.asarray(prev_img, dtype=np.uint8)
         with profiler.stage("Temporal | t0→t1 registration"):
             prev_arr, alignment_info = align_previous_rgb(arr, prev_arr, cfg.alignment_method)
+            temporal_quality = temporal_quality_assessment(arr, prev_arr, alignment_info)
         prev_records, prev_masks_info = detect_records(prev_arr, cfg, "t0_previous", profiler=profiler)
         prev_masks = prev_masks_info.get("masks", {}) if isinstance(prev_masks_info, dict) else {}
         records = prev_records + records
@@ -3055,6 +3065,7 @@ def run_processing(current_path: str, cfg: DetectorConfig, existing_root=None, s
             "detection_scope": cfg.detection_scope,
             "temporal_comparison": cfg.compare_previous,
             "temporal_alignment": alignment_info,
+            "temporal_quality": temporal_quality,
             "pipeline_protocol": "unified_five_stage_v285",
         },
         "detection": {

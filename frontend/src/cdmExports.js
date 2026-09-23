@@ -52,8 +52,8 @@ export function buildCdmCsv(result){
       ["edge_similarity",quality.metrics?.edge_similarity??"",""],
       ["issues",(quality.issues||[]).join("|"),""],
       ["warnings",(quality.warnings||[]).join("|"),""]);
-    rows.push([],["temporal_class","iou","growth_area_px2","reduction_area_px2"]);
-    for(const [cls,st] of Object.entries(temporal.stats||{}))rows.push([cls,st.iou,st.growth_area_px2,st.reduction_area_px2]);
+    rows.push([],["temporal_class","iou","previous_area_px2","current_area_px2","growth_area_px2","reduction_area_px2","net_area_change_px2","growth_rate_vs_t0_pct","reduction_rate_vs_t0_pct","net_area_change_vs_t0_pct","previous_area_mm2","current_area_mm2","growth_area_mm2","reduction_area_mm2","net_area_change_mm2"]);
+    for(const [cls,st] of Object.entries(temporal.stats||{}))rows.push([cls,st.iou,st.previous_area_px2,st.current_area_px2,st.growth_area_px2,st.reduction_area_px2,st.net_area_change_px2,st.growth_rate_vs_t0_pct,st.reduction_rate_vs_t0_pct,st.net_area_change_vs_t0_pct,st.previous_area_mm2,st.current_area_mm2,st.growth_area_mm2,st.reduction_area_mm2,st.net_area_change_mm2]);
   }
   const rating=result.metrics?.summary?.condition_rating;
   if(rating?.enabled)rows.push([],["classification_summary","value","label_or_note"],["NT_img_preliminar",rating.NT_img,rating.NT_label_img],["EC_DNIT_img",rating.EC_DNIT_img,rating.EC_DNIT_label_img],["GDE_img_diagnostico",rating.GDE_img,rating.GDE_level],["Familia",rating.family,rating.family_label],["Fr",rating.Fr,"Fator de relevância estrutural"]);
@@ -209,7 +209,15 @@ export function buildCdmHtml(result,fileName="inspecao.png",inspection={}){
   const summary=result.metrics?.summary||{},rating=summary.condition_rating||{},layers=result.metrics?.layers||[];
   const temporal=result.metrics?.temporal||{};
   const familyRows=(rating.family_rows||[]).filter(r=>number(r.n)>0);
-  const temporalRows=Object.entries(temporal.stats||{}).map(([cls,st])=>"<tr><td>"+escapeHtml(cls)+"</td><td>"+number(st.iou).toFixed(3)+"</td><td>"+number(st.growth_area_px2).toFixed(1)+"</td><td>"+number(st.reduction_area_px2).toFixed(1)+"</td></tr>").join("")||"<tr><td colspan='4'>Sem comparação temporal.</td></tr>";
+  const calibratedTemporal=number(result.metrics?.mm_per_px)>0;
+  const temporalRows=Object.entries(temporal.stats||{}).map(([cls,st])=>{
+    const prev=calibratedTemporal&&st.previous_area_mm2!=null?number(st.previous_area_mm2):number(st.previous_area_px2);
+    const cur=calibratedTemporal&&st.current_area_mm2!=null?number(st.current_area_mm2):number(st.current_area_px2);
+    const net=calibratedTemporal&&st.net_area_change_mm2!=null?number(st.net_area_change_mm2):number(st.net_area_change_px2);
+    const unit=calibratedTemporal?"mm²":"px²";
+    const rate=st.net_area_change_vs_t0_pct==null?"—":number(st.net_area_change_vs_t0_pct).toFixed(1)+"%";
+    return "<tr><td>"+escapeHtml(cls)+"</td><td>"+number(st.iou).toFixed(3)+"</td><td>"+prev.toFixed(1)+" "+unit+"</td><td>"+cur.toFixed(1)+" "+unit+"</td><td>"+net.toFixed(1)+" "+unit+"</td><td>"+rate+"</td></tr>";
+  }).join("")||"<tr><td colspan='6'>Sem comparação temporal.</td></tr>";
   const alignment=temporal.alignment||{};
   const quality=temporal.quality||{};
   const qualityText=temporal.enabled
@@ -234,7 +242,7 @@ export function buildCdmHtml(result,fileName="inspecao.png",inspection={}){
   '<section class="grid"><div class="card metric"><b>'+number(summary.total_objects)+'</b><span>achados atuais</span></div><div class="card metric"><b>'+number(summary.crack_count)+'</b><span>fissuras</span></div><div class="card metric"><b>'+number(summary.spalling_area_px2).toFixed(0)+'</b><span>px² de desplacamento</span></div><div class="card metric"><b>'+escapeHtml(calibration)+'</b><span>escala geométrica</span></div></section>'+
   '<section class="card"><h2>Camadas atuais</h2><table><thead><tr><th>Patologia</th><th>Objetos</th></tr></thead><tbody>'+layerRows+'</tbody></table></section>'+
   '<section class="card"><h2>Classificação preliminar por imagem</h2><p class="note">NT <b>'+escapeHtml(rating.NT_img??"—")+'</b> · EC <b>'+escapeHtml(rating.EC_DNIT_img??"—")+'</b> · GDE <b>'+number(rating.GDE_img).toFixed(2)+'</b>. Resultado assistido por imagem; exige validação técnica.</p><table><thead><tr><th>Família</th><th>n</th><th>s_max</th><th>EC</th><th>Governante</th></tr></thead><tbody>'+familyTable+'</tbody></table></section>'+
-  '<section class="card"><h2>Comparação temporal t0→t1</h2><p class="muted">Alinhamento: '+alignmentText+'.</p><p class="note"><b>Qualidade temporal:</b> '+escapeHtml(qualityText)+(qualityDetail?' · '+escapeHtml(qualityDetail):'')+'.</p><table><thead><tr><th>Classe</th><th>IoU</th><th>Crescimento px²</th><th>Redução px²</th></tr></thead><tbody>'+temporalRows+'</tbody></table></section>'+
+  '<section class="card"><h2>Comparação temporal t0→t1</h2><p class="muted">Alinhamento: '+alignmentText+'.</p><p class="note"><b>Qualidade temporal:</b> '+escapeHtml(qualityText)+(qualityDetail?' · '+escapeHtml(qualityDetail):'')+'.</p><table><thead><tr><th>Classe</th><th>IoU</th><th>Área t0</th><th>Área t1</th><th>Δ líquido</th><th>Δ/t0</th></tr></thead><tbody>'+temporalRows+'</tbody></table></section>'+
   '<section class="card"><h2>Rastreabilidade</h2><p>OAE: <span class="mono">'+escapeHtml(inspection.oae_id||"—")+'</span> · Elemento: <span class="mono">'+escapeHtml(inspection.element_id||"—")+'</span> · Fonte: <span class="mono">'+escapeHtml(inspection.source_id||"—")+'</span></p><p>Runtime: <span class="mono">'+escapeHtml(result.metrics?.runtime||"—")+'</span> · '+escapeHtml(performanceText)+'</p><p class="muted">Pipeline determinístico: imagem base → resposta específica por família → máscara candidata → abertura/fechamento → componentes conectados. As pontuações de confiança morfológicas permanecem não calibradas.</p></section>'+
   '</main></body></html>';
 }

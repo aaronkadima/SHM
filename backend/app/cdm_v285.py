@@ -1867,7 +1867,14 @@ def build_result_text(summary: Dict[str, object], scale: ScaleInfo, temporal_sta
         if temporal_stats:
             lines.append("Temporal comparison:")
             for cls, st in temporal_stats.items():
-                lines.append(f"- {label_for(cls, lang)} | IoU={st['iou']:.3f} | growth={st['growth_area_px2']:.1f}px² | reduction={st['reduction_area_px2']:.1f}px²")
+                rate = st.get("net_area_change_vs_t0_pct")
+                rate_label = "n/a" if rate is None else f"{float(rate):+.1f}%"
+                lines.append(
+                    f"- {label_for(cls, lang)} | IoU={float(st.get('iou', 0.0)):.3f} | "
+                    f"t0={area_mm2_or_px_label(float(st.get('previous_area_px2', 0.0)), scale)} | "
+                    f"t1={area_mm2_or_px_label(float(st.get('current_area_px2', 0.0)), scale)} | "
+                    f"net Δ={area_mm2_or_px_label(float(st.get('net_area_change_px2', 0.0)), scale)} | Δ/t0={rate_label}"
+                )
         if temporal_quality:
             qm = temporal_quality.get("metrics", {}) if isinstance(temporal_quality, dict) else {}
             lines.append(f"Temporal quality: {temporal_quality.get('status', 'unknown')} | validated={temporal_quality.get('validated_for_change_quantification', False)} | overlap={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | illumination Δ={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | sharpness ratio={float(qm.get('sharpness_ratio',0.0)):.2f} | geometric similarity={float(qm.get('edge_similarity',0.0)):.2f}")
@@ -1894,7 +1901,14 @@ def build_result_text(summary: Dict[str, object], scale: ScaleInfo, temporal_sta
         if temporal_stats:
             lines.append("Comparaison temporelle :")
             for cls, st in temporal_stats.items():
-                lines.append(f"- {label_for(cls, lang)} | IoU={st['iou']:.3f} | croissance={st['growth_area_px2']:.1f}px² | réduction={st['reduction_area_px2']:.1f}px²")
+                rate = st.get("net_area_change_vs_t0_pct")
+                rate_label = "n/d" if rate is None else f"{float(rate):+.1f}%"
+                lines.append(
+                    f"- {label_for(cls, lang)} | IoU={float(st.get('iou', 0.0)):.3f} | "
+                    f"t0={area_mm2_or_px_label(float(st.get('previous_area_px2', 0.0)), scale)} | "
+                    f"t1={area_mm2_or_px_label(float(st.get('current_area_px2', 0.0)), scale)} | "
+                    f"Δ net={area_mm2_or_px_label(float(st.get('net_area_change_px2', 0.0)), scale)} | Δ/t0={rate_label}"
+                )
         if temporal_quality:
             qm = temporal_quality.get("metrics", {}) if isinstance(temporal_quality, dict) else {}
             lines.append(f"Qualité temporelle : {temporal_quality.get('status', 'unknown')} | validée={temporal_quality.get('validated_for_change_quantification', False)} | recouvrement={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | Δ éclairage={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | ratio netteté={float(qm.get('sharpness_ratio',0.0)):.2f} | similarité géométrique={float(qm.get('edge_similarity',0.0)):.2f}")
@@ -1920,7 +1934,14 @@ def build_result_text(summary: Dict[str, object], scale: ScaleInfo, temporal_sta
     if temporal_stats:
         lines.append("Comparação temporal:")
         for cls, st in temporal_stats.items():
-            lines.append(f"- {label_for(cls, lang)} | IoU={st['iou']:.3f} | crescimento={st['growth_area_px2']:.1f}px² | redução={st['reduction_area_px2']:.1f}px²")
+            rate = st.get("net_area_change_vs_t0_pct")
+            rate_label = "n/d" if rate is None else f"{float(rate):+.1f}%"
+            lines.append(
+                f"- {label_for(cls, lang)} | IoU={float(st.get('iou', 0.0)):.3f} | "
+                f"t0={area_mm2_or_px_label(float(st.get('previous_area_px2', 0.0)), scale)} | "
+                f"t1={area_mm2_or_px_label(float(st.get('current_area_px2', 0.0)), scale)} | "
+                f"Δ líquido={area_mm2_or_px_label(float(st.get('net_area_change_px2', 0.0)), scale)} | Δ/t0={rate_label}"
+            )
     if temporal_quality:
         qm = temporal_quality.get("metrics", {}) if isinstance(temporal_quality, dict) else {}
         lines.append(f"Qualidade temporal: {temporal_quality.get('status', 'unknown')} | validada={temporal_quality.get('validated_for_change_quantification', False)} | sobreposição={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | Δ iluminação={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | razão de nitidez={float(qm.get('sharpness_ratio',0.0)):.2f} | similaridade geométrica={float(qm.get('edge_similarity',0.0)):.2f}")
@@ -2283,9 +2304,31 @@ def write_csv(records: List[DamageRecord], csv_path: str, scale: ScaleInfo, temp
             ])
         if temporal_stats:
             writer.writerow([])
-            writer.writerow(["temporal_class", "iou", "growth_area_px2", "reduction_area_px2"])
+            writer.writerow([
+                "temporal_class", "iou", "previous_area_px2", "current_area_px2",
+                "growth_area_px2", "reduction_area_px2", "net_area_change_px2",
+                "growth_rate_vs_t0_pct", "reduction_rate_vs_t0_pct", "net_area_change_vs_t0_pct",
+                "previous_area_mm2", "current_area_mm2", "growth_area_mm2",
+                "reduction_area_mm2", "net_area_change_mm2",
+            ])
             for cls, st in temporal_stats.items():
-                writer.writerow([cls, f"{st['iou']:.6f}", f"{st['growth_area_px2']:.2f}", f"{st['reduction_area_px2']:.2f}"])
+                writer.writerow([
+                    cls,
+                    f"{float(st.get('iou', 0.0)):.6f}",
+                    format_optional(st.get("previous_area_px2"), 2),
+                    format_optional(st.get("current_area_px2"), 2),
+                    format_optional(st.get("growth_area_px2"), 2),
+                    format_optional(st.get("reduction_area_px2"), 2),
+                    format_optional(st.get("net_area_change_px2"), 2),
+                    format_optional(st.get("growth_rate_vs_t0_pct"), 4),
+                    format_optional(st.get("reduction_rate_vs_t0_pct"), 4),
+                    format_optional(st.get("net_area_change_vs_t0_pct"), 4),
+                    format_optional(st.get("previous_area_mm2"), 4),
+                    format_optional(st.get("current_area_mm2"), 4),
+                    format_optional(st.get("growth_area_mm2"), 4),
+                    format_optional(st.get("reduction_area_mm2"), 4),
+                    format_optional(st.get("net_area_change_mm2"), 4),
+                ])
         if temporal_quality:
             qm = temporal_quality.get("metrics", {}) if isinstance(temporal_quality, dict) else {}
             writer.writerow([])

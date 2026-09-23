@@ -1870,7 +1870,7 @@ def build_result_text(summary: Dict[str, object], scale: ScaleInfo, temporal_sta
                 lines.append(f"- {label_for(cls, lang)} | IoU={st['iou']:.3f} | growth={st['growth_area_px2']:.1f}px² | reduction={st['reduction_area_px2']:.1f}px²")
         if temporal_quality:
             qm = temporal_quality.get("metrics", {}) if isinstance(temporal_quality, dict) else {}
-            lines.append(f"Temporal quality: {temporal_quality.get('status', 'unknown')} | validated={temporal_quality.get('validated_for_change_quantification', False)} | overlap={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | illumination Δ={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | sharpness ratio={float(qm.get('sharpness_ratio',0.0)):.2f}")
+            lines.append(f"Temporal quality: {temporal_quality.get('status', 'unknown')} | validated={temporal_quality.get('validated_for_change_quantification', False)} | overlap={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | illumination Δ={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | sharpness ratio={float(qm.get('sharpness_ratio',0.0)):.2f} | geometric similarity={float(qm.get('edge_similarity',0.0)):.2f}")
         lines.append("Note: preliminary result; validate manually in Inkscape.")
         return "\n".join(lines)
 
@@ -1897,7 +1897,7 @@ def build_result_text(summary: Dict[str, object], scale: ScaleInfo, temporal_sta
                 lines.append(f"- {label_for(cls, lang)} | IoU={st['iou']:.3f} | croissance={st['growth_area_px2']:.1f}px² | réduction={st['reduction_area_px2']:.1f}px²")
         if temporal_quality:
             qm = temporal_quality.get("metrics", {}) if isinstance(temporal_quality, dict) else {}
-            lines.append(f"Qualité temporelle : {temporal_quality.get('status', 'unknown')} | validée={temporal_quality.get('validated_for_change_quantification', False)} | recouvrement={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | Δ éclairage={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | ratio netteté={float(qm.get('sharpness_ratio',0.0)):.2f}")
+            lines.append(f"Qualité temporelle : {temporal_quality.get('status', 'unknown')} | validée={temporal_quality.get('validated_for_change_quantification', False)} | recouvrement={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | Δ éclairage={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | ratio netteté={float(qm.get('sharpness_ratio',0.0)):.2f} | similarité géométrique={float(qm.get('edge_similarity',0.0)):.2f}")
         lines.append("Remarque : résultat préliminaire ; valider manuellement dans Inkscape.")
         return "\n".join(lines)
 
@@ -1923,7 +1923,7 @@ def build_result_text(summary: Dict[str, object], scale: ScaleInfo, temporal_sta
             lines.append(f"- {label_for(cls, lang)} | IoU={st['iou']:.3f} | crescimento={st['growth_area_px2']:.1f}px² | redução={st['reduction_area_px2']:.1f}px²")
     if temporal_quality:
         qm = temporal_quality.get("metrics", {}) if isinstance(temporal_quality, dict) else {}
-        lines.append(f"Qualidade temporal: {temporal_quality.get('status', 'unknown')} | validada={temporal_quality.get('validated_for_change_quantification', False)} | sobreposição={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | Δ iluminação={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | razão de nitidez={float(qm.get('sharpness_ratio',0.0)):.2f}")
+        lines.append(f"Qualidade temporal: {temporal_quality.get('status', 'unknown')} | validada={temporal_quality.get('validated_for_change_quantification', False)} | sobreposição={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | Δ iluminação={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | razão de nitidez={float(qm.get('sharpness_ratio',0.0)):.2f} | similaridade geométrica={float(qm.get('edge_similarity',0.0)):.2f}")
     lines.append("Observação: resultado preliminar; validar manualmente no Inkscape.")
     return "\n".join(lines)
 
@@ -2272,6 +2272,7 @@ def write_csv(records: List[DamageRecord], csv_path: str, scale: ScaleInfo, temp
             writer.writerow(["overlap_ratio", qm.get("overlap_ratio"), ""])
             writer.writerow(["illumination_delta", qm.get("illumination_delta"), ""])
             writer.writerow(["sharpness_ratio", qm.get("sharpness_ratio"), ""])
+            writer.writerow(["edge_similarity", qm.get("edge_similarity"), ""])
             writer.writerow(["issues", "|".join(temporal_quality.get("issues", []) or []), ""])
             writer.writerow(["warnings", "|".join(temporal_quality.get("warnings", []) or []), ""])
         if condition_rating and condition_rating.get("enabled"):

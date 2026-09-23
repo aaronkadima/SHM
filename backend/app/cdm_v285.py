@@ -2194,6 +2194,7 @@ def cfg_to_state(cfg: DetectorConfig, image_path: str) -> Dict[str, object]:
         "reference_length_px": cfg.reference_length_px,
         "reference_length_mm": cfg.reference_length_mm,
         "compare_previous": cfg.compare_previous,
+        "alignment_method": cfg.alignment_method,
         "export_csv": cfg.export_csv,
         "export_dxf": cfg.export_dxf,
         "export_bim_json": cfg.export_bim_json,

@@ -271,3 +271,33 @@ The CI parity fixture now includes:
 - strong relative blur that must fail with \`sharpness_mismatch\`;
 - an out-of-range camera translation that must fail through
   \`registration_unreliable\`.
+
+
+## Residual geometric consistency
+
+The temporal quality gate also measures residual edge-map agreement after the
+selected alignment strategy. This protects the explicit \`resize\` mode from
+silently accepting a pair that is still displaced, rotated, rescaled or otherwise
+geometrically inconsistent.
+
+The metric is the Pearson correlation between t1 and aligned-t0 edge-magnitude
+maps, reported as \`metrics.edge_similarity\`. Current deterministic thresholds:
+
+- fail below 0.35 → \`geometric_mismatch\`;
+- warning below 0.55 → \`geometric_consistency_low\`;
+- otherwise no residual-geometry warning is raised.
+
+This metric complements, rather than replaces, translation registration. A pair
+with a supported camera translation should first be aligned by
+\`translation_auto\`; the residual similarity then checks whether the remaining
+geometry is still coherent. In \`resize\` mode a translated pair can therefore
+fail the quality gate even though translation correction was intentionally
+disabled.
+
+When temporal quality is \`fail\`, growth/reduction layers remain in the layer
+tree for audit but are hidden by default. They are shown only if the operator
+explicitly enables them. This prevents an invalidated temporal result from being
+presented visually as confirmed change.
+
+Residual geometric similarity is persisted in local history and exported in the
+browser CSV, BIM/IFC/HTML outputs and native CDM CSV/result text.

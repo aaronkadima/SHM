@@ -398,7 +398,7 @@ function computeCdmCore(current,previous,cfg,onProgress=null){
     const prevMasks=detectMasks(registration.image,cfg);
     emitProgress(onProgress,78,"CDM-1 · comparando t0→t1","temporal_compare");
     const change=temporalCompare(masks,prevMasks,w,h,cfg);
-    temporal={enabled:true,alignment_method:registration.metrics.method_applied,alignment:registration.metrics,stats:change.stats,records:change.records};
+    temporal={enabled:true,alignment_method:registration.metrics.method_applied,alignment:registration.metrics,aligned_previous:registration.image,stats:change.stats,records:change.records};
     emitProgress(onProgress,88,"CDM-1 · mudança temporal","temporal_vectors");
   }else emitProgress(onProgress,88,"CDM-1 · consolidando achados","consolidate");
   emitProgress(onProgress,92,"CDM-1 · classificação preliminar","condition_rating");
@@ -442,6 +442,13 @@ function runCoreWorker(current,previous,cfg,{signal,onProgress}={}){
     if(previous)transfer.push(previous.data.buffer);
     worker.postMessage(payload,transfer);
   });
+}
+function imageDataToPngB64(imageData){
+  const c=document.createElement("canvas");c.width=imageData.width;c.height=imageData.height;
+  const ctx=c.getContext("2d");
+  const data=imageData.data instanceof Uint8ClampedArray?imageData.data:new Uint8ClampedArray(imageData.data);
+  ctx.putImageData(new ImageData(data,imageData.width,imageData.height),0,0);
+  return c.toDataURL("image/png").split(",")[1];
 }
 async function imageDataFromFile(file,maxSide,target=null){
   const bmp=await createImageBitmap(file,{imageOrientation:"from-image"});
@@ -491,6 +498,7 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     layers.push({id:cls,name:LABELS[cls],color:"#"+COLORS[cls].map(v=>v.toString(16).padStart(2,"0")).join(""),count:rec.length,overlay_png_base64:renderLayer(rec,w,h,COLORS[cls])});
   }
   const temporalCore=core.temporal||{enabled:false,alignment_method:null,stats:{},records:[]};
+  const alignedReferenceB64=temporalCore.aligned_previous?imageDataToPngB64(temporalCore.aligned_previous):null;
   const temporalLayers=[];
   if(temporalCore.enabled){
     for(const changeClass of ["growth","reduction"]){
@@ -506,7 +514,8 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
       }
     }
   }
-  const temporal={...temporalCore,layers:temporalLayers};
+  const {aligned_previous:_,...temporalSerializable}=temporalCore;
+  const temporal={...temporalSerializable,aligned_reference_png_base64:alignedReferenceB64,layers:temporalLayers};
   const detections=records.map(r=>({label:r.class,canonical_label:r.class,score:null,box:[r.bbox[0],r.bbox[1],r.bbox[0]+r.bbox[2],r.bbox[1]+r.bbox[3]],polygon:r.points,area_px:r.area_px2}));
   const composite=document.createElement("canvas");composite.width=w;composite.height=h;const cctx=composite.getContext("2d");
   for(const cls of ORDER){

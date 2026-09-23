@@ -14,12 +14,16 @@ export function buildCdmSvg(result){
   const width=number(result.width),height=number(result.height);
   const content=layers.map(layer=>{
     const color=escapeXml(layer.color||"#666");
-    const paths=records.filter(r=>r.class===layer.id&&r.points?.length>=2).map(r=>{
+    const paths=records.filter(r=>{
+      if(!r.points?.length||r.points.length<2)return false;
+      if(layer.change_class)return r.class===layer.change_class&&r.source_class===layer.source_class;
+      return r.class===layer.id;
+    }).map(r=>{
       const d=r.points.map((point,index)=>(index?"L":"M")+number(point[0])+","+number(point[1])).join(" ")+(r.closed?" Z":"");
       const style=r.closed
         ?'fill="'+color+'" fill-opacity="0.27" stroke="'+color+'" stroke-width="1"'
         :'fill="none" stroke="'+color+'" stroke-width="'+Math.max(1,number(r.width_px))+'" stroke-linecap="round"';
-      return '<path id="'+escapeXml(r.id)+'" data-time="'+escapeXml(r.time_label||"t1_current")+'" d="'+d+'" '+style+'/>';
+      return '<path id="'+escapeXml(r.id)+'" data-time="'+escapeXml(r.time_label||"t1_current")+'" data-source-class="'+escapeXml(r.source_class||r.class||"")+'" d="'+d+'" '+style+'/>';
     }).join("");
     return '<g id="layer-'+escapeXml(layer.id)+'" inkscape:groupmode="layer" inkscape:label="'+escapeXml(layer.name)+'">'+paths+'</g>';
   }).join("");
@@ -27,8 +31,8 @@ export function buildCdmSvg(result){
 }
 
 export function buildCdmCsv(result){
-  const columns=["record_id","time_label","damage_class","area_px2","perimeter_px","length_px","width_px","bbox_x","bbox_y","bbox_w","bbox_h","aspect_ratio","confidence_note"];
-  const rows=[columns,...allRecords(result).map(r=>[r.id,r.time_label||"t1_current",r.class,r.area_px2,r.perimeter_px,r.length_px,r.width_px,...(r.bbox||[]),r.aspect_ratio,r.confidence_note])];
+  const columns=["record_id","time_label","damage_class","source_class","area_px2","perimeter_px","length_px","width_px","bbox_x","bbox_y","bbox_w","bbox_h","aspect_ratio","confidence_note"];
+  const rows=[columns,...allRecords(result).map(r=>[r.id,r.time_label||"t1_current",r.class,r.source_class||r.class,r.area_px2,r.perimeter_px,r.length_px,r.width_px,...(r.bbox||[]),r.aspect_ratio,r.confidence_note])];
   const temporal=result.metrics?.temporal;
   if(temporal?.enabled){
     rows.push([],["temporal_class","iou","growth_area_px2","reduction_area_px2"]);
@@ -66,14 +70,20 @@ export function buildCdmCoco(result,fileName="inspecao.png"){
 
 const dxfLayers={
   cracks:"SHM_CRACKS",spalling_dark:"SHM_SPALLING",exposed_rebar:"SHM_EXPOSED_REBAR",
-  corrosion_rust:"SHM_CORROSION",efflorescence_white:"SHM_EFFLORESCENCE",
-  growth:"SHM_TEMPORAL_GROWTH",reduction:"SHM_TEMPORAL_REDUCTION"
+  corrosion_rust:"SHM_CORROSION",efflorescence_white:"SHM_EFFLORESCENCE"
 };
+const dxfSafe=value=>String(value||"DAMAGE").toUpperCase().replace(/[^A-Z0-9_]/g,"_").slice(0,80);
+function dxfLayerForRecord(record){
+  if(record.class==="growth"||record.class==="reduction"){
+    return "SHM_TEMPORAL_"+dxfSafe(record.class)+"_"+dxfSafe(record.source_class||"UNKNOWN");
+  }
+  return dxfLayers[record.class]||"SHM_DAMAGE";
+}
 export function buildCdmDxf(result){
   const scale=number(result.metrics?.mm_per_px)>0?number(result.metrics.mm_per_px):1;
   const calibrated=number(result.metrics?.mm_per_px)>0;
   const records=allRecords(result).filter(r=>r.points?.length>=2);
-  const layers=[...new Set(records.map(r=>dxfLayers[r.class]||"SHM_DAMAGE"))].sort();
+  const layers=[...new Set(records.map(dxfLayerForRecord))].sort();
   const out=[];const add=(...items)=>items.forEach(v=>out.push(String(v)));
   add(0,"SECTION",2,"HEADER",9,"$INSUNITS",70,calibrated?4:0,0,"ENDSEC");
   add(0,"SECTION",2,"TABLES",0,"TABLE",2,"LAYER",70,layers.length);
@@ -81,7 +91,7 @@ export function buildCdmDxf(result){
   add(0,"ENDTAB",0,"ENDSEC",0,"SECTION",2,"ENTITIES");
   for(const r of records){
     const pts=r.points.map(([x,y])=>[number(x)*scale,-number(y)*scale]);
-    add(0,"LWPOLYLINE",8,dxfLayers[r.class]||"SHM_DAMAGE",90,pts.length,70,r.closed?1:0);
+    add(0,"LWPOLYLINE",8,dxfLayerForRecord(r),90,pts.length,70,r.closed?1:0);
     pts.forEach(([x,y])=>add(10,x.toFixed(4),20,y.toFixed(4)));
   }
   add(0,"ENDSEC",0,"EOF");
@@ -92,7 +102,7 @@ export function buildCdmBimJson(result,inspection={}){
   const mm=number(result.metrics?.mm_per_px)>0?number(result.metrics.mm_per_px):null;
   const factor=mm||1;
   const features=allRecords(result).map(r=>({
-    id:r.id,time_label:r.time_label||"t1_current",damage_class:r.class,
+    id:r.id,time_label:r.time_label||"t1_current",damage_class:r.class,source_class:r.source_class||r.class,
     geometry_type:r.closed?"polygon":"polyline",
     coordinate_system:"image_local",
     coordinates:(r.points||[]).map(([x,y])=>[number(x)*factor,-number(y)*factor]),
@@ -146,6 +156,7 @@ export function buildCdmIfc(result,inspection={}){
     const ann=add("IFCANNOTATION("+stepText(ifcGuid())+",#"+hist+","+stepText(r.id)+","+stepText(r.class)+",$,#"+place+",#"+shape+",$)");
     const props=[
       add("IFCPROPERTYSINGLEVALUE('DamageClass',$,IFCTEXT("+stepText(r.class)+"),$)"),
+      add("IFCPROPERTYSINGLEVALUE('SourcePathology',$,IFCTEXT("+stepText(r.source_class||r.class||"")+"),$)"),
       add("IFCPROPERTYSINGLEVALUE('TimeLabel',$,IFCTEXT("+stepText(r.time_label||"t1_current")+"),$)"),
       add("IFCPROPERTYSINGLEVALUE('AreaPx2',$,IFCREAL("+number(r.area_px2).toFixed(6)+"),$)"),
       add("IFCPROPERTYSINGLEVALUE('LengthPx',$,IFCREAL("+number(r.length_px).toFixed(6)+"),$)"),

@@ -13,7 +13,7 @@ export function buildCdmSvg(result){
   const records=allRecords(result),layers=allLayers(result);
   const width=number(result.width),height=number(result.height);
   const alignment=result.metrics?.temporal?.alignment||null;
-  const metadata=alignment?'<metadata id="cdm-temporal-alignment">'+escapeXml(JSON.stringify({method:result.metrics?.temporal?.alignment_method||alignment.method_applied,dx_px:alignment.dx_px||0,dy_px:alignment.dy_px||0,improvement:alignment.improvement||0,accepted:!!alignment.accepted,reason:alignment.reason||""}))+'</metadata>':"";
+  const metadata=alignment?'<metadata id="cdm-temporal-alignment">'+escapeXml(JSON.stringify({method:result.metrics?.temporal?.alignment_method||alignment.method_applied,dx_px:alignment.dx_px||0,dy_px:alignment.dy_px||0,improvement:alignment.improvement||0,accepted:!!alignment.accepted,reason:alignment.reason||"",quality:result.metrics?.temporal?.quality||null}))+'</metadata>':"";
   const content=layers.map(layer=>{
     const color=escapeXml(layer.color||"#666");
     const paths=records.filter(r=>{
@@ -43,6 +43,14 @@ export function buildCdmCsv(result){
       ["dx_px",alignment.dx_px??0,"translation applied to t0"],
       ["dy_px",alignment.dy_px??0,"translation applied to t0"],
       ["improvement",alignment.improvement??0,"relative edge-match gain"]);
+    const quality=temporal.quality||{};
+    rows.push([],["temporal_quality","value","note"],
+      ["status",quality.status||"unknown",quality.validated_for_change_quantification===true?"validated_for_change_quantification":"not_validated_for_change_quantification"],
+      ["overlap_ratio",quality.metrics?.overlap_ratio??"",""],
+      ["illumination_delta",quality.metrics?.illumination_delta??"",""],
+      ["sharpness_ratio",quality.metrics?.sharpness_ratio??"",""],
+      ["issues",(quality.issues||[]).join("|"),""],
+      ["warnings",(quality.warnings||[]).join("|"),""]);
     rows.push([],["temporal_class","iou","growth_area_px2","reduction_area_px2"]);
     for(const [cls,st] of Object.entries(temporal.stats||{}))rows.push([cls,st.iou,st.growth_area_px2,st.reduction_area_px2]);
   }
@@ -98,7 +106,7 @@ export function buildCdmDxf(result){
   add(0,"SECTION",2,"TABLES",0,"TABLE",2,"LAYER",70,layers.length);
   layers.forEach(layer=>add(0,"LAYER",2,layer,70,0,62,7,6,"CONTINUOUS"));
   add(0,"ENDTAB",0,"ENDSEC",0,"SECTION",2,"ENTITIES");
-  if(alignment)add(999,"CDM_TEMPORAL_ALIGNMENT method="+(result.metrics?.temporal?.alignment_method||alignment.method_applied||"resize")+" dx_px="+number(alignment.dx_px)+" dy_px="+number(alignment.dy_px)+" improvement="+number(alignment.improvement));
+  if(alignment)add(999,"CDM_TEMPORAL_ALIGNMENT method="+(result.metrics?.temporal?.alignment_method||alignment.method_applied||"resize")+" dx_px="+number(alignment.dx_px)+" dy_px="+number(alignment.dy_px)+" improvement="+number(alignment.improvement)+" quality="+(result.metrics?.temporal?.quality?.status||"unknown")+" validated="+(result.metrics?.temporal?.quality?.validated_for_change_quantification===true));
   for(const r of records){
     const pts=r.points.map(([x,y])=>[number(x)*scale,-number(y)*scale]);
     add(0,"LWPOLYLINE",8,dxfLayerForRecord(r),90,pts.length,70,r.closed?1:0);
@@ -124,7 +132,7 @@ export function buildCdmBimJson(result,inspection={}){
   return {
     schema:"cdm_bim_overlay_v285",software:"SHM CDM-1",oae_id:inspection.oae_id||"",
     inspection_label:inspection.inspection_label||"",calibration:{mm_per_px:mm},
-    temporal:{enabled:!!result.metrics?.temporal?.enabled,alignment_method:result.metrics?.temporal?.alignment_method||null,alignment:result.metrics?.temporal?.alignment||null,stats:result.metrics?.temporal?.stats||{}},
+    temporal:{enabled:!!result.metrics?.temporal?.enabled,alignment_method:result.metrics?.temporal?.alignment_method||null,alignment:result.metrics?.temporal?.alignment||null,quality:result.metrics?.temporal?.quality||null,stats:result.metrics?.temporal?.stats||{}},
     provenance:{runtime:result.metrics?.runtime||null,performance_ms:result.metrics?.performance_ms||null,implementation:result.metrics?.implementation||null},
     features
   };
@@ -142,6 +150,7 @@ function ifcGuid(){
 export function buildCdmIfc(result,inspection={}){
   const mmPerPx=number(result.metrics?.mm_per_px);
   const temporalAlignment=result.metrics?.temporal?.alignment||{};
+  const temporalQuality=result.metrics?.temporal?.quality||{};
   if(!(mmPerPx>0))throw new Error("A exportação IFC exige calibração CDM-1 em mm/px.");
   const records=allRecords(result).filter(r=>r.points?.length>=2);
   const entities=[];const add=entity=>{entities.push("#"+(entities.length+1)+"="+entity+";");return entities.length};
@@ -179,7 +188,12 @@ export function buildCdmIfc(result,inspection={}){
         add("IFCPROPERTYSINGLEVALUE('TemporalAlignmentMethod',$,IFCTEXT("+stepText(result.metrics?.temporal?.alignment_method||temporalAlignment.method_applied||"resize")+"),$)"),
         add("IFCPROPERTYSINGLEVALUE('TemporalAlignmentDxPx',$,IFCREAL("+number(temporalAlignment.dx_px).toFixed(6)+"),$)"),
         add("IFCPROPERTYSINGLEVALUE('TemporalAlignmentDyPx',$,IFCREAL("+number(temporalAlignment.dy_px).toFixed(6)+"),$)"),
-        add("IFCPROPERTYSINGLEVALUE('TemporalAlignmentImprovement',$,IFCREAL("+number(temporalAlignment.improvement).toFixed(6)+"),$)")
+        add("IFCPROPERTYSINGLEVALUE('TemporalAlignmentImprovement',$,IFCREAL("+number(temporalAlignment.improvement).toFixed(6)+"),$)"),
+        add("IFCPROPERTYSINGLEVALUE('TemporalQualityStatus',$,IFCTEXT("+stepText(temporalQuality.status||"unknown")+"),$)"),
+        add("IFCPROPERTYSINGLEVALUE('TemporalChangeValidated',$,IFCBOOLEAN("+(temporalQuality.validated_for_change_quantification===true?".T.":".F.")+") ,$)"),
+        add("IFCPROPERTYSINGLEVALUE('TemporalOverlapRatio',$,IFCREAL("+number(temporalQuality.metrics?.overlap_ratio).toFixed(6)+"),$)"),
+        add("IFCPROPERTYSINGLEVALUE('TemporalIlluminationDelta',$,IFCREAL("+number(temporalQuality.metrics?.illumination_delta).toFixed(6)+"),$)"),
+        add("IFCPROPERTYSINGLEVALUE('TemporalSharpnessRatio',$,IFCREAL("+number(temporalQuality.metrics?.sharpness_ratio).toFixed(6)+"),$)")
       );
     }
     const pset=add("IFCPROPERTYSET("+stepText(ifcGuid())+",#"+hist+",'Pset_ConcreteDamageAssessment',$,("+props.map(id=>"#"+id).join(",")+"))");
@@ -195,6 +209,13 @@ export function buildCdmHtml(result,fileName="inspecao.png",inspection={}){
   const familyRows=(rating.family_rows||[]).filter(r=>number(r.n)>0);
   const temporalRows=Object.entries(temporal.stats||{}).map(([cls,st])=>"<tr><td>"+escapeHtml(cls)+"</td><td>"+number(st.iou).toFixed(3)+"</td><td>"+number(st.growth_area_px2).toFixed(1)+"</td><td>"+number(st.reduction_area_px2).toFixed(1)+"</td></tr>").join("")||"<tr><td colspan='4'>Sem comparação temporal.</td></tr>";
   const alignment=temporal.alignment||{};
+  const quality=temporal.quality||{};
+  const qualityText=temporal.enabled
+    ?(quality.status==="pass"?"Aprovada para quantificação temporal":quality.status==="warning"?"Válida com ressalvas":quality.status==="fail"?"NÃO VALIDADA para quantificação temporal":"Não informada")
+    :"não aplicável";
+  const qualityDetail=quality.metrics
+    ?("sobreposição "+(number(quality.metrics.overlap_ratio)*100).toFixed(1)+"% · Δ iluminação "+(number(quality.metrics.illumination_delta)*100).toFixed(1)+"% · razão de nitidez "+number(quality.metrics.sharpness_ratio).toFixed(2))
+    :"";
   const alignmentText=temporal.enabled
     ?(alignment.accepted?"registro automático Δx="+number(alignment.dx_px).toFixed(0)+" px, Δy="+number(alignment.dy_px).toFixed(0)+" px; ganho "+(number(alignment.improvement)*100).toFixed(1)+"%":"sem translação aplicada; "+escapeHtml(alignment.reason||temporal.alignment_method||"resize"))
     :"não aplicado";
@@ -211,7 +232,7 @@ export function buildCdmHtml(result,fileName="inspecao.png",inspection={}){
   '<section class="grid"><div class="card metric"><b>'+number(summary.total_objects)+'</b><span>achados atuais</span></div><div class="card metric"><b>'+number(summary.crack_count)+'</b><span>fissuras</span></div><div class="card metric"><b>'+number(summary.spalling_area_px2).toFixed(0)+'</b><span>px² de desplacamento</span></div><div class="card metric"><b>'+escapeHtml(calibration)+'</b><span>escala geométrica</span></div></section>'+
   '<section class="card"><h2>Camadas atuais</h2><table><thead><tr><th>Patologia</th><th>Objetos</th></tr></thead><tbody>'+layerRows+'</tbody></table></section>'+
   '<section class="card"><h2>Classificação preliminar por imagem</h2><p class="note">NT <b>'+escapeHtml(rating.NT_img??"—")+'</b> · EC <b>'+escapeHtml(rating.EC_DNIT_img??"—")+'</b> · GDE <b>'+number(rating.GDE_img).toFixed(2)+'</b>. Resultado assistido por imagem; exige validação técnica.</p><table><thead><tr><th>Família</th><th>n</th><th>s_max</th><th>EC</th><th>Governante</th></tr></thead><tbody>'+familyTable+'</tbody></table></section>'+
-  '<section class="card"><h2>Comparação temporal t0→t1</h2><p class="muted">Alinhamento: '+alignmentText+'.</p><table><thead><tr><th>Classe</th><th>IoU</th><th>Crescimento px²</th><th>Redução px²</th></tr></thead><tbody>'+temporalRows+'</tbody></table></section>'+
+  '<section class="card"><h2>Comparação temporal t0→t1</h2><p class="muted">Alinhamento: '+alignmentText+'.</p><p class="note"><b>Qualidade temporal:</b> '+escapeHtml(qualityText)+(qualityDetail?' · '+escapeHtml(qualityDetail):'')+'.</p><table><thead><tr><th>Classe</th><th>IoU</th><th>Crescimento px²</th><th>Redução px²</th></tr></thead><tbody>'+temporalRows+'</tbody></table></section>'+
   '<section class="card"><h2>Rastreabilidade</h2><p>OAE: <span class="mono">'+escapeHtml(inspection.oae_id||"—")+'</span> · Elemento: <span class="mono">'+escapeHtml(inspection.element_id||"—")+'</span> · Fonte: <span class="mono">'+escapeHtml(inspection.source_id||"—")+'</span></p><p>Runtime: <span class="mono">'+escapeHtml(result.metrics?.runtime||"—")+'</span> · '+escapeHtml(performanceText)+'</p><p class="muted">Pipeline determinístico: imagem base → resposta específica por família → máscara candidata → abertura/fechamento → componentes conectados. As pontuações de confiança morfológicas permanecem não calibradas.</p></section>'+
   '</main></body></html>';
 }

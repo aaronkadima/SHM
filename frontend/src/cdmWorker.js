@@ -15,7 +15,10 @@ self.onmessage=e=>{
     }:null;
     const onProgress=progress=>self.postMessage({type:"progress",progress});
     const result=__cdmTest.computeCdmCore(current,previous,payload.cfg||{},onProgress);
-    self.postMessage({type:"result",ok:true,result});
+    const transfer=[];
+    const alignedBuffer=result?.temporal?.aligned_previous?.data?.buffer;
+    if(alignedBuffer)transfer.push(alignedBuffer);
+    self.postMessage({type:"result",ok:true,result},transfer);
   }catch(error){
     self.postMessage({type:"result",ok:false,error:String(error?.message||error)});
   }

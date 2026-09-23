@@ -73,6 +73,7 @@ export default function AnalysisWorkspace({file,prev,referenceFile,referencePrev
     ...(temporalQuality?.issues||[]).map(x=>TEMPORAL_ISSUE_LABELS[x]||x),
     ...(temporalQuality?.warnings||[]).map(x=>TEMPORAL_WARNING_LABELS[x]||x)
   ];
+  const temporalLayerIsVisible=id=>temporalQuality?.status==="fail"?visible["cdm_1:temporal:"+id]===true:visible["cdm_1:temporal:"+id]!==false;
   const temporalQualityLabel=temporalQuality?.status==="fail"
     ?"NÃO VALIDADA para quantificação temporal"
     :temporalQuality?.status==="warning"
@@ -111,7 +112,7 @@ export default function AnalysisWorkspace({file,prev,referenceFile,referencePrev
         {referenceFile&&<div className="layerRow referenceLayer"><span>○</span><span>Referência · t0 <small>{referenceFile.name}</small></span><button className="layerClear" disabled={busy} title="Remover referência t0" onClick={()=>onReferenceFile(null)}><X size={13}/></button></div>}
         {results.map(r=><label className="layerRow" key={r.engine_id}><input type="checkbox" checked={visible[r.engine_id]!==false} onChange={e=>setVisible(v=>({...v,[r.engine_id]:e.target.checked}))}/>{r.name}</label>)}
         {pathologyLayers.map(layer=><label className="layerRow pathologyLayer" key={layer.id}><input type="checkbox" checked={visible["cdm_1:"+layer.id]!==false} onChange={e=>setVisible(v=>({...v,["cdm_1:"+layer.id]:e.target.checked}))}/><span className="pathologySwatch" style={{background:layer.color}}/>{layer.name} <small>({layer.count})</small></label>)}
-        {temporalLayers.length>0&&<details className={"temporalLayerGroup "+(temporalQuality?.status||"")}><summary>Mudança t0→t1 <small>{temporalQuality?.status==="fail"?"não validada":temporalQuality?.status==="warning"?"ressalvas":temporalQuality?.status==="pass"?"aprovada":temporalLayers.length+" camadas"}</small></summary>{temporalLayers.map(layer=><label className="layerRow pathologyLayer temporalLayer" key={"temporal-"+layer.id}><input type="checkbox" checked={visible["cdm_1:temporal:"+layer.id]!==false} onChange={e=>setVisible(v=>({...v,["cdm_1:temporal:"+layer.id]:e.target.checked}))}/><span className="pathologySwatch" style={{background:layer.color}}/>{layer.name} <small>({layer.count})</small></label>)}</details>}
+        {temporalLayers.length>0&&<details className={"temporalLayerGroup "+(temporalQuality?.status||"")}><summary>Mudança t0→t1 <small>{temporalQuality?.status==="fail"?"não validada":temporalQuality?.status==="warning"?"ressalvas":temporalQuality?.status==="pass"?"aprovada":temporalLayers.length+" camadas"}</small></summary>{temporalLayers.map(layer=><label className="layerRow pathologyLayer temporalLayer" key={"temporal-"+layer.id}><input type="checkbox" checked={temporalLayerIsVisible(layer.id)} onChange={e=>setVisible(v=>({...v,["cdm_1:temporal:"+layer.id]:e.target.checked}))}/><span className="pathologySwatch" style={{background:layer.color}}/>{layer.name} <small>({layer.count})</small></label>)}</details>}
         <div className="editorPanelTitle"><b>Propriedades</b></div>
         <p>Tipo reconhecido: <b>{kind==="2d"?"Imagem 2D":kind==="3d"?"Modelo 3D":"Indefinido"}</b></p>
         {kind==="unknown"&&<div className="editorTypeChoice"><button onClick={()=>setKind("2d")}>Tratar como 2D</button><button onClick={()=>setKind("3d")}>Tratar como 3D</button></div>}
@@ -129,7 +130,7 @@ export default function AnalysisWorkspace({file,prev,referenceFile,referencePrev
             {comparison==="temporal"&&<><img src={prev} alt="Imagem atual t1"/><span className="editorPaneBadge">t1 atual</span></>}
             {image&&<img src={image} alt={"Sobreposição de "+chosen.name} style={{opacity}}/>}
             {pathologyLayers.filter(layer=>visible["cdm_1:"+layer.id]!==false).map(layer=><img className="pathologyOverlay" key={layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
-            {temporalLayers.filter(layer=>visible["cdm_1:temporal:"+layer.id]!==false).map(layer=><img className="pathologyOverlay temporalOverlay" key={"temporal-"+layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
+            {temporalLayers.filter(layer=>temporalLayerIsVisible(layer.id)).map(layer=><img className="pathologyOverlay temporalOverlay" key={"temporal-"+layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
             {boxes.map((d,i)=><button key={i} className={"editorDetection "+(selectedDetection?.engineId===chosen.engine_id&&selectedDetection.index===i?"selected":"")} title={d.label||"Achado"} aria-label={`Achado ${i+1}: ${d.label||"sem classificação"}`} style={{left:(d.box[0]/res.image_width*100)+"%",top:(d.box[1]/res.image_height*100)+"%",width:((d.box[2]-d.box[0])/res.image_width*100)+"%",height:((d.box[3]-d.box[1])/res.image_height*100)+"%"}} onClick={()=>{setActive(chosen.engine_id);setSelectedDetection({engineId:chosen.engine_id,index:i})}}/>)}
           </div>}
         </div>}

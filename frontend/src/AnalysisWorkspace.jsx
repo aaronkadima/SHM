@@ -44,6 +44,7 @@ export default function AnalysisWorkspace({file,prev,referenceFile,referencePrev
   const pathologyLayers=chosen?.engine_id==="cdm_1"?chosen.metrics?.layers||[]:[];
   const temporal=chosen?.engine_id==="cdm_1"?chosen.metrics?.temporal:null;
   const temporalAlignment=temporal?.alignment||null;
+  const temporalAlignedPreview=temporal?.aligned_reference_png_base64?"data:image/png;base64,"+temporal.aligned_reference_png_base64:null;
   const temporalLayers=temporal?.enabled?temporal.layers||[]:[];
   const temporalStats=temporal?.stats||{};
   const temporalGrowth=Object.values(temporalStats).reduce((sum,row)=>sum+Number(row.growth_area_px2||0),0);
@@ -89,14 +90,14 @@ export default function AnalysisWorkspace({file,prev,referenceFile,referencePrev
       </aside>}
       <div className="editorViewport" ref={surface}>
         {!layersOpen&&<button className="editorExpand" onClick={()=>setLayersOpen(true)} title="Mostrar camadas"><ChevronRight size={18}/></button>}
-        <button className="editorCameraEntry" onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
+        <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
         <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} style={{transform:`scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
-          <div className="editorImagePane"><img src={comparison==="temporal"&&referencePrev?referencePrev:prev} alt={comparison==="temporal"?"Referência temporal t0":"Arquivo original da inspeção"} onLoad={e=>setImageSize({width:e.currentTarget.naturalWidth||1,height:e.currentTarget.naturalHeight||1})}/></div>
+          <div className="editorImagePane"><img src={comparison==="temporal"?(temporalAlignedPreview||referencePrev):prev} alt={comparison==="temporal"?(temporalAlignedPreview?"Referência temporal t0 alinhada":"Referência temporal t0"):"Arquivo original da inspeção"} onLoad={e=>setImageSize({width:e.currentTarget.naturalWidth||1,height:e.currentTarget.naturalHeight||1})}/>{comparison==="temporal"&&<span className="editorPaneBadge">t0 {temporalAlignedPreview?"alinhado":"referência"}</span>}</div>
           {(image||pathologyLayers.length>0||temporalLayers.length>0)&&<div className="editorImagePane overlayPane">
-            {comparison==="temporal"&&<img src={prev} alt="Imagem atual t1"/>}
+            {comparison==="temporal"&&<><img src={prev} alt="Imagem atual t1"/><span className="editorPaneBadge">t1 atual</span></>}
             {image&&<img src={image} alt={"Sobreposição de "+chosen.name} style={{opacity}}/>}
             {pathologyLayers.filter(layer=>visible["cdm_1:"+layer.id]!==false).map(layer=><img className="pathologyOverlay" key={layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
             {temporalLayers.filter(layer=>visible["cdm_1:temporal:"+layer.id]!==false).map(layer=><img className="pathologyOverlay temporalOverlay" key={"temporal-"+layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}

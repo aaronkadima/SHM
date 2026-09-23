@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import process from "node:process";
 import {__cdmTest} from "../src/cdmBrowser.js";
-import {buildCdmSvg,buildCdmCsv,buildCdmDxf,buildCdmBimJson,buildCdmIfc} from "../src/cdmExports.js";
+import {buildCdmSvg,buildCdmCsv,buildCdmDxf,buildCdmBimJson,buildCdmIfc,buildCdmHtml} from "../src/cdmExports.js";
 
 const fixturePath=process.argv[2];
 if(!fixturePath)throw new Error("usage: node scripts/check-cdm-parity.mjs FIXTURE.json");
@@ -158,17 +158,24 @@ const svg=buildCdmSvg(exportResult);
 const dxf=buildCdmDxf(exportResult);
 const bim=buildCdmBimJson(exportResult,{oae_id:"OAE-TEST",element_id:"E-1",source_id:"CAM-1"});
 const ifc=buildCdmIfc(exportResult,{oae_id:"OAE-TEST",element_id:"E-1"});
+const html=buildCdmHtml(exportResult,"fixture.png",{oae_id:"OAE-TEST",element_id:"E-1"});
 check(csv.includes('"source_class"'),"CSV must expose source_class");
 check(csv.includes('"temporal_alignment"'),"CSV must expose temporal alignment provenance");
+check(csv.includes('"temporal_quality"'),"CSV must expose temporal quality gate");
 check(svg.includes('data-source-class='),"SVG must expose data-source-class");
 check(svg.includes('cdm-temporal-alignment'),"SVG must embed temporal alignment metadata");
 check(svg.includes('layer-growth:cracks')||!expected.temporal_by_source?.cracks?.growth,"SVG must preserve growth-by-cracks layer");
 check(dxf.includes("SHM_TEMPORAL_GROWTH_CRACKS")||!expected.temporal_by_source?.cracks?.growth,"DXF must split temporal layer by source pathology");
 check(dxf.includes("CDM_TEMPORAL_ALIGNMENT"),"DXF must embed temporal alignment provenance");
+check(dxf.includes("quality="+mainQuality.status),"DXF must embed temporal quality status");
 check(bim.features.some(f=>f.damage_class==="growth"&&f.source_class),"BIM JSON temporal feature must expose source_class");
 check(bim.temporal?.alignment!=null,"BIM JSON must expose temporal alignment provenance");
+check(bim.temporal?.quality?.status===mainQuality.status,"BIM JSON must expose temporal quality gate");
 check(ifc.includes("SourcePathology"),"IFC property set must expose SourcePathology");
 check(ifc.includes("TemporalAlignmentDxPx"),"IFC property set must expose temporal alignment displacement");
+check(ifc.includes("TemporalQualityStatus"),"IFC property set must expose temporal quality status");
+check(ifc.includes("TemporalChangeValidated"),"IFC property set must expose temporal validation flag");
+check(html.includes("Qualidade temporal"),"HTML report must expose temporal quality gate");
 console.log("exports traceability: SVG/CSV/DXF/BIM/IFC checked");
 
 const registrationCase=fixture.registration_case;

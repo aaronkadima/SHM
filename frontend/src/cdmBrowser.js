@@ -288,6 +288,41 @@ function summary(records,cfg,imageArea){
   for(const r of records){counts[r.class]=(counts[r.class]||0)+1;if(r.class==="spalling_dark")sp+=r.area_px2;if(r.class==="exposed_rebar")rebar+=r.area_px2;if(r.class==="cracks"){lengths.push(r.length_px);if(r.width_px>0)widths.push(r.width_px)}}
   return {counts,total_objects:records.length,spalling_area_px2:sp,rebar_area_px2:rebar,crack_count:lengths.length,crack_length_total_px:lengths.reduce((a,b)=>a+b,0),crack_length_mean_px:lengths.length?lengths.reduce((a,b)=>a+b,0)/lengths.length:0,crack_width_mean_px:widths.length?widths.reduce((a,b)=>a+b,0)/widths.length:0,crack_width_max_px:widths.length?Math.max(...widths):0,image_area_px2:imageArea,condition_rating:conditionRating(records,cfg,imageArea)};
 }
+function computeCdmCore(current,previous,cfg){
+  const w=current.width,h=current.height,masks=detectMasks(current,cfg),records=[];
+  for(const cls of ORDER)records.push(...recordsFromMask(masks[cls],w,h,cls,"t1_current",cfg));
+  let temporal={enabled:false,alignment_method:null,stats:{},records:[]};
+  if(previous){
+    const prevMasks=detectMasks(previous,cfg),change=temporalCompare(masks,prevMasks,w,h,cfg);
+    temporal={enabled:true,alignment_method:"resize",stats:change.stats,records:change.records};
+  }
+  return {
+    width:w,height:h,records,temporal,
+    summary:summary(records,cfg,w*h),
+    protocol:{stages:["base_image","family_response","candidate_mask","open_close_mask","connected_components"],version:"unified_five_stage_v285_browser"}
+  };
+}
+function runCoreWorker(current,previous,cfg){
+  if(typeof Worker==="undefined")return Promise.resolve({...computeCdmCore(current,previous,cfg),execution:"main-thread"});
+  const worker=new Worker(new URL("./cdmWorker.js",import.meta.url),{type:"module"});
+  return new Promise((resolve,reject)=>{
+    const finish=()=>worker.terminate();
+    worker.onmessage=e=>{
+      finish();
+      if(e.data?.ok)resolve({...e.data.result,execution:"web-worker"});
+      else reject(new Error(e.data?.error||"Falha no Web Worker do CDM-1."));
+    };
+    worker.onerror=e=>{finish();reject(new Error(e.message||"Falha no Web Worker do CDM-1."))};
+    const payload={
+      current:{width:current.width,height:current.height,buffer:current.data.buffer},
+      previous:previous?{width:previous.width,height:previous.height,buffer:previous.data.buffer}:null,
+      cfg
+    };
+    const transfer=[current.data.buffer];
+    if(previous)transfer.push(previous.data.buffer);
+    worker.postMessage(payload,transfer);
+  });
+}
 async function imageDataFromFile(file,maxSide,target=null){
   const bmp=await createImageBitmap(file,{imageOrientation:"from-image"});
   let w,h;if(target){[w,h]=target}else{const s=Math.min(1,maxSide/Math.max(bmp.width,bmp.height));w=Math.max(1,Math.round(bmp.width*s));h=Math.max(1,Math.round(bmp.height*s))}
@@ -302,29 +337,36 @@ export async function runCdmBrowser(file,options={},previousFile=null){
     mmPerPx:Math.max(0,Number(options.cdm_mm_per_px??0)),
     elementFamily:options.cdm_element_family||"lajes_vigas_secundarias_apoios"
   };
-  const current=await imageDataFromFile(file,1600),w=current.width,h=current.height,masks=detectMasks(current,cfg),records=[];
-  const layers=[];
+  let current=await imageDataFromFile(file,1600),w=current.width,h=current.height;
+  let previous=previousFile?await imageDataFromFile(previousFile,1600,[w,h]):null;
+  let core;
+  try{
+    core=await runCoreWorker(current,previous,cfg);
+  }catch(workerError){
+    current=await imageDataFromFile(file,1600);
+    w=current.width;h=current.height;
+    previous=previousFile?await imageDataFromFile(previousFile,1600,[w,h]):null;
+    core={...computeCdmCore(current,previous,cfg),execution:"main-thread-fallback",worker_error:String(workerError?.message||workerError)};
+  }
+  const records=core.records||[],layers=[];
   for(const cls of ORDER){
-    const rec=recordsFromMask(masks[cls],w,h,cls,"t1_current",cfg);records.push(...rec);
+    const rec=records.filter(r=>r.class===cls);
     layers.push({id:cls,name:LABELS[cls],color:"#"+COLORS[cls].map(v=>v.toString(16).padStart(2,"0")).join(""),count:rec.length,overlay_png_base64:renderLayer(rec,w,h,COLORS[cls])});
   }
-  let temporal={enabled:false,stats:{},records:[],layers:[]};
-  if(previousFile){
-    const previous=await imageDataFromFile(previousFile,1600,[w,h]),prevMasks=detectMasks(previous,cfg),change=temporalCompare(masks,prevMasks,w,h,cfg);
-    const temporalLayers=["growth","reduction"].map(cls=>{const rec=change.records.filter(r=>r.class===cls);return {id:cls,name:cls==="growth"?"Crescimento t0→t1":"Redução t0→t1",color:"#"+COLORS[cls].map(v=>v.toString(16).padStart(2,"0")).join(""),count:rec.length,overlay_png_base64:renderLayer(rec,w,h,COLORS[cls])}});
-    temporal={enabled:true,alignment_method:"resize",stats:change.stats,records:change.records,layers:temporalLayers};
-  }
+  const temporalCore=core.temporal||{enabled:false,alignment_method:null,stats:{},records:[]};
+  const temporalLayers=temporalCore.enabled?["growth","reduction"].map(cls=>{const rec=(temporalCore.records||[]).filter(r=>r.class===cls);return {id:cls,name:cls==="growth"?"Crescimento t0→t1":"Redução t0→t1",color:"#"+COLORS[cls].map(v=>v.toString(16).padStart(2,"0")).join(""),count:rec.length,overlay_png_base64:renderLayer(rec,w,h,COLORS[cls])}}):[];
+  const temporal={...temporalCore,layers:temporalLayers};
   const detections=records.map(r=>({label:r.class,canonical_label:r.class,score:null,box:[r.bbox[0],r.bbox[1],r.bbox[0]+r.bbox[2],r.bbox[1]+r.bbox[3]],polygon:r.points,area_px:r.area_px2}));
   const composite=document.createElement("canvas");composite.width=w;composite.height=h;const cctx=composite.getContext("2d");
   for(const cls of ORDER){const rec=records.filter(r=>r.class===cls),tmp=document.createElement("canvas");tmp.width=w;tmp.height=h;const tctx=tmp.getContext("2d");for(const r of rec){if(!r.points.length)continue;tctx.beginPath();tctx.moveTo(...r.points[0]);for(let i=1;i<r.points.length;i++)tctx.lineTo(...r.points[i]);if(r.closed){tctx.closePath();tctx.fillStyle="rgba("+COLORS[cls].join(",")+",.59)";tctx.fill()}else{tctx.strokeStyle="rgba("+COLORS[cls].join(",")+",.82)";tctx.lineWidth=Math.max(1,r.width_px);tctx.stroke()}}cctx.drawImage(tmp,0,0)}
   const engine={
     engine_id:"cdm_1",name:"CDM-1",task:"classical",status:"ok",latency_ms:performance.now()-started,detections,
     overlay_png_base64:composite.toDataURL("image/png").split(",")[1],
-    metrics:{implementation:"CDM 2.8.5 browser parity",runtime:"browser-js",geometry_units:"processed_pixels",processed_width:w,processed_height:h,mm_per_px:cfg.mmPerPx||null,layers,summary:summary(records,cfg,w*h),records,temporal,protocol:{stages:["base_image","family_response","candidate_mask","open_close_mask","connected_components"],version:"unified_five_stage_v285_browser"}},
+    metrics:{implementation:"CDM 2.8.5 browser parity",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,geometry_units:"processed_pixels",processed_width:w,processed_height:h,mm_per_px:cfg.mmPerPx||null,layers,summary:core.summary,records,temporal,protocol:core.protocol},
     message:"CDM-1 executado integralmente no navegador; nenhum dado foi enviado ao Railway. Resultados morfológicos preliminares e confiança não calibrada."
   };
-  return {image_width:w,image_height:h,results:[engine],consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,metadata:{analysis_id:"browser-cdm-"+crypto.randomUUID(),api_version:"browser-1.2",generated_at:new Date().toISOString(),mode:"individual",engine_ids:["cdm_1"],implementation:"cdm-2.8.5-browser-parity"}};
+  return {image_width:w,image_height:h,results:[engine],consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,metadata:{analysis_id:"browser-cdm-"+crypto.randomUUID(),api_version:"browser-1.3",generated_at:new Date().toISOString(),mode:"individual",engine_ids:["cdm_1"],implementation:"cdm-2.8.5-browser-parity-worker"}};
 }
 
 // Test hooks: pure functions used by CI parity checks; not part of the UI API.
-export const __cdmTest={detectMasks,recordsFromMask,temporalCompare,summary,percentileFloat,blackhat,cleanup,ORDER,LABELS};
+export const __cdmTest={detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,percentileFloat,blackhat,cleanup,ORDER,LABELS};

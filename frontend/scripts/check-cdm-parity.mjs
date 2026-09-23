@@ -102,8 +102,17 @@ for(const [cls,exp] of Object.entries(expected.temporal_stats)){
   const got=temporal.stats[cls];
   console.log(`temporal ${cls}: IoU=${got.iou.toFixed(6)}/${Number(exp.iou).toFixed(6)} growth=${got.growth_area_px2}/${exp.growth_area_px2} reduction=${got.reduction_area_px2}/${exp.reduction_area_px2}`);
   check(near(got.iou,exp.iou,.005,.01),`${cls} temporal IoU mismatch`);
-  check(near(got.growth_area_px2,exp.growth_area_px2,2,.01),`${cls} growth mismatch`);
-  check(near(got.reduction_area_px2,exp.reduction_area_px2,2,.01),`${cls} reduction mismatch`);
+  for(const key of ["previous_area_px2","current_area_px2","growth_area_px2","reduction_area_px2","net_area_change_px2"]){
+    check(near(got[key],exp[key],2,.01),`${cls} ${key} mismatch`);
+  }
+  for(const key of ["growth_rate_vs_t0_pct","reduction_rate_vs_t0_pct","net_area_change_vs_t0_pct"]){
+    if(exp[key]==null)check(got[key]==null,`${cls} ${key} should be null`);
+    else check(near(got[key],exp[key],.05,.01),`${cls} ${key} mismatch`);
+  }
+  for(const key of ["previous_area_mm2","current_area_mm2","growth_area_mm2","reduction_area_mm2","net_area_change_mm2"]){
+    if(exp[key]==null)check(got[key]==null,`${cls} ${key} should be null`);
+    else check(near(got[key],exp[key],.05,.01),`${cls} ${key} mismatch`);
+  }
 }
 for(const cls of ["growth","reduction"]){
   const count=temporal.records.filter(r=>r.class===cls).length;

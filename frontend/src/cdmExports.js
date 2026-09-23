@@ -36,6 +36,8 @@ export function buildCdmCsv(result){
   }
   const rating=result.metrics?.summary?.condition_rating;
   if(rating?.enabled)rows.push([],["classification_summary","value","label_or_note"],["NT_img_preliminar",rating.NT_img,rating.NT_label_img],["EC_DNIT_img",rating.EC_DNIT_img,rating.EC_DNIT_label_img],["GDE_img_diagnostico",rating.GDE_img,rating.GDE_level],["Familia",rating.family,rating.family_label],["Fr",rating.Fr,"Fator de relevância estrutural"]);
+  const perf=result.metrics?.performance_ms;
+  if(perf)rows.push([],["runtime_performance","milliseconds","runtime"],["decode_ms",perf.decode,result.metrics?.runtime||""],["core_ms",perf.core,result.metrics?.runtime||""],["render_ms",perf.render,result.metrics?.runtime||""],["total_ms",perf.total,result.metrics?.runtime||""]);
   return "\uFEFF"+rows.map(row=>row.map(csvCell).join(";")).join("\n");
 }
 
@@ -103,6 +105,7 @@ export function buildCdmBimJson(result,inspection={}){
     schema:"cdm_bim_overlay_v285",software:"SHM CDM-1",oae_id:inspection.oae_id||"",
     inspection_label:inspection.inspection_label||"",calibration:{mm_per_px:mm},
     temporal:{enabled:!!result.metrics?.temporal?.enabled,alignment_method:result.metrics?.temporal?.alignment_method||null,stats:result.metrics?.temporal?.stats||{}},
+    provenance:{runtime:result.metrics?.runtime||null,performance_ms:result.metrics?.performance_ms||null,implementation:result.metrics?.implementation||null},
     features
   };
 }
@@ -164,6 +167,10 @@ export function buildCdmHtml(result,fileName="inspecao.png",inspection={}){
   const layerRows=layers.map(l=>'<tr><td><span class="sw" style="background:'+escapeHtml(l.color)+'"></span>'+escapeHtml(l.name)+"</td><td>"+number(l.count)+"</td></tr>").join("");
   const familyTable=familyRows.map(r=>"<tr><td>"+escapeHtml(r.class_label||r.class)+"</td><td>"+number(r.n)+"</td><td>"+number(r.s_max).toFixed(3)+"</td><td>EC"+escapeHtml(r.EC_DNIT_family_img)+"</td><td>"+escapeHtml(r.governing_record_id||"")+"</td></tr>").join("")||"<tr><td colspan='5'>Sem famílias classificadas.</td></tr>";
   const calibration=number(result.metrics?.mm_per_px)>0?number(result.metrics.mm_per_px).toFixed(6)+" mm/px":"não calibrada";
+  const perf=result.metrics?.performance_ms||{};
+  const performanceText=perf.total!=null
+    ?("Decodificação "+(number(perf.decode)/1000).toFixed(2)+" s · núcleo "+(number(perf.core)/1000).toFixed(2)+" s · renderização "+(number(perf.render)/1000).toFixed(2)+" s · total "+(number(perf.total)/1000).toFixed(2)+" s")
+    :"não registrado";
   return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relatório CDM-1</title><style>'+
   'body{font-family:Inter,Arial,sans-serif;margin:0;background:#f6f8f8;color:#1c2b31}main{max-width:1080px;margin:auto;padding:32px}h1{margin:0 0 6px;font-size:28px}.muted{color:#687b84}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.card{background:#fff;border:1px solid #dce6e9;border-radius:12px;padding:18px;margin:16px 0}.metric b{display:block;font-size:28px;color:#0d766e}.metric span{font-size:12px;color:#657982}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #e7edef;font-size:13px}th{color:#647781;font-size:11px;text-transform:uppercase}.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px}.note{border-left:3px solid #0d766e;padding-left:12px}.mono{font-family:ui-monospace,Consolas,monospace}</style></head><body><main>'+
   "<h1>Relatório de inspeção — CDM-1</h1><p class='muted'>Concrete Damage Morphology v2.8.5 · "+escapeHtml(fileName)+" · "+escapeHtml(inspection.inspection_label||"inspeção sem rótulo")+"</p>"+
@@ -171,6 +178,6 @@ export function buildCdmHtml(result,fileName="inspecao.png",inspection={}){
   '<section class="card"><h2>Camadas atuais</h2><table><thead><tr><th>Patologia</th><th>Objetos</th></tr></thead><tbody>'+layerRows+'</tbody></table></section>'+
   '<section class="card"><h2>Classificação preliminar por imagem</h2><p class="note">NT <b>'+escapeHtml(rating.NT_img??"—")+'</b> · EC <b>'+escapeHtml(rating.EC_DNIT_img??"—")+'</b> · GDE <b>'+number(rating.GDE_img).toFixed(2)+'</b>. Resultado assistido por imagem; exige validação técnica.</p><table><thead><tr><th>Família</th><th>n</th><th>s_max</th><th>EC</th><th>Governante</th></tr></thead><tbody>'+familyTable+'</tbody></table></section>'+
   '<section class="card"><h2>Comparação temporal t0→t1</h2><p class="muted">Alinhamento: '+escapeHtml(temporal.alignment_method||"não aplicado")+'.</p><table><thead><tr><th>Classe</th><th>IoU</th><th>Crescimento px²</th><th>Redução px²</th></tr></thead><tbody>'+temporalRows+'</tbody></table></section>'+
-  '<section class="card"><h2>Rastreabilidade</h2><p>OAE: <span class="mono">'+escapeHtml(inspection.oae_id||"—")+'</span> · Elemento: <span class="mono">'+escapeHtml(inspection.element_id||"—")+'</span> · Fonte: <span class="mono">'+escapeHtml(inspection.source_id||"—")+'</span></p><p class="muted">Pipeline determinístico: imagem base → resposta específica por família → máscara candidata → abertura/fechamento → componentes conectados. As pontuações de confiança morfológicas permanecem não calibradas.</p></section>'+
+  '<section class="card"><h2>Rastreabilidade</h2><p>OAE: <span class="mono">'+escapeHtml(inspection.oae_id||"—")+'</span> · Elemento: <span class="mono">'+escapeHtml(inspection.element_id||"—")+'</span> · Fonte: <span class="mono">'+escapeHtml(inspection.source_id||"—")+'</span></p><p>Runtime: <span class="mono">'+escapeHtml(result.metrics?.runtime||"—")+'</span> · '+escapeHtml(performanceText)+'</p><p class="muted">Pipeline determinístico: imagem base → resposta específica por família → máscara candidata → abertura/fechamento → componentes conectados. As pontuações de confiança morfológicas permanecem não calibradas.</p></section>'+
   '</main></body></html>';
 }

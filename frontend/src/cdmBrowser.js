@@ -498,7 +498,7 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     layers.push({id:cls,name:LABELS[cls],color:"#"+COLORS[cls].map(v=>v.toString(16).padStart(2,"0")).join(""),count:rec.length,overlay_png_base64:renderLayer(rec,w,h,COLORS[cls])});
   }
   const temporalCore=core.temporal||{enabled:false,alignment_method:null,stats:{},records:[]};
-  const alignedReferenceB64=temporalCore.aligned_previous?imageDataToPngB64(temporalCore.aligned_previous):null;
+  const alignedReferenceB64=temporalCore.alignment?.accepted&&temporalCore.aligned_previous?imageDataToPngB64(temporalCore.aligned_previous):null;
   const temporalLayers=[];
   if(temporalCore.enabled){
     for(const changeClass of ["growth","reduction"]){

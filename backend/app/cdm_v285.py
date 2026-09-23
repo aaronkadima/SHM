@@ -622,7 +622,7 @@ def estimate_translation_registration(current_rgb: np.ndarray, previous_rgb: np.
 
     hs, ws = edge_cur.shape
     full_h, full_w = current_rgb.shape[:2]
-    search_full = min(64, max(4, int(round(min(full_h, full_w) * 0.08))))
+    search_full = min(96, max(6, int(round(min(full_h, full_w) * 0.12))))
     radius = max(1, int(math.ceil(search_full / float(step))))
     radius = min(radius, max(1, (min(hs, ws) - 6) // 2))
     x0, x1 = radius + 1, ws - radius - 1
@@ -675,14 +675,15 @@ def estimate_translation_registration(current_rgb: np.ndarray, previous_rgb: np.
     improvement = (score_zero - best_score) / max(score_zero, 1e-6) if math.isfinite(score_zero) else 0.0
     estimated_dx = int(best_dx_small * step)
     estimated_dy = int(best_dy_small * step)
-    accepted = (best_dx_small != 0 or best_dy_small != 0) and improvement >= 0.035
+    boundary_hit = abs(best_dx_small) >= radius or abs(best_dy_small) >= radius
+    accepted = (best_dx_small != 0 or best_dy_small != 0) and improvement >= 0.035 and not boundary_hit
     applied_dx = estimated_dx if accepted else 0
     applied_dy = estimated_dy if accepted else 0
     return {
         "method_requested": "translation_auto",
         "method_applied": "translation_auto" if accepted else "resize",
         "accepted": bool(accepted),
-        "reason": "translation_improved_edge_match" if accepted else "no_reliable_translation_gain",
+        "reason": "translation_improved_edge_match" if accepted else ("search_boundary_hit" if boundary_hit else "no_reliable_translation_gain"),
         "dx_px": int(applied_dx),
         "dy_px": int(applied_dy),
         "estimated_dx_px": int(estimated_dx),
@@ -690,6 +691,7 @@ def estimate_translation_registration(current_rgb: np.ndarray, previous_rgb: np.
         "score_before": float(score_zero),
         "score_after": float(best_score if accepted else score_zero),
         "improvement": float(improvement if accepted else max(0.0, improvement)),
+        "boundary_hit": bool(boundary_hit),
         "downsample_step": int(step),
         "search_radius_px": int(radius * step),
     }

@@ -63,6 +63,7 @@ def engines():
 
 @app.post("/infer")
 async def infer(file:UploadFile=File(...),engine_id:str=Form(...),
+                previous_file:UploadFile|None=File(None),
                 cdm_threshold:int=Form(35),cdm_kernel_size:int=Form(15),
                 cdm_min_area:float=Form(30),cdm_min_aspect_ratio:float=Form(2.0),
                 cdm_mm_per_px:float=Form(0),cdm_element_family:str=Form("lajes_vigas_secundarias_apoios")):
@@ -83,6 +84,17 @@ async def infer(file:UploadFile=File(...),engine_id:str=Form(...),
         raise HTTPException(400,"Imagem inválida: "+str(exc))
     if max(image.size)>MAX_SIDE:
         image.thumbnail((MAX_SIDE,MAX_SIDE),Image.Resampling.LANCZOS)
+    previous_image=None
+    if engine_id=="cdm_1" and previous_file is not None:
+        previous_raw=await previous_file.read()
+        if len(previous_raw)>MAX_UPLOAD_MB*1024*1024:
+            raise HTTPException(413,f"Imagem t0 excede {MAX_UPLOAD_MB:g} MB")
+        try:
+            previous_image=ImageOps.exif_transpose(Image.open(io.BytesIO(previous_raw))).convert("RGB")
+        except Exception as exc:
+            raise HTTPException(400,"Imagem t0 inválida: "+str(exc))
+        if max(previous_image.size)>MAX_SIDE:
+            previous_image.thumbnail((MAX_SIDE,MAX_SIDE),Image.Resampling.LANCZOS)
     if engine_id=="cdm_1":
         if not (1<=cdm_threshold<=255 and 3<=cdm_kernel_size<=99 and 1<=cdm_min_area<=1_000_000 and 1<=cdm_min_aspect_ratio<=50 and 0<=cdm_mm_per_px<=1000):
             raise HTTPException(422,"Parâmetros CDM-1 fora das faixas permitidas.")
@@ -92,9 +104,10 @@ async def infer(file:UploadFile=File(...),engine_id:str=Form(...),
                                     min_area=cdm_min_area,min_aspect_ratio=cdm_min_aspect_ratio,
                                     calibration_mode="manual_mm_per_px" if cdm_mm_per_px>0 else "px_only",
                                     mm_per_px=cdm_mm_per_px,element_family=cdm_element_family,
-                                    structural_relevance_fr=cdm_v285.FAMILY_FR[cdm_element_family])
+                                    structural_relevance_fr=cdm_v285.FAMILY_FR[cdm_element_family],
+                                    compare_previous=previous_image is not None,alignment_method="resize")
         started=time.perf_counter()
-        result=await asyncio.to_thread(e.predict_configured,image.copy(),cfg)
+        result=await asyncio.to_thread(e.predict_configured,image.copy(),cfg,previous_image.copy() if previous_image else None)
         result.latency_ms=(time.perf_counter()-started)*1000
         from .taxonomy import apply_taxonomy
         result=apply_taxonomy(result)

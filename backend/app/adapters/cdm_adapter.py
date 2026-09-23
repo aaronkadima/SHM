@@ -24,11 +24,20 @@ TEMPORAL_LABELS = {
 }
 
 
+def _source_class(record):
+    if record.damage_class in ("growth", "reduction"):
+        prefix = record.damage_class + "_"
+        if record.time_label.startswith(prefix):
+            return record.time_label[len(prefix):]
+    return record.damage_class
+
+
 def _record_payload(record):
     return {
         "id": record.record_id,
         "time_label": record.time_label,
         "class": record.damage_class,
+        "source_class": _source_class(record),
         "bbox": list(record.bbox),
         "points": [list(p) for p in record.points],
         "closed": record.is_closed,
@@ -108,17 +117,26 @@ class CDM1Adapter(EngineAdapter):
             change_records, temporal_stats = cdm.temporal_records(masks, previous_masks, cfg)
             temporal_layers = []
             for change_class in ("growth", "reduction"):
-                class_records = [r for r in change_records if r.damage_class == change_class]
-                layer_image = _paint_records(
-                    (width, height), class_records, TEMPORAL_COLORS[change_class]
-                )
-                temporal_layers.append({
-                    "id": change_class,
-                    "name": TEMPORAL_LABELS[change_class],
-                    "color": "#%02x%02x%02x" % TEMPORAL_COLORS[change_class],
-                    "count": len(class_records),
-                    "overlay_png_base64": png_b64(layer_image),
-                })
+                for source_class in cdm.PATHOLOGY_FAMILY_ORDER:
+                    class_records = [
+                        r for r in change_records
+                        if r.damage_class == change_class
+                        and _source_class(r) == source_class
+                    ]
+                    if not class_records:
+                        continue
+                    layer_image = _paint_records(
+                        (width, height), class_records, TEMPORAL_COLORS[change_class]
+                    )
+                    temporal_layers.append({
+                        "id": f"{change_class}:{source_class}",
+                        "change_class": change_class,
+                        "source_class": source_class,
+                        "name": f"{TEMPORAL_LABELS[change_class]} · {cdm.CLASS_LABELS[source_class]}",
+                        "color": "#%02x%02x%02x" % TEMPORAL_COLORS[change_class],
+                        "count": len(class_records),
+                        "overlay_png_base64": png_b64(layer_image),
+                    })
             temporal = {
                 "enabled": True,
                 "alignment_method": "resize",

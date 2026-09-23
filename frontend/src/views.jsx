@@ -24,6 +24,36 @@ function engineModeLabel(e){
   if(e.domain_mode==="optional_runtime")return"Runtime opcional";
   return e.domain_mode||"Registrado";
 }
+const CDM_PATHOLOGY_LABELS={cracks:"Fissuras",spalling_dark:"Desplacamento",exposed_rebar:"Armadura exposta",corrosion_rust:"Corrosão",efflorescence_white:"Eflorescência"};
+function campaignSummaries(history){
+  const groups=new Map();
+  for(const row of history||[]){
+    const oae=String(row.inspection?.oae_id||"").trim();
+    const element=String(row.inspection?.element_id||"").trim();
+    if(!oae||!element)continue;
+    const key=oae+"::"+element;
+    if(!groups.has(key))groups.set(key,{key,oae,element,items:[]});
+    groups.get(key).items.push(row);
+  }
+  return [...groups.values()].map(group=>{
+    group.items.sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+    const latest=group.items.at(-1),first=group.items[0];
+    const validated=group.items.filter(x=>x.summary?.temporal_quality?.validated===true).length;
+    const failed=group.items.filter(x=>x.summary?.temporal_quality?.status==="fail").length;
+    return {...group,latest,first,validated,failed};
+  }).sort((a,b)=>new Date(b.latest?.created_at||0)-new Date(a.latest?.created_at||0));
+}
+function formatCampaignDate(value){
+  if(!value)return"—";
+  const date=new Date(value);
+  return Number.isNaN(date.getTime())?"—":date.toLocaleDateString("pt-BR");
+}
+function formatSigned(value,digits=1){
+  const n=Number(value);
+  if(!Number.isFinite(n))return"—";
+  return (n>0?"+":"")+n.toFixed(digits);
+}
+
 function detectionsFrom(res){
   const out=[];
   for(const r of res?.results||[]){
@@ -143,13 +173,42 @@ export function EnginesView({engines,visibleEng,engineQuery,setEngineQuery,engin
 export function AlertsView({res,history,historyBusy,historyErr,onOpenHistory,onDeleteHistory,onClearHistory,onNavigate}){
   const detections=detectionsFrom(res);
   const errors=(res?.results||[]).filter(r=>r.status!=="ok");
+  const campaigns=useMemo(()=>campaignSummaries(history),[history]);
   return <section className="viewPage">
     <SectionHead eyebrow="EVENTOS & PERSISTÊNCIA" title="Alertas & histórico" description="Achados da sessão atual e inspeções persistidas no IndexedDB deste navegador, incluindo imagem original, metadados e resultados." actions={<><button onClick={()=>onNavigate("analysis")}>Nova análise <Activity size={14}/></button>{history?.length>0&&<button className="dangerAction" onClick={onClearHistory}>Limpar histórico</button>}</>}/>
     <div className="alertSummary">
       <div><b>{detections.length}</b><span>achados da sessão</span></div>
       <div><b>{errors.length}</b><span>motores com pendência</span></div>
       <div><b>{history?.length||0}</b><span>inspeções persistidas</span></div>
+      <div><b>{campaigns.length}</b><span>campanhas identificadas</span></div>
     </div>
+    {campaigns.length>0&&<article className="surface campaignSurface">
+      <div className="surfaceHead"><div><b>CAMPANHAS POR OAE / ELEMENTO</b><span>Agrupamento local baseado somente nas inspeções salvas; nenhuma imagem antiga é recalculada</span></div><span className="statusPill neutral">{campaigns.length} GRUPOS</span></div>
+      <div className="campaignList">{campaigns.map(group=>{
+        const latest=group.latest,condition=latest.summary?.cdm_snapshot?.condition;
+        const latestTemporal=latest.summary?.temporal_quality;
+        return <details className="campaignCard" key={group.key}>
+          <summary>
+            <span><b>{group.oae}</b><small>{group.element}</small></span>
+            <span><b>{group.items.length}</b><small>inspeções</small></span>
+            <span><b>{formatCampaignDate(group.first?.created_at)} → {formatCampaignDate(group.latest?.created_at)}</b><small>{group.validated} temporal(is) validada(s){group.failed?" · "+group.failed+" reprovada(s)":""}</small></span>
+            <span>{condition?<><b>NT {condition.NT_img} · EC {condition.EC_DNIT_img}</b><small>GDE {Number(condition.GDE_img||0).toFixed(2)} · {condition.GDE_level||"—"}</small></>:<><b>Sem classificação</b><small>snapshot CDM ausente</small></>}</span>
+            <span className={"campaignQuality "+(latestTemporal?.status||"unknown")}>{latestTemporal?.status==="pass"?"APROVADA":latestTemporal?.status==="warning"?"RESSALVAS":latestTemporal?.status==="fail"?"NÃO VALIDADA":"SEM TEMPORAL"}</span>
+          </summary>
+          <div className="campaignTimeline">{group.items.slice().reverse().map(item=>{
+            const snap=item.summary?.cdm_snapshot,cond=snap?.condition,quality=item.summary?.temporal_quality;
+            const deltas=snap?.validated_temporal_by_class||{};
+            const strongest=Object.entries(deltas).sort((a,b)=>Math.abs(Number(b[1]?.net_area_change_vs_t0_pct||0))-Math.abs(Number(a[1]?.net_area_change_vs_t0_pct||0)))[0];
+            return <div className="campaignEvent" key={item.id}>
+              <span><b>{formatCampaignDate(item.created_at)}</b><small>{item.inspection?.inspection_label||item.inspection?.source_id||item.file_meta?.name||"inspeção"}</small></span>
+              <span>{snap?<><b>{snap.total_objects} achados</b><small>{cond?"NT "+cond.NT_img+" · EC "+cond.EC_DNIT_img+" · GDE "+Number(cond.GDE_img||0).toFixed(2):"sem classificação"}</small></>:<><b>{item.summary?.detections||0} achados</b><small>registro anterior ao snapshot CDM</small></>}</span>
+              <span>{strongest&&quality?.validated?<><b>{CDM_PATHOLOGY_LABELS[strongest[0]]||strongest[0]}</b><small>Δ/t0 {formatSigned(strongest[1]?.net_area_change_vs_t0_pct)}%</small></>:<><b>{quality?.status==="fail"?"Temporal não validada":"Sem Δ validado"}</b><small>{quality?.issues?.join(", ")||"—"}</small></>}</span>
+              <button onClick={()=>onOpenHistory(item.id,"reports")}>Abrir</button>
+            </div>
+          })}</div>
+        </details>
+      })}</div>
+    </article>}
     <article className="surface historySurface">
       <div className="surfaceHead"><div><b>HISTÓRICO DE INSPEÇÕES</b><span>{historyBusy?"Carregando registros...":"Persistência local independente do Railway"}</span></div><span className="statusPill success">INDEXEDDB</span></div>
       {historyErr&&<div className="historyError">{historyErr}</div>}

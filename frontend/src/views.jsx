@@ -55,6 +55,119 @@ function formatSigned(value,digits=1){
   return (n>0?"+":"")+n.toFixed(digits);
 }
 
+function campaignConditionSeries(group){
+  return (group.items||[]).map(item=>{
+    const condition=item.summary?.cdm_snapshot?.condition;
+    return condition?{
+      id:item.id,
+      created_at:item.created_at,
+      label:item.inspection?.inspection_label||item.inspection?.source_id||item.file_meta?.name||"inspeção",
+      NT:condition.NT_img==null?null:Number(condition.NT_img),
+      EC:condition.EC_DNIT_img==null?null:Number(condition.EC_DNIT_img),
+      GDE:Number(condition.GDE_img||0),
+      GDE_level:condition.GDE_level||""
+    }:null;
+  }).filter(Boolean);
+}
+function campaignTemporalEvents(group){
+  const events=[];
+  for(const item of group.items||[]){
+    if(item.summary?.temporal_quality?.validated!==true)continue;
+    const snapshot=item.summary?.cdm_snapshot;
+    for(const [cls,st] of Object.entries(snapshot?.validated_temporal_by_class||{})){
+      events.push({
+        id:item.id+"::"+cls,
+        inspection_id:item.id,
+        created_at:item.created_at,
+        inspection_label:item.inspection?.inspection_label||"",
+        source_id:item.inspection?.source_id||"",
+        pathology:cls,
+        pathology_label:CDM_PATHOLOGY_LABELS[cls]||cls,
+        previous_area_px2:st.previous_area_px2,
+        current_area_px2:st.current_area_px2,
+        net_area_change_px2:st.net_area_change_px2,
+        net_area_change_vs_t0_pct:st.net_area_change_vs_t0_pct,
+        previous_area_mm2:st.previous_area_mm2,
+        current_area_mm2:st.current_area_mm2,
+        net_area_change_mm2:st.net_area_change_mm2,
+        quality:item.summary?.temporal_quality||null,
+        alignment:item.summary?.temporal_alignment||null
+      });
+    }
+  }
+  return events.sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+}
+function downloadCampaignFile(name,type,text){
+  const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function campaignFileStem(group){
+  const clean=value=>String(value||"campanha").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").toLowerCase();
+  return "shm-campanha-"+clean(group.oae)+"-"+clean(group.element);
+}
+function exportCampaignJson(group){
+  const condition_series=campaignConditionSeries(group);
+  const validated_temporal_events=campaignTemporalEvents(group);
+  const payload={
+    schema:"shm_cdm_campaign_v1",
+    generated_at:new Date().toISOString(),
+    oae_id:group.oae,
+    element_id:group.element,
+    inspection_count:group.items.length,
+    first_inspection_at:group.first?.created_at||null,
+    latest_inspection_at:group.latest?.created_at||null,
+    note:"Somente snapshots persistidos e deltas temporais previamente validados. Não há interpolação, extrapolação ou acumulação de crescimento.",
+    condition_series,
+    validated_temporal_events,
+    inspections:group.items.map(item=>({
+      id:item.id,
+      created_at:item.created_at,
+      inspection:item.inspection||{},
+      file_meta:item.file_meta||{},
+      summary:item.summary||{}
+    }))
+  };
+  downloadCampaignFile(campaignFileStem(group)+".json","application/json;charset=utf-8",JSON.stringify(payload,null,2));
+}
+function campaignCsvCell(value){
+  const text=value==null?"":String(value);
+  return '"'+text.replaceAll('"','""')+'"';
+}
+function exportCampaignCsv(group){
+  const rows=[[
+    "record_type","inspection_id","date","oae_id","element_id","inspection_label","source_id",
+    "pathology","metric","value","unit","quality_status","validated","notes"
+  ]];
+  for(const point of campaignConditionSeries(group)){
+    for(const [metric,value] of [["NT_img",point.NT],["EC_DNIT_img",point.EC],["GDE_img",point.GDE]]){
+      rows.push(["condition",point.id,point.created_at,group.oae,group.element,point.label,"","",metric,value,"", "",true,point.GDE_level||""]);
+    }
+  }
+  for(const event of campaignTemporalEvents(group)){
+    const calibrated=event.net_area_change_mm2!=null;
+    const metrics=[
+      ["net_area_change",calibrated?event.net_area_change_mm2:event.net_area_change_px2,calibrated?"mm2":"px2"],
+      ["net_area_change_vs_t0_pct",event.net_area_change_vs_t0_pct,"%"]
+    ];
+    for(const [metric,value,unit] of metrics){
+      rows.push(["temporal",event.inspection_id,event.created_at,group.oae,group.element,event.inspection_label,event.source_id,event.pathology,metric,value,unit,event.quality?.status||"",true,event.pathology_label]);
+    }
+  }
+  const body="\uFEFF"+rows.map(row=>row.map(campaignCsvCell).join(";")).join("\n");
+  downloadCampaignFile(campaignFileStem(group)+".csv","text/csv;charset=utf-8",body);
+}
+function CampaignSparkline({points}){
+  const values=(points||[]).map(p=>Number(p.GDE)).filter(Number.isFinite);
+  if(values.length<2)return <span className="campaignSparkEmpty">tendência insuficiente</span>;
+  const width=150,height=34,pad=3,min=Math.min(...values),max=Math.max(...values),span=Math.max(max-min,1);
+  const coords=values.map((v,i)=>{
+    const x=pad+i*(width-2*pad)/Math.max(1,values.length-1);
+    const y=height-pad-(v-min)*(height-2*pad)/span;
+    return [x,y];
+  });
+  return <svg className="campaignSpark" viewBox={"0 0 "+width+" "+height} role="img" aria-label="Tendência GDE registrada"><polyline points={coords.map(p=>p.join(",")).join(" ")} fill="none" stroke="currentColor" strokeWidth="1.7"/>{coords.map((p,i)=><circle key={i} cx={p[0]} cy={p[1]} r="2" fill="currentColor"/>)}</svg>;
+}
+
 function detectionsFrom(res){
   const out=[];
   for(const r of res?.results||[]){
@@ -188,6 +301,8 @@ export function AlertsView({res,history,historyBusy,historyErr,onOpenHistory,onD
       <div className="campaignList">{campaigns.map(group=>{
         const latest=group.latest,condition=latest.summary?.cdm_snapshot?.condition;
         const latestTemporal=latest.summary?.temporal_quality;
+        const conditionSeries=campaignConditionSeries(group);
+        const temporalEvents=campaignTemporalEvents(group);
         return <details className="campaignCard" key={group.key}>
           <summary>
             <span><b>{group.oae}</b><small>{group.element}</small></span>
@@ -196,6 +311,12 @@ export function AlertsView({res,history,historyBusy,historyErr,onOpenHistory,onD
             <span>{condition?<><b>NT {condition.NT_img} · EC {condition.EC_DNIT_img}</b><small>GDE {Number(condition.GDE_img||0).toFixed(2)} · {condition.GDE_level||"—"}</small></>:<><b>Sem classificação</b><small>snapshot CDM ausente</small></>}</span>
             <span className={"campaignQuality "+(latestTemporal?.status||"unknown")}>{latestTemporal?.status==="pass"?"APROVADA":latestTemporal?.status==="warning"?"RESSALVAS":latestTemporal?.status==="fail"?"NÃO VALIDADA":"SEM TEMPORAL"}</span>
           </summary>
+          <div className="campaignOverview">
+            <div className="campaignTrendBlock"><span>GDE REGISTRADO</span><CampaignSparkline points={conditionSeries}/><small>{conditionSeries.length>=2?formatSigned(conditionSeries.at(-1).GDE-conditionSeries[0].GDE,2)+" desde o primeiro snapshot":"mínimo de 2 snapshots classificados"}</small></div>
+            <div className="campaignAuditStats"><span><b>{conditionSeries.length}</b><small>snapshots classificados</small></span><span><b>{temporalEvents.length}</b><small>deltas temporais validados</small></span><span><b>{group.items.length-conditionSeries.length}</b><small>sem snapshot de condição</small></span></div>
+            <div className="campaignExportActions"><button onClick={e=>{e.preventDefault();exportCampaignCsv(group)}}><FileSpreadsheet size={12}/> CSV campanha</button><button onClick={e=>{e.preventDefault();exportCampaignJson(group)}}><FileJson size={12}/> JSON campanha</button></div>
+          </div>
+          {temporalEvents.length>0&&<div className="campaignTemporalEvents"><div className="campaignTemporalHead"><b>DELTAS TEMPORAIS VALIDADOS</b><span>Par a par; sem acumulação automática</span></div>{temporalEvents.slice().reverse().map(event=><div className="campaignTemporalRow" key={event.id}><span><b>{formatCampaignDate(event.created_at)}</b><small>{event.inspection_label||event.source_id||"inspeção"}</small></span><span><b>{event.pathology_label}</b><small>{event.quality?.status||"validada"}</small></span><span><b>{event.net_area_change_vs_t0_pct==null?"—":formatSigned(event.net_area_change_vs_t0_pct)+"%"}</b><small>Δ/t0</small></span><span><b>{event.net_area_change_mm2!=null?formatSigned(event.net_area_change_mm2,1)+" mm²":formatSigned(event.net_area_change_px2,0)+" px²"}</b><small>Δ líquido</small></span></div>)}</div>}
           <div className="campaignTimeline">{group.items.slice().reverse().map(item=>{
             const snap=item.summary?.cdm_snapshot,cond=snap?.condition,quality=item.summary?.temporal_quality;
             const deltas=snap?.validated_temporal_by_class||{};

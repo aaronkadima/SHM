@@ -45,6 +45,7 @@ function toSummary(record){
     file_meta:record.file_meta||{},
     reference_file_meta:record.reference_file_meta||{},
     reference_inspection_id:record.reference_inspection_id||null,
+    reference_inspection_meta:record.reference_inspection_meta||null,
     summary:record.summary||{}
   };
 }
@@ -74,7 +75,7 @@ export async function requestPersistentStorage(){
   }catch{}
   return false;
 }
-export async function saveInspection({result,file,referenceFile,referenceInspectionId=null,inspection}){
+export async function saveInspection({result,file,referenceFile,referenceInspectionId=null,referenceInspectionMeta=null,inspection}){
   if(!result)throw new Error("Resultado ausente.");
   const now=new Date().toISOString();
   const id=String(result.metadata?.analysis_id||("inspection-"+crypto.randomUUID()));
@@ -104,6 +105,26 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
       };
     }
   }
+  const normalizedReferenceMeta=referenceInspectionMeta?{
+    oae_id:String(referenceInspectionMeta.oae_id||"").trim(),
+    element_id:String(referenceInspectionMeta.element_id||"").trim(),
+    source_id:String(referenceInspectionMeta.source_id||"").trim(),
+    inspection_label:String(referenceInspectionMeta.inspection_label||"").trim()
+  }:null;
+  const normalizedCurrentMeta={
+    oae_id:String(inspection?.oae_id||"").trim(),
+    element_id:String(inspection?.element_id||"").trim(),
+    source_id:String(inspection?.source_id||"").trim()
+  };
+  const referenceCompatibility=referenceInspectionId&&normalizedReferenceMeta?{
+    linked:true,
+    same_oae:normalizedReferenceMeta.oae_id!==""&&normalizedCurrentMeta.oae_id===normalizedReferenceMeta.oae_id,
+    same_element:normalizedReferenceMeta.element_id!==""&&normalizedCurrentMeta.element_id===normalizedReferenceMeta.element_id,
+    same_source:normalizedReferenceMeta.source_id!==""&&normalizedCurrentMeta.source_id===normalizedReferenceMeta.source_id,
+    reference_oae_id:normalizedReferenceMeta.oae_id,
+    reference_element_id:normalizedReferenceMeta.element_id,
+    reference_source_id:normalizedReferenceMeta.source_id
+  }:null;
   const record={
     id,
     created_at,
@@ -113,6 +134,7 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
     image_blob:file||null,
     reference_file_meta:referenceFile?{name:referenceFile.name,type:referenceFile.type,size:referenceFile.size,lastModified:referenceFile.lastModified}: {},
     reference_inspection_id:referenceInspectionId||null,
+    reference_inspection_meta:normalizedReferenceMeta,
     reference_image_blob:referenceFile&&!referenceInspectionId?referenceFile:null,
     result,
     summary:{
@@ -129,6 +151,7 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
       reference_storage:referenceInspectionId?"linked_inspection":referenceFile?"embedded_blob":null,
       temporal_comparison:cdmTemporal?.enabled===true,
       reference_inspection_id:referenceInspectionId||null,
+      reference_compatibility:referenceCompatibility,
       temporal_alignment:cdmTemporal?.enabled?{
         method:cdmTemporal.alignment_method||temporalAlignment?.method_applied||"resize",
         accepted:!!temporalAlignment?.accepted,
@@ -216,6 +239,7 @@ export async function deleteInspection(id){
       const materialized=target.image_blob||row.reference_image_blob||null;
       row.reference_image_blob=materialized;
       row.reference_file_meta=row.reference_file_meta&&Object.keys(row.reference_file_meta).length?row.reference_file_meta:(target.file_meta||{});
+      row.reference_inspection_meta=row.reference_inspection_meta||target.inspection||null;
       row.reference_inspection_id=null;
       row.updated_at=new Date().toISOString();
       row.summary={

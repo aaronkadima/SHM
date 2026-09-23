@@ -284,7 +284,7 @@ export function EnginesView({engines,visibleEng,engineQuery,setEngineQuery,engin
   </section>
 }
 
-export function AlertsView({res,history,historyBusy,historyErr,onOpenHistory,onDeleteHistory,onClearHistory,onNavigate}){
+export function AlertsView({res,history,historyBusy,historyErr,onOpenHistory,onUseAsReference,onDeleteHistory,onClearHistory,onNavigate}){
   const detections=detectionsFrom(res);
   const errors=(res?.results||[]).filter(r=>r.status!=="ok");
   const campaigns=useMemo(()=>campaignSummaries(history),[history]);
@@ -314,7 +314,7 @@ export function AlertsView({res,history,historyBusy,historyErr,onOpenHistory,onD
           <div className="campaignOverview">
             <div className="campaignTrendBlock"><span>GDE REGISTRADO</span><CampaignSparkline points={conditionSeries}/><small>{conditionSeries.length>=2?formatSigned(conditionSeries.at(-1).GDE-conditionSeries[0].GDE,2)+" desde o primeiro snapshot":"mínimo de 2 snapshots classificados"}</small></div>
             <div className="campaignAuditStats"><span><b>{conditionSeries.length}</b><small>snapshots classificados</small></span><span><b>{temporalEvents.length}</b><small>deltas temporais validados</small></span><span><b>{group.items.length-conditionSeries.length}</b><small>sem snapshot de condição</small></span></div>
-            <div className="campaignExportActions"><button onClick={e=>{e.preventDefault();exportCampaignCsv(group)}}><FileSpreadsheet size={12}/> CSV campanha</button><button onClick={e=>{e.preventDefault();exportCampaignJson(group)}}><FileJson size={12}/> JSON campanha</button></div>
+            <div className="campaignExportActions"><button onClick={e=>{e.preventDefault();onUseAsReference?.(group.latest.id)}}><Activity size={12}/> Nova t1 · último como t0</button><button onClick={e=>{e.preventDefault();exportCampaignCsv(group)}}><FileSpreadsheet size={12}/> CSV campanha</button><button onClick={e=>{e.preventDefault();exportCampaignJson(group)}}><FileJson size={12}/> JSON campanha</button></div>
           </div>
           {temporalEvents.length>0&&<div className="campaignTemporalEvents"><div className="campaignTemporalHead"><b>DELTAS TEMPORAIS VALIDADOS</b><span>Par a par; sem acumulação automática</span></div>{temporalEvents.slice().reverse().map(event=><div className="campaignTemporalRow" key={event.id}><span><b>{formatCampaignDate(event.created_at)}</b><small>{event.inspection_label||event.source_id||"inspeção"}</small></span><span><b>{event.pathology_label}</b><small>{event.quality?.status||"validada"}</small></span><span><b>{event.net_area_change_vs_t0_pct==null?"—":formatSigned(event.net_area_change_vs_t0_pct)+"%"}</b><small>Δ/t0</small></span><span><b>{event.net_area_change_mm2!=null?formatSigned(event.net_area_change_mm2,1)+" mm²":formatSigned(event.net_area_change_px2,0)+" px²"}</b><small>Δ líquido</small></span></div>)}</div>}
           <div className="campaignTimeline">{group.items.slice().reverse().map(item=>{

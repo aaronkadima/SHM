@@ -30,18 +30,34 @@ const FAMILY_LABELS={
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const oddKernel=k=>{k=Math.max(3,Math.round(k));return k%2?k:k+1};
-function histPercentile(src,p,mask=null){
-  const hist=new Uint32Array(256);let count=0;
-  for(let i=0;i<src.length;i++){if(mask&&!mask[i])continue;hist[clamp(Math.round(src[i]),0,255)]++;count++}
+function swap(a,i,j){const v=a[i];a[i]=a[j];a[j]=v}
+function quickselect(a,k,left=0,right=a.length-1){
+  while(left<right){
+    let pivotIndex=(left+right)>>1,pivot=a[pivotIndex];swap(a,pivotIndex,right);
+    let store=left;
+    for(let i=left;i<right;i++)if(a[i]<pivot){swap(a,store,i);store++}
+    swap(a,right,store);
+    if(k===store)return a[k];
+    if(k<store)right=store-1;else left=store+1;
+  }
+  return a[k];
+}
+function percentileFloat(src,p,mask=null){
+  let count=0;
+  if(mask){for(let i=0;i<src.length;i++)if(mask[i])count++}else count=src.length;
   if(!count)return 0;
-  const target=Math.max(0,Math.min(count-1,Math.floor((p/100)*(count-1))));
-  let acc=0;for(let i=0;i<256;i++){acc+=hist[i];if(acc>target)return i}
-  return 255;
+  const values=new Float32Array(count);let j=0;
+  for(let i=0;i<src.length;i++)if(!mask||mask[i])values[j++]=src[i];
+  const q=clamp(Number(p),0,100)/100*(count-1),lo=Math.floor(q),hi=Math.ceil(q);
+  const vlo=quickselect(values,lo);
+  if(hi===lo)return vlo;
+  const vhi=quickselect(values,hi,lo+1,count-1);
+  return vlo+(vhi-vlo)*(q-lo);
 }
 function grayAndRgb(imageData){
   const n=imageData.width*imageData.height,gray=new Float32Array(n),rgb=imageData.data;
   for(let i=0,j=0;i<n;i++,j+=4)gray[i]=.299*rgb[j]+.587*rgb[j+1]+.114*rgb[j+2];
-  const p2=histPercentile(gray,2),p98=histPercentile(gray,98),out=new Float32Array(n);
+  const p2=percentileFloat(gray,2),p98=percentileFloat(gray,98),out=new Float32Array(n);
   if(p98<=p2+1e-6){out.set(gray);return {gray:out,rgb}}
   const factor=255/(p98-p2);for(let i=0;i<n;i++)out[i]=clamp((gray[i]-p2)*factor,0,255);
   return {gray:out,rgb};
@@ -122,13 +138,13 @@ function detectMasks(imageData,cfg){
   for(let i=0;i<n;i++)crackRaw[i]=crackResponse[i]>cfg.threshold?1:0;
   masks.cracks=cleanup(crackRaw,w,h,3);
 
-  const p18=histPercentile(gray,18),p45=histPercentile(gray,45);
+  const p18=percentileFloat(gray,18),p45=percentileFloat(gray,45);
   const darkCut=Math.min(120,p18+Math.max(8,cfg.threshold*.25));
   const texture=blackhat(gray,w,h,Math.max(5,Math.min(k,21))),spRaw=new Uint8Array(n);
   for(let i=0;i<n;i++)spRaw[i]=(gray[i]<darkCut||(texture[i]>Math.max(10,cfg.threshold*.55)&&gray[i]<p45))?1:0;
   const spalling=cleanup(spRaw,w,h,5);masks.spalling_dark=spalling;
 
-  const corrosionRaw=new Uint8Array(n),effRaw=new Uint8Array(n),p72=histPercentile(gray,72);
+  const corrosionRaw=new Uint8Array(n),effRaw=new Uint8Array(n),p72=percentileFloat(gray,72);
   for(let i=0,j=0;i<n;i++,j+=4){
     const r=rgb[j],g=rgb[j+1],b=rgb[j+2],hv=hue[i],sv=sat[i],vv=val[i];
     corrosionRaw[i]=(r>g+12&&r>b+18&&sv>.22&&vv>.16&&(hv<55||hv>330))?1:0;
@@ -137,7 +153,7 @@ function detectMasks(imageData,cfg){
   masks.corrosion_rust=cleanup(corrosionRaw,w,h,5);
   masks.efflorescence_white=cleanup(effRaw,w,h,5);
 
-  const localThresh=spalling.some(v=>v)?histPercentile(gray,40,spalling):histPercentile(gray,12);
+  const localThresh=spalling.some(v=>v)?percentileFloat(gray,40,spalling):percentileFloat(gray,12);
   const rebarRaw=new Uint8Array(n);
   for(let i=0;i<n;i++)rebarRaw[i]=(spalling[i]&&(gray[i]<localThresh||(sat[i]<.20&&val[i]<.55)))?1:0;
   masks.exposed_rebar=cleanup(rebarRaw,w,h,3);
@@ -309,3 +325,6 @@ export async function runCdmBrowser(file,options={},previousFile=null){
   };
   return {image_width:w,image_height:h,results:[engine],consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,metadata:{analysis_id:"browser-cdm-"+crypto.randomUUID(),api_version:"browser-1.2",generated_at:new Date().toISOString(),mode:"individual",engine_ids:["cdm_1"],implementation:"cdm-2.8.5-browser-parity"}};
 }
+
+// Test hooks: pure functions used by CI parity checks; not part of the UI API.
+export const __cdmTest={detectMasks,recordsFromMask,temporalCompare,summary,percentileFloat,blackhat,cleanup,ORDER,LABELS};

@@ -231,3 +231,43 @@ so reopened campaigns expose the displacement without parsing an export file.
 CLI usage can select the same behavior with
 `--alignment_method translation_auto` (default) or
 `--alignment_method resize`.
+
+
+## Temporal quality gate
+
+Temporal growth/reduction is now guarded by a deterministic acquisition-quality
+assessment (\`cdm_temporal_quality_v1\`). The gate does not decide whether damage
+exists; it decides whether the t0/t1 pair is sufficiently compatible for change
+quantification.
+
+The same gate runs in the Python/Inkscape and browser implementations. It checks:
+
+- useful overlap after the applied temporal translation;
+- mean-luminance difference between t1 and aligned t0;
+- relative edge-energy/sharpness between the two acquisitions;
+- clipped dark/bright pixel fraction;
+- registration failure reasons such as \`search_boundary_hit\`.
+
+Current deterministic limits are:
+
+- overlap: fail below 0.85; warning below 0.92;
+- normalized mean-luminance difference: fail above 0.22; warning above 0.12;
+- sharpness ratio \`min(t0,t1)/max(t0,t1)\`: fail below 0.45; warning below 0.65;
+- clipped fraction: fail above 0.35; warning above 0.20.
+
+A hard issue sets
+\`validated_for_change_quantification=false\`. Temporal masks, records and areas
+remain available for inspection/audit, but the UI labels them as not validated
+instead of presenting them as confirmed structural change. Warnings preserve the
+validation flag but are shown explicitly.
+
+The quality gate is persisted in local history and embedded in browser-generated
+SVG, CSV, DXF, BIM JSON, IFC and HTML outputs. Native CDM CSV/BIM metadata and
+the Inkscape result text also include the temporal-quality state.
+
+The CI parity fixture now includes:
+- a normal t0/t1 pair that passes;
+- excessive illumination change that must fail with \`illumination_mismatch\`;
+- strong relative blur that must fail with \`sharpness_mismatch\`;
+- an out-of-range camera translation that must fail through
+  \`registration_unreliable\`.

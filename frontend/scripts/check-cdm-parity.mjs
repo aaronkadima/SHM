@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import process from "node:process";
 import {__cdmTest} from "../src/cdmBrowser.js";
+import {buildCdmSvg,buildCdmCsv,buildCdmDxf,buildCdmBimJson,buildCdmIfc} from "../src/cdmExports.js";
 
 const fixturePath=process.argv[2];
 if(!fixturePath)throw new Error("usage: node scripts/check-cdm-parity.mjs FIXTURE.json");
@@ -114,6 +115,40 @@ check(staged.some(p=>p.stage==="segment_t0"),"missing segment_t0 progress stage"
 check(staged.some(p=>p.stage==="temporal_compare"),"missing temporal_compare progress stage");
 check(staged.some(p=>p.stage==="condition_rating"),"missing condition_rating progress stage");
 console.log("progress",staged.map(p=>p.completed+":"+p.stage).join(" -> "));
+
+const currentLayers=__cdmTest.ORDER.map(id=>({id,name:__cdmTest.LABELS[id],color:"#666666",count:records.filter(r=>r.class===id).length}));
+const temporalLayers=[];
+for(const changeClass of ["growth","reduction"]){
+  for(const sourceClass of __cdmTest.ORDER){
+    const count=temporal.records.filter(r=>r.class===changeClass&&r.source_class===sourceClass).length;
+    if(count)temporalLayers.push({id:changeClass+":"+sourceClass,change_class:changeClass,source_class:sourceClass,name:changeClass+" "+sourceClass,color:"#777777",count});
+  }
+}
+const exportResult={
+  width:w,height:h,
+  metrics:{
+    records,
+    layers:currentLayers,
+    temporal:{enabled:true,alignment_method:"resize",stats:temporal.stats,records:temporal.records,layers:temporalLayers},
+    mm_per_px:cfg.mmPerPx,
+    runtime:"test-runtime",
+    implementation:"CDM parity test",
+    performance_ms:{decode:1,core:2,render:3,total:6},
+    summary
+  }
+};
+const csv=buildCdmCsv(exportResult);
+const svg=buildCdmSvg(exportResult);
+const dxf=buildCdmDxf(exportResult);
+const bim=buildCdmBimJson(exportResult,{oae_id:"OAE-TEST",element_id:"E-1",source_id:"CAM-1"});
+const ifc=buildCdmIfc(exportResult,{oae_id:"OAE-TEST",element_id:"E-1"});
+check(csv.includes('"source_class"'),"CSV must expose source_class");
+check(svg.includes('data-source-class='),"SVG must expose data-source-class");
+check(svg.includes('layer-growth:cracks')||!expected.temporal_by_source?.cracks?.growth,"SVG must preserve growth-by-cracks layer");
+check(dxf.includes("SHM_TEMPORAL_GROWTH_CRACKS")||!expected.temporal_by_source?.cracks?.growth,"DXF must split temporal layer by source pathology");
+check(bim.features.some(f=>f.damage_class==="growth"&&f.source_class),"BIM JSON temporal feature must expose source_class");
+check(ifc.includes("SourcePathology"),"IFC property set must expose SourcePathology");
+console.log("exports traceability: SVG/CSV/DXF/BIM/IFC checked");
 
 if(failures.length){
   console.error("\nCDM parity failures:");

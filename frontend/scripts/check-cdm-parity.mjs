@@ -93,6 +93,21 @@ for(const cls of ["growth","reduction"]){
   check(count===expected.temporal_counts[cls],`${cls} temporal record count ${count} != ${expected.temporal_counts[cls]}`);
 }
 
+const staged=[];
+const core=__cdmTest.computeCdmCore(imageData(fixture.t1_rgb),imageData(fixture.t0_rgb),cfg,p=>staged.push(p));
+check(core.records.length===records.length,`core record count ${core.records.length} != ${records.length}`);
+check(core.summary.total_objects===expected.summary.total_objects,"core summary total mismatch");
+check(core.temporal.enabled===true,"core temporal comparison should be enabled");
+check(staged.length>=8,`expected staged progress events, got ${staged.length}`);
+for(let i=1;i<staged.length;i++)check(staged[i].completed>=staged[i-1].completed,`progress regressed at event ${i}`);
+check(staged.at(-1)?.completed===96,`core progress should finish at 96, got ${staged.at(-1)?.completed}`);
+check(staged.some(p=>p.stage==="segment_t1"),"missing segment_t1 progress stage");
+check(staged.some(p=>p.stage==="vectorize_t1"),"missing vectorize_t1 progress stage");
+check(staged.some(p=>p.stage==="segment_t0"),"missing segment_t0 progress stage");
+check(staged.some(p=>p.stage==="temporal_compare"),"missing temporal_compare progress stage");
+check(staged.some(p=>p.stage==="condition_rating"),"missing condition_rating progress stage");
+console.log("progress",staged.map(p=>p.completed+":"+p.stage).join(" -> "));
+
 if(failures.length){
   console.error("\nCDM parity failures:");
   for(const f of failures)console.error(" - "+f);

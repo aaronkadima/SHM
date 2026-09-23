@@ -27,6 +27,12 @@ function txDone(tx){
     tx.onabort=()=>reject(tx.error||new Error("Transação local cancelada."));
   });
 }
+function requestResult(req,message="Falha ao acessar o histórico local."){
+  return new Promise((resolve,reject)=>{
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error||new Error(message));
+  });
+}
 function totalDetections(result){
   return (result?.results||[]).reduce((n,r)=>n+(r.detections?.length||0),0);
 }
@@ -46,15 +52,19 @@ async function prune(){
   const db=await openDb();
   const tx=db.transaction(STORE,"readwrite");
   const store=tx.objectStore(STORE);
-  const idx=store.index("created_at");
-  let seen=0;
-  idx.openCursor(null,"prev").onsuccess=e=>{
-    const cursor=e.target.result;
-    if(!cursor)return;
-    seen++;
-    if(seen>MAX_RECORDS)store.delete(cursor.primaryKey);
-    cursor.continue();
-  };
+  const records=await requestResult(store.getAll(),"Falha ao preparar limpeza do histórico.");
+  records.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  const byId=new Map(records.map(row=>[row.id,row]));
+  const keep=new Set(records.slice(0,MAX_RECORDS).map(row=>row.id));
+  let expanded=true;
+  while(expanded){
+    expanded=false;
+    for(const id of [...keep]){
+      const ref=byId.get(id)?.reference_inspection_id;
+      if(ref&&byId.has(ref)&&!keep.has(ref)){keep.add(ref);expanded=true}
+    }
+  }
+  for(const row of records)if(!keep.has(row.id))store.delete(row.id);
   await txDone(tx);
   db.close();
 }
@@ -102,7 +112,8 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
     file_meta:file?{name:file.name,type:file.type,size:file.size,lastModified:file.lastModified}: {},
     image_blob:file||null,
     reference_file_meta:referenceFile?{name:referenceFile.name,type:referenceFile.type,size:referenceFile.size,lastModified:referenceFile.lastModified}: {},
-    reference_image_blob:referenceFile||null,
+    reference_inspection_id:referenceInspectionId||null,
+    reference_image_blob:referenceFile&&!referenceInspectionId?referenceFile:null,
     result,
     summary:{
       mode:result.metadata?.mode||"unknown",
@@ -114,7 +125,8 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
       image_width:result.image_width||null,
       image_height:result.image_height||null,
       consensus_classes:Object.keys(result.consensus||{}).length,
-      has_reference_image:!!referenceFile,
+      has_reference_image:!!referenceFile||!!referenceInspectionId,
+      reference_storage:referenceInspectionId?"linked_inspection":referenceFile?"embedded_blob":null,
       temporal_comparison:cdmTemporal?.enabled===true,
       reference_inspection_id:referenceInspectionId||null,
       temporal_alignment:cdmTemporal?.enabled?{
@@ -195,7 +207,27 @@ export async function getInspection(id){
 export async function deleteInspection(id){
   const db=await openDb();
   const tx=db.transaction(STORE,"readwrite");
-  tx.objectStore(STORE).delete(id);
+  const store=tx.objectStore(STORE);
+  const target=await requestResult(store.get(id),"Falha ao localizar a inspeção a excluir.");
+  if(target){
+    const records=await requestResult(store.getAll(),"Falha ao verificar dependências temporais.");
+    for(const row of records){
+      if(row.id===id||row.reference_inspection_id!==id)continue;
+      const materialized=target.image_blob||row.reference_image_blob||null;
+      row.reference_image_blob=materialized;
+      row.reference_file_meta=row.reference_file_meta&&Object.keys(row.reference_file_meta).length?row.reference_file_meta:(target.file_meta||{});
+      row.reference_inspection_id=null;
+      row.updated_at=new Date().toISOString();
+      row.summary={
+        ...(row.summary||{}),
+        reference_inspection_id:null,
+        reference_storage:materialized?"embedded_blob":"missing_reference",
+        has_reference_image:!!materialized
+      };
+      store.put(row);
+    }
+  }
+  store.delete(id);
   await txDone(tx);
   db.close();
 }

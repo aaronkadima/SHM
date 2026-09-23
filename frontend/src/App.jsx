@@ -6,7 +6,7 @@ import AnalysisSettings from"./AnalysisSettings.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
 import{buildCdmSvg,buildCdmCsv,buildCdmCoco,buildCdmDxf,buildCdmBimJson,buildCdmIfc,buildCdmHtml}from"./cdmExports.js";
 import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
-import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,clearInspections,requestPersistentStorage}from"./historyStore.js";
+import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,clearInspections,requestPersistentStorage,getStorageStatus}from"./historyStore.js";
 
 const DEFAULT_COMPARATOR="https://shm-api-production-01f8.up.railway.app";
 const DEFAULT_INDIVIDUAL="";
@@ -106,6 +106,7 @@ export default function App(){
   const[history,setHistory]=useState([]);
   const[historyBusy,setHistoryBusy]=useState(false);
   const[historyErr,setHistoryErr]=useState("");
+  const[storageStatus,setStorageStatus]=useState(null);
   const activeRun=useRef(null),runSeq=useRef(0);
   const[activeView,setActiveView]=useState(()=>{
     const v=window.location.hash.replace(/^#\//,"");
@@ -134,7 +135,10 @@ export default function App(){
   function updateInspectionMeta(key,value){setInspectionMeta(m=>({...m,[key]:value}))}
   async function refreshHistory(){
     setHistoryBusy(true);setHistoryErr("");
-    try{setHistory(await listInspectionSummaries(75))}
+    try{
+      const [items,storage]=await Promise.all([listInspectionSummaries(75),getStorageStatus()]);
+      setHistory(items);setStorageStatus(storage);
+    }
     catch(e){setHistoryErr("Histórico local indisponível: "+String(e))}
     finally{setHistoryBusy(false)}
   }
@@ -414,7 +418,7 @@ export default function App(){
     <AnalysisWorkspace file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
     {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
-    {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 
+    {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 
     {activeView==="reports"&&<ReportsView res={res} inspection={inspectionMeta} onJson={()=>res&&exportJson(res)} onCsv={()=>res&&exportCsv(res)} onMap={()=>res&&downloadConsensus(res)} onNavigate={navigate}/>}
     {activeView==="settings"&&<AnalysisSettings engines={engines} selected={selected} toggle={toggle} onBack={()=>navigate("analysis")} individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} inspectionMeta={inspectionMeta} updateInspectionMeta={updateInspectionMeta} cdmOptions={cdmOptions} setCdmOptions={setCdmOptions} error={err}/>}
     </main>

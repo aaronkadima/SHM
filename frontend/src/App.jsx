@@ -1,8 +1,5 @@
 import React,{useMemo,useState,useEffect}from"react";
-import{
-  Upload,Play,CheckCircle2,AlertTriangle,Clock3,Layers3,Server,Save,Wifi,WifiOff,
-  FlaskConical,ExternalLink,HardDrive,Download,FileJson,FileSpreadsheet,MonitorCog,CloudCog
-}from"lucide-react";
+import{Layers3}from"lucide-react";
 import catalog from"./engines.json";
 import AnalysisWorkspace from"./AnalysisWorkspace.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
@@ -11,7 +8,6 @@ import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,cle
 
 const DEFAULT_COMPARATOR="https://shm-api-production-01f8.up.railway.app";
 const DEFAULT_INDIVIDUAL="http://127.0.0.1:8001";
-const txt={ok:"Concluído",missing_dependency:"Dependência ausente",missing_weights:"Pesos ausentes",error:"Erro",skipped:"Registrado"};
 const EMPTY_INSPECTION={oae_id:"",element_id:"",source_id:"",inspection_label:""};
 
 function stored(key,fallback){
@@ -52,21 +48,6 @@ function exportCsv(res){
   downloadBlob("shm-comparison.csv","text/csv;charset=utf-8","\uFEFF"+rows.map(x=>x.map(csvCell).join(",")).join("\n"));
 }
 function downloadConsensus(res){if(res.consensus_overlay_png_base64)saveBase64("shm-consensus.png",res.consensus_overlay_png_base64)}
-
-function Card({r}){
-  return <article className="card">
-    <div className="head">
-      <div><h3>{r.name}</h3><span className={"badge "+r.status}>{txt[r.status]||r.status}</span></div>
-      <div className="cardTools">
-        <span className="lat"><Clock3 size={14}/>{Number(r.latency_ms||0).toFixed(0)} ms</span>
-        {r.overlay_png_base64&&<button title="Baixar sobreposição" onClick={()=>saveBase64(`shm-${r.engine_id}.png`,r.overlay_png_base64)}><Download size={14}/></button>}
-      </div>
-    </div>
-    {r.overlay_png_base64?<img src={"data:image/png;base64,"+r.overlay_png_base64}/>:<div className="empty">{r.message||"Sem visualização"}</div>}
-    <div className="metrics"><b>{r.detections?.length||0}</b> achados {Object.entries(r.metrics||{}).slice(0,6).map(([k,v])=><span key={k}>{k}: {String(v)}</span>)}</div>
-    {r.message&&<p className="msg">{r.message}</p>}
-  </article>
-}
 
 export default function App(){
   const engines=catalog.engines||[];
@@ -297,7 +278,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace file={file} prev={prev} res={res} busy={busy} progress={progress} selected={selected} engines={engines} onFile={pick} onRun={run} onCancel={jobId?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)}/>
+    <AnalysisWorkspace file={file} prev={prev} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onRun={run} onCancel={jobId?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)}/>
     </>}
     {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} onOpenHistory={openHistory} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>}

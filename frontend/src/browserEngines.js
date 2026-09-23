@@ -122,8 +122,8 @@ async function runOpenCVBaseline(file){
 }
 
 export function browserEngineSupported(engineId){return engineId==="opencv_crack"||engineId==="cdm_1"}
-export async function runBrowserEngine(engineId,file,options={},previousFile=null){
+export async function runBrowserEngine(engineId,file,options={},previousFile=null,control={}){
   if(engineId==="opencv_crack")return runOpenCVBaseline(file);
-  if(engineId==="cdm_1")return runCdmBrowser(file,options,previousFile);
+  if(engineId==="cdm_1")return runCdmBrowser(file,options,previousFile,control);
   throw new Error("Motor ainda não possui artefato browser publicado: "+engineId);
 }

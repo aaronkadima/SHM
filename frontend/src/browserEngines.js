@@ -1,3 +1,4 @@
+import{runCdmBrowser}from"./cdmBrowser.js";
 function maxFilterHorizontal(src,w,h,r){
   const out=new Uint8Array(src.length);
   for(let y=0;y<h;y++){const row=y*w;for(let x=0;x<w;x++){let m=0;const a=Math.max(0,x-r),b=Math.min(w-1,x+r);for(let xx=a;xx<=b;xx++){const v=src[row+xx];if(v>m)m=v}out[row+x]=m}}
@@ -120,8 +121,9 @@ async function runOpenCVBaseline(file){
   };
 }
 
-export function browserEngineSupported(engineId){return engineId==="opencv_crack"}
-export async function runBrowserEngine(engineId,file){
+export function browserEngineSupported(engineId){return engineId==="opencv_crack"||engineId==="cdm_1"}
+export async function runBrowserEngine(engineId,file,options={},previousFile=null){
   if(engineId==="opencv_crack")return runOpenCVBaseline(file);
+  if(engineId==="cdm_1")return runCdmBrowser(file,options,previousFile);
   throw new Error("Motor ainda não possui artefato browser publicado: "+engineId);
 }

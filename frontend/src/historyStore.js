@@ -38,6 +38,7 @@ function toSummary(record){
     inspection:record.inspection||{},
     file_meta:record.file_meta||{},
     reference_file_meta:record.reference_file_meta||{},
+    reference_inspection_id:record.reference_inspection_id||null,
     summary:record.summary||{}
   };
 }
@@ -63,7 +64,7 @@ export async function requestPersistentStorage(){
   }catch{}
   return false;
 }
-export async function saveInspection({result,file,referenceFile,inspection}){
+export async function saveInspection({result,file,referenceFile,referenceInspectionId=null,inspection}){
   if(!result)throw new Error("Resultado ausente.");
   const now=new Date().toISOString();
   const id=String(result.metadata?.analysis_id||("inspection-"+crypto.randomUUID()));
@@ -115,6 +116,7 @@ export async function saveInspection({result,file,referenceFile,inspection}){
       consensus_classes:Object.keys(result.consensus||{}).length,
       has_reference_image:!!referenceFile,
       temporal_comparison:cdmTemporal?.enabled===true,
+      reference_inspection_id:referenceInspectionId||null,
       temporal_alignment:cdmTemporal?.enabled?{
         method:cdmTemporal.alignment_method||temporalAlignment?.method_applied||"resize",
         accepted:!!temporalAlignment?.accepted,

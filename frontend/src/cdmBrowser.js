@@ -147,6 +147,47 @@ function registerPrevious(current,previous,method="translation_auto"){
   return {image:applyTranslationRegistration(current,previous,metrics.dx_px,metrics.dy_px),metrics};
 }
 
+function temporalQualityAssessment(current,alignedPrevious,alignment={}){
+  if(current.width!==alignedPrevious.width||current.height!==alignedPrevious.height)throw new Error("Temporal quality requires equal image dimensions.");
+  const w=current.width,h=current.height,step=Math.max(1,Math.ceil(Math.max(w,h)/320));
+  const sampleGray=image=>{
+    const sw=Math.ceil(w/step),sh=Math.ceil(h/step),gray=new Float32Array(sw*sh),rgba=image.data;
+    for(let sy=0;sy<sh;sy++){const y=Math.min(h-1,sy*step);for(let sx=0;sx<sw;sx++){const x=Math.min(w-1,sx*step),i=(y*w+x)*4;gray[sy*sw+sx]=.299*rgba[i]+.587*rgba[i+1]+.114*rgba[i+2]}}
+    return {gray,width:sw,height:sh};
+  };
+  const cur=sampleGray(current),prev=sampleGray(alignedPrevious);
+  const mean=a=>{let s=0;for(let i=0;i<a.length;i++)s+=a[i];return a.length?s/a.length:0};
+  const meanCur=mean(cur.gray),meanPrev=mean(prev.gray),illuminationDelta=Math.abs(meanCur-meanPrev)/255;
+  const edgeEnergy=s=>{
+    if(s.width<3||s.height<3)return 0;
+    let sum=0,count=0;
+    for(let y=1;y<s.height-1;y++)for(let x=1;x<s.width-1;x++){
+      const i=y*s.width+x;
+      sum+=Math.abs(s.gray[i+1]-s.gray[i-1])+Math.abs(s.gray[i+s.width]-s.gray[i-s.width]);count++;
+    }
+    return count?sum/count:0;
+  };
+  const sharpCur=edgeEnergy(cur),sharpPrev=edgeEnergy(prev),sharpMax=Math.max(sharpCur,sharpPrev);
+  const sharpnessRatio=sharpMax>1e-6?Math.min(sharpCur,sharpPrev)/sharpMax:1;
+  const clippedFraction=s=>{let n=0;for(let i=0;i<s.gray.length;i++)if(s.gray[i]<=5||s.gray[i]>=250)n++;return s.gray.length?n/s.gray.length:0};
+  const clippedCur=clippedFraction(cur),clippedPrev=clippedFraction(prev),clippedMax=Math.max(clippedCur,clippedPrev);
+  const dx=Math.abs(Number(alignment.dx_px||0)),dy=Math.abs(Number(alignment.dy_px||0));
+  const overlapRatio=Math.max(0,Math.max(0,w-dx)*Math.max(0,h-dy)/Math.max(1,w*h));
+  const issues=[],warnings=[],reason=String(alignment.reason||"");
+  if(["search_boundary_hit","registration_grid_mismatch","image_too_small"].includes(reason))issues.push("registration_unreliable");
+  if(overlapRatio<.85)issues.push("insufficient_overlap");else if(overlapRatio<.92)warnings.push("reduced_overlap");
+  if(illuminationDelta>.22)issues.push("illumination_mismatch");else if(illuminationDelta>.12)warnings.push("illumination_difference");
+  if(sharpnessRatio<.45)issues.push("sharpness_mismatch");else if(sharpnessRatio<.65)warnings.push("sharpness_difference");
+  if(clippedMax>.35)issues.push("exposure_clipping");else if(clippedMax>.20)warnings.push("exposure_warning");
+  if(sharpMax<3)warnings.push("low_texture");
+  const status=issues.length?"fail":warnings.length?"warning":"pass";
+  return {
+    schema:"cdm_temporal_quality_v1",status,validated_for_change_quantification:issues.length===0,issues,warnings,
+    metrics:{overlap_ratio:overlapRatio,illumination_delta:illuminationDelta,mean_luminance_t1:meanCur,mean_luminance_t0_aligned:meanPrev,sharpness_t1:sharpCur,sharpness_t0_aligned:sharpPrev,sharpness_ratio:sharpnessRatio,clipped_fraction_t1:clippedCur,clipped_fraction_t0_aligned:clippedPrev,sample_step:step},
+    thresholds:{min_overlap_fail:.85,min_overlap_warning:.92,max_illumination_delta_fail:.22,max_illumination_delta_warning:.12,min_sharpness_ratio_fail:.45,min_sharpness_ratio_warning:.65,max_clipped_fraction_fail:.35,max_clipped_fraction_warning:.20}
+  };
+}
+
 function hsvArrays(rgba,n){
   const hue=new Float32Array(n),sat=new Float32Array(n),val=new Float32Array(n);
   for(let i=0,j=0;i<n;i++,j+=4){
@@ -394,11 +435,12 @@ function computeCdmCore(current,previous,cfg,onProgress=null){
   if(previous){
     emitProgress(onProgress,58,"CDM-1 · alinhando t0→t1","temporal_alignment");
     const registration=registerPrevious(current,previous,cfg.alignmentMethod||"translation_auto");
+    const quality=temporalQualityAssessment(current,registration.image,registration.metrics);
     emitProgress(onProgress,65,"CDM-1 · segmentando t0 alinhado","segment_t0");
     const prevMasks=detectMasks(registration.image,cfg);
     emitProgress(onProgress,78,"CDM-1 · comparando t0→t1","temporal_compare");
     const change=temporalCompare(masks,prevMasks,w,h,cfg);
-    temporal={enabled:true,alignment_method:registration.metrics.method_applied,alignment:registration.metrics,aligned_previous:registration.image,stats:change.stats,records:change.records};
+    temporal={enabled:true,alignment_method:registration.metrics.method_applied,alignment:registration.metrics,quality,aligned_previous:registration.image,stats:change.stats,records:change.records};
     emitProgress(onProgress,88,"CDM-1 · mudança temporal","temporal_vectors");
   }else emitProgress(onProgress,88,"CDM-1 · consolidando achados","consolidate");
   emitProgress(onProgress,92,"CDM-1 · classificação preliminar","condition_rating");
@@ -545,4 +587,4 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
 }
 
 // Test hooks: pure functions used by CI parity checks; not part of the UI API.
-export const __cdmTest={detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,registerPrevious,estimateTranslationRegistration,applyTranslationRegistration,percentileFloat,blackhat,cleanup,ORDER,LABELS};
+export const __cdmTest={detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,registerPrevious,estimateTranslationRegistration,applyTranslationRegistration,temporalQualityAssessment,percentileFloat,blackhat,cleanup,ORDER,LABELS};

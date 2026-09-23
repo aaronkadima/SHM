@@ -238,13 +238,20 @@ function campaignCsvCell(value){
   return '"'+text.replaceAll('"','""')+'"';
 }
 function exportCampaignCsv(group){
-  const rows=[[
+  const header=[
     "record_type","inspection_id","date","oae_id","element_id","inspection_label","source_id",
-    "reference_inspection_id","reference_origin_inspection_id","reference_storage","reference_source_id","same_oae","same_element","same_source","chain_status","expected_previous_id","pathology","metric","value","unit","quality_status","validated","notes"
-  ]];
+    "reference_inspection_id","reference_origin_inspection_id","reference_storage","reference_source_id",
+    "same_oae","same_element","same_source","chain_status","expected_previous_id",
+    "pathology","metric","value","unit","quality_status","validated","notes"
+  ];
+  const rows=[header];
+  const pushRow=data=>rows.push(header.map(key=>data[key]??""));
   for(const point of campaignConditionSeries(group)){
     for(const [metric,value] of [["NT_img",point.NT],["EC_DNIT_img",point.EC],["GDE_img",point.GDE]]){
-      rows.push(["condition",point.id,point.created_at,group.oae,group.element,point.label,"","","","","","","","","","","",metric,value,"","",true,point.GDE_level||""]);
+      pushRow({
+        record_type:"condition",inspection_id:point.id,date:point.created_at,oae_id:group.oae,element_id:group.element,
+        inspection_label:point.label,metric,value,validated:true,notes:point.GDE_level||""
+      });
     }
   }
   for(const event of campaignTemporalEvents(group)){
@@ -254,7 +261,15 @@ function exportCampaignCsv(group){
       ["net_area_change_vs_t0_pct",event.net_area_change_vs_t0_pct,"%"]
     ];
     for(const [metric,value,unit] of metrics){
-      rows.push(["temporal",event.inspection_id,event.created_at,group.oae,group.element,event.inspection_label,event.source_id,event.reference_inspection_id||"",event.reference_origin_inspection_id||"",event.reference_storage||"",event.reference_inspection_meta?.source_id||"",event.reference_compatibility?.same_oae??"",event.reference_compatibility?.same_element??"",event.reference_compatibility?.same_source??"",event.chain?.status||"",event.chain?.expected_previous_id||"",event.pathology,metric,value,unit,event.quality?.status||"",true,event.pathology_label]);
+      pushRow({
+        record_type:"temporal",inspection_id:event.inspection_id,date:event.created_at,oae_id:group.oae,element_id:group.element,
+        inspection_label:event.inspection_label,source_id:event.source_id,reference_inspection_id:event.reference_inspection_id||"",
+        reference_origin_inspection_id:event.reference_origin_inspection_id||"",reference_storage:event.reference_storage||"",
+        reference_source_id:event.reference_inspection_meta?.source_id||"",same_oae:event.reference_compatibility?.same_oae??"",
+        same_element:event.reference_compatibility?.same_element??"",same_source:event.reference_compatibility?.same_source??"",
+        chain_status:event.chain?.status||"",expected_previous_id:event.chain?.expected_previous_id||"",pathology:event.pathology,
+        metric,value,unit,quality_status:event.quality?.status||"",validated:true,notes:event.pathology_label
+      });
     }
   }
   const body="\uFEFF"+rows.map(row=>row.map(campaignCsvCell).join(";")).join("\n");
@@ -417,7 +432,7 @@ export function AlertsView({res,history,historyBusy,historyErr,storageStatus,onO
           </summary>
           <div className="campaignOverview">
             <div className="campaignTrendBlock"><span>GDE REGISTRADO</span><CampaignSparkline points={conditionSeries}/><small>{conditionSeries.length>=2?formatSigned(conditionSeries.at(-1).GDE-conditionSeries[0].GDE,2)+" desde o primeiro snapshot":"mínimo de 2 snapshots classificados"}</small></div>
-            <div className="campaignAuditStats"><span><b>{conditionSeries.length}</b><small>snapshots classificados</small></span><span><b>{temporalEvents.length}</b><small>deltas temporais validados</small></span><span><b>{group.linkedCount||0}</b><small>pares históricos vinculados</small></span><span className={group.chain?.status==="fail"?"auditBad":group.chain?.status==="warning"?"auditWarn":"auditGood"}><b>{group.chain?.status==="fail"?"REVISAR":group.chain?.status==="warning"?"RESSALVAS":"CONTÍNUA"}</b><small>{group.chain?.hard_issues?group.chain.hard_issues+" ruptura(s)":group.chain?.warnings?group.chain.warnings+" exceção(ões)":"cadeia temporal íntegra"}</small></span></div>
+            <div className="campaignAuditStats"><span><b>{conditionSeries.length}</b><small>snapshots classificados</small></span><span><b>{temporalEvents.length}</b><small>deltas temporais validados</small></span><span><b>{group.linkedCount||0}</b><small>pares históricos vinculados</small></span><span className={group.chain?.status==="fail"?"auditBad":group.chain?.status==="warning"?"auditWarn":"auditGood"}><b>{group.chain?.status==="fail"?"REVISAR":group.chain?.status==="warning"?"RESSALVAS":"CONTÍNUA"}</b><small>{group.identityIssues?group.identityIssues+" identidade(s) incompatível(is)":group.chain?.hard_issues?group.chain.hard_issues+" ruptura(s)":group.identityUnknown?group.identityUnknown+" vínculo(s) legado(s)":group.chain?.warnings?group.chain.warnings+" exceção(ões)":group.sourceChanges?group.sourceChanges+" mudança(s) de fonte":"cadeia temporal íntegra"}</small></span></div>
             <div className="campaignExportActions"><button onClick={e=>{e.preventDefault();onUseAsReference?.(group.latest.id)}}><Activity size={12}/> Nova t1 · último como t0</button><button onClick={e=>{e.preventDefault();exportCampaignCsv(group)}}><FileSpreadsheet size={12}/> CSV campanha</button><button onClick={e=>{e.preventDefault();exportCampaignJson(group)}}><FileJson size={12}/> JSON campanha</button></div>
           </div>
           {group.chain?.edges?.length>0&&<details className={"campaignChainAudit "+(group.chain.status||"")}><summary><b>CADEIA TEMPORAL</b><span>{group.chain.status==="fail"?"ruptura detectada":group.chain.status==="warning"?"continuidade com ressalvas":"continuidade verificada"}</span></summary><div className="campaignChainRows">{group.chain.edges.slice().reverse().map(edge=><div className={"campaignChainRow "+edge.status} key={edge.inspection_id}><span><b>{formatCampaignDate(edge.created_at)}</b><small>{String(edge.inspection_id).slice(0,12)}</small></span><span><b>{CHAIN_STATUS_LABELS[edge.status]||edge.status}</b><small>{edge.temporal?"comparação temporal":"snapshot"}</small></span><span><b>{edge.origin_reference_id?String(edge.origin_reference_id).slice(0,12):"—"}</b><small>t0 de origem</small></span><span><b>{edge.expected_previous_id?String(edge.expected_previous_id).slice(0,12):"—"}</b><small>predecessor esperado</small></span><span className={"chainState "+(edge.status==="missing_origin"||edge.status==="invalid_order"?"bad":edge.status==="continuous"||edge.status==="baseline"||edge.status==="snapshot"?"good":"warn")}>{edge.status==="missing_origin"||edge.status==="invalid_order"?"REVISAR":edge.status==="continuous"||edge.status==="baseline"||edge.status==="snapshot"?"OK":"RESSALVA"}</span></div>)}</div></details>}

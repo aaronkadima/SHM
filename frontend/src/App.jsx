@@ -232,7 +232,7 @@ export default function App(){
     const engineId=selected[0];
     const meta=engines.find(e=>e.id===engineId);
     if(meta?.browser_ready&&browserEngineSupported(engineId)){
-      const result=await runBrowserEngine(engineId,file);
+      const result=await runBrowserEngine(engineId,file,engineId==="cdm_1"?cdmOptions:{},engineId==="cdm_1"?referenceFile:null);
       setRes(result);
       return result;
     }

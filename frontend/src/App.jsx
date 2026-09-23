@@ -57,6 +57,14 @@ function combinedSignal(signal,timeoutMs){
   return signal||timeout||undefined;
 }
 function isAbortError(error){return error?.name==="AbortError"||/cancelad|aborted|abort/i.test(String(error?.message||error||""))}
+function abortableDelay(ms,signal){
+  if(signal?.aborted)return Promise.reject(new DOMException("Execução cancelada.","AbortError"));
+  return new Promise((resolve,reject)=>{
+    const onAbort=()=>{clearTimeout(timer);signal?.removeEventListener("abort",onAbort);reject(new DOMException("Execução cancelada.","AbortError"))};
+    const timer=setTimeout(()=>{signal?.removeEventListener("abort",onAbort);resolve()},ms);
+    signal?.addEventListener("abort",onAbort,{once:true});
+  });
+}
 function exportCdm(result,fileName,format,inspection={}){
   if(result?.engine_id!=="cdm_1")return;
   const payload={...result,width:result.metrics?.processed_width,height:result.metrics?.processed_height};
@@ -283,10 +291,7 @@ export default function App(){
     if(activeRun.current?.id===runId&&!signal.aborted)setJobId(j.job_id);
     let attempts=0,finished=false,finalResult=null;
     while(attempts<1200){
-      await new Promise((resolve,reject)=>{
-        const id=setTimeout(resolve,750);
-        signal.addEventListener("abort",()=>{clearTimeout(id);reject(new DOMException("Comparação cancelada.","AbortError"))},{once:true});
-      });
+      await abortableDelay(750,signal);
       attempts++;
       const poll=await fetch(comparatorApi+"/jobs/"+j.job_id,{signal:combinedSignal(signal,12000)});
       if(!poll.ok)throw new Error(await poll.text());
@@ -373,7 +378,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
+    <AnalysisWorkspace file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
     {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} onOpenHistory={openHistory} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>}

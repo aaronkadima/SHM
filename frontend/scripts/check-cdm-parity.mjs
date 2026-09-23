@@ -86,10 +86,17 @@ const mainRegistration=__cdmTest.registerPrevious(t1Data,t0Data,cfg.alignmentMet
 const t0AlignedMasks=__cdmTest.detectMasks(mainRegistration.image,cfg);
 const temporal=__cdmTest.temporalCompare(t1Masks,t0AlignedMasks,w,h,cfg);
 const expAlignment=expected.temporal_alignment||{};
+const mainQuality=__cdmTest.temporalQualityAssessment(t1Data,mainRegistration.image,mainRegistration.metrics);
+const expQuality=expected.temporal_quality||{};
 console.log("alignment main",JSON.stringify({got:mainRegistration.metrics,expected:expAlignment}));
+console.log("quality main",JSON.stringify({got:mainQuality,expected:expQuality}));
 check(mainRegistration.metrics.method_applied===expAlignment.method_applied,`main alignment method ${mainRegistration.metrics.method_applied} != ${expAlignment.method_applied}`);
 check(mainRegistration.metrics.dx_px===expAlignment.dx_px,`main alignment dx ${mainRegistration.metrics.dx_px} != ${expAlignment.dx_px}`);
 check(mainRegistration.metrics.dy_px===expAlignment.dy_px,`main alignment dy ${mainRegistration.metrics.dy_px} != ${expAlignment.dy_px}`);
+check(mainQuality.status===expQuality.status,`main quality status ${mainQuality.status} != ${expQuality.status}`);
+check(mainQuality.validated_for_change_quantification===expQuality.validated_for_change_quantification,"main temporal validation mismatch");
+check(near(mainQuality.metrics.illumination_delta,expQuality.metrics?.illumination_delta??0,.002,.03),"main illumination quality mismatch");
+check(near(mainQuality.metrics.sharpness_ratio,expQuality.metrics?.sharpness_ratio??0,.02,.04),"main sharpness quality mismatch");
 for(const [cls,exp] of Object.entries(expected.temporal_stats)){
   const got=temporal.stats[cls];
   console.log(`temporal ${cls}: IoU=${got.iou.toFixed(6)}/${Number(exp.iou).toFixed(6)} growth=${got.growth_area_px2}/${exp.growth_area_px2} reduction=${got.reduction_area_px2}/${exp.reduction_area_px2}`);
@@ -138,7 +145,7 @@ const exportResult={
   metrics:{
     records,
     layers:currentLayers,
-    temporal:{enabled:true,alignment_method:mainRegistration.metrics.method_applied,alignment:mainRegistration.metrics,stats:temporal.stats,records:temporal.records,layers:temporalLayers},
+    temporal:{enabled:true,alignment_method:mainRegistration.metrics.method_applied,alignment:mainRegistration.metrics,quality:mainQuality,stats:temporal.stats,records:temporal.records,layers:temporalLayers},
     mm_per_px:cfg.mmPerPx,
     runtime:"test-runtime",
     implementation:"CDM parity test",
@@ -207,6 +214,29 @@ const resizeOnly=__cdmTest.registerPrevious(
 check(resizeOnly.metrics.accepted===false,"resize mode must not apply translation");
 check(resizeOnly.metrics.dx_px===0&&resizeOnly.metrics.dy_px===0,"resize mode must keep zero translation");
 check(resizeOnly.metrics.reason==="translation_registration_disabled","resize mode must report disabled translation registration");
+
+function checkQualityCase(name,testCase,expectedIssue){
+  const current=imageData(testCase.current_rgb),previous=imageData(testCase.previous_rgb);
+  const registration=__cdmTest.registerPrevious(current,previous,"translation_auto");
+  const quality=__cdmTest.temporalQualityAssessment(current,registration.image,registration.metrics);
+  const exp=testCase.expected.quality;
+  console.log("quality "+name,JSON.stringify({got:quality,expected:exp}));
+  check(quality.status===exp.status,`${name} quality status ${quality.status} != ${exp.status}`);
+  check(quality.validated_for_change_quantification===exp.validated_for_change_quantification,`${name} validation mismatch`);
+  check(quality.issues.includes(expectedIssue),`${name} should include ${expectedIssue}`);
+  check(near(quality.metrics.illumination_delta,exp.metrics.illumination_delta,.005,.04),`${name} illumination metric mismatch`);
+  check(near(quality.metrics.sharpness_ratio,exp.metrics.sharpness_ratio,.025,.05),`${name} sharpness metric mismatch`);
+}
+checkQualityCase("illumination",fixture.quality_illumination_case,"illumination_mismatch");
+checkQualityCase("blur",fixture.quality_blur_case,"sharpness_mismatch");
+
+const farQuality=__cdmTest.temporalQualityAssessment(
+  imageData(farCase.current_rgb),
+  farRegistration.image,
+  farRegistration.metrics
+);
+check(farQuality.status==="fail","out-of-range registration must fail temporal quality");
+check(farQuality.issues.includes("registration_unreliable"),"out-of-range quality must include registration_unreliable");
 
 if(failures.length){
   console.error("\nCDM parity failures:");

@@ -139,7 +139,7 @@ def main(output_path: str):
         registration_current, illumination_aligned, illumination_alignment
     )
 
-    blur_previous = box_blur_rgb(registration_current, radius=4)
+    blur_previous = box_blur_rgb(registration_current, radius=6)
     blur_aligned, blur_alignment = cdm.align_previous_rgb(
         registration_current, blur_previous, "translation_auto"
     )

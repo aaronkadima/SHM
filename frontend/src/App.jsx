@@ -4,7 +4,7 @@ import catalog from"./engines.json";
 import AnalysisWorkspace from"./AnalysisWorkspace.jsx";
 import AnalysisSettings from"./AnalysisSettings.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
-import{buildCdmSvg,buildCdmCsv,buildCdmCoco}from"./cdmExports.js";
+import{buildCdmSvg,buildCdmCsv,buildCdmCoco,buildCdmDxf,buildCdmBimJson,buildCdmIfc,buildCdmHtml}from"./cdmExports.js";
 import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
 import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,clearInspections,requestPersistentStorage}from"./historyStore.js";
 
@@ -51,12 +51,18 @@ function exportCsv(res){
   downloadBlob("shm-comparison.csv","text/csv;charset=utf-8","\uFEFF"+rows.map(x=>x.map(csvCell).join(",")).join("\n"));
 }
 function downloadConsensus(res){if(res.consensus_overlay_png_base64)saveBase64("shm-consensus.png",res.consensus_overlay_png_base64)}
-function exportCdm(result,fileName,format){
+function exportCdm(result,fileName,format,inspection={}){
   if(result?.engine_id!=="cdm_1")return;
   const payload={...result,width:result.metrics?.processed_width,height:result.metrics?.processed_height};
-  if(format==="svg")downloadBlob("cdm-1-camadas.svg","image/svg+xml;charset=utf-8",buildCdmSvg(payload));
-  if(format==="csv")downloadBlob("cdm-1-resultados.csv","text/csv;charset=utf-8",buildCdmCsv(payload));
-  if(format==="coco")downloadBlob("cdm-1-coco.json","application/json",JSON.stringify(buildCdmCoco(payload,fileName),null,2));
+  try{
+    if(format==="svg")downloadBlob("cdm-1-camadas.svg","image/svg+xml;charset=utf-8",buildCdmSvg(payload));
+    if(format==="csv")downloadBlob("cdm-1-resultados.csv","text/csv;charset=utf-8",buildCdmCsv(payload));
+    if(format==="coco")downloadBlob("cdm-1-coco.json","application/json",JSON.stringify(buildCdmCoco(payload,fileName),null,2));
+    if(format==="dxf")downloadBlob("cdm-1-camadas.dxf","application/dxf;charset=utf-8",buildCdmDxf(payload));
+    if(format==="bim")downloadBlob("cdm-1-bim-overlay.json","application/json",JSON.stringify(buildCdmBimJson(payload,inspection),null,2));
+    if(format==="ifc")downloadBlob("cdm-1-anotacoes.ifc","application/x-step;charset=utf-8",buildCdmIfc(payload,inspection));
+    if(format==="html")downloadBlob("cdm-1-relatorio.html","text/html;charset=utf-8",buildCdmHtml(payload,fileName,inspection));
+  }catch(e){window.alert(e?.message||String(e))}
 }
 
 export default function App(){
@@ -72,6 +78,8 @@ export default function App(){
   const[engineFilter,setEngineFilter]=useState("all");
   const[file,setFile]=useState(null);
   const[prev,setPrev]=useState(null);
+  const[referenceFile,setReferenceFile]=useState(null);
+  const[referencePrev,setReferencePrev]=useState(null);
   const[res,setRes]=useState(null);
   const[busy,setBusy]=useState(false);
   const[jobId,setJobId]=useState(null);
@@ -88,6 +96,7 @@ export default function App(){
   });
 
   useEffect(()=>()=>{if(prev)URL.revokeObjectURL(prev)},[prev]);
+  useEffect(()=>()=>{if(referencePrev)URL.revokeObjectURL(referencePrev)},[referencePrev]);
   useEffect(()=>{localStorage.setItem("shmSelectedEngines",JSON.stringify([...sel]))},[sel]);
   useEffect(()=>{localStorage.setItem("shmInspectionMetaDraft",JSON.stringify(inspectionMeta))},[inspectionMeta]);
   useEffect(()=>{localStorage.setItem("shmCdm1Options",JSON.stringify(cdmOptions))},[cdmOptions]);
@@ -126,6 +135,9 @@ export default function App(){
       }
       setFile(restoredFile);
       setPrev(restoredPreview);
+      setReferenceFile(null);
+      if(referencePrev)URL.revokeObjectURL(referencePrev);
+      setReferencePrev(null);
       setRes(record.result||null);
       setInspectionMeta({...EMPTY_INSPECTION,...(record.inspection||{})});
       setSel(new Set(record.summary?.engine_ids||record.result?.metadata?.engine_ids||[]));
@@ -206,6 +218,11 @@ export default function App(){
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
     if(prev)URL.revokeObjectURL(prev);setPrev(f?URL.createObjectURL(f):null);
   }
+  function pickReference(f){
+    setReferenceFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
+    if(referencePrev)URL.revokeObjectURL(referencePrev);
+    setReferencePrev(f?URL.createObjectURL(f):null);
+  }
   function toggle(id){setSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n})}
   function selectRecommended(){setSel(new Set(engines.filter(e=>e.recommended).map(e=>e.id)))}
   function selectVerified(){setSel(new Set(engines.filter(e=>e.cloud_verified).map(e=>e.id)))}
@@ -220,7 +237,10 @@ export default function App(){
       return result;
     }
     const fd=new FormData();fd.append("file",file);fd.append("engine_id",engineId);
-    if(engineId==="cdm_1")for(const [key,value] of Object.entries(cdmOptions))fd.append(key,String(value));
+    if(engineId==="cdm_1"){
+      for(const [key,value] of Object.entries(cdmOptions))fd.append(key,String(value));
+      if(referenceFile)fd.append("previous_file",referenceFile);
+    }
     const r=await fetch(individualEndpoint()+"/infer",{method:"POST",body:fd});
     if(!r.ok)throw new Error(await r.text());
     const x=await r.json();setIndividualOnline(true);
@@ -303,7 +323,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace file={file} prev={prev} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onRun={run} onCancel={jobId?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format)}/>
+    <AnalysisWorkspace file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={jobId?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
     {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} onOpenHistory={openHistory} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>}

@@ -145,7 +145,9 @@ class CDM1Adapter(EngineAdapter):
                 "enabled": True,
                 "alignment_method": alignment_info.get("method_applied", "resize"),
                 "alignment": alignment_info,
-                "aligned_reference_png_base64": png_b64(aligned_previous_image),
+                "aligned_reference_png_base64": (
+                    png_b64(aligned_previous_image) if alignment_info.get("accepted") else None
+                ),
                 "stats": temporal_stats,
                 "records": [_record_payload(r) for r in change_records],
                 "layers": temporal_layers,

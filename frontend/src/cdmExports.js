@@ -12,6 +12,8 @@ const allLayers=result=>[...(result.metrics?.layers||[]),...(result.metrics?.tem
 export function buildCdmSvg(result){
   const records=allRecords(result),layers=allLayers(result);
   const width=number(result.width),height=number(result.height);
+  const alignment=result.metrics?.temporal?.alignment||null;
+  const metadata=alignment?'<metadata id="cdm-temporal-alignment">'+escapeXml(JSON.stringify({method:result.metrics?.temporal?.alignment_method||alignment.method_applied,dx_px:alignment.dx_px||0,dy_px:alignment.dy_px||0,improvement:alignment.improvement||0,accepted:!!alignment.accepted,reason:alignment.reason||""}))+'</metadata>':"";
   const content=layers.map(layer=>{
     const color=escapeXml(layer.color||"#666");
     const paths=records.filter(r=>{
@@ -27,7 +29,7 @@ export function buildCdmSvg(result){
     }).join("");
     return '<g id="layer-'+escapeXml(layer.id)+'" inkscape:groupmode="layer" inkscape:label="'+escapeXml(layer.name)+'">'+paths+'</g>';
   }).join("");
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="'+width+'" height="'+height+'" viewBox="0 0 '+width+' '+height+'">'+content+'</svg>';
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="'+width+'" height="'+height+'" viewBox="0 0 '+width+' '+height+'">'+metadata+content+'</svg>';
 }
 
 export function buildCdmCsv(result){
@@ -92,9 +94,11 @@ export function buildCdmDxf(result){
   const layers=[...new Set(records.map(dxfLayerForRecord))].sort();
   const out=[];const add=(...items)=>items.forEach(v=>out.push(String(v)));
   add(0,"SECTION",2,"HEADER",9,"$INSUNITS",70,calibrated?4:0,0,"ENDSEC");
+  const alignment=result.metrics?.temporal?.alignment;
   add(0,"SECTION",2,"TABLES",0,"TABLE",2,"LAYER",70,layers.length);
   layers.forEach(layer=>add(0,"LAYER",2,layer,70,0,62,7,6,"CONTINUOUS"));
   add(0,"ENDTAB",0,"ENDSEC",0,"SECTION",2,"ENTITIES");
+  if(alignment)add(999,"CDM_TEMPORAL_ALIGNMENT method="+(result.metrics?.temporal?.alignment_method||alignment.method_applied||"resize")+" dx_px="+number(alignment.dx_px)+" dy_px="+number(alignment.dy_px)+" improvement="+number(alignment.improvement));
   for(const r of records){
     const pts=r.points.map(([x,y])=>[number(x)*scale,-number(y)*scale]);
     add(0,"LWPOLYLINE",8,dxfLayerForRecord(r),90,pts.length,70,r.closed?1:0);
@@ -137,6 +141,7 @@ function ifcGuid(){
 }
 export function buildCdmIfc(result,inspection={}){
   const mmPerPx=number(result.metrics?.mm_per_px);
+  const temporalAlignment=result.metrics?.temporal?.alignment||{};
   if(!(mmPerPx>0))throw new Error("A exportação IFC exige calibração CDM-1 em mm/px.");
   const records=allRecords(result).filter(r=>r.points?.length>=2);
   const entities=[];const add=entity=>{entities.push("#"+(entities.length+1)+"="+entity+";");return entities.length};
@@ -169,6 +174,14 @@ export function buildCdmIfc(result,inspection={}){
       add("IFCPROPERTYSINGLEVALUE('WidthPx',$,IFCREAL("+number(r.width_px).toFixed(6)+"),$)"),
       add("IFCPROPERTYSINGLEVALUE('TargetElement',$,IFCTEXT("+stepText(inspection.element_id||"")+"),$)")
     ];
+    if(r.class==="growth"||r.class==="reduction"){
+      props.push(
+        add("IFCPROPERTYSINGLEVALUE('TemporalAlignmentMethod',$,IFCTEXT("+stepText(result.metrics?.temporal?.alignment_method||temporalAlignment.method_applied||"resize")+"),$)"),
+        add("IFCPROPERTYSINGLEVALUE('TemporalAlignmentDxPx',$,IFCREAL("+number(temporalAlignment.dx_px).toFixed(6)+"),$)"),
+        add("IFCPROPERTYSINGLEVALUE('TemporalAlignmentDyPx',$,IFCREAL("+number(temporalAlignment.dy_px).toFixed(6)+"),$)"),
+        add("IFCPROPERTYSINGLEVALUE('TemporalAlignmentImprovement',$,IFCREAL("+number(temporalAlignment.improvement).toFixed(6)+"),$)")
+      );
+    }
     const pset=add("IFCPROPERTYSET("+stepText(ifcGuid())+",#"+hist+",'Pset_ConcreteDamageAssessment',$,("+props.map(id=>"#"+id).join(",")+"))");
     add("IFCRELDEFINESBYPROPERTIES("+stepText(ifcGuid())+",#"+hist+",$,$,(#"+ann+"),#"+pset+")");
   }

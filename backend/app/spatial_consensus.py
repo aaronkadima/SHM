@@ -32,9 +32,9 @@ def build_spatial_consensus(results,min_iou=0.25):
             label=d.canonical_label or canonicalize(d.label)
             items.append({
                 "engine":r.engine_id,"label":label,"box":[float(v) for v in d.box],
-                "score":float(d.score) if d.score is not None else 1.0
+                "score":float(d.score) if d.score is not None else None
             })
-    items.sort(key=lambda x:x["score"],reverse=True)
+    items.sort(key=lambda x:x["score"] if x["score"] is not None else -1,reverse=True)
     clusters=[]
     for item in items:
         best=None; best_iou=0.0
@@ -51,16 +51,17 @@ def build_spatial_consensus(results,min_iou=0.25):
     out=[]
     for idx,c in enumerate(clusters,1):
         vals=c["_items"]; engines=sorted(set(x["engine"] for x in vals))
-        mean_score=sum(x["score"] for x in vals)/len(vals)
+        scored=[x["score"] for x in vals if x["score"] is not None]
+        mean_score=sum(scored)/len(scored) if scored else None
         out.append({
             "id":idx,"canonical_label":c["canonical_label"],"label":display_name(c["canonical_label"]),
             "box":_avg_box(vals),"engines":engines,"engine_count":len(engines),
             "successful_engine_count":total,
             "agreement_ratio":round(len(engines)/total,4) if total else 0.0,
-            "detection_count":len(vals),"mean_score":round(mean_score,4),
+            "detection_count":len(vals),"mean_score":round(mean_score,4) if mean_score is not None else None,
             "iou_threshold":min_iou
         })
-    out.sort(key=lambda x:(-x["engine_count"],-x["mean_score"],x["canonical_label"]))
+    out.sort(key=lambda x:(-x["engine_count"],-(x["mean_score"] if x["mean_score"] is not None else -1),x["canonical_label"]))
     return out
 
 def render_spatial_consensus(image,clusters):

@@ -238,3 +238,16 @@ export async function clearInspections(){
   await txDone(tx);
   db.close();
 }
+
+export async function getStorageStatus(){
+  let usage=null,quota=null,persisted=null;
+  try{
+    const estimate=await navigator.storage?.estimate?.();
+    usage=Number.isFinite(Number(estimate?.usage))?Number(estimate.usage):null;
+    quota=Number.isFinite(Number(estimate?.quota))?Number(estimate.quota):null;
+  }catch{}
+  try{
+    if(navigator.storage?.persisted)persisted=await navigator.storage.persisted();
+  }catch{}
+  return {usage,quota,persisted};
+}

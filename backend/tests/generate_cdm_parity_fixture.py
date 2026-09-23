@@ -27,9 +27,9 @@ def synthetic_image(version: int) -> np.ndarray:
 
     # Spalling/dark region; t1 is deliberately larger than t0.
     if version == 0:
-        rgb[35:57, 43:68] = np.array([86, 84, 82], dtype=np.uint8)
+        rgb[35:57, 43:68] = np.array([74, 94, 104], dtype=np.uint8)
     else:
-        rgb[32:60, 40:73] = np.array([84, 82, 80], dtype=np.uint8)
+        rgb[32:60, 40:73] = np.array([72, 92, 102], dtype=np.uint8)
 
     # Exposed reinforcement candidate inside the spalling context.
     if version == 0:

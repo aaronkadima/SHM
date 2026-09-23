@@ -22,6 +22,7 @@ class CDM1Adapter(EngineAdapter):
         masks, pipeline = cdm.detect_masks(rgb, cfg)
         detections = []
         layers = []
+        records_all = []
         composite = Image.new("RGBA", (width, height))
         colors = {
             "cracks": (230, 0, 0),
@@ -33,7 +34,8 @@ class CDM1Adapter(EngineAdapter):
         for family in cdm.LAYER_ORDER:
             if family not in masks or family not in colors:
                 continue
-            records = cdm.records_from_mask(masks[family], family, "t1", cfg)
+            records = cdm.records_from_mask(masks[family], family, "t1_current", cfg)
+            records_all.extend(records)
             # Keep the exact accepted connected components from CDM, rather than
             # painting candidates that its geometry filters rejected.
             layer_arr = np.zeros((height, width, 4), dtype=np.uint8)
@@ -62,12 +64,22 @@ class CDM1Adapter(EngineAdapter):
                 "color": "#%02x%02x%02x" % colors[family],
                 "count": len(records), "overlay_png_base64": png_b64(layer_image),
             })
+        summary = cdm.summarize_records(records_all, cfg.scale_info(), cfg, width * height)
         return EngineResult(
             engine_id=self.meta.id, name=self.meta.name, task=self.meta.task,
             status="ok", detections=detections,
             overlay_png_base64=png_b64(composite),
             metrics={"implementation": "CDM 2.8.5", "runtime": "python-numpy-pillow",
-                     "geometry_units": "processed_pixels", "layers": layers,
+                     "geometry_units": "processed_pixels", "processed_width": width,
+                     "processed_height": height, "mm_per_px": cfg.scale_info().mm_per_px,
+                     "layers": layers,
+                     "summary": summary,
+                     "records": [{"id": r.record_id, "class": r.damage_class,
+                                  "bbox": list(r.bbox), "points": [list(p) for p in r.points],
+                                  "closed": r.is_closed, "area_px2": r.area_px2,
+                                  "perimeter_px": r.perimeter_px, "length_px": r.length_px,
+                                  "width_px": r.width_px, "aspect_ratio": r.aspect_ratio,
+                                  "confidence_note": r.confidence_note} for r in records_all],
                      "protocol": pipeline["protocol"]},
             message="Máscaras morfológicas preliminares; pontuações de confiança não calibradas.",
         )

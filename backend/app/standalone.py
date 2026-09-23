@@ -58,7 +58,8 @@ def engines():
 @app.post("/infer")
 async def infer(file:UploadFile=File(...),engine_id:str=Form(...),
                 cdm_threshold:int=Form(35),cdm_kernel_size:int=Form(15),
-                cdm_min_area:float=Form(30),cdm_min_aspect_ratio:float=Form(2.0)):
+                cdm_min_area:float=Form(30),cdm_min_aspect_ratio:float=Form(2.0),
+                cdm_mm_per_px:float=Form(0),cdm_element_family:str=Form("lajes_vigas_secundarias_apoios")):
     if LOCKED_ENGINE and engine_id!=LOCKED_ENGINE:
         raise HTTPException(403,f"Este backend está bloqueado no motor {LOCKED_ENGINE}.")
     e=REGISTRY.get(engine_id)
@@ -77,10 +78,15 @@ async def infer(file:UploadFile=File(...),engine_id:str=Form(...),
     if max(image.size)>MAX_SIDE:
         image.thumbnail((MAX_SIDE,MAX_SIDE),Image.Resampling.LANCZOS)
     if engine_id=="cdm_1":
-        if not (1<=cdm_threshold<=255 and 3<=cdm_kernel_size<=99 and 1<=cdm_min_area<=1_000_000 and 1<=cdm_min_aspect_ratio<=50):
+        if not (1<=cdm_threshold<=255 and 3<=cdm_kernel_size<=99 and 1<=cdm_min_area<=1_000_000 and 1<=cdm_min_aspect_ratio<=50 and 0<=cdm_mm_per_px<=1000):
             raise HTTPException(422,"Parâmetros CDM-1 fora das faixas permitidas.")
+        if cdm_element_family not in cdm_v285.FAMILY_FR:
+            raise HTTPException(422,"Família estrutural CDM-1 desconhecida.")
         cfg=cdm_v285.DetectorConfig(threshold=cdm_threshold,kernel_size=cdm_kernel_size,
-                                    min_area=cdm_min_area,min_aspect_ratio=cdm_min_aspect_ratio)
+                                    min_area=cdm_min_area,min_aspect_ratio=cdm_min_aspect_ratio,
+                                    calibration_mode="manual_mm_per_px" if cdm_mm_per_px>0 else "px_only",
+                                    mm_per_px=cdm_mm_per_px,element_family=cdm_element_family,
+                                    structural_relevance_fr=cdm_v285.FAMILY_FR[cdm_element_family])
         started=time.perf_counter()
         result=await asyncio.to_thread(e.predict_configured,image.copy(),cfg)
         result.latency_ms=(time.perf_counter()-started)*1000

@@ -114,6 +114,9 @@ class CDM1Adapter(EngineAdapter):
             previous_rgb, alignment_info = cdm.align_previous_rgb(
                 rgb, previous_rgb, cfg.alignment_method
             )
+            temporal_quality = cdm.temporal_quality_assessment(
+                rgb, previous_rgb, alignment_info
+            )
             aligned_previous_image = Image.fromarray(previous_rgb, mode="RGB")
             previous_masks, previous_pipeline = cdm.detect_masks(
                 previous_rgb, cfg, run_tag="t0"
@@ -145,6 +148,7 @@ class CDM1Adapter(EngineAdapter):
                 "enabled": True,
                 "alignment_method": alignment_info.get("method_applied", "resize"),
                 "alignment": alignment_info,
+                "quality": temporal_quality,
                 "aligned_reference_png_base64": (
                     png_b64(aligned_previous_image) if alignment_info.get("accepted") else None
                 ),

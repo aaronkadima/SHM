@@ -3,6 +3,20 @@ import {Camera,ChevronLeft,ChevronRight,Download,ImagePlus,Layers3,Maximize2,Min
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
 const MODEL_EXT=/\.(glb|gltf|obj|ply|stl)$/i;
+const TEMPORAL_ISSUE_LABELS={
+  registration_unreliable:"registro geométrico não confiável",
+  insufficient_overlap:"sobreposição espacial insuficiente",
+  illumination_mismatch:"diferença excessiva de iluminação",
+  sharpness_mismatch:"diferença excessiva de nitidez",
+  exposure_clipping:"saturação/exposição inadequada"
+};
+const TEMPORAL_WARNING_LABELS={
+  reduced_overlap:"sobreposição reduzida",
+  illumination_difference:"diferença moderada de iluminação",
+  sharpness_difference:"diferença moderada de nitidez",
+  exposure_warning:"exposição próxima do limite",
+  low_texture:"baixa textura para registro"
+};
 export function detectAsset(file){
   if(!file)return null;
   const name=file.name.toLowerCase();
@@ -44,6 +58,7 @@ export default function AnalysisWorkspace({file,prev,referenceFile,referencePrev
   const pathologyLayers=chosen?.engine_id==="cdm_1"?chosen.metrics?.layers||[]:[];
   const temporal=chosen?.engine_id==="cdm_1"?chosen.metrics?.temporal:null;
   const temporalAlignment=temporal?.alignment||null;
+  const temporalQuality=temporal?.quality||null;
   const temporalAlignedPreview=temporal?.aligned_reference_png_base64?"data:image/png;base64,"+temporal.aligned_reference_png_base64:null;
   const temporalLayers=temporal?.enabled?temporal.layers||[]:[];
   const temporalStats=temporal?.stats||{};
@@ -52,6 +67,15 @@ export default function AnalysisWorkspace({file,prev,referenceFile,referencePrev
   const temporalRegistrationWarning=temporalAlignment?.reason==="search_boundary_hit"
     ?"Registro t0→t1 rejeitado: o deslocamento estimado atingiu o limite da busca. Considere recaptura com enquadramento mais próximo ou revisão manual."
     :null;
+  const temporalQualityNotes=[
+    ...(temporalQuality?.issues||[]).map(x=>TEMPORAL_ISSUE_LABELS[x]||x),
+    ...(temporalQuality?.warnings||[]).map(x=>TEMPORAL_WARNING_LABELS[x]||x)
+  ];
+  const temporalQualityLabel=temporalQuality?.status==="fail"
+    ?"NÃO VALIDADA para quantificação temporal"
+    :temporalQuality?.status==="warning"
+      ?"Válida com ressalvas"
+      :temporalQuality?.status==="pass"?"Qualidade temporal aprovada":null;
   const cdmSummary=chosen?.engine_id==="cdm_1"?chosen.metrics?.summary:null;
   const cdmRating=cdmSummary?.condition_rating;
   const image=pathologyLayers.length?null:chosen?.overlay_png_base64?"data:image/png;base64,"+chosen.overlay_png_base64:null;
@@ -113,7 +137,7 @@ export default function AnalysisWorkspace({file,prev,referenceFile,referencePrev
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel} disabled={progress?.state==="cancel_requested"}>{progress?.state==="cancel_requested"?"Cancelando…":"Cancelar"}</button>}</div>}
           {!busy&&res&&durationMs!=null&&<div className="editorRunTime">Tempo medido da rodada: <b>{(durationMs/1000).toFixed(2)} s</b></div>}
           {results.map(r=><button key={r.engine_id} className={"editorResultRow "+(chosen?.engine_id===r.engine_id?"active":"")} onClick={()=>{setActive(r.engine_id);setVisible(v=>({...v,[r.engine_id]:true}))}}><span>{r.name}</span><b>{r.detections?.length||0} achados</b><small>{Number(r.latency_ms||0).toFixed(0)} ms</small></button>)}
-          {cdmSummary&&<div className="editorCdmSummary"><b>CDM-1 · resumo morfológico</b><div><span>{cdmSummary.total_objects} achados</span><span>Fissuras: {cdmSummary.crack_count}</span><span>Comprimento: {Number(cdmSummary.crack_length_total_px||0).toFixed(1)} px</span><span>Desplacamento: {Number(cdmSummary.spalling_area_px2||0).toFixed(0)} px²</span></div>{cdmRating?.enabled&&<p>Estimativa por imagem: NT {cdmRating.NT_img} · EC {cdmRating.EC_DNIT_img} · GDE {Number(cdmRating.GDE_img||0).toFixed(2)}. Confirme em inspeção técnica.</p>}{temporal?.enabled&&<p><b>t0→t1:</b> crescimento {temporalGrowth.toFixed(0)} px² · redução {temporalReduction.toFixed(0)} px² · {temporalAlignment?.accepted?<>registro automático Δx={Number(temporalAlignment.dx_px||0).toFixed(0)} px, Δy={Number(temporalAlignment.dy_px||0).toFixed(0)} px · ganho {(Number(temporalAlignment.improvement||0)*100).toFixed(1)}%</>:<>alinhamento {temporal?.alignment_method==="translation_auto"?"automático sem translação aplicada":"por redimensionamento"}</>}.</p>}{temporalRegistrationWarning&&<p className="editorCdmWarning">{temporalRegistrationWarning}</p>}{chosen?.metrics?.performance_ms&&<p className="editorPerf"><b>Tempo real:</b> decodificação {(Number(chosen.metrics.performance_ms.decode||0)/1000).toFixed(2)} s · núcleo {(Number(chosen.metrics.performance_ms.core||0)/1000).toFixed(2)} s · renderização {(Number(chosen.metrics.performance_ms.render||0)/1000).toFixed(2)} s · total {(Number(chosen.metrics.performance_ms.total||0)/1000).toFixed(2)} s · {chosen.metrics.runtime||"browser"}</p>}</div>}
+          {cdmSummary&&<div className="editorCdmSummary"><b>CDM-1 · resumo morfológico</b><div><span>{cdmSummary.total_objects} achados</span><span>Fissuras: {cdmSummary.crack_count}</span><span>Comprimento: {Number(cdmSummary.crack_length_total_px||0).toFixed(1)} px</span><span>Desplacamento: {Number(cdmSummary.spalling_area_px2||0).toFixed(0)} px²</span></div>{cdmRating?.enabled&&<p>Estimativa por imagem: NT {cdmRating.NT_img} · EC {cdmRating.EC_DNIT_img} · GDE {Number(cdmRating.GDE_img||0).toFixed(2)}. Confirme em inspeção técnica.</p>}{temporal?.enabled&&<p><b>t0→t1:</b> crescimento {temporalGrowth.toFixed(0)} px² · redução {temporalReduction.toFixed(0)} px² · {temporalAlignment?.accepted?<>registro automático Δx={Number(temporalAlignment.dx_px||0).toFixed(0)} px, Δy={Number(temporalAlignment.dy_px||0).toFixed(0)} px · ganho {(Number(temporalAlignment.improvement||0)*100).toFixed(1)}%</>:<>alinhamento {temporal?.alignment_method==="translation_auto"?"automático sem translação aplicada":"por redimensionamento"}</>}.</p>}{temporalQualityLabel&&<p className={"editorTemporalQuality "+temporalQuality.status}><b>{temporalQualityLabel}</b>{temporalQuality?.metrics&&<> · sobreposição {(Number(temporalQuality.metrics.overlap_ratio||0)*100).toFixed(1)}% · Δ iluminação {(Number(temporalQuality.metrics.illumination_delta||0)*100).toFixed(1)}% · razão de nitidez {Number(temporalQuality.metrics.sharpness_ratio||0).toFixed(2)}</>}{temporalQualityNotes.length>0&&<span> · {temporalQualityNotes.join("; ")}</span>}</p>}{temporalRegistrationWarning&&<p className="editorCdmWarning">{temporalRegistrationWarning}</p>}{chosen?.metrics?.performance_ms&&<p className="editorPerf"><b>Tempo real:</b> decodificação {(Number(chosen.metrics.performance_ms.decode||0)/1000).toFixed(2)} s · núcleo {(Number(chosen.metrics.performance_ms.core||0)/1000).toFixed(2)} s · renderização {(Number(chosen.metrics.performance_ms.render||0)/1000).toFixed(2)} s · total {(Number(chosen.metrics.performance_ms.total||0)/1000).toFixed(2)} s · {chosen.metrics.runtime||"browser"}</p>}</div>}
           {detail&&<div className="editorFinding"><b>{pathologyLayers.find(l=>l.id===detail.label)?.name||detail.label||detail.canonical_label||"Achado"} #{selectedDetection.index+1}</b><span>Motor: {chosen.name}</span><span>Confiança: {chosen.engine_id==="cdm_1"?"não calibrada":detail.score==null?"não informada":(Number(detail.score)*100).toFixed(1)+"%"}</span><span>Coordenadas: {detail.box.map(v=>Math.round(v)).join(", ")} px</span></div>}
           {results.length>0&&<div className="editorCompare"><button className={comparison==="overlay"?"active":""} onClick={()=>setComparison("overlay")}>Sobrepor</button><button className={comparison==="side"?"active":""} onClick={()=>setComparison("side")}>Lado a lado</button>{temporal?.enabled&&referencePrev&&<button className={comparison==="temporal"?"active":""} onClick={()=>setComparison("temporal")}>t0 / t1</button>}{comparison==="temporal"&&temporalAlignedPreview&&<button onClick={()=>setShowRawT0(v=>!v)}>{showRawT0?"Usar t0 alinhado":"Ver t0 bruto"}</button>}<button onClick={onExport} title="Exportar JSON">JSON</button><button onClick={onExportCsv} title="Exportar CSV da comparação">CSV</button>{res.consensus_overlay_png_base64&&<button onClick={onExportMap} title="Exportar mapa"><Download size={15}/></button>}</div>}
           {cdmSummary&&<div className="editorCompare editorCdmExports"><details className="editorExportMenu"><summary>Exportar CDM</summary><div><button onClick={()=>onExportCdm(chosen,"svg")}>SVG camadas</button><button onClick={()=>onExportCdm(chosen,"csv")}>CSV técnico</button><button onClick={()=>onExportCdm(chosen,"coco")}>COCO</button><button onClick={()=>onExportCdm(chosen,"dxf")}>DXF</button><button onClick={()=>onExportCdm(chosen,"bim")}>BIM JSON</button><button disabled={!Number(chosen.metrics?.mm_per_px)} title={!Number(chosen.metrics?.mm_per_px)?"Calibre mm/px para exportar IFC":""} onClick={()=>onExportCdm(chosen,"ifc")}>IFC</button><button onClick={()=>onExportCdm(chosen,"html")}>HTML</button>{temporalAlignedPreview&&<button onClick={()=>onExportCdm(chosen,"aligned_t0")}>PNG t0 alinhado</button>}</div></details></div>}

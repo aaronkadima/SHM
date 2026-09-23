@@ -171,6 +171,30 @@ export default function App(){
       navigate(target);
     }catch(e){setHistoryErr("Falha ao abrir inspeção: "+String(e))}
   }
+  async function useHistoryAsReference(id){
+    setHistoryErr("");
+    try{
+      const record=await getInspection(id);
+      if(!record)throw new Error("Inspeção não encontrada.");
+      const blob=record.image_blob;
+      if(!blob)throw new Error("A imagem original desta inspeção não está disponível no histórico.");
+      const meta=record.file_meta||{};
+      const restoredReferenceFile=new File([blob],meta.name||"referencia-t0",{type:meta.type||blob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
+      if(referencePrev)URL.revokeObjectURL(referencePrev);
+      if(prev)URL.revokeObjectURL(prev);
+      setReferenceFile(restoredReferenceFile);
+      setReferencePrev(URL.createObjectURL(blob));
+      setFile(null);
+      setPrev(null);
+      setRes(null);
+      setProgress(null);
+      setJobId(null);
+      setErr("");
+      setInspectionMeta({...EMPTY_INSPECTION,...(record.inspection||{}),inspection_label:""});
+      setSel(new Set(["cdm_1"]));
+      navigate("analysis");
+    }catch(e){setHistoryErr("Falha ao preparar referência t0: "+String(e))}
+  }
   async function removeHistory(id){
     try{await deleteInspection(id);await refreshHistory()}
     catch(e){setHistoryErr("Falha ao excluir inspeção: "+String(e))}
@@ -382,7 +406,7 @@ export default function App(){
     <AnalysisWorkspace file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
     {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
-    {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} onOpenHistory={openHistory} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>}
+    {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 
     {activeView==="reports"&&<ReportsView res={res} inspection={inspectionMeta} onJson={()=>res&&exportJson(res)} onCsv={()=>res&&exportCsv(res)} onMap={()=>res&&downloadConsensus(res)} onNavigate={navigate}/>}
     {activeView==="settings"&&<AnalysisSettings engines={engines} selected={selected} toggle={toggle} onBack={()=>navigate("analysis")} individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} inspectionMeta={inspectionMeta} updateInspectionMeta={updateInspectionMeta} cdmOptions={cdmOptions} setCdmOptions={setCdmOptions} error={err}/>}
     </main>

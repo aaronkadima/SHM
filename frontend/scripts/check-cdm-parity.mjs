@@ -35,8 +35,9 @@ function near(a,b,abs=1e-6,rel=1e-3){
 const failures=[];
 function check(cond,msg){if(!cond)failures.push(msg)}
 
-const t1Masks=__cdmTest.detectMasks(imageData(fixture.t1_rgb),cfg);
-const t0Masks=__cdmTest.detectMasks(imageData(fixture.t0_rgb),cfg);
+const t1Data=imageData(fixture.t1_rgb),t0Data=imageData(fixture.t0_rgb);
+const t1Masks=__cdmTest.detectMasks(t1Data,cfg);
+const t0Masks=__cdmTest.detectMasks(t0Data,cfg);
 
 for(const cls of __cdmTest.ORDER){
   const m1=maskMetrics(t1Masks[cls],expected.t1_masks[cls]);
@@ -81,7 +82,14 @@ check(rating.EC_DNIT_img===expRating.EC_DNIT_img,`EC mismatch ${rating.EC_DNIT_i
 check(near(rating.GDE_img,expRating.GDE_img,.5,.02),`GDE mismatch ${rating.GDE_img} != ${expRating.GDE_img}`);
 check(near(rating.affected_area_ratio,expRating.affected_area_ratio,.001,.02),"affected area ratio mismatch");
 
-const temporal=__cdmTest.temporalCompare(t1Masks,t0Masks,w,h,cfg);
+const mainRegistration=__cdmTest.registerPrevious(t1Data,t0Data,cfg.alignmentMethod||"translation_auto");
+const t0AlignedMasks=__cdmTest.detectMasks(mainRegistration.image,cfg);
+const temporal=__cdmTest.temporalCompare(t1Masks,t0AlignedMasks,w,h,cfg);
+const expAlignment=expected.temporal_alignment||{};
+console.log("alignment main",JSON.stringify({got:mainRegistration.metrics,expected:expAlignment}));
+check(mainRegistration.metrics.method_applied===expAlignment.method_applied,`main alignment method ${mainRegistration.metrics.method_applied} != ${expAlignment.method_applied}`);
+check(mainRegistration.metrics.dx_px===expAlignment.dx_px,`main alignment dx ${mainRegistration.metrics.dx_px} != ${expAlignment.dx_px}`);
+check(mainRegistration.metrics.dy_px===expAlignment.dy_px,`main alignment dy ${mainRegistration.metrics.dy_px} != ${expAlignment.dy_px}`);
 for(const [cls,exp] of Object.entries(expected.temporal_stats)){
   const got=temporal.stats[cls];
   console.log(`temporal ${cls}: IoU=${got.iou.toFixed(6)}/${Number(exp.iou).toFixed(6)} growth=${got.growth_area_px2}/${exp.growth_area_px2} reduction=${got.reduction_area_px2}/${exp.reduction_area_px2}`);
@@ -111,6 +119,7 @@ for(let i=1;i<staged.length;i++)check(staged[i].completed>=staged[i-1].completed
 check(staged.at(-1)?.completed===96,`core progress should finish at 96, got ${staged.at(-1)?.completed}`);
 check(staged.some(p=>p.stage==="segment_t1"),"missing segment_t1 progress stage");
 check(staged.some(p=>p.stage==="vectorize_t1"),"missing vectorize_t1 progress stage");
+check(staged.some(p=>p.stage==="temporal_alignment"),"missing temporal_alignment progress stage");
 check(staged.some(p=>p.stage==="segment_t0"),"missing segment_t0 progress stage");
 check(staged.some(p=>p.stage==="temporal_compare"),"missing temporal_compare progress stage");
 check(staged.some(p=>p.stage==="condition_rating"),"missing condition_rating progress stage");
@@ -129,7 +138,7 @@ const exportResult={
   metrics:{
     records,
     layers:currentLayers,
-    temporal:{enabled:true,alignment_method:"resize",stats:temporal.stats,records:temporal.records,layers:temporalLayers},
+    temporal:{enabled:true,alignment_method:mainRegistration.metrics.method_applied,alignment:mainRegistration.metrics,stats:temporal.stats,records:temporal.records,layers:temporalLayers},
     mm_per_px:cfg.mmPerPx,
     runtime:"test-runtime",
     implementation:"CDM parity test",
@@ -149,6 +158,29 @@ check(dxf.includes("SHM_TEMPORAL_GROWTH_CRACKS")||!expected.temporal_by_source?.
 check(bim.features.some(f=>f.damage_class==="growth"&&f.source_class),"BIM JSON temporal feature must expose source_class");
 check(ifc.includes("SourcePathology"),"IFC property set must expose SourcePathology");
 console.log("exports traceability: SVG/CSV/DXF/BIM/IFC checked");
+
+const registrationCase=fixture.registration_case;
+const shiftedRegistration=__cdmTest.registerPrevious(
+  imageData(registrationCase.current_rgb),
+  imageData(registrationCase.previous_rgb),
+  "translation_auto"
+);
+const expShift=registrationCase.expected.alignment;
+console.log("alignment shifted",JSON.stringify({got:shiftedRegistration.metrics,expected:expShift}));
+check(shiftedRegistration.metrics.accepted===true,"known camera shift must be accepted");
+check(shiftedRegistration.metrics.dx_px===expShift.dx_px,`shifted alignment dx ${shiftedRegistration.metrics.dx_px} != ${expShift.dx_px}`);
+check(shiftedRegistration.metrics.dy_px===expShift.dy_px,`shifted alignment dy ${shiftedRegistration.metrics.dy_px} != ${expShift.dy_px}`);
+check(shiftedRegistration.metrics.dx_px===-registrationCase.known_camera_shift.x,"registration must undo known x camera shift");
+check(shiftedRegistration.metrics.dy_px===-registrationCase.known_camera_shift.y,"registration must undo known y camera shift");
+check(near(shiftedRegistration.metrics.improvement,expShift.improvement,.02,.04),"registration improvement mismatch");
+function meanRgbError(a,b){
+  let sum=0,count=0;
+  for(let i=0;i<a.data.length;i+=4){sum+=Math.abs(a.data[i]-b.data[i])+Math.abs(a.data[i+1]-b.data[i+1])+Math.abs(a.data[i+2]-b.data[i+2]);count+=3}
+  return sum/count;
+}
+const alignedError=meanRgbError(imageData(registrationCase.current_rgb),shiftedRegistration.image);
+check(alignedError<registrationCase.expected.mean_abs_error_before*.35,`registration should strongly reduce image error; got ${alignedError}`);
+console.log(`registration known shift corrected: dx=${shiftedRegistration.metrics.dx_px}, dy=${shiftedRegistration.metrics.dy_px}, error=${alignedError.toFixed(4)}`);
 
 if(failures.length){
   console.error("\nCDM parity failures:");

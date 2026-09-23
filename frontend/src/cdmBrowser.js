@@ -62,6 +62,90 @@ function grayAndRgb(imageData){
   const factor=255/(p98-p2);for(let i=0;i<n;i++)out[i]=clamp((gray[i]-p2)*factor,0,255);
   return {gray:out,rgb};
 }
+function registrationEdgeMap(imageData,maxSide=160){
+  const w=imageData.width,h=imageData.height,step=Math.max(1,Math.ceil(Math.max(w,h)/maxSide));
+  const sw=Math.ceil(w/step),sh=Math.ceil(h/step),gray=new Float32Array(sw*sh),rgba=imageData.data;
+  for(let sy=0;sy<sh;sy++){
+    const y=Math.min(h-1,sy*step);
+    for(let sx=0;sx<sw;sx++){
+      const x=Math.min(w-1,sx*step),i=(y*w+x)*4;
+      gray[sy*sw+sx]=.299*rgba[i]+.587*rgba[i+1]+.114*rgba[i+2];
+    }
+  }
+  const edge=new Float32Array(sw*sh);
+  if(sw>=3&&sh>=3){
+    for(let y=1;y<sh-1;y++)for(let x=1;x<sw-1;x++){
+      const i=y*sw+x;
+      edge[i]=Math.abs(gray[i+1]-gray[i-1])+Math.abs(gray[i+sw]-gray[i-sw]);
+    }
+  }
+  return {edge,width:sw,height:sh,step};
+}
+function candidateBetter(score,dx,dy,best){
+  if(score<best.score)return true;
+  if(score>best.score)return false;
+  const a=[Math.abs(dx)+Math.abs(dy),Math.abs(dy),Math.abs(dx),dy,dx];
+  const b=[Math.abs(best.dx)+Math.abs(best.dy),Math.abs(best.dy),Math.abs(best.dx),best.dy,best.dx];
+  for(let i=0;i<a.length;i++){if(a[i]<b[i])return true;if(a[i]>b[i])return false}
+  return false;
+}
+function estimateTranslationRegistration(current,previous){
+  if(current.width!==previous.width||current.height!==previous.height)throw new Error("Registration requires equal image dimensions.");
+  const cur=registrationEdgeMap(current),prev=registrationEdgeMap(previous);
+  const base={method_requested:"translation_auto",method_applied:"resize",accepted:false,reason:"registration_grid_mismatch",dx_px:0,dy_px:0,estimated_dx_px:0,estimated_dy_px:0,score_before:0,score_after:0,improvement:0,downsample_step:cur.step,search_radius_px:0};
+  if(cur.step!==prev.step||cur.width!==prev.width||cur.height!==prev.height)return base;
+  const sw=cur.width,sh=cur.height,searchFull=Math.min(64,Math.max(4,Math.round(Math.min(current.width,current.height)*.08)));
+  let radius=Math.max(1,Math.ceil(searchFull/cur.step));
+  radius=Math.min(radius,Math.max(1,Math.floor((Math.min(sw,sh)-6)/2)));
+  const x0=radius+1,x1=sw-radius-1,y0=radius+1,y1=sh-radius-1;
+  if(x1<=x0||y1<=y0)return {...base,reason:"image_too_small",search_radius_px:radius*cur.step};
+  const sampleStride=Math.min(x1-x0,y1-y0)>=48?2:1;
+  const score=(dx,dy)=>{
+    let sum=0,count=0;
+    for(let y=y0;y<y1;y+=sampleStride)for(let x=x0;x<x1;x+=sampleStride){
+      sum+=Math.abs(cur.edge[y*sw+x]-prev.edge[(y-dy)*sw+(x-dx)]);count++;
+    }
+    return count?sum/count:Infinity;
+  };
+  const scoreZero=score(0,0);let best={score:scoreZero,dx:0,dy:0};
+  const coarseStep=radius>=5?2:1;
+  for(let dy=-radius;dy<=radius;dy+=coarseStep)for(let dx=-radius;dx<=radius;dx+=coarseStep){
+    const s=score(dx,dy);if(candidateBetter(s,dx,dy,best))best={score:s,dx,dy};
+  }
+  const coarseDx=best.dx,coarseDy=best.dy;
+  for(let dy=Math.max(-radius,coarseDy-2);dy<=Math.min(radius,coarseDy+2);dy++)for(let dx=Math.max(-radius,coarseDx-2);dx<=Math.min(radius,coarseDx+2);dx++){
+    const s=score(dx,dy);if(candidateBetter(s,dx,dy,best))best={score:s,dx,dy};
+  }
+  const improvement=Number.isFinite(scoreZero)?(scoreZero-best.score)/Math.max(scoreZero,1e-6):0;
+  const estimatedDx=best.dx*cur.step,estimatedDy=best.dy*cur.step;
+  const accepted=(best.dx!==0||best.dy!==0)&&improvement>=.035;
+  return {
+    method_requested:"translation_auto",method_applied:accepted?"translation_auto":"resize",accepted,
+    reason:accepted?"translation_improved_edge_match":"no_reliable_translation_gain",
+    dx_px:accepted?estimatedDx:0,dy_px:accepted?estimatedDy:0,
+    estimated_dx_px:estimatedDx,estimated_dy_px:estimatedDy,
+    score_before:scoreZero,score_after:accepted?best.score:scoreZero,
+    improvement:Math.max(0,improvement),downsample_step:cur.step,search_radius_px:radius*cur.step
+  };
+}
+function applyTranslationRegistration(current,previous,dx,dy){
+  if(dx===0&&dy===0)return {width:previous.width,height:previous.height,data:new Uint8ClampedArray(previous.data)};
+  const w=current.width,h=current.height,out=new Uint8ClampedArray(current.data);
+  const dstX0=Math.max(0,dx),dstX1=Math.min(w,w+dx),dstY0=Math.max(0,dy),dstY1=Math.min(h,h+dy);
+  for(let y=dstY0;y<dstY1;y++)for(let x=dstX0;x<dstX1;x++){
+    const sx=x-dx,sy=y-dy,di=(y*w+x)*4,si=(sy*w+sx)*4;
+    out[di]=previous.data[si];out[di+1]=previous.data[si+1];out[di+2]=previous.data[si+2];out[di+3]=previous.data[si+3];
+  }
+  return {width:w,height:h,data:out};
+}
+function registerPrevious(current,previous,method="translation_auto"){
+  if((method||"translation_auto").toLowerCase()!=="translation_auto"){
+    return {image:{width:previous.width,height:previous.height,data:new Uint8ClampedArray(previous.data)},metrics:{method_requested:method||"resize",method_applied:"resize",accepted:false,reason:"translation_registration_disabled",dx_px:0,dy_px:0,estimated_dx_px:0,estimated_dy_px:0,score_before:null,score_after:null,improvement:0,downsample_step:1,search_radius_px:0}};
+  }
+  const metrics=estimateTranslationRegistration(current,previous);
+  return {image:applyTranslationRegistration(current,previous,metrics.dx_px,metrics.dy_px),metrics};
+}
+
 function hsvArrays(rgba,n){
   const hue=new Float32Array(n),sat=new Float32Array(n),val=new Float32Array(n);
   for(let i=0,j=0;i<n;i++,j+=4){
@@ -305,13 +389,15 @@ function computeCdmCore(current,previous,cfg,onProgress=null){
     records.push(...recordsFromMask(masks[cls],w,h,cls,"t1_current",cfg));
     emitProgress(onProgress,35+Math.round((index+1)/ORDER.length*20),"CDM-1 · vetorizando "+LABELS[cls],"vectorize_t1");
   });
-  let temporal={enabled:false,alignment_method:null,stats:{},records:[]};
+  let temporal={enabled:false,alignment_method:null,alignment:null,stats:{},records:[]};
   if(previous){
-    emitProgress(onProgress,60,"CDM-1 · segmentando t0","segment_t0");
-    const prevMasks=detectMasks(previous,cfg);
-    emitProgress(onProgress,76,"CDM-1 · comparando t0→t1","temporal_compare");
+    emitProgress(onProgress,58,"CDM-1 · alinhando t0→t1","temporal_alignment");
+    const registration=registerPrevious(current,previous,cfg.alignmentMethod||"translation_auto");
+    emitProgress(onProgress,65,"CDM-1 · segmentando t0 alinhado","segment_t0");
+    const prevMasks=detectMasks(registration.image,cfg);
+    emitProgress(onProgress,78,"CDM-1 · comparando t0→t1","temporal_compare");
     const change=temporalCompare(masks,prevMasks,w,h,cfg);
-    temporal={enabled:true,alignment_method:"resize",stats:change.stats,records:change.records};
+    temporal={enabled:true,alignment_method:registration.metrics.method_applied,alignment:registration.metrics,stats:change.stats,records:change.records};
     emitProgress(onProgress,88,"CDM-1 · mudança temporal","temporal_vectors");
   }else emitProgress(onProgress,88,"CDM-1 · consolidando achados","consolidate");
   emitProgress(onProgress,92,"CDM-1 · classificação preliminar","condition_rating");
@@ -370,7 +456,8 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     minArea:clamp(Number(options.cdm_min_area??30),1,1e6),
     minAspect:clamp(Number(options.cdm_min_aspect_ratio??2),1,50),
     mmPerPx:Math.max(0,Number(options.cdm_mm_per_px??0)),
-    elementFamily:options.cdm_element_family||"lajes_vigas_secundarias_apoios"
+    elementFamily:options.cdm_element_family||"lajes_vigas_secundarias_apoios",
+    alignmentMethod:options.cdm_alignment_method||"translation_auto"
   };
   emitProgress(onProgress,3,"CDM-1 · decodificando t1","decode_t1");
   const decodeStarted=performance.now();
@@ -444,8 +531,8 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     },
     message:"CDM-1 executado integralmente no navegador; nenhum dado foi enviado ao Railway. Resultados morfológicos preliminares e confiança não calibrada."
   };
-  return {image_width:w,image_height:h,results:[engine],consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,metadata:{analysis_id:"browser-cdm-"+crypto.randomUUID(),api_version:"browser-1.4",generated_at:new Date().toISOString(),mode:"individual",engine_ids:["cdm_1"],implementation:"cdm-2.8.5-browser-parity-worker"}};
+  return {image_width:w,image_height:h,results:[engine],consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,metadata:{analysis_id:"browser-cdm-"+crypto.randomUUID(),api_version:"browser-1.5",generated_at:new Date().toISOString(),mode:"individual",engine_ids:["cdm_1"],implementation:"cdm-2.8.5-browser-parity-worker"}};
 }
 
 // Test hooks: pure functions used by CI parity checks; not part of the UI API.
-export const __cdmTest={detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,percentileFloat,blackhat,cleanup,ORDER,LABELS};
+export const __cdmTest={detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,registerPrevious,estimateTranslationRegistration,applyTranslationRegistration,percentileFloat,blackhat,cleanup,ORDER,LABELS};

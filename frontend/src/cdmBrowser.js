@@ -288,31 +288,63 @@ function summary(records,cfg,imageArea){
   for(const r of records){counts[r.class]=(counts[r.class]||0)+1;if(r.class==="spalling_dark")sp+=r.area_px2;if(r.class==="exposed_rebar")rebar+=r.area_px2;if(r.class==="cracks"){lengths.push(r.length_px);if(r.width_px>0)widths.push(r.width_px)}}
   return {counts,total_objects:records.length,spalling_area_px2:sp,rebar_area_px2:rebar,crack_count:lengths.length,crack_length_total_px:lengths.reduce((a,b)=>a+b,0),crack_length_mean_px:lengths.length?lengths.reduce((a,b)=>a+b,0)/lengths.length:0,crack_width_mean_px:widths.length?widths.reduce((a,b)=>a+b,0)/widths.length:0,crack_width_max_px:widths.length?Math.max(...widths):0,image_area_px2:imageArea,condition_rating:conditionRating(records,cfg,imageArea)};
 }
-function computeCdmCore(current,previous,cfg){
-  const w=current.width,h=current.height,masks=detectMasks(current,cfg),records=[];
-  for(const cls of ORDER)records.push(...recordsFromMask(masks[cls],w,h,cls,"t1_current",cfg));
+function emitProgress(callback,completed,current_engine,stage){
+  callback?.({state:"running",completed,total:100,current_engine,stage});
+}
+function abortError(){
+  try{return new DOMException("Análise CDM-1 cancelada.","AbortError")}
+  catch{const e=new Error("Análise CDM-1 cancelada.");e.name="AbortError";return e}
+}
+function computeCdmCore(current,previous,cfg,onProgress=null){
+  const w=current.width,h=current.height,records=[];
+  emitProgress(onProgress,15,"CDM-1 · segmentando t1","segment_t1");
+  const masks=detectMasks(current,cfg);
+  emitProgress(onProgress,35,"CDM-1 · máscaras t1","masks_t1");
+  ORDER.forEach((cls,index)=>{
+    records.push(...recordsFromMask(masks[cls],w,h,cls,"t1_current",cfg));
+    emitProgress(onProgress,35+Math.round((index+1)/ORDER.length*20),"CDM-1 · vetorizando "+LABELS[cls],"vectorize_t1");
+  });
   let temporal={enabled:false,alignment_method:null,stats:{},records:[]};
   if(previous){
-    const prevMasks=detectMasks(previous,cfg),change=temporalCompare(masks,prevMasks,w,h,cfg);
+    emitProgress(onProgress,60,"CDM-1 · segmentando t0","segment_t0");
+    const prevMasks=detectMasks(previous,cfg);
+    emitProgress(onProgress,76,"CDM-1 · comparando t0→t1","temporal_compare");
+    const change=temporalCompare(masks,prevMasks,w,h,cfg);
     temporal={enabled:true,alignment_method:"resize",stats:change.stats,records:change.records};
-  }
+    emitProgress(onProgress,88,"CDM-1 · mudança temporal","temporal_vectors");
+  }else emitProgress(onProgress,88,"CDM-1 · consolidando achados","consolidate");
+  emitProgress(onProgress,92,"CDM-1 · classificação preliminar","condition_rating");
+  const resultSummary=summary(records,cfg,w*h);
+  emitProgress(onProgress,96,"CDM-1 · finalizando núcleo","core_complete");
   return {
-    width:w,height:h,records,temporal,
-    summary:summary(records,cfg,w*h),
+    width:w,height:h,records,temporal,summary:resultSummary,
     protocol:{stages:["base_image","family_response","candidate_mask","open_close_mask","connected_components"],version:"unified_five_stage_v285_browser"}
   };
 }
-function runCoreWorker(current,previous,cfg){
-  if(typeof Worker==="undefined")return Promise.resolve({...computeCdmCore(current,previous,cfg),execution:"main-thread"});
+function runCoreWorker(current,previous,cfg,{signal,onProgress}={}){
+  if(signal?.aborted)return Promise.reject(abortError());
+  if(typeof Worker==="undefined"){
+    const result=computeCdmCore(current,previous,cfg,onProgress);
+    if(signal?.aborted)return Promise.reject(abortError());
+    return Promise.resolve({...result,execution:"main-thread"});
+  }
   const worker=new Worker(new URL("./cdmWorker.js",import.meta.url),{type:"module"});
   return new Promise((resolve,reject)=>{
-    const finish=()=>worker.terminate();
-    worker.onmessage=e=>{
-      finish();
-      if(e.data?.ok)resolve({...e.data.result,execution:"web-worker"});
-      else reject(new Error(e.data?.error||"Falha no Web Worker do CDM-1."));
+    let settled=false;
+    const finish=()=>{
+      if(settled)return;
+      settled=true;
+      signal?.removeEventListener("abort",onAbort);
+      worker.terminate();
     };
-    worker.onerror=e=>{finish();reject(new Error(e.message||"Falha no Web Worker do CDM-1."))};
+    const onAbort=()=>{finish();reject(abortError())};
+    signal?.addEventListener("abort",onAbort,{once:true});
+    worker.onmessage=e=>{
+      if(e.data?.type==="progress"){onProgress?.(e.data.progress);return}
+      if(e.data?.ok){const result=e.data.result;finish();resolve({...result,execution:"web-worker"});return}
+      const error=new Error(e.data?.error||"Falha no Web Worker do CDM-1.");finish();reject(error);
+    };
+    worker.onerror=e=>{const error=new Error(e.message||"Falha no Web Worker do CDM-1.");finish();reject(error)};
     const payload={
       current:{width:current.width,height:current.height,buffer:current.data.buffer},
       previous:previous?{width:previous.width,height:previous.height,buffer:previous.data.buffer}:null,
@@ -328,8 +360,10 @@ async function imageDataFromFile(file,maxSide,target=null){
   let w,h;if(target){[w,h]=target}else{const s=Math.min(1,maxSide/Math.max(bmp.width,bmp.height));w=Math.max(1,Math.round(bmp.width*s));h=Math.max(1,Math.round(bmp.height*s))}
   const c=document.createElement("canvas");c.width=w;c.height=h;const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(bmp,0,0,w,h);bmp.close?.();return ctx.getImageData(0,0,w,h);
 }
-export async function runCdmBrowser(file,options={},previousFile=null){
-  const started=performance.now(),cfg={
+export async function runCdmBrowser(file,options={},previousFile=null,control={}){
+  const started=performance.now(),onProgress=control?.onProgress,signal=control?.signal;
+  if(signal?.aborted)throw abortError();
+  const cfg={
     threshold:clamp(Number(options.cdm_threshold??35),1,255),
     kernel:oddKernel(Number(options.cdm_kernel_size??15)),
     minArea:clamp(Number(options.cdm_min_area??30),1,1e6),
@@ -337,35 +371,68 @@ export async function runCdmBrowser(file,options={},previousFile=null){
     mmPerPx:Math.max(0,Number(options.cdm_mm_per_px??0)),
     elementFamily:options.cdm_element_family||"lajes_vigas_secundarias_apoios"
   };
+  emitProgress(onProgress,3,"CDM-1 · decodificando t1","decode_t1");
+  const decodeStarted=performance.now();
   let current=await imageDataFromFile(file,1600),w=current.width,h=current.height;
-  let previous=previousFile?await imageDataFromFile(previousFile,1600,[w,h]):null;
-  let core;
-  try{
-    core=await runCoreWorker(current,previous,cfg);
-  }catch(workerError){
-    current=await imageDataFromFile(file,1600);
-    w=current.width;h=current.height;
-    previous=previousFile?await imageDataFromFile(previousFile,1600,[w,h]):null;
-    core={...computeCdmCore(current,previous,cfg),execution:"main-thread-fallback",worker_error:String(workerError?.message||workerError)};
+  if(signal?.aborted)throw abortError();
+  let previous=null;
+  if(previousFile){
+    emitProgress(onProgress,7,"CDM-1 · decodificando t0","decode_t0");
+    previous=await imageDataFromFile(previousFile,1600,[w,h]);
+    if(signal?.aborted)throw abortError();
   }
-  const records=core.records||[],layers=[];
+  let decodeMs=performance.now()-decodeStarted,core,coreStarted=performance.now();
+  try{
+    core=await runCoreWorker(current,previous,cfg,{signal,onProgress});
+  }catch(workerError){
+    if(workerError?.name==="AbortError"||signal?.aborted)throw abortError();
+    const fallbackDecodeStarted=performance.now();
+    current=await imageDataFromFile(file,1600);w=current.width;h=current.height;
+    previous=previousFile?await imageDataFromFile(previousFile,1600,[w,h]):null;
+    decodeMs+=performance.now()-fallbackDecodeStarted;
+    if(signal?.aborted)throw abortError();
+    core={...computeCdmCore(current,previous,cfg,onProgress),execution:"main-thread-fallback",worker_error:String(workerError?.message||workerError)};
+  }
+  const coreMs=performance.now()-coreStarted;
+  if(signal?.aborted)throw abortError();
+  emitProgress(onProgress,97,"CDM-1 · renderizando camadas","render_layers");
+  const renderStarted=performance.now(),records=core.records||[],layers=[];
   for(const cls of ORDER){
     const rec=records.filter(r=>r.class===cls);
     layers.push({id:cls,name:LABELS[cls],color:"#"+COLORS[cls].map(v=>v.toString(16).padStart(2,"0")).join(""),count:rec.length,overlay_png_base64:renderLayer(rec,w,h,COLORS[cls])});
   }
   const temporalCore=core.temporal||{enabled:false,alignment_method:null,stats:{},records:[]};
-  const temporalLayers=temporalCore.enabled?["growth","reduction"].map(cls=>{const rec=(temporalCore.records||[]).filter(r=>r.class===cls);return {id:cls,name:cls==="growth"?"Crescimento t0→t1":"Redução t0→t1",color:"#"+COLORS[cls].map(v=>v.toString(16).padStart(2,"0")).join(""),count:rec.length,overlay_png_base64:renderLayer(rec,w,h,COLORS[cls])}}):[];
+  const temporalLayers=temporalCore.enabled?["growth","reduction"].map(cls=>{
+    const rec=(temporalCore.records||[]).filter(r=>r.class===cls);
+    return {id:cls,name:cls==="growth"?"Crescimento t0→t1":"Redução t0→t1",color:"#"+COLORS[cls].map(v=>v.toString(16).padStart(2,"0")).join(""),count:rec.length,overlay_png_base64:renderLayer(rec,w,h,COLORS[cls])};
+  }):[];
   const temporal={...temporalCore,layers:temporalLayers};
   const detections=records.map(r=>({label:r.class,canonical_label:r.class,score:null,box:[r.bbox[0],r.bbox[1],r.bbox[0]+r.bbox[2],r.bbox[1]+r.bbox[3]],polygon:r.points,area_px:r.area_px2}));
   const composite=document.createElement("canvas");composite.width=w;composite.height=h;const cctx=composite.getContext("2d");
-  for(const cls of ORDER){const rec=records.filter(r=>r.class===cls),tmp=document.createElement("canvas");tmp.width=w;tmp.height=h;const tctx=tmp.getContext("2d");for(const r of rec){if(!r.points.length)continue;tctx.beginPath();tctx.moveTo(...r.points[0]);for(let i=1;i<r.points.length;i++)tctx.lineTo(...r.points[i]);if(r.closed){tctx.closePath();tctx.fillStyle="rgba("+COLORS[cls].join(",")+",.59)";tctx.fill()}else{tctx.strokeStyle="rgba("+COLORS[cls].join(",")+",.82)";tctx.lineWidth=Math.max(1,r.width_px);tctx.stroke()}}cctx.drawImage(tmp,0,0)}
+  for(const cls of ORDER){
+    const rec=records.filter(r=>r.class===cls),tmp=document.createElement("canvas");tmp.width=w;tmp.height=h;const tctx=tmp.getContext("2d");
+    for(const r of rec){
+      if(!r.points.length)continue;tctx.beginPath();tctx.moveTo(...r.points[0]);for(let i=1;i<r.points.length;i++)tctx.lineTo(...r.points[i]);
+      if(r.closed){tctx.closePath();tctx.fillStyle="rgba("+COLORS[cls].join(",")+",.59)";tctx.fill()}
+      else{tctx.strokeStyle="rgba("+COLORS[cls].join(",")+",.82)";tctx.lineWidth=Math.max(1,r.width_px);tctx.stroke()}
+    }
+    cctx.drawImage(tmp,0,0);
+  }
+  const renderMs=performance.now()-renderStarted,totalMs=performance.now()-started;
+  if(signal?.aborted)throw abortError();
+  emitProgress(onProgress,100,"CDM-1 · concluído","done");
   const engine={
-    engine_id:"cdm_1",name:"CDM-1",task:"classical",status:"ok",latency_ms:performance.now()-started,detections,
+    engine_id:"cdm_1",name:"CDM-1",task:"classical",status:"ok",latency_ms:totalMs,detections,
     overlay_png_base64:composite.toDataURL("image/png").split(",")[1],
-    metrics:{implementation:"CDM 2.8.5 browser parity",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,geometry_units:"processed_pixels",processed_width:w,processed_height:h,mm_per_px:cfg.mmPerPx||null,layers,summary:core.summary,records,temporal,protocol:core.protocol},
+    metrics:{
+      implementation:"CDM 2.8.5 browser parity",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,
+      performance_ms:{decode:decodeMs,core:coreMs,render:renderMs,total:totalMs},
+      geometry_units:"processed_pixels",processed_width:w,processed_height:h,mm_per_px:cfg.mmPerPx||null,
+      layers,summary:core.summary,records,temporal,protocol:core.protocol
+    },
     message:"CDM-1 executado integralmente no navegador; nenhum dado foi enviado ao Railway. Resultados morfológicos preliminares e confiança não calibrada."
   };
-  return {image_width:w,image_height:h,results:[engine],consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,metadata:{analysis_id:"browser-cdm-"+crypto.randomUUID(),api_version:"browser-1.3",generated_at:new Date().toISOString(),mode:"individual",engine_ids:["cdm_1"],implementation:"cdm-2.8.5-browser-parity-worker"}};
+  return {image_width:w,image_height:h,results:[engine],consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,metadata:{analysis_id:"browser-cdm-"+crypto.randomUUID(),api_version:"browser-1.4",generated_at:new Date().toISOString(),mode:"individual",engine_ids:["cdm_1"],implementation:"cdm-2.8.5-browser-parity-worker"}};
 }
 
 // Test hooks: pure functions used by CI parity checks; not part of the UI API.

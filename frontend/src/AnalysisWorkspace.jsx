@@ -13,7 +13,7 @@ export function detectAsset(file){
 
 export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,engines,onFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap}){
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(true),[resultOpen,setResultOpen]=useState(true);
-  const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState("");
+  const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(.75),[comparison,setComparison]=useState("overlay");
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
   const [selectedDetection,setSelectedDetection]=useState(null);
@@ -26,14 +26,15 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
   useEffect(()=>{if(busy)setStartAt(Date.now());else setStartAt(null)},[busy]);
   useEffect(()=>{if(!startAt)return;const tick=()=>setElapsed(Math.floor((Date.now()-startAt)/1000));tick();const id=setInterval(tick,250);return()=>clearInterval(id)},[startAt]);
-  useEffect(()=>{if(!cameraOpen)return;let cancelled=false;setCameraError("");
+  useEffect(()=>{if(!cameraOpen)return;let cancelled=false;setCameraError("");setCameraReady(false);
     if(!navigator.mediaDevices?.getUserMedia){setCameraError("Câmera indisponível neste navegador ou fora de uma conexão segura.");return}
     navigator.mediaDevices.getUserMedia({video:true,audio:false}).then(s=>{
       if(cancelled){s.getTracks().forEach(t=>t.stop());return}
-      stream.current=s;if(video.current){video.current.srcObject=s;video.current.play().catch(()=>{})}
+      stream.current=s;if(video.current){video.current.srcObject=s;video.current.play().catch(e=>setCameraError("Não foi possível iniciar a prévia: "+e.message))}
     }).catch(e=>setCameraError("Não foi possível acessar a câmera: "+e.message));
     return()=>{cancelled=true;stream.current?.getTracks().forEach(t=>t.stop());stream.current=null}
   },[cameraOpen]);
+  useEffect(()=>{if(!cameraOpen)return;const onKey=e=>{if(e.key==="Escape")setCameraOpen(false)};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[cameraOpen]);
   const results=res?.results||[];
   const shown=results.filter(r=>visible[r.engine_id]!==false);
   const chosen=shown.find(r=>r.engine_id===active)||shown[0];
@@ -44,7 +45,7 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
   const fit=Math.min(viewportSize.width*.83/(imageSize.width*panes),viewportSize.height*.8/imageSize.height);
   const displaySize={width:Math.max(1,imageSize.width*fit*panes),height:Math.max(1,imageSize.height*fit)};
   const pct=progress?.total?Math.min(100,Math.round(progress.completed/progress.total*100)):0;
-  function capture(){const v=video.current;if(!v?.videoWidth)return;const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);c.toBlob(blob=>{if(blob)onFile(new File([blob],"captura-"+Date.now()+".png",{type:"image/png"}))},"image/png");setCameraOpen(false)}
+  function capture(){const v=video.current;if(!v?.videoWidth)return;const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);c.toBlob(blob=>{if(blob){onFile(new File([blob],"captura-"+Date.now()+".png",{type:"image/png"}));setCameraOpen(false)}else setCameraError("Falha ao converter o quadro capturado.")},"image/png")}
   function dragStart(e){if(e.target.closest("button"))return;drag.current={x:e.clientX-position.x,y:e.clientY-position.y};e.currentTarget.setPointerCapture(e.pointerId)}
   function dragMove(e){if(drag.current)setPosition({x:e.clientX-drag.current.x,y:e.clientY-drag.current.y})}
   function dragEnd(){drag.current=null}
@@ -79,7 +80,7 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
             {boxes.map((d,i)=><button key={i} className={"editorDetection "+(selectedDetection?.engineId===chosen.engine_id&&selectedDetection.index===i?"selected":"")} title={d.label||"Achado"} aria-label={`Achado ${i+1}: ${d.label||"sem classificação"}`} style={{left:(d.box[0]/res.image_width*100)+"%",top:(d.box[1]/res.image_height*100)+"%",width:((d.box[2]-d.box[0])/res.image_width*100)+"%",height:((d.box[3]-d.box[1])/res.image_height*100)+"%"}} onClick={()=>{setActive(chosen.engine_id);setSelectedDetection({engineId:chosen.engine_id,index:i})}}/>)}
           </div>}
         </div>}
-        {file&&kind==="2d"&&<div className="editorZoom"><button onClick={()=>setZoom(z=>Math.max(.25,z-.25))}>−</button><span>{Math.round(zoom*100)}%</span><button onClick={()=>setZoom(z=>Math.min(4,z+.25))}>＋</button></div>}
+        {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>setZoom(z=>Math.max(.25,z-.25))}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>setZoom(z=>Math.min(4,z+.25))}>＋</button></div>}
         {resultOpen&&(busy||results.length>0)&&<div className="editorFloating" style={{transform:`translate(${position.x}px,${position.y}px)`}}>
           <div className="editorFloatHead" onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd}><b>Resultados</b><button title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.completed||0}/{progress?.total||selected.length}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel}>Cancelar</button>}</div>}
@@ -91,6 +92,6 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
       </div>
     </div>
     <div className="editorStatus"><span>{error|| (kind==="3d"?"Arquivo 3D reconhecido; análise 2D indisponível":selected.length?selected.length+" motor(es) configurado(s)":"Configure os motores antes de analisar")}</span><span>Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}</span></div>
-    {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera"><header><b>Modo câmera</b><button title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError?<p role="alert">{cameraError}</p>:<video ref={video} autoPlay playsInline muted/>}<footer><span>{cameraError?"Verifique a permissão da câmera":"Prévia ao vivo · capture um quadro para análise 2D"}</span><button onClick={capture} disabled={!!cameraError}><Camera size={16}/> Capturar imagem</button></footer></div></div>}
+    {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera"><header><b>Modo câmera</b><button title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={()=>setCameraReady(true)}/><footer><span>{cameraError?"Verifique a permissão da câmera":cameraReady?"Prévia ao vivo · capture um quadro para análise 2D":"Aguardando câmera…"}</span><button onClick={capture} disabled={!!cameraError||!cameraReady}><Camera size={16}/> Capturar imagem</button></footer></div></div>}
   </section>
 }

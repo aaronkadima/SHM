@@ -49,6 +49,7 @@ export function buildCdmCsv(result){
       ["overlap_ratio",quality.metrics?.overlap_ratio??"",""],
       ["illumination_delta",quality.metrics?.illumination_delta??"",""],
       ["sharpness_ratio",quality.metrics?.sharpness_ratio??"",""],
+      ["edge_similarity",quality.metrics?.edge_similarity??"",""],
       ["issues",(quality.issues||[]).join("|"),""],
       ["warnings",(quality.warnings||[]).join("|"),""]);
     rows.push([],["temporal_class","iou","growth_area_px2","reduction_area_px2"]);
@@ -193,7 +194,8 @@ export function buildCdmIfc(result,inspection={}){
         add("IFCPROPERTYSINGLEVALUE('TemporalChangeValidated',$,IFCBOOLEAN("+(temporalQuality.validated_for_change_quantification===true?".T.":".F.")+") ,$)"),
         add("IFCPROPERTYSINGLEVALUE('TemporalOverlapRatio',$,IFCREAL("+number(temporalQuality.metrics?.overlap_ratio).toFixed(6)+"),$)"),
         add("IFCPROPERTYSINGLEVALUE('TemporalIlluminationDelta',$,IFCREAL("+number(temporalQuality.metrics?.illumination_delta).toFixed(6)+"),$)"),
-        add("IFCPROPERTYSINGLEVALUE('TemporalSharpnessRatio',$,IFCREAL("+number(temporalQuality.metrics?.sharpness_ratio).toFixed(6)+"),$)")
+        add("IFCPROPERTYSINGLEVALUE('TemporalSharpnessRatio',$,IFCREAL("+number(temporalQuality.metrics?.sharpness_ratio).toFixed(6)+"),$)"),
+        add("IFCPROPERTYSINGLEVALUE('TemporalEdgeSimilarity',$,IFCREAL("+number(temporalQuality.metrics?.edge_similarity).toFixed(6)+"),$)")
       );
     }
     const pset=add("IFCPROPERTYSET("+stepText(ifcGuid())+",#"+hist+",'Pset_ConcreteDamageAssessment',$,("+props.map(id=>"#"+id).join(",")+"))");
@@ -214,7 +216,7 @@ export function buildCdmHtml(result,fileName="inspecao.png",inspection={}){
     ?(quality.status==="pass"?"Aprovada para quantificação temporal":quality.status==="warning"?"Válida com ressalvas":quality.status==="fail"?"NÃO VALIDADA para quantificação temporal":"Não informada")
     :"não aplicável";
   const qualityDetail=quality.metrics
-    ?("sobreposição "+(number(quality.metrics.overlap_ratio)*100).toFixed(1)+"% · Δ iluminação "+(number(quality.metrics.illumination_delta)*100).toFixed(1)+"% · razão de nitidez "+number(quality.metrics.sharpness_ratio).toFixed(2))
+    ?("sobreposição "+(number(quality.metrics.overlap_ratio)*100).toFixed(1)+"% · Δ iluminação "+(number(quality.metrics.illumination_delta)*100).toFixed(1)+"% · razão de nitidez "+number(quality.metrics.sharpness_ratio).toFixed(2)+" · similaridade geométrica "+number(quality.metrics.edge_similarity).toFixed(2))
     :"";
   const alignmentText=temporal.enabled
     ?(alignment.accepted?"registro automático Δx="+number(alignment.dx_px).toFixed(0)+" px, Δy="+number(alignment.dy_px).toFixed(0)+" px; ganho "+(number(alignment.improvement)*100).toFixed(1)+"%":"sem translação aplicada; "+escapeHtml(alignment.reason||temporal.alignment_method||"resize"))

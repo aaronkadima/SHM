@@ -1953,9 +1953,10 @@ def detect_records(rgb: np.ndarray, cfg: DetectorConfig, time_label: str = "t1_c
     return records, {"masks": masks, "pipeline": pipeline}
 
 
-def temporal_records(current_masks: Dict[str, np.ndarray], previous_masks: Dict[str, np.ndarray], cfg: DetectorConfig) -> Tuple[List[DamageRecord], Dict[str, Dict[str, float]]]:
+def temporal_records(current_masks: Dict[str, np.ndarray], previous_masks: Dict[str, np.ndarray], cfg: DetectorConfig) -> Tuple[List[DamageRecord], Dict[str, Dict[str, object]]]:
     records: List[DamageRecord] = []
-    stats: Dict[str, Dict[str, float]] = {}
+    stats: Dict[str, Dict[str, object]] = {}
+    mm2_factor = (float(cfg.mm_per_px) ** 2) if cfg.mm_per_px and cfg.mm_per_px > 0 else None
     for cls, cur in current_masks.items():
         if cls not in previous_masks:
             continue
@@ -1966,10 +1967,31 @@ def temporal_records(current_masks: Dict[str, np.ndarray], previous_masks: Dict[
         reduction = prev & (~cur)
         inter = float(np.logical_and(cur, prev).sum())
         union = float(np.logical_or(cur, prev).sum())
+        current_area = float(cur.sum())
+        previous_area = float(prev.sum())
+        growth_area = float(growth.sum())
+        reduction_area = float(reduction.sum())
+        net_change = current_area - previous_area
+        growth_rate = (100.0 * growth_area / previous_area) if previous_area > 0 else None
+        reduction_rate = (100.0 * reduction_area / previous_area) if previous_area > 0 else None
+        net_change_rate = (100.0 * net_change / previous_area) if previous_area > 0 else None
         stats[cls] = {
             "iou": inter / union if union > 0 else 1.0,
-            "growth_area_px2": float(growth.sum()),
-            "reduction_area_px2": float(reduction.sum()),
+            "intersection_area_px2": inter,
+            "union_area_px2": union,
+            "previous_area_px2": previous_area,
+            "current_area_px2": current_area,
+            "growth_area_px2": growth_area,
+            "reduction_area_px2": reduction_area,
+            "net_area_change_px2": net_change,
+            "growth_rate_vs_t0_pct": growth_rate,
+            "reduction_rate_vs_t0_pct": reduction_rate,
+            "net_area_change_vs_t0_pct": net_change_rate,
+            "previous_area_mm2": previous_area * mm2_factor if mm2_factor is not None else None,
+            "current_area_mm2": current_area * mm2_factor if mm2_factor is not None else None,
+            "growth_area_mm2": growth_area * mm2_factor if mm2_factor is not None else None,
+            "reduction_area_mm2": reduction_area * mm2_factor if mm2_factor is not None else None,
+            "net_area_change_mm2": net_change * mm2_factor if mm2_factor is not None else None,
         }
         for rec in records_from_mask(growth, "growth", f"growth_{cls}", cfg):
             rec.confidence_note += f" Classe base: {CLASS_LABELS.get(cls, cls)}."

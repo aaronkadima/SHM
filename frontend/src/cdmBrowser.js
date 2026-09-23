@@ -158,17 +158,32 @@ function temporalQualityAssessment(current,alignedPrevious,alignment={}){
   const cur=sampleGray(current),prev=sampleGray(alignedPrevious);
   const mean=a=>{let s=0;for(let i=0;i<a.length;i++)s+=a[i];return a.length?s/a.length:0};
   const meanCur=mean(cur.gray),meanPrev=mean(prev.gray),illuminationDelta=Math.abs(meanCur-meanPrev)/255;
-  const edgeEnergy=s=>{
-    if(s.width<3||s.height<3)return 0;
-    let sum=0,count=0;
+  const edgeMap=s=>{
+    if(s.width<3||s.height<3)return new Float32Array(0);
+    const out=new Float32Array((s.width-2)*(s.height-2));let k=0;
     for(let y=1;y<s.height-1;y++)for(let x=1;x<s.width-1;x++){
       const i=y*s.width+x;
-      sum+=Math.abs(s.gray[i+1]-s.gray[i-1])+Math.abs(s.gray[i+s.width]-s.gray[i-s.width]);count++;
+      out[k++]=Math.abs(s.gray[i+1]-s.gray[i-1])+Math.abs(s.gray[i+s.width]-s.gray[i-s.width]);
     }
-    return count?sum/count:0;
+    return out;
   };
-  const sharpCur=edgeEnergy(cur),sharpPrev=edgeEnergy(prev),sharpMax=Math.max(sharpCur,sharpPrev);
+  const edgeCur=edgeMap(cur),edgePrev=edgeMap(prev);
+  const edgeEnergy=a=>{let sum=0;for(let i=0;i<a.length;i++)sum+=a[i];return a.length?sum/a.length:0};
+  const sharpCur=edgeEnergy(edgeCur),sharpPrev=edgeEnergy(edgePrev),sharpMax=Math.max(sharpCur,sharpPrev);
   const sharpnessRatio=sharpMax>1e-6?Math.min(sharpCur,sharpPrev)/sharpMax:1;
+  let edgeSimilarity=0;
+  if(edgeCur.length&&edgeCur.length===edgePrev.length){
+    let meanA=0,meanB=0;for(let i=0;i<edgeCur.length;i++){meanA+=edgeCur[i];meanB+=edgePrev[i]}
+    meanA/=edgeCur.length;meanB/=edgePrev.length;
+    let dot=0,aa=0,bb=0,mae=0;
+    for(let i=0;i<edgeCur.length;i++){
+      const da=edgeCur[i]-meanA,db=edgePrev[i]-meanB;
+      dot+=da*db;aa+=da*da;bb+=db*db;mae+=Math.abs(edgeCur[i]-edgePrev[i]);
+    }
+    const denom=Math.sqrt(aa*bb);
+    edgeSimilarity=denom>1e-9?dot/denom:(mae/edgeCur.length<1e-6?1:0);
+  }
+  edgeSimilarity=Math.max(-1,Math.min(1,edgeSimilarity));
   const clippedFraction=s=>{let n=0;for(let i=0;i<s.gray.length;i++)if(s.gray[i]<=5||s.gray[i]>=250)n++;return s.gray.length?n/s.gray.length:0};
   const clippedCur=clippedFraction(cur),clippedPrev=clippedFraction(prev),clippedMax=Math.max(clippedCur,clippedPrev);
   const dx=Math.abs(Number(alignment.dx_px||0)),dy=Math.abs(Number(alignment.dy_px||0));
@@ -178,13 +193,14 @@ function temporalQualityAssessment(current,alignedPrevious,alignment={}){
   if(overlapRatio<.85)issues.push("insufficient_overlap");else if(overlapRatio<.92)warnings.push("reduced_overlap");
   if(illuminationDelta>.22)issues.push("illumination_mismatch");else if(illuminationDelta>.12)warnings.push("illumination_difference");
   if(sharpnessRatio<.45)issues.push("sharpness_mismatch");else if(sharpnessRatio<.65)warnings.push("sharpness_difference");
+  if(edgeSimilarity<.35)issues.push("geometric_mismatch");else if(edgeSimilarity<.55)warnings.push("geometric_consistency_low");
   if(clippedMax>.35)issues.push("exposure_clipping");else if(clippedMax>.20)warnings.push("exposure_warning");
   if(sharpMax<3)warnings.push("low_texture");
   const status=issues.length?"fail":warnings.length?"warning":"pass";
   return {
     schema:"cdm_temporal_quality_v1",status,validated_for_change_quantification:issues.length===0,issues,warnings,
-    metrics:{overlap_ratio:overlapRatio,illumination_delta:illuminationDelta,mean_luminance_t1:meanCur,mean_luminance_t0_aligned:meanPrev,sharpness_t1:sharpCur,sharpness_t0_aligned:sharpPrev,sharpness_ratio:sharpnessRatio,clipped_fraction_t1:clippedCur,clipped_fraction_t0_aligned:clippedPrev,sample_step:step},
-    thresholds:{min_overlap_fail:.85,min_overlap_warning:.92,max_illumination_delta_fail:.22,max_illumination_delta_warning:.12,min_sharpness_ratio_fail:.45,min_sharpness_ratio_warning:.65,max_clipped_fraction_fail:.35,max_clipped_fraction_warning:.20}
+    metrics:{overlap_ratio:overlapRatio,illumination_delta:illuminationDelta,mean_luminance_t1:meanCur,mean_luminance_t0_aligned:meanPrev,sharpness_t1:sharpCur,sharpness_t0_aligned:sharpPrev,sharpness_ratio:sharpnessRatio,edge_similarity:edgeSimilarity,clipped_fraction_t1:clippedCur,clipped_fraction_t0_aligned:clippedPrev,sample_step:step},
+    thresholds:{min_overlap_fail:.85,min_overlap_warning:.92,max_illumination_delta_fail:.22,max_illumination_delta_warning:.12,min_sharpness_ratio_fail:.45,min_sharpness_ratio_warning:.65,min_edge_similarity_fail:.35,min_edge_similarity_warning:.55,max_clipped_fraction_fail:.35,max_clipped_fraction_warning:.20}
   };
 }
 

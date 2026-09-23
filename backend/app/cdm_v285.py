@@ -349,7 +349,7 @@ class DetectorConfig:
     reference_length_px: float = 0.0
     reference_length_mm: float = 0.0
     compare_previous: bool = False
-    alignment_method: str = "resize"
+    alignment_method: str = "translation_auto"
     output_svg: str = ""
     max_processing_dimension: int = 1600
     show_results_popup: bool = True
@@ -2834,11 +2834,20 @@ def run_processing(current_path: str, cfg: DetectorConfig, existing_root=None, s
     current_masks = current_masks_info.get("masks", {}) if isinstance(current_masks_info, dict) else {}
     pipeline_info = current_masks_info.get("pipeline", {}) if isinstance(current_masks_info, dict) else {}
     temporal_stats: Dict[str, Dict[str, float]] = {}
+    alignment_info: Dict[str, object] = {
+        "method_requested": cfg.alignment_method,
+        "method_applied": "not_run",
+        "accepted": False,
+        "dx_px": 0,
+        "dy_px": 0,
+    }
 
     if cfg.compare_previous and cfg.previous_image_path and Path(cfg.previous_image_path).exists():
         with profiler.stage("t0 | image decoding + resize"):
             prev_img = read_image(cfg.previous_image_path).resize((proc_w, proc_h), Image.Resampling.BILINEAR)
             prev_arr = np.asarray(prev_img, dtype=np.uint8)
+        with profiler.stage("Temporal | t0→t1 registration"):
+            prev_arr, alignment_info = align_previous_rgb(arr, prev_arr, cfg.alignment_method)
         prev_records, prev_masks_info = detect_records(prev_arr, cfg, "t0_previous", profiler=profiler)
         prev_masks = prev_masks_info.get("masks", {}) if isinstance(prev_masks_info, dict) else {}
         records = prev_records + records
@@ -2941,6 +2950,7 @@ def run_processing(current_path: str, cfg: DetectorConfig, existing_root=None, s
             "max_processing_dimension": cfg.max_processing_dimension,
             "detection_scope": cfg.detection_scope,
             "temporal_comparison": cfg.compare_previous,
+            "temporal_alignment": alignment_info,
             "pipeline_protocol": "unified_five_stage_v285",
         },
         "detection": {
@@ -3090,7 +3100,7 @@ if inkex is not None:
             pars.add_argument("--reference_length_px", type=float, default=0.0)
             pars.add_argument("--reference_length_mm", type=float, default=0.0)
             pars.add_argument("--compare_previous", type=inkex.Boolean, default=False)
-            pars.add_argument("--alignment_method", type=str, default="resize")
+            pars.add_argument("--alignment_method", type=str, default="translation_auto")
             pars.add_argument("--max_processing_dimension", type=int, default=1600)
             pars.add_argument("--show_results_popup", type=inkex.Boolean, default=True)
             pars.add_argument("--clean_previous_outputs", type=inkex.Boolean, default=True)

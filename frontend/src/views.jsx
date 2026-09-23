@@ -159,7 +159,7 @@ export function AlertsView({res,history,historyBusy,historyErr,onOpenHistory,onD
           <span>{h.created_at?new Date(h.created_at).toLocaleString("pt-BR"):"—"}</span>
           <span><b>{h.inspection?.oae_id||"OAE não identificada"}</b><small>{h.inspection?.element_id||"elemento não identificado"}{h.inspection?.inspection_label?" · "+h.inspection.inspection_label:""}</small></span>
           <span>{h.inspection?.source_id||h.file_meta?.name||"—"}{h.summary?.has_reference_image?<small>t0: {h.reference_file_meta?.name||"referência salva"}</small>:null}</span>
-          <span>{h.summary?.mode||"—"} · {h.summary?.engines_total||0} motor(es){h.summary?.temporal_comparison?<small>comparação t0→t1</small>:null}</span>
+          <span>{h.summary?.mode||"—"} · {h.summary?.engines_total||0} motor(es){h.summary?.temporal_comparison?<small>t0→t1{h.summary?.temporal_alignment?.accepted?` · Δx ${h.summary.temporal_alignment.dx_px}px · Δy ${h.summary.temporal_alignment.dy_px}px`:" · sem translação"}</small>:null}</span>
           <span>{h.summary?.detections||0}</span>
           <span className="historyActions"><button onClick={()=>onOpenHistory(h.id,"reports")}>Abrir</button><button className="dangerAction" onClick={()=>onDeleteHistory(h.id)}>Excluir</button></span>
         </div>)}

@@ -187,6 +187,18 @@ const alignedError=meanRgbError(imageData(registrationCase.current_rgb),shiftedR
 check(alignedError<registrationCase.expected.mean_abs_error_before*.35,`registration should strongly reduce image error; got ${alignedError}`);
 console.log(`registration known shift corrected: dx=${shiftedRegistration.metrics.dx_px}, dy=${shiftedRegistration.metrics.dy_px}, error=${alignedError.toFixed(4)}`);
 
+const farCase=fixture.registration_out_of_range_case;
+const farRegistration=__cdmTest.registerPrevious(
+  imageData(farCase.current_rgb),
+  imageData(farCase.previous_rgb),
+  "translation_auto"
+);
+console.log("alignment out-of-range",JSON.stringify({got:farRegistration.metrics,expected:farCase.expected.alignment}));
+check(farRegistration.metrics.accepted===false,"out-of-range camera shift must be rejected");
+check(farRegistration.metrics.reason==="search_boundary_hit","out-of-range camera shift must report search_boundary_hit");
+check(farRegistration.metrics.dx_px===0&&farRegistration.metrics.dy_px===0,"rejected registration must apply zero translation");
+check(farRegistration.metrics.boundary_hit===true,"out-of-range registration must mark boundary_hit");
+
 if(failures.length){
   console.error("\nCDM parity failures:");
   for(const f of failures)console.error(" - "+f);

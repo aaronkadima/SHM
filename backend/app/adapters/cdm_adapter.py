@@ -1,9 +1,58 @@
 """CDM-1: execute the user's CDM v2.8.5 morphology code without Inkscape UI."""
+import numpy as np
 from PIL import Image,ImageDraw
 
 from .base import AdapterMeta, EngineAdapter, png_b64
 from .. import cdm_v285 as cdm
 from ..schemas import Detection, EngineResult
+
+
+CURRENT_COLORS = {
+    "cracks": (230, 0, 0),
+    "spalling_dark": (255, 153, 0),
+    "exposed_rebar": (140, 140, 140),
+    "corrosion_rust": (139, 63, 0),
+    "efflorescence_white": (0, 102, 204),
+}
+TEMPORAL_COLORS = {
+    "growth": (0, 145, 90),
+    "reduction": (112, 78, 170),
+}
+TEMPORAL_LABELS = {
+    "growth": "Crescimento t0→t1",
+    "reduction": "Redução t0→t1",
+}
+
+
+def _record_payload(record):
+    return {
+        "id": record.record_id,
+        "time_label": record.time_label,
+        "class": record.damage_class,
+        "bbox": list(record.bbox),
+        "points": [list(p) for p in record.points],
+        "closed": record.is_closed,
+        "area_px2": record.area_px2,
+        "perimeter_px": record.perimeter_px,
+        "length_px": record.length_px,
+        "width_px": record.width_px,
+        "aspect_ratio": record.aspect_ratio,
+        "confidence_note": record.confidence_note,
+    }
+
+
+def _paint_records(size, records, color):
+    layer_image = Image.new("RGBA", size)
+    draw = ImageDraw.Draw(layer_image)
+    for record in records:
+        points = [tuple(p) for p in record.points]
+        if len(points) < 2:
+            continue
+        if record.is_closed:
+            draw.polygon(points, fill=(*color, 150))
+        else:
+            draw.line(points, fill=(*color, 180), width=max(1, round(record.width_px)))
+    return layer_image
 
 
 class CDM1Adapter(EngineAdapter):
@@ -16,64 +65,93 @@ class CDM1Adapter(EngineAdapter):
     def predict(self, image: Image.Image):
         return self.predict_configured(image, cdm.DetectorConfig())
 
-    def predict_configured(self, image: Image.Image, cfg: cdm.DetectorConfig):
+    def predict_configured(self, image: Image.Image, cfg: cdm.DetectorConfig,
+                           previous_image: Image.Image | None = None):
         rgb, (width, height) = cdm.image_to_array(image.convert("RGB"), cfg.max_processing_dimension)
-        masks, pipeline = cdm.detect_masks(rgb, cfg)
+        masks, pipeline = cdm.detect_masks(rgb, cfg, run_tag="t1")
         detections = []
         layers = []
         records_all = []
         composite = Image.new("RGBA", (width, height))
-        colors = {
-            "cracks": (230, 0, 0),
-            "spalling_dark": (255, 153, 0),
-            "exposed_rebar": (140, 140, 140),
-            "corrosion_rust": (139, 63, 0),
-            "efflorescence_white": (0, 102, 204),
-        }
+
         for family in cdm.LAYER_ORDER:
-            if family not in masks or family not in colors:
+            if family not in masks or family not in CURRENT_COLORS:
                 continue
             records = cdm.records_from_mask(masks[family], family, "t1_current", cfg)
             records_all.extend(records)
-            # Keep the exact accepted connected components from CDM, rather than
-            # painting candidates that its geometry filters rejected.
-            layer_image = Image.new("RGBA", (width, height))
-            draw = ImageDraw.Draw(layer_image)
+            layer_image = _paint_records((width, height), records, CURRENT_COLORS[family])
             for record in records:
                 x, y, w, h = record.bbox
-                points = [[float(px), float(py)] for px, py in record.points]
                 detections.append(Detection(
-                    label=family, score=None, box=[x, y, x + w, y + h], polygon=points,
+                    label=family, score=None, box=[x, y, x + w, y + h],
+                    polygon=[[float(px), float(py)] for px, py in record.points],
                     area_px=record.area_px2,
                 ))
-                # Geometry is rasterized from the record, not the entire raw mask.
-                if record.is_closed:
-                    draw.polygon([tuple(p) for p in record.points], fill=(*colors[family],150))
-                else:
-                    draw.line([tuple(p) for p in record.points], fill=(*colors[family],150),
-                              width=max(1, round(record.width_px)))
             composite.alpha_composite(layer_image)
             layers.append({
-                "id": family, "name": cdm.CLASS_LABELS[family],
-                "color": "#%02x%02x%02x" % colors[family],
-                "count": len(records), "overlay_png_base64": png_b64(layer_image),
+                "id": family,
+                "name": cdm.CLASS_LABELS[family],
+                "color": "#%02x%02x%02x" % CURRENT_COLORS[family],
+                "count": len(records),
+                "overlay_png_base64": png_b64(layer_image),
             })
+
+        temporal = {"enabled": False, "stats": {}, "records": [], "layers": []}
+        if previous_image is not None:
+            previous_resized = previous_image.convert("RGB").resize(
+                (width, height), Image.Resampling.BILINEAR
+            )
+            previous_rgb = np.asarray(previous_resized, dtype=np.uint8)
+            previous_masks, previous_pipeline = cdm.detect_masks(
+                previous_rgb, cfg, run_tag="t0"
+            )
+            change_records, temporal_stats = cdm.temporal_records(masks, previous_masks, cfg)
+            temporal_layers = []
+            for change_class in ("growth", "reduction"):
+                class_records = [r for r in change_records if r.damage_class == change_class]
+                layer_image = _paint_records(
+                    (width, height), class_records, TEMPORAL_COLORS[change_class]
+                )
+                temporal_layers.append({
+                    "id": change_class,
+                    "name": TEMPORAL_LABELS[change_class],
+                    "color": "#%02x%02x%02x" % TEMPORAL_COLORS[change_class],
+                    "count": len(class_records),
+                    "overlay_png_base64": png_b64(layer_image),
+                })
+            temporal = {
+                "enabled": True,
+                "alignment_method": "resize",
+                "stats": temporal_stats,
+                "records": [_record_payload(r) for r in change_records],
+                "layers": temporal_layers,
+                "previous_protocol": previous_pipeline.get("protocol"),
+            }
+
         summary = cdm.summarize_records(records_all, cfg.scale_info(), cfg, width * height)
         return EngineResult(
-            engine_id=self.meta.id, name=self.meta.name, task=self.meta.task,
-            status="ok", detections=detections,
+            engine_id=self.meta.id,
+            name=self.meta.name,
+            task=self.meta.task,
+            status="ok",
+            detections=detections,
             overlay_png_base64=png_b64(composite),
-            metrics={"implementation": "CDM 2.8.5", "runtime": "python-numpy-pillow",
-                     "geometry_units": "processed_pixels", "processed_width": width,
-                     "processed_height": height, "mm_per_px": cfg.scale_info().mm_per_px,
-                     "layers": layers,
-                     "summary": summary,
-                     "records": [{"id": r.record_id, "class": r.damage_class,
-                                  "bbox": list(r.bbox), "points": [list(p) for p in r.points],
-                                  "closed": r.is_closed, "area_px2": r.area_px2,
-                                  "perimeter_px": r.perimeter_px, "length_px": r.length_px,
-                                  "width_px": r.width_px, "aspect_ratio": r.aspect_ratio,
-                                  "confidence_note": r.confidence_note} for r in records_all],
-                     "protocol": pipeline["protocol"]},
-            message="Máscaras morfológicas preliminares; pontuações de confiança não calibradas.",
+            metrics={
+                "implementation": "CDM 2.8.5",
+                "runtime": "python-numpy-pillow",
+                "geometry_units": "processed_pixels",
+                "processed_width": width,
+                "processed_height": height,
+                "mm_per_px": cfg.scale_info().mm_per_px,
+                "layers": layers,
+                "summary": summary,
+                "records": [_record_payload(r) for r in records_all],
+                "temporal": temporal,
+                "protocol": pipeline["protocol"],
+            },
+            message=(
+                "Máscaras morfológicas preliminares; pontuações de confiança não calibradas. "
+                + ("Comparação t0/t1 calculada por máscaras alinhadas por redimensionamento."
+                   if temporal["enabled"] else "")
+            ).strip(),
         )

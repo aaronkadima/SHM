@@ -7,6 +7,7 @@ on:
       - "backend/app/adapters/cdm_adapter.py"
       - "backend/tests/generate_cdm_parity_fixture.py"
       - "frontend/src/cdmBrowser.js"
+      - "frontend/src/cdmWorker.js"
       - "frontend/scripts/check-cdm-parity.mjs"
       - ".github/workflows/cdm-parity.yml"
   push:
@@ -16,6 +17,7 @@ on:
       - "backend/app/adapters/cdm_adapter.py"
       - "backend/tests/generate_cdm_parity_fixture.py"
       - "frontend/src/cdmBrowser.js"
+      - "frontend/src/cdmWorker.js"
       - "frontend/scripts/check-cdm-parity.mjs"
       - ".github/workflows/cdm-parity.yml"
   workflow_dispatch:

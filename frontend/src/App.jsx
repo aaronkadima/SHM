@@ -96,6 +96,7 @@ export default function App(){
   const[referenceFile,setReferenceFile]=useState(null);
   const[referencePrev,setReferencePrev]=useState(null);
   const[referenceInspectionId,setReferenceInspectionId]=useState(null);
+  const[referenceInspectionMeta,setReferenceInspectionMeta]=useState(null);
   const[res,setRes]=useState(null);
   const[busy,setBusy]=useState(false);
   const[jobId,setJobId]=useState(null);
@@ -175,6 +176,7 @@ export default function App(){
       setReferenceFile(restoredReferenceFile);
       setReferencePrev(restoredReferencePreview);
       setReferenceInspectionId(record.reference_inspection_id||record.summary?.reference_inspection_id||null);
+      setReferenceInspectionMeta(record.reference_inspection_meta||linkedReferenceRecord?.inspection||null);
       setRes(record.result||null);
       setInspectionMeta({...EMPTY_INSPECTION,...(record.inspection||{})});
       setSel(new Set(record.summary?.engine_ids||record.result?.metadata?.engine_ids||[]));
@@ -196,6 +198,7 @@ export default function App(){
       setReferenceFile(restoredReferenceFile);
       setReferencePrev(URL.createObjectURL(blob));
       setReferenceInspectionId(record.id);
+      setReferenceInspectionMeta({...EMPTY_INSPECTION,...(record.inspection||{})});
       setFile(null);
       setPrev(null);
       setRes(null);
@@ -281,7 +284,7 @@ export default function App(){
     if(prev)URL.revokeObjectURL(prev);setPrev(f?URL.createObjectURL(f):null);
   }
   function pickReference(f){
-    setReferenceFile(f);setReferenceInspectionId(null);setRes(null);setProgress(null);setJobId(null);setErr("");
+    setReferenceFile(f);setReferenceInspectionId(null);setReferenceInspectionMeta(null);setRes(null);setProgress(null);setJobId(null);setErr("");
     if(referencePrev)URL.revokeObjectURL(referencePrev);
     setReferencePrev(f?URL.createObjectURL(f):null);
   }
@@ -344,8 +347,22 @@ export default function App(){
 
   async function run(){
     if(!file||!selected.length||busy)return;
-    const runId=++runSeq.current,controller=new AbortController(),mode=runMode;
-    const sourceFile=file,sourceReference=referenceFile,sourceReferenceInspectionId=referenceInspectionId,engineIds=[...selected],inspection={...inspectionMeta};
+    const mode=runMode,engineIds=[...selected],inspection={...inspectionMeta};
+    const sourceFile=file,sourceReference=referenceFile,sourceReferenceInspectionId=referenceInspectionId,sourceReferenceInspectionMeta=referenceInspectionMeta?{...referenceInspectionMeta}:null;
+    if(mode==="individual"&&engineIds[0]==="cdm_1"&&sourceReferenceInspectionId&&sourceReferenceInspectionMeta){
+      const same=(a,b)=>String(a||"").trim()===String(b||"").trim();
+      const refOae=String(sourceReferenceInspectionMeta.oae_id||"").trim(),refElement=String(sourceReferenceInspectionMeta.element_id||"").trim();
+      const curOae=String(inspection.oae_id||"").trim(),curElement=String(inspection.element_id||"").trim();
+      if(!refOae||!refElement){
+        setErr("A inspeção histórica usada como t0 não possui identificação completa de OAE e elemento. Use uma referência manual ou corrija o registro antes da comparação temporal.");
+        return;
+      }
+      if(!same(curOae,refOae)||!same(curElement,refElement)){
+        setErr("Referência t0 incompatível: a inspeção vinculada pertence a "+refOae+" / "+refElement+". O t1 deve manter a mesma OAE e o mesmo elemento.");
+        return;
+      }
+    }
+    const runId=++runSeq.current,controller=new AbortController();
     activeRun.current?.controller?.abort();
     activeRun.current={id:runId,controller,mode};
     setBusy(true);setErr("");setRes(null);setProgress({state:"starting",completed:0,total:mode==="individual"?100:engineIds.length,current_engine:"Preparando análise"});
@@ -358,7 +375,7 @@ export default function App(){
       try{
         await requestPersistentStorage();
         if(controller.signal.aborted||activeRun.current?.id!==runId)return;
-        await saveInspection({result,file:sourceFile,referenceFile:sourceReference,referenceInspectionId:sourceReferenceInspectionId,inspection});
+        await saveInspection({result,file:sourceFile,referenceFile:sourceReference,referenceInspectionId:sourceReferenceInspectionId,referenceInspectionMeta:sourceReferenceInspectionMeta,inspection});
         await refreshHistory();
       }catch(storageError){
         if(activeRun.current?.id===runId)setHistoryErr("A análise foi concluída, mas não pôde ser persistida no histórico local: "+String(storageError));
@@ -415,7 +432,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
+    <AnalysisWorkspace file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
     {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 

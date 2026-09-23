@@ -2,10 +2,17 @@ import asyncio,io,os,time
 from fastapi import FastAPI,File,Form,HTTPException,Request,UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from PIL import Image
-from .registry import REGISTRY
+from PIL import Image,ImageOps
 from .schemas import EngineInfo
 from . import cdm_v285
+
+LOCKED_ENGINE=os.getenv("SHM_ENGINE_ID","").strip()
+if LOCKED_ENGINE=="cdm_1":
+    # The CDM deployment needs no computer-vision model runtimes or PyTorch.
+    from .adapters.cdm_adapter import CDM1Adapter
+    REGISTRY={"cdm_1":CDM1Adapter()}
+else:
+    from .registry import REGISTRY
 
 app=FastAPI(title="SHM Standalone Engine API",version="1.0.0")
 _origins=[x.strip().rstrip("/") for x in os.getenv(
@@ -21,7 +28,6 @@ async def private_network_header(request:Request,call_next):
         response.headers["Access-Control-Allow-Private-Network"]="true"
     return response
 
-LOCKED_ENGINE=os.getenv("SHM_ENGINE_ID","").strip()
 MAX_UPLOAD_MB=float(os.getenv("SHM_MAX_UPLOAD_MB","20"))
 MAX_SIDE=int(os.getenv("SHM_MAX_IMAGE_SIDE","1600"))
 
@@ -72,7 +78,7 @@ async def infer(file:UploadFile=File(...),engine_id:str=Form(...),
     if len(raw)>MAX_UPLOAD_MB*1024*1024:
         raise HTTPException(413,f"Arquivo excede {MAX_UPLOAD_MB:g} MB")
     try:
-        image=Image.open(io.BytesIO(raw)).convert("RGB")
+        image=ImageOps.exif_transpose(Image.open(io.BytesIO(raw))).convert("RGB")
     except Exception as exc:
         raise HTTPException(400,"Imagem inválida: "+str(exc))
     if max(image.size)>MAX_SIDE:

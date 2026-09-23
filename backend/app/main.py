@@ -2,7 +2,7 @@ import asyncio,io,os,shutil,time,uuid
 from datetime import datetime,timezone
 from fastapi import FastAPI,File,Form,HTTPException,UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from PIL import Image
+from PIL import Image,ImageOps
 from .registry import REGISTRY
 from .schemas import CompareResponse,EngineInfo
 from .taxonomy import build_consensus
@@ -46,7 +46,7 @@ def _decode_image(raw):
     if len(raw)>MAX_UPLOAD_MB*1024*1024:
         raise HTTPException(413,f"Arquivo excede {MAX_UPLOAD_MB:g} MB")
     try:
-        image=Image.open(io.BytesIO(raw)).convert("RGB")
+        image=ImageOps.exif_transpose(Image.open(io.BytesIO(raw))).convert("RGB")
     except Exception as e:
         raise HTTPException(400,"Imagem inválida: "+str(e))
     if max(image.size)>MAX_SIDE:

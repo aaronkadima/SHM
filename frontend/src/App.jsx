@@ -184,6 +184,8 @@ export default function App(){
       if(!r.ok)throw new Error("HTTP "+r.status);
       const j=await r.json();
       if(j.role!=="standalone")throw new Error("O endpoint não declarou role=standalone.");
+      if(j.ready===false)throw new Error(j.reason||"O motor individual não está pronto.");
+      if(selected.length===1&&j.engine_id&&j.engine_id!==selected[0])throw new Error("O serviço atende ao motor "+j.engine_id+", mas o motor selecionado é "+selected[0]+".");
       setIndividualOnline(true);
     }catch(e){setIndividualOnline(false);setErr("Backend individual indisponível: "+(e instanceof TypeError?"Não foi possível acessar o endereço. Confira HTTPS, disponibilidade do serviço e CORS.":e.message||String(e)))}
   }

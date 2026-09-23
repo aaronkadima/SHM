@@ -24,5 +24,28 @@ public comparator only accepts two or more engines. The exported SVG contains
 vector pathology layers, while the imported image remains the separate original
 image in SHM.
 
+## Independent HTTPS service
+
+`Dockerfile.cdm` installs only `requirements-cdm.txt`, locks the service to
+`SHM_ENGINE_ID=cdm_1`, and listens on the host-provided `PORT` (default 8000).
+Configure a separate container host with:
+
+- Repository `aaronkadima/SHM` and a branch containing CDM-1.
+- Build context/root `backend` and Dockerfile `Dockerfile.cdm`.
+- A public HTTPS domain forwarded to the service port.
+- `STANDALONE_CORS_ORIGINS=https://aaronkadima.github.io`.
+
+Check `<public-url>/health` for `role=standalone`, `engine_id=cdm_1`, and
+`ready=true`; then save that base URL in **Configurações → Conexões dos motores
+→ Backend individual**. Railway remains the two-or-more-engine comparator.
+Visitors to GitHub Pages do not need Docker installed locally.
+
+For an optional local smoke test of the container:
+
+```sh
+docker build -f backend/Dockerfile.cdm -t shm-cdm-1 backend
+docker run --rm -p 8000:8000 shm-cdm-1
+```
+
 The source file was copied from the user's `concrete_damage_morphology_v285_native.py`
 artifact; keep it in sync when the Inkscape extension changes.

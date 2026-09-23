@@ -1,6 +1,5 @@
 """CDM-1: execute the user's CDM v2.8.5 morphology code without Inkscape UI."""
-import numpy as np
-from PIL import Image
+from PIL import Image,ImageDraw
 
 from .base import AdapterMeta, EngineAdapter, png_b64
 from .. import cdm_v285 as cdm
@@ -38,7 +37,8 @@ class CDM1Adapter(EngineAdapter):
             records_all.extend(records)
             # Keep the exact accepted connected components from CDM, rather than
             # painting candidates that its geometry filters rejected.
-            layer_arr = np.zeros((height, width, 4), dtype=np.uint8)
+            layer_image = Image.new("RGBA", (width, height))
+            draw = ImageDraw.Draw(layer_image)
             for record in records:
                 x, y, w, h = record.bbox
                 points = [[float(px), float(py)] for px, py in record.points]
@@ -47,17 +47,11 @@ class CDM1Adapter(EngineAdapter):
                     area_px=record.area_px2,
                 ))
                 # Geometry is rasterized from the record, not the entire raw mask.
-                from PIL import ImageDraw
-                region = Image.new("L", (width, height))
-                draw = ImageDraw.Draw(region)
                 if record.is_closed:
-                    draw.polygon([tuple(p) for p in record.points], fill=255)
+                    draw.polygon([tuple(p) for p in record.points], fill=(*colors[family],150))
                 else:
-                    draw.line([tuple(p) for p in record.points], fill=255, width=max(1, round(record.width_px)))
-                region_np = np.asarray(region) > 0
-                layer_arr[region_np, :3] = colors[family]
-                layer_arr[region_np, 3] = 150
-            layer_image = Image.fromarray(layer_arr, "RGBA")
+                    draw.line([tuple(p) for p in record.points], fill=(*colors[family],150),
+                              width=max(1, round(record.width_px)))
             composite.alpha_composite(layer_image)
             layers.append({
                 "id": family, "name": cdm.CLASS_LABELS[family],

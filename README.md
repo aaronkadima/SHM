@@ -20,9 +20,9 @@ https://aaronkadima.github.io/SHM/
 A página possui dois runtimes separados:
 
 1. **Motor individual — standalone**
-   - padrão: `http://127.0.0.1:8001`;
-   - usado somente quando exatamente um motor está selecionado;
-   - não faz request de inferência ao Railway.
+   - motores com runtime no navegador executam localmente no browser;
+   - os demais exigem uma URL standalone HTTPS em Configurações;
+   - usado somente quando exatamente um motor está selecionado e não envia a imagem ao Railway.
 
 2. **Comparador multi-engine — Railway**
    - produção: `https://shm-api-production-01f8.up.railway.app`;
@@ -58,6 +58,11 @@ python run_engine.py --engine segformer_public_crack --port 8001
 ```
 
 O servidor standalone usa exatamente o mesmo código de motor que o comparador.
+
+O CDM-1 possui uma imagem de serviço independente e leve em
+[`backend/Dockerfile.cdm`](backend/Dockerfile.cdm). Veja
+[`backend/CDM-1.md`](backend/CDM-1.md) para execução, calibração e configuração
+de uma URL HTTPS pública sem instalar Docker no computador do usuário.
 
 ## Comparação multi-engine
 

@@ -1,4 +1,4 @@
-import React,{useMemo,useState,useEffect}from"react";
+import React,{useMemo,useState,useEffect,useRef}from"react";
 import{Layers3}from"lucide-react";
 import catalog from"./engines.json";
 import AnalysisWorkspace from"./AnalysisWorkspace.jsx";
@@ -51,6 +51,12 @@ function exportCsv(res){
   downloadBlob("shm-comparison.csv","text/csv;charset=utf-8","\uFEFF"+rows.map(x=>x.map(csvCell).join(",")).join("\n"));
 }
 function downloadConsensus(res){if(res.consensus_overlay_png_base64)saveBase64("shm-consensus.png",res.consensus_overlay_png_base64)}
+function combinedSignal(signal,timeoutMs){
+  const timeout=typeof AbortSignal!=="undefined"&&AbortSignal.timeout?AbortSignal.timeout(timeoutMs):null;
+  if(signal&&timeout&&AbortSignal.any)return AbortSignal.any([signal,timeout]);
+  return signal||timeout||undefined;
+}
+function isAbortError(error){return error?.name==="AbortError"||/cancelad|aborted|abort/i.test(String(error?.message||error||""))}
 function exportCdm(result,fileName,format,inspection={}){
   if(result?.engine_id!=="cdm_1")return;
   const payload={...result,width:result.metrics?.processed_width,height:result.metrics?.processed_height};
@@ -90,6 +96,7 @@ export default function App(){
   const[history,setHistory]=useState([]);
   const[historyBusy,setHistoryBusy]=useState(false);
   const[historyErr,setHistoryErr]=useState("");
+  const activeRun=useRef(null),runSeq=useRef(0);
   const[activeView,setActiveView]=useState(()=>{
     const v=window.location.hash.replace(/^#\//,"");
     return ["dashboard","cameras","analysis","alerts","reports","engines","settings"].includes(v)?v:"analysis";
@@ -97,6 +104,7 @@ export default function App(){
 
   useEffect(()=>()=>{if(prev)URL.revokeObjectURL(prev)},[prev]);
   useEffect(()=>()=>{if(referencePrev)URL.revokeObjectURL(referencePrev)},[referencePrev]);
+  useEffect(()=>()=>{activeRun.current?.controller?.abort()},[]);
   useEffect(()=>{localStorage.setItem("shmSelectedEngines",JSON.stringify([...sel]))},[sel]);
   useEffect(()=>{localStorage.setItem("shmInspectionMetaDraft",JSON.stringify(inspectionMeta))},[inspectionMeta]);
   useEffect(()=>{localStorage.setItem("shmCdm1Options",JSON.stringify(cdmOptions))},[cdmOptions]);
@@ -210,8 +218,8 @@ export default function App(){
       setIndividualOnline(true);
     }catch(e){setIndividualOnline(false);setErr("Backend individual indisponível: "+(e instanceof TypeError?"Não foi possível acessar o endereço. Confira HTTPS, disponibilidade do serviço e CORS.":e.message||String(e)))}
   }
-  async function ensureComparator(){
-    const r=await fetch(comparatorApi+"/health",{signal:AbortSignal.timeout(12000)});
+  async function ensureComparator(signal=null){
+    const r=await fetch(comparatorApi+"/health",{signal:combinedSignal(signal,12000)});
     if(!r.ok)throw new Error("Comparador respondeu HTTP "+r.status);
     const j=await r.json();
     if(j.role&&j.role!=="comparator")throw new Error("O backend informado não está em modo comparator.");
@@ -237,45 +245,55 @@ export default function App(){
   function selectVerified(){setSel(new Set(engines.filter(e=>e.cloud_verified).map(e=>e.id)))}
   function clearSelection(){setSel(new Set())}
 
-  async function runIndividual(){
-    const engineId=selected[0];
+  async function runIndividual(runId,signal,sourceFile,sourceReference,engineIds){
+    const engineId=engineIds[0];
     const meta=engines.find(e=>e.id===engineId);
+    const updateProgress=p=>{if(activeRun.current?.id===runId&&!signal.aborted)setProgress(p)};
     if(meta?.browser_ready&&browserEngineSupported(engineId)){
-      const result=await runBrowserEngine(engineId,file,engineId==="cdm_1"?cdmOptions:{},engineId==="cdm_1"?referenceFile:null);
-      setRes(result);
-      return result;
+      updateProgress({state:"running",completed:0,total:100,current_engine:(meta.name||engineId)+" · preparando"});
+      return await runBrowserEngine(
+        engineId,sourceFile,engineId==="cdm_1"?cdmOptions:{},engineId==="cdm_1"?sourceReference:null,
+        {signal,onProgress:updateProgress}
+      );
     }
-    const fd=new FormData();fd.append("file",file);fd.append("engine_id",engineId);
+    updateProgress({state:"running",completed:0,total:1,current_engine:(meta?.name||engineId)+" · enviando"});
+    const fd=new FormData();fd.append("file",sourceFile);fd.append("engine_id",engineId);
     if(engineId==="cdm_1"){
       for(const [key,value] of Object.entries(cdmOptions))fd.append(key,String(value));
-      if(referenceFile)fd.append("previous_file",referenceFile);
+      if(sourceReference)fd.append("previous_file",sourceReference);
     }
-    const r=await fetch(individualEndpoint()+"/infer",{method:"POST",body:fd});
+    const r=await fetch(individualEndpoint()+"/infer",{method:"POST",body:fd,signal});
     if(!r.ok)throw new Error(await r.text());
-    const x=await r.json();setIndividualOnline(true);
-    const result={
+    const x=await r.json();
+    if(activeRun.current?.id===runId&&!signal.aborted)setIndividualOnline(true);
+    updateProgress({state:"done",completed:1,total:1,current_engine:(meta?.name||engineId)+" · concluído"});
+    return {
       image_width:x.image_width,image_height:x.image_height,results:[x.result],
       consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,
       metadata:{analysis_id:"standalone-"+Date.now(),api_version:"standalone",generated_at:new Date().toISOString(),mode:"individual",engine_ids:[engineId]}
     };
-    setRes(result);
-    return result;
   }
 
-  async function runComparison(){
-    await ensureComparator();
-    const fd=new FormData();fd.append("file",file);fd.append("engines",selected.join(","));
-    const start=await fetch(comparatorApi+"/jobs/compare",{method:"POST",body:fd});
+  async function runComparison(runId,signal,sourceFile,engineIds){
+    await ensureComparator(signal);
+    const fd=new FormData();fd.append("file",sourceFile);fd.append("engines",engineIds.join(","));
+    const start=await fetch(comparatorApi+"/jobs/compare",{method:"POST",body:fd,signal});
     if(!start.ok)throw new Error(await start.text());
-    const j=await start.json();setJobId(j.job_id);let attempts=0;let finished=false;let finalResult=null;
+    const j=await start.json();
+    if(activeRun.current?.id===runId&&!signal.aborted)setJobId(j.job_id);
+    let attempts=0,finished=false,finalResult=null;
     while(attempts<1200){
-      await new Promise(r=>setTimeout(r,750));attempts++;
-      const poll=await fetch(comparatorApi+"/jobs/"+j.job_id,{signal:AbortSignal.timeout(12000)});
+      await new Promise((resolve,reject)=>{
+        const id=setTimeout(resolve,750);
+        signal.addEventListener("abort",()=>{clearTimeout(id);reject(new DOMException("Comparação cancelada.","AbortError"))},{once:true});
+      });
+      attempts++;
+      const poll=await fetch(comparatorApi+"/jobs/"+j.job_id,{signal:combinedSignal(signal,12000)});
       if(!poll.ok)throw new Error(await poll.text());
       const st=await poll.json();
-      setProgress({state:st.state,completed:st.completed,total:st.total,current_engine:st.current_engine});
-      if(st.state==="done"){setRes(st.result);finalResult=st.result;finished=true;break}
-      if(st.state==="cancelled"){finished=true;throw new Error("Comparação cancelada pelo usuário.")}
+      if(activeRun.current?.id===runId&&!signal.aborted)setProgress({state:st.state,completed:st.completed,total:st.total,current_engine:st.current_engine});
+      if(st.state==="done"){finalResult=st.result;finished=true;break}
+      if(st.state==="cancelled"){finished=true;throw new DOMException("Comparação cancelada pelo usuário.","AbortError")}
       if(st.state==="error"){finished=true;throw new Error(st.error||"Falha no processamento")}
     }
     if(!finished)throw new Error("Tempo limite excedido para a comparação.");
@@ -283,32 +301,55 @@ export default function App(){
   }
 
   async function run(){
-    if(!file||!selected.length)return;
-    setBusy(true);setErr("");setRes(null);setProgress(null);
+    if(!file||!selected.length||busy)return;
+    const runId=++runSeq.current,controller=new AbortController(),mode=runMode;
+    const sourceFile=file,sourceReference=referenceFile,engineIds=[...selected],inspection={...inspectionMeta};
+    activeRun.current?.controller?.abort();
+    activeRun.current={id:runId,controller,mode};
+    setBusy(true);setErr("");setRes(null);setProgress({state:"starting",completed:0,total:mode==="individual"?100:engineIds.length,current_engine:"Preparando análise"});
     try{
-      const result=runMode==="individual"?await runIndividual():await runComparison();
-      if(result){
-        try{
-          await requestPersistentStorage();
-          await saveInspection({result,file,referenceFile,inspection:inspectionMeta});
-          await refreshHistory();
-        }catch(storageError){
-          setHistoryErr("A análise foi concluída, mas não pôde ser persistida no histórico local: "+String(storageError));
-        }
+      const result=mode==="individual"
+        ?await runIndividual(runId,controller.signal,sourceFile,sourceReference,engineIds)
+        :await runComparison(runId,controller.signal,sourceFile,engineIds);
+      if(!result||controller.signal.aborted||activeRun.current?.id!==runId)return;
+      setRes(result);
+      try{
+        await requestPersistentStorage();
+        if(controller.signal.aborted||activeRun.current?.id!==runId)return;
+        await saveInspection({result,file:sourceFile,referenceFile:sourceReference,inspection});
+        await refreshHistory();
+      }catch(storageError){
+        if(activeRun.current?.id===runId)setHistoryErr("A análise foi concluída, mas não pôde ser persistida no histórico local: "+String(storageError));
       }
     }catch(e){
-      if(runMode==="individual")setIndividualOnline(false);
-      else setComparatorOnline(false);
-      setErr(String(e));
-    }finally{setBusy(false);setJobId(null)}
+      if(activeRun.current?.id!==runId)return;
+      if(isAbortError(e)){
+        setProgress(p=>({...p,state:"cancelled",current_engine:"Análise cancelada"}));
+        setErr("");
+      }else{
+        const meta=engines.find(x=>x.id===engineIds[0]);
+        if(mode==="individual"&&!meta?.browser_ready)setIndividualOnline(false);
+        if(mode==="comparison")setComparatorOnline(false);
+        setErr(String(e));
+      }
+    }finally{
+      if(activeRun.current?.id===runId){
+        activeRun.current=null;setBusy(false);setJobId(null);
+      }
+    }
   }
   async function cancelRun(){
-    if(!jobId||runMode!=="comparison")return;
-    try{
-      setProgress(p=>p?{...p,state:"cancel_requested"}:p);
-      const r=await fetch(comparatorApi+"/jobs/"+jobId+"/cancel",{method:"POST"});
-      if(!r.ok)throw new Error(await r.text());
-    }catch(e){setErr("Falha ao solicitar cancelamento: "+String(e))}
+    const active=activeRun.current;
+    if(!active)return;
+    const remoteJob=jobId;
+    setProgress(p=>p?{...p,state:"cancel_requested",current_engine:"Cancelando…"}:p);
+    active.controller.abort();
+    if(active.mode==="comparison"&&remoteJob){
+      try{
+        const r=await fetch(comparatorApi+"/jobs/"+remoteJob+"/cancel",{method:"POST"});
+        if(!r.ok)throw new Error(await r.text());
+      }catch(e){setErr("A execução local foi interrompida, mas houve falha ao solicitar cancelamento remoto: "+String(e))}
+    }
   }
 
   return <div className={"appShell "+(["analysis","settings"].includes(activeView)?"editorShell":"")}>
@@ -332,7 +373,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={jobId?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
+    <AnalysisWorkspace file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
     {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} onOpenHistory={openHistory} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>}

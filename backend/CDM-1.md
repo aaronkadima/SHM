@@ -145,3 +145,26 @@ are unavailable or fail to initialize, SHM re-decodes the source images and
 falls back to the validated synchronous core. The result records the selected
 runtime in `metrics.runtime` and exposes any fallback error in
 `metrics.worker_error`.
+
+
+## Execution control and temporal traceability
+
+Browser CDM-1 runs are identified by a unique execution id in the React session
+and use an `AbortController`. Cancelling a run terminates the morphology Web
+Worker, prevents stale results from replacing a newer inspection, and prevents a
+cancelled result from being persisted to IndexedDB.
+
+The worker emits staged progress for current-image segmentation, vectorization,
+optional t0 segmentation, temporal comparison, condition rating and finalization.
+The result stores measured browser timings in `metrics.performance_ms`:
+decoding, morphology core, overlay rendering and total elapsed time.
+
+Temporal records expose `source_class` in addition to the change class
+(`growth` or `reduction`). Therefore a record can state, for example,
+`damage_class=growth` and `source_class=cracks`. Temporal overlays are split
+by both dimensions, matching the Inkscape convention more closely. The same
+traceability is preserved in layered SVG, technical CSV, pathology-specific DXF
+layers, BIM JSON and IFC `Pset_ConcreteDamageAssessment.SourcePathology`.
+
+The parity CI also validates monotonic progress stages and temporal source-class
+propagation through these export formats.

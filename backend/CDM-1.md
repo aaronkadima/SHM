@@ -207,3 +207,27 @@ controlled during image acquisition or handled by a later registration stage.
 The cross-runtime CI includes a known camera-shift fixture. A t0 image shifted
 +6 px in X and -4 px in Y must be recovered as Δx=-6 px and Δy=+4 px by both
 Python and the browser implementation.
+
+
+### Audit outputs for registration
+
+When automatic translation is accepted, the aligned t0 image used by the
+algorithm is available in the canvas and can be exported as
+`cdm-1-t0-alinhado.png`. The operator can toggle between the aligned and raw t0
+inside the temporal comparison without modifying the computed result.
+
+Registration provenance is embedded in the technical outputs:
+
+- SVG: `cdm-temporal-alignment` metadata;
+- CSV: temporal alignment method, Δx, Δy and relative improvement;
+- DXF: `999` temporal-alignment audit comment plus pathology-specific temporal layers;
+- BIM JSON: full `temporal.alignment` object;
+- IFC: temporal annotations include alignment method, Δx, Δy and improvement in
+  `Pset_ConcreteDamageAssessment`.
+
+The local inspection-history summary also stores the applied temporal alignment,
+so reopened campaigns expose the displacement without parsing an export file.
+
+CLI usage can select the same behavior with
+`--alignment_method translation_auto` (default) or
+`--alignment_method resize`.

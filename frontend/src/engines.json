@@ -18,12 +18,12 @@
       "name": "CDM-1",
       "family": "Concrete Damage Morphology",
       "task": "classical",
-      "description": "CDM 2.8.5: fissuras, desplacamento, armadura exposta, corrosão e eflorescência em camadas independentes.",
+      "description": "CDM 2.8.5: fissuras, desplacamento, armadura exposta, corrosão e eflorescência em camadas independentes, com execução individual no navegador e comparação temporal t0→t1.",
       "recommended": false,
       "cloud_verified": false,
       "domain_mode": "classical",
-      "browser_ready": false,
-      "browser_runtime": null
+      "browser_ready": true,
+      "browser_runtime": "browser-js-cdm-v285"
     },
     {
       "id": "yolov8_public_crack",

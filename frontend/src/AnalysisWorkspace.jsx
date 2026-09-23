@@ -16,6 +16,7 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState("");
   const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(.75),[comparison,setComparison]=useState("overlay");
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
+  const [imageSize,setImageSize]=useState({width:1,height:1});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0);
   const video=useRef(null),stream=useRef(null),picker=useRef(null),surface=useRef(null),drag=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
@@ -64,8 +65,8 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
         {!layersOpen&&<button className="editorExpand" onClick={()=>setLayersOpen(true)} title="Mostrar camadas"><ChevronRight size={18}/></button>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
-        <div className={"editorImage "+(comparison==="side"?"editorSide":"")} style={{transform:`scale(${zoom})`}}>
-          <div className="editorImagePane"><img src={prev} alt="Arquivo original da inspeção"/></div>
+        <div className={"editorImage "+(comparison==="side"?"editorSide":"")} style={{transform:`scale(${zoom})`,aspectRatio:comparison==="side"?2*imageSize.width/imageSize.height:imageSize.width/imageSize.height}}>
+          <div className="editorImagePane"><img src={prev} alt="Arquivo original da inspeção" onLoad={e=>setImageSize({width:e.currentTarget.naturalWidth||1,height:e.currentTarget.naturalHeight||1})}/></div>
           {image&&<div className="editorImagePane overlayPane"><img src={image} alt={"Sobreposição de "+chosen.name} style={{opacity}}/>
             {boxes.map((d,i)=><button key={i} className={"editorDetection "+(active===chosen.engine_id?"selected":"")} title={d.label||"Achado"} style={{left:(d.box[0]/res.image_width*100)+"%",top:(d.box[1]/res.image_height*100)+"%",width:((d.box[2]-d.box[0])/res.image_width*100)+"%",height:((d.box[3]-d.box[1])/res.image_height*100)+"%"}} onClick={()=>setActive(chosen.engine_id)}/>)}
           </div>}

@@ -2,8 +2,9 @@ import React,{useMemo,useState,useEffect}from"react";
 import{Layers3}from"lucide-react";
 import catalog from"./engines.json";
 import AnalysisWorkspace from"./AnalysisWorkspace.jsx";
+import AnalysisSettings from"./AnalysisSettings.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
-import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView,SettingsView}from"./views.jsx";
+import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
 import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,clearInspections,requestPersistentStorage}from"./historyStore.js";
 
 const DEFAULT_COMPARATOR="https://shm-api-production-01f8.up.railway.app";
@@ -257,10 +258,10 @@ export default function App(){
     }catch(e){setErr("Falha ao solicitar cancelamento: "+String(e))}
   }
 
-  return <div className="appShell">
-    <NavRail active={activeView} onSelect={navigate}/>
+  return <div className={"appShell "+(["analysis","settings"].includes(activeView)?"editorShell":"")}>
+    {! ["analysis","settings"].includes(activeView)&&<NavRail active={activeView} onSelect={navigate}/>}
     <main className="appMain">
-    <header className="topbar">
+    {! ["analysis","settings"].includes(activeView)&&<header className="topbar">
       <div className="brandBlock">
         <div className="eye"><Layers3 size={15}/> SHM · OAEs · COMPUTER VISION</div>
         <h1>PLATAFORMA SHM · OAE BRASIL</h1>
@@ -273,7 +274,7 @@ export default function App(){
         <div><b>{cloudVerified}</b><span>cloud</span></div>
         <div><b>{browserReady}</b><span>browser</span></div>
       </div>
-    </header>
+    </header>}
 
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
@@ -283,7 +284,7 @@ export default function App(){
     {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} onOpenHistory={openHistory} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>}
     {activeView==="reports"&&<ReportsView res={res} inspection={inspectionMeta} onJson={()=>res&&exportJson(res)} onCsv={()=>res&&exportCsv(res)} onMap={()=>res&&downloadConsensus(res)} onNavigate={navigate}/>}
-    {activeView==="settings"&&<><section className="engineSettings surface"><h2>Motores da análise</h2><p>Selecione um motor para execução individual ou dois ou mais para comparação.</p><div className="engineSettingsList">{engines.map(e=><label key={e.id}><input type="checkbox" checked={sel.has(e.id)} onChange={()=>toggle(e.id)}/><span><b>{e.name}</b><small>{e.family} · {modeLabel(e)}</small></span></label>)}</div><button onClick={()=>navigate("analysis")}>Voltar ao canvas · {selected.length} selecionado(s)</button></section><section className="inspectionIdentity surface"><div className="inspectionIdentityHead"><div><b>IDENTIFICAÇÃO DA INSPEÇÃO</b><span>Dados associados ao histórico local.</span></div></div><div className="inspectionIdentityGrid">{[["oae_id","OAE / estrutura"],["element_id","Elemento"],["source_id","Fonte / câmera"],["inspection_label","Campanha / inspeção"]].map(([key,label])=><label key={key}><span>{label}</span><input value={inspectionMeta[key]} onChange={e=>updateInspectionMeta(key,e.target.value)}/></label>)}</div></section><SettingsView individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} err={err}/></>}
+    {activeView==="settings"&&<AnalysisSettings engines={engines} selected={selected} toggle={toggle} onBack={()=>navigate("analysis")} individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} inspectionMeta={inspectionMeta} updateInspectionMeta={updateInspectionMeta} error={err}/>}
     </main>
   </div>
 }

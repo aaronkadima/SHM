@@ -108,7 +108,8 @@ export async function saveInspection({result,file,referenceFile,inspection}){
         warnings:[...(temporalQuality?.warnings||[])],
         overlap_ratio:Number(temporalQuality?.metrics?.overlap_ratio||0),
         illumination_delta:Number(temporalQuality?.metrics?.illumination_delta||0),
-        sharpness_ratio:Number(temporalQuality?.metrics?.sharpness_ratio||0)
+        sharpness_ratio:Number(temporalQuality?.metrics?.sharpness_ratio||0),
+        edge_similarity:Number(temporalQuality?.metrics?.edge_similarity||0)
       }:null
     }
   };

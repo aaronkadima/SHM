@@ -40,7 +40,7 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
   const chosen=shown.find(r=>r.engine_id===active)||shown[0];
   const image=chosen?.overlay_png_base64?"data:image/png;base64,"+chosen.overlay_png_base64:null;
   const boxes=(chosen?.detections||[]).filter(d=>Array.isArray(d.box)&&d.box.length>=4);
-  const detail=selectedDetection?.engineId===chosen?.engine_id?boxes[selectedDetection.index]:null;
+  const detail=selectedDetection&&chosen&&selectedDetection.engineId===chosen.engine_id?boxes[selectedDetection.index]:null;
   const panes=comparison==="side"?2:1;
   const fit=Math.min(viewportSize.width*.83/(imageSize.width*panes),viewportSize.height*.8/imageSize.height);
   const displaySize={width:Math.max(1,imageSize.width*fit*panes),height:Math.max(1,imageSize.height*fit)};
@@ -80,7 +80,7 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
             {boxes.map((d,i)=><button key={i} className={"editorDetection "+(selectedDetection?.engineId===chosen.engine_id&&selectedDetection.index===i?"selected":"")} title={d.label||"Achado"} aria-label={`Achado ${i+1}: ${d.label||"sem classificação"}`} style={{left:(d.box[0]/res.image_width*100)+"%",top:(d.box[1]/res.image_height*100)+"%",width:((d.box[2]-d.box[0])/res.image_width*100)+"%",height:((d.box[3]-d.box[1])/res.image_height*100)+"%"}} onClick={()=>{setActive(chosen.engine_id);setSelectedDetection({engineId:chosen.engine_id,index:i})}}/>)}
           </div>}
         </div>}
-        {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>setZoom(z=>Math.max(.25,z-.25))}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>setZoom(z=>Math.min(4,z+.25))}>＋</button></div>}
+        {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>setZoom(z=>Math.max(.25,z-.25))}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>setZoom(z=>Math.min(4,z+.25))}><Plus size={15}/></button></div>}
         {resultOpen&&(busy||results.length>0)&&<div className="editorFloating" style={{transform:`translate(${position.x}px,${position.y}px)`}}>
           <div className="editorFloatHead" onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd}><b>Resultados</b><button title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.completed||0}/{progress?.total||selected.length}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel}>Cancelar</button>}</div>}

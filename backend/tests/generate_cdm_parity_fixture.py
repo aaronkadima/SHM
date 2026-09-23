@@ -110,6 +110,10 @@ def main(output_path: str):
     registration_error_after = float(
         np.mean(np.abs(registration_current.astype(np.float32) - registration_aligned.astype(np.float32)))
     )
+    registration_far_previous = shift_image_edge(registration_current, 14, 0)
+    _, registration_far_metrics = cdm.align_previous_rgb(
+        registration_current, registration_far_previous, "translation_auto"
+    )
     summary = cdm.summarize_records(t1_records, cfg.scale_info(), cfg, WIDTH * HEIGHT)
     rating = summary["condition_rating"]
 
@@ -168,6 +172,12 @@ def main(output_path: str):
                 "mean_abs_error_before": registration_error_before,
                 "mean_abs_error_after": registration_error_after,
             },
+        },
+        "registration_out_of_range_case": {
+            "current_rgb": registration_current.reshape(-1).astype(int).tolist(),
+            "previous_rgb": registration_far_previous.reshape(-1).astype(int).tolist(),
+            "known_camera_shift": {"x": 14, "y": 0},
+            "expected": {"alignment": registration_far_metrics},
         },
     }
     path = Path(output_path)

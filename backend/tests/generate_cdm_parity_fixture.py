@@ -57,6 +57,18 @@ def shift_image_edge(rgb: np.ndarray, shift_x: int, shift_y: int) -> np.ndarray:
     return rgb[ys[:, None], xs[None, :]].copy()
 
 
+def box_blur_rgb(rgb: np.ndarray, radius: int = 4) -> np.ndarray:
+    radius = max(1, int(radius))
+    padded = np.pad(rgb.astype(np.float32), ((radius, radius), (radius, radius), (0, 0)), mode="edge")
+    out = np.zeros_like(rgb, dtype=np.float32)
+    count = 0
+    for dy in range(2 * radius + 1):
+        for dx in range(2 * radius + 1):
+            out += padded[dy:dy + rgb.shape[0], dx:dx + rgb.shape[1]]
+            count += 1
+    return np.clip(out / max(1, count), 0, 255).astype(np.uint8)
+
+
 def mask_indices(mask: np.ndarray):
     return np.flatnonzero(mask.reshape(-1)).astype(int).tolist()
 
@@ -94,6 +106,7 @@ def main(output_path: str):
     t1_records, t1_info = cdm.detect_records(t1, cfg, "t1_current")
     t0_records, t0_info = cdm.detect_records(t0, cfg, "t0_previous")
     t0_aligned, temporal_alignment = cdm.align_previous_rgb(t1, t0, cfg.alignment_method)
+    temporal_quality = cdm.temporal_quality_assessment(t1, t0_aligned, temporal_alignment)
     _, t0_aligned_info = cdm.detect_records(t0_aligned, cfg, "t0_previous_aligned")
     change_records, temporal_stats = cdm.temporal_records(
         t1_info["masks"], t0_aligned_info["masks"], cfg
@@ -111,8 +124,27 @@ def main(output_path: str):
         np.mean(np.abs(registration_current.astype(np.float32) - registration_aligned.astype(np.float32)))
     )
     registration_far_previous = shift_image_edge(registration_current, 14, 0)
-    _, registration_far_metrics = cdm.align_previous_rgb(
+    registration_far_aligned, registration_far_metrics = cdm.align_previous_rgb(
         registration_current, registration_far_previous, "translation_auto"
+    )
+    registration_far_quality = cdm.temporal_quality_assessment(
+        registration_current, registration_far_aligned, registration_far_metrics
+    )
+
+    illumination_previous = np.clip(registration_current.astype(np.int16) + 70, 0, 255).astype(np.uint8)
+    illumination_aligned, illumination_alignment = cdm.align_previous_rgb(
+        registration_current, illumination_previous, "translation_auto"
+    )
+    illumination_quality = cdm.temporal_quality_assessment(
+        registration_current, illumination_aligned, illumination_alignment
+    )
+
+    blur_previous = box_blur_rgb(registration_current, radius=4)
+    blur_aligned, blur_alignment = cdm.align_previous_rgb(
+        registration_current, blur_previous, "translation_auto"
+    )
+    blur_quality = cdm.temporal_quality_assessment(
+        registration_current, blur_aligned, blur_alignment
     )
     summary = cdm.summarize_records(t1_records, cfg.scale_info(), cfg, WIDTH * HEIGHT)
     rating = summary["condition_rating"]
@@ -150,6 +182,7 @@ def main(output_path: str):
                 "affected_area_ratio": float(rating["affected_area_ratio"]),
             },
             "temporal_alignment": temporal_alignment,
+            "temporal_quality": temporal_quality,
             "temporal_stats": temporal_stats,
             "temporal_counts": {
                 "growth": sum(r.damage_class == "growth" for r in change_records),
@@ -177,7 +210,17 @@ def main(output_path: str):
             "current_rgb": registration_current.reshape(-1).astype(int).tolist(),
             "previous_rgb": registration_far_previous.reshape(-1).astype(int).tolist(),
             "known_camera_shift": {"x": 14, "y": 0},
-            "expected": {"alignment": registration_far_metrics},
+            "expected": {"alignment": registration_far_metrics, "quality": registration_far_quality},
+        },
+        "quality_illumination_case": {
+            "current_rgb": registration_current.reshape(-1).astype(int).tolist(),
+            "previous_rgb": illumination_previous.reshape(-1).astype(int).tolist(),
+            "expected": {"alignment": illumination_alignment, "quality": illumination_quality},
+        },
+        "quality_blur_case": {
+            "current_rgb": registration_current.reshape(-1).astype(int).tolist(),
+            "previous_rgb": blur_previous.reshape(-1).astype(int).tolist(),
+            "expected": {"alignment": blur_alignment, "quality": blur_quality},
         },
     }
     path = Path(output_path)

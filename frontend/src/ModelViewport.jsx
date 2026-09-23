@@ -12,7 +12,10 @@ export default function ModelViewport({file}){
     if(!file||!mount.current)return;
     const el=mount.current,scene=new THREE.Scene();scene.background=new THREE.Color(0xdce4e7);
     const camera=new THREE.PerspectiveCamera(45,1,.01,100000);
-    const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));el.appendChild(renderer.domElement);
+    let renderer;
+    try{renderer=new THREE.WebGLRenderer({antialias:true})}
+    catch(e){setError("Visualização 3D indisponível: WebGL não está disponível neste navegador.");return}
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));el.appendChild(renderer.domElement);
     const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
     scene.add(new THREE.HemisphereLight(0xffffff,0x8195a0,2));
     const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(3,5,7);scene.add(light);
@@ -22,7 +25,7 @@ export default function ModelViewport({file}){
     const fit=obj=>{
       if(disposed)return;model=obj;scene.add(obj);
       const bounds=new THREE.Box3().setFromObject(obj),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
-      if(!Number.isFinite(size.length())||size.length()===0)throw new Error("Geometria vazia.");
+      if(!Number.isFinite(size.length())||size.length()===0){scene.remove(obj);fail(new Error("Geometria vazia."));return}
       controls.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(size.length()*.9,size.length()*.7,size.length()*.9));camera.near=Math.max(.001,size.length()/10000);camera.far=Math.max(100,size.length()*100);camera.updateProjectionMatrix();controls.update()
     };
     const fail=e=>!disposed&&setError("Não foi possível abrir o modelo: "+(e?.message||String(e)));

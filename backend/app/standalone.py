@@ -66,7 +66,8 @@ async def infer(file:UploadFile=File(...),engine_id:str=Form(...),
                 previous_file:UploadFile|None=File(None),
                 cdm_threshold:int=Form(35),cdm_kernel_size:int=Form(15),
                 cdm_min_area:float=Form(30),cdm_min_aspect_ratio:float=Form(2.0),
-                cdm_mm_per_px:float=Form(0),cdm_element_family:str=Form("lajes_vigas_secundarias_apoios")):
+                cdm_mm_per_px:float=Form(0),cdm_element_family:str=Form("lajes_vigas_secundarias_apoios"),
+                cdm_alignment_method:str=Form("translation_auto")):
     if LOCKED_ENGINE and engine_id!=LOCKED_ENGINE:
         raise HTTPException(403,f"Este backend está bloqueado no motor {LOCKED_ENGINE}.")
     e=REGISTRY.get(engine_id)
@@ -105,7 +106,7 @@ async def infer(file:UploadFile=File(...),engine_id:str=Form(...),
                                     calibration_mode="manual_mm_per_px" if cdm_mm_per_px>0 else "px_only",
                                     mm_per_px=cdm_mm_per_px,element_family=cdm_element_family,
                                     structural_relevance_fr=cdm_v285.FAMILY_FR[cdm_element_family],
-                                    compare_previous=previous_image is not None,alignment_method="resize")
+                                    compare_previous=previous_image is not None,alignment_method=cdm_alignment_method)
         started=time.perf_counter()
         result=await asyncio.to_thread(e.predict_configured,image.copy(),cfg,previous_image.copy() if previous_image else None)
         result.latency_ms=(time.perf_counter()-started)*1000

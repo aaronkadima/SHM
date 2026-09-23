@@ -767,19 +767,37 @@ def temporal_quality_assessment(
     mean_prev = float(np.mean(prev)) if prev.size else 0.0
     illumination_delta = abs(mean_cur - mean_prev) / 255.0
 
-    def edge_energy(gray: np.ndarray) -> float:
+    def edge_map(gray: np.ndarray) -> np.ndarray:
         if gray.shape[0] < 3 or gray.shape[1] < 3:
-            return 0.0
-        edge = (
+            return np.zeros((0, 0), dtype=np.float32)
+        return (
             np.abs(gray[1:-1, 2:] - gray[1:-1, :-2])
             + np.abs(gray[2:, 1:-1] - gray[:-2, 1:-1])
-        )
+        ).astype(np.float32, copy=False)
+
+    def edge_energy(edge: np.ndarray) -> float:
         return float(np.mean(edge)) if edge.size else 0.0
 
-    sharp_cur = edge_energy(cur)
-    sharp_prev = edge_energy(prev)
+    edge_cur = edge_map(cur)
+    edge_prev = edge_map(prev)
+    sharp_cur = edge_energy(edge_cur)
+    sharp_prev = edge_energy(edge_prev)
     sharp_max = max(sharp_cur, sharp_prev)
     sharpness_ratio = min(sharp_cur, sharp_prev) / sharp_max if sharp_max > 1e-6 else 1.0
+
+    if edge_cur.size and edge_prev.size and edge_cur.shape == edge_prev.shape:
+        a = edge_cur.reshape(-1).astype(np.float64, copy=False)
+        b = edge_prev.reshape(-1).astype(np.float64, copy=False)
+        a_centered = a - float(np.mean(a))
+        b_centered = b - float(np.mean(b))
+        denom = math.sqrt(float(np.dot(a_centered, a_centered)) * float(np.dot(b_centered, b_centered)))
+        if denom > 1e-9:
+            edge_similarity = float(np.dot(a_centered, b_centered) / denom)
+        else:
+            edge_similarity = 1.0 if float(np.mean(np.abs(a - b))) < 1e-6 else 0.0
+    else:
+        edge_similarity = 0.0
+    edge_similarity = max(-1.0, min(1.0, edge_similarity))
 
     clipped_cur = float(np.mean((cur <= 5.0) | (cur >= 250.0))) if cur.size else 0.0
     clipped_prev = float(np.mean((prev <= 5.0) | (prev >= 250.0))) if prev.size else 0.0
@@ -806,6 +824,10 @@ def temporal_quality_assessment(
         issues.append("sharpness_mismatch")
     elif sharpness_ratio < 0.65:
         warnings.append("sharpness_difference")
+    if edge_similarity < 0.35:
+        issues.append("geometric_mismatch")
+    elif edge_similarity < 0.55:
+        warnings.append("geometric_consistency_low")
     if clipped_max > 0.35:
         issues.append("exposure_clipping")
     elif clipped_max > 0.20:
@@ -828,6 +850,7 @@ def temporal_quality_assessment(
             "sharpness_t1": float(sharp_cur),
             "sharpness_t0_aligned": float(sharp_prev),
             "sharpness_ratio": float(sharpness_ratio),
+            "edge_similarity": float(edge_similarity),
             "clipped_fraction_t1": float(clipped_cur),
             "clipped_fraction_t0_aligned": float(clipped_prev),
             "sample_step": int(step),
@@ -839,6 +862,8 @@ def temporal_quality_assessment(
             "max_illumination_delta_warning": 0.12,
             "min_sharpness_ratio_fail": 0.45,
             "min_sharpness_ratio_warning": 0.65,
+            "min_edge_similarity_fail": 0.35,
+            "min_edge_similarity_warning": 0.55,
             "max_clipped_fraction_fail": 0.35,
             "max_clipped_fraction_warning": 0.20,
         },

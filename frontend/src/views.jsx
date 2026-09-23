@@ -54,6 +54,14 @@ function formatSigned(value,digits=1){
   if(!Number.isFinite(n))return"—";
   return (n>0?"+":"")+n.toFixed(digits);
 }
+function formatStorageBytes(value){
+  const n=Number(value);
+  if(!Number.isFinite(n)||n<0)return"—";
+  if(n<1024)return n.toFixed(0)+" B";
+  if(n<1024**2)return (n/1024).toFixed(1)+" KB";
+  if(n<1024**3)return (n/1024**2).toFixed(1)+" MB";
+  return (n/1024**3).toFixed(2)+" GB";
+}
 
 function campaignConditionSeries(group){
   return (group.items||[]).map(item=>{
@@ -285,7 +293,7 @@ export function EnginesView({engines,visibleEng,engineQuery,setEngineQuery,engin
   </section>
 }
 
-export function AlertsView({res,history,historyBusy,historyErr,onOpenHistory,onUseAsReference,onDeleteHistory,onClearHistory,onNavigate}){
+export function AlertsView({res,history,historyBusy,historyErr,storageStatus,onOpenHistory,onUseAsReference,onDeleteHistory,onClearHistory,onNavigate}){
   const detections=detectionsFrom(res);
   const errors=(res?.results||[]).filter(r=>r.status!=="ok");
   const campaigns=useMemo(()=>campaignSummaries(history),[history]);
@@ -333,7 +341,7 @@ export function AlertsView({res,history,historyBusy,historyErr,onOpenHistory,onU
       })}</div>
     </article>}
     <article className="surface historySurface">
-      <div className="surfaceHead"><div><b>HISTÓRICO DE INSPEÇÕES</b><span>{historyBusy?"Carregando registros...":"Persistência local independente do Railway"}</span></div><span className="statusPill success">INDEXEDDB</span></div>
+      <div className="surfaceHead"><div><b>HISTÓRICO DE INSPEÇÕES</b><span>{historyBusy?"Carregando registros...":"Persistência local independente do Railway"}{storageStatus?.usage!=null?" · "+formatStorageBytes(storageStatus.usage)+" usados":""}</span></div><span className={"statusPill "+(storageStatus?.persisted===false?"warning":"success")}>INDEXEDDB{storageStatus?.persisted===true?" · PERSISTENTE":storageStatus?.persisted===false?" · NÃO GARANTIDA":""}</span></div>
       {historyErr&&<div className="historyError">{historyErr}</div>}
       {history?.length?<div className="historyList">
         <div className="historyRow historyHeader"><span>Data</span><span>OAE / elemento</span><span>Fonte</span><span>Modo</span><span>Achados</span><span>Ações</span></div>

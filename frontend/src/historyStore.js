@@ -221,7 +221,7 @@ export async function deleteInspection(id){
       row.summary={
         ...(row.summary||{}),
         reference_inspection_id:null,
-        reference_storage:materialized?"embedded_blob":"missing_reference",
+        reference_storage:materialized?"materialized_history":"missing_reference",
         has_reference_image:!!materialized
       };
       store.put(row);

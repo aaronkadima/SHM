@@ -64,13 +64,27 @@ than from a screenshot of the overlay:
 The original imported image remains separate from the vector pathology layers in
 the SHM workspace.
 
+## Browser-native individual runtime
+
+CDM-1 now also has a deterministic browser implementation in
+`frontend/src/cdmBrowser.js`. For a single selected CDM-1 engine, SHM executes
+the morphology pipeline locally in the browser and does not require a network
+request. The t0 reference image is also processed locally. This removes the
+public-site dependency on an individual HTTPS backend for CDM-1 and ensures that
+the image is not sent to Railway.
+
+The Python implementation remains the reference/runtime option for validation,
+automation and server-side use.
+
 ## Runtime separation
 
 Individual CDM-1 execution does not use the comparison Railway service.
-`Dockerfile.cdm` installs only `requirements-cdm.txt`, locks the service to
-`SHM_ENGINE_ID=cdm_1`, and listens on the host-provided `PORT` (default 8000).
+`Dockerfile.cdm` installs only `requirements-cdm.txt`, locks the optional
+standalone service to `SHM_ENGINE_ID=cdm_1`, and listens on the host-provided
+`PORT` (default 8000).
 
-Configure an independent HTTPS container host with:
+If a server-side CDM endpoint is desired, configure an independent HTTPS
+container host with:
 
 - repository `aaronkadima/SHM` and a branch containing CDM-1;
 - build context/root `backend`;
@@ -82,8 +96,8 @@ Check `<public-url>/health` for `role=standalone`, `engine_id=cdm_1` and
 `ready=true`; then save the base URL in **Configurações → Conexões dos motores
 → Backend individual**.
 
-Railway remains reserved for analyses with two or more engines. Visitors to
-GitHub Pages do not need Docker installed locally.
+Railway remains reserved for analyses with two or more engines. CDM-1 visitors
+to GitHub Pages do not need Docker or an individual backend installed locally.
 
 For an optional local smoke test:
 

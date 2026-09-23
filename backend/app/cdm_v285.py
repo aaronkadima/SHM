@@ -1815,7 +1815,7 @@ def condition_lines(summary: Dict[str, object], language: str = "pt") -> List[st
             )
     return base
 
-def build_result_text(summary: Dict[str, object], scale: ScaleInfo, temporal_stats: Dict[str, Dict[str, float]], language: str = "pt") -> str:
+def build_result_text(summary: Dict[str, object], scale: ScaleInfo, temporal_stats: Dict[str, Dict[str, float]], language: str = "pt", temporal_quality: Optional[Dict[str, object]] = None) -> str:
     lang = normalize_language(language)
     counts: Dict[str, int] = summary["counts"]  # type: ignore
 
@@ -1843,6 +1843,9 @@ def build_result_text(summary: Dict[str, object], scale: ScaleInfo, temporal_sta
             lines.append("Temporal comparison:")
             for cls, st in temporal_stats.items():
                 lines.append(f"- {label_for(cls, lang)} | IoU={st['iou']:.3f} | growth={st['growth_area_px2']:.1f}px² | reduction={st['reduction_area_px2']:.1f}px²")
+        if temporal_quality:
+            qm = temporal_quality.get("metrics", {}) if isinstance(temporal_quality, dict) else {}
+            lines.append(f"Temporal quality: {temporal_quality.get('status', 'unknown')} | validated={temporal_quality.get('validated_for_change_quantification', False)} | overlap={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | illumination Δ={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | sharpness ratio={float(qm.get('sharpness_ratio',0.0)):.2f}")
         lines.append("Note: preliminary result; validate manually in Inkscape.")
         return "\n".join(lines)
 
@@ -1867,6 +1870,9 @@ def build_result_text(summary: Dict[str, object], scale: ScaleInfo, temporal_sta
             lines.append("Comparaison temporelle :")
             for cls, st in temporal_stats.items():
                 lines.append(f"- {label_for(cls, lang)} | IoU={st['iou']:.3f} | croissance={st['growth_area_px2']:.1f}px² | réduction={st['reduction_area_px2']:.1f}px²")
+        if temporal_quality:
+            qm = temporal_quality.get("metrics", {}) if isinstance(temporal_quality, dict) else {}
+            lines.append(f"Qualité temporelle : {temporal_quality.get('status', 'unknown')} | validée={temporal_quality.get('validated_for_change_quantification', False)} | recouvrement={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | Δ éclairage={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | ratio netteté={float(qm.get('sharpness_ratio',0.0)):.2f}")
         lines.append("Remarque : résultat préliminaire ; valider manuellement dans Inkscape.")
         return "\n".join(lines)
 
@@ -1890,6 +1896,9 @@ def build_result_text(summary: Dict[str, object], scale: ScaleInfo, temporal_sta
         lines.append("Comparação temporal:")
         for cls, st in temporal_stats.items():
             lines.append(f"- {label_for(cls, lang)} | IoU={st['iou']:.3f} | crescimento={st['growth_area_px2']:.1f}px² | redução={st['reduction_area_px2']:.1f}px²")
+    if temporal_quality:
+        qm = temporal_quality.get("metrics", {}) if isinstance(temporal_quality, dict) else {}
+        lines.append(f"Qualidade temporal: {temporal_quality.get('status', 'unknown')} | validada={temporal_quality.get('validated_for_change_quantification', False)} | sobreposição={100.0*float(qm.get('overlap_ratio',0.0)):.1f}% | Δ iluminação={100.0*float(qm.get('illumination_delta',0.0)):.1f}% | razão de nitidez={float(qm.get('sharpness_ratio',0.0)):.2f}")
     lines.append("Observação: resultado preliminar; validar manualmente no Inkscape.")
     return "\n".join(lines)
 
@@ -2192,7 +2201,7 @@ def format_optional(value: Optional[float], digits: int = 4) -> str:
     return "" if value is None else f"{value:.{digits}f}"
 
 
-def write_csv(records: List[DamageRecord], csv_path: str, scale: ScaleInfo, temporal_stats: Dict[str, Dict[str, float]], condition_rating: Optional[Dict[str, object]] = None) -> None:
+def write_csv(records: List[DamageRecord], csv_path: str, scale: ScaleInfo, temporal_stats: Dict[str, Dict[str, float]], condition_rating: Optional[Dict[str, object]] = None, temporal_quality: Optional[Dict[str, object]] = None) -> None:
     path = Path(csv_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8-sig") as f:
@@ -2230,6 +2239,16 @@ def write_csv(records: List[DamageRecord], csv_path: str, scale: ScaleInfo, temp
             writer.writerow(["temporal_class", "iou", "growth_area_px2", "reduction_area_px2"])
             for cls, st in temporal_stats.items():
                 writer.writerow([cls, f"{st['iou']:.6f}", f"{st['growth_area_px2']:.2f}", f"{st['reduction_area_px2']:.2f}"])
+        if temporal_quality:
+            qm = temporal_quality.get("metrics", {}) if isinstance(temporal_quality, dict) else {}
+            writer.writerow([])
+            writer.writerow(["temporal_quality", "value", "note"])
+            writer.writerow(["status", temporal_quality.get("status"), "validated" if temporal_quality.get("validated_for_change_quantification") else "not_validated"])
+            writer.writerow(["overlap_ratio", qm.get("overlap_ratio"), ""])
+            writer.writerow(["illumination_delta", qm.get("illumination_delta"), ""])
+            writer.writerow(["sharpness_ratio", qm.get("sharpness_ratio"), ""])
+            writer.writerow(["issues", "|".join(temporal_quality.get("issues", []) or []), ""])
+            writer.writerow(["warnings", "|".join(temporal_quality.get("warnings", []) or []), ""])
         if condition_rating and condition_rating.get("enabled"):
             writer.writerow([])
             writer.writerow(["classification_summary", "value", "label_or_note"])
@@ -2710,7 +2729,7 @@ def record_to_bim_feature(rec: DamageRecord, scale: ScaleInfo, cfg: DetectorConf
     }
 
 
-def write_bim_json(records: List[DamageRecord], json_path: str, scale: ScaleInfo, cfg: DetectorConfig, temporal_stats: Dict[str, Dict[str, float]]) -> None:
+def write_bim_json(records: List[DamageRecord], json_path: str, scale: ScaleInfo, cfg: DetectorConfig, temporal_stats: Dict[str, Dict[str, float]], temporal_quality: Optional[Dict[str, object]] = None, alignment_info: Optional[Dict[str, object]] = None) -> None:
     path = Path(json_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     data = {
@@ -2723,6 +2742,8 @@ def write_bim_json(records: List[DamageRecord], json_path: str, scale: ScaleInfo
         "units": "mm" if scale.mm_per_px is not None else "px",
         "mm_per_px": scale.mm_per_px,
         "temporal_stats": temporal_stats,
+        "temporal_alignment": alignment_info or {},
+        "temporal_quality": temporal_quality or {},
         "features": [record_to_bim_feature(rec, scale, cfg) for rec in records],
         "integration_notes": [
             "This JSON is an IFC-overlay metadata file; it does not modify the IFC model directly.",
@@ -2990,7 +3011,7 @@ def run_processing(current_path: str, cfg: DetectorConfig, existing_root=None, s
     if cfg.export_csv:
         with profiler.stage("Export | technical CSV"):
             csv_path = resolve_output_path(current_path, cfg, cfg.csv_output_path, "_damage_morphology_v285.csv")
-            write_csv(records, csv_path, cfg.scale_info(), temporal_stats, condition_rating if isinstance(condition_rating, dict) else None)
+            write_csv(records, csv_path, cfg.scale_info(), temporal_stats, condition_rating if isinstance(condition_rating, dict) else None, temporal_quality)
             exported_paths["csv"] = csv_path
             log_error(f"CSV técnico gerado em: {csv_path}")
 
@@ -3004,7 +3025,7 @@ def run_processing(current_path: str, cfg: DetectorConfig, existing_root=None, s
     if cfg.export_bim_json:
         with profiler.stage("Export | BIM/IFC-overlay JSON"):
             bim_path = resolve_output_path(current_path, cfg, cfg.bim_json_output_path, "_damage_bim_metadata_v285.json")
-            write_bim_json(records, bim_path, cfg.scale_info(), cfg, temporal_stats)
+            write_bim_json(records, bim_path, cfg.scale_info(), cfg, temporal_stats, temporal_quality, alignment_info)
             exported_paths["bim_json"] = bim_path
             log_error(f"Metadata BIM/IFC-overlay gerado em: {bim_path}")
 
@@ -3115,7 +3136,7 @@ def run_processing(current_path: str, cfg: DetectorConfig, existing_root=None, s
             except Exception as exc2:
                 log_error("Aviso: não foi possível gerar nem o HTML interativo nem o HTML básico. " + f"Caminho tentado: {html_path}. Detalhe principal: {exc}. Detalhe fallback: {exc2}")
 
-    report = build_result_text(html_summary, cfg.scale_info(), temporal_stats, cfg.language)
+    report = build_result_text(html_summary, cfg.scale_info(), temporal_stats, cfg.language, temporal_quality)
     if cfg.profile_performance:
         report += f"\n\nPerfil computacional: {float(performance_data.get('wall_total_s', 0.0)):.3f} s | backend: {performance_data.get('environment', {}).get('morphology_backend', 'n/a') if isinstance(performance_data.get('environment'), dict) else 'n/a'}"
     if exported_paths:

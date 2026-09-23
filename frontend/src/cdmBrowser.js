@@ -210,7 +210,7 @@ function recordsFromMask(mask,w,h,damageClass,timeLabel,cfg){
     if(points.length<2)continue;
     records.push({
       id:timeLabel+"_"+damageClass+"_"+String(componentNumber).padStart(4,"0"),
-      time_label:timeLabel,class:damageClass,bbox:[minX,minY,bw,bh],points,closed,
+      time_label:timeLabel,class:damageClass,source_class:damageClass,bbox:[minX,minY,bw,bh],points,closed,
       area_px2:tail,perimeter_px:perimeter,length_px:length,width_px:widthPx,aspect_ratio:aspect,confidence_note:note
     });
   }
@@ -234,7 +234,8 @@ function temporalCompare(cur,prev,w,h,cfg){
     for(let i=0;i<a.length;i++){if(a[i]&&b[i])inter++;if(a[i]||b[i])union++;if(a[i]&&!b[i]){growth[i]=1;g++}if(b[i]&&!a[i]){reduction[i]=1;r++}}
     stats[cls]={iou:union?inter/union:1,growth_area_px2:g,reduction_area_px2:r};
     const gr=recordsFromMask(growth,w,h,"growth","growth_"+cls,cfg),rr=recordsFromMask(reduction,w,h,"reduction","reduction_"+cls,cfg);
-    gr.forEach(x=>x.confidence_note+=" Classe base: "+LABELS[cls]+".");rr.forEach(x=>x.confidence_note+=" Classe base: "+LABELS[cls]+".");
+    gr.forEach(x=>{x.source_class=cls;x.confidence_note+=" Classe base: "+LABELS[cls]+"."});
+    rr.forEach(x=>{x.source_class=cls;x.confidence_note+=" Classe base: "+LABELS[cls]+"."});
     records.push(...gr,...rr);
   }
   return {stats,records};
@@ -402,10 +403,21 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     layers.push({id:cls,name:LABELS[cls],color:"#"+COLORS[cls].map(v=>v.toString(16).padStart(2,"0")).join(""),count:rec.length,overlay_png_base64:renderLayer(rec,w,h,COLORS[cls])});
   }
   const temporalCore=core.temporal||{enabled:false,alignment_method:null,stats:{},records:[]};
-  const temporalLayers=temporalCore.enabled?["growth","reduction"].map(cls=>{
-    const rec=(temporalCore.records||[]).filter(r=>r.class===cls);
-    return {id:cls,name:cls==="growth"?"Crescimento t0→t1":"Redução t0→t1",color:"#"+COLORS[cls].map(v=>v.toString(16).padStart(2,"0")).join(""),count:rec.length,overlay_png_base64:renderLayer(rec,w,h,COLORS[cls])};
-  }):[];
+  const temporalLayers=[];
+  if(temporalCore.enabled){
+    for(const changeClass of ["growth","reduction"]){
+      for(const sourceClass of ORDER){
+        const rec=(temporalCore.records||[]).filter(r=>r.class===changeClass&&r.source_class===sourceClass);
+        if(!rec.length)continue;
+        temporalLayers.push({
+          id:changeClass+":"+sourceClass,change_class:changeClass,source_class:sourceClass,
+          name:(changeClass==="growth"?"Crescimento t0→t1":"Redução t0→t1")+" · "+LABELS[sourceClass],
+          color:"#"+COLORS[changeClass].map(v=>v.toString(16).padStart(2,"0")).join(""),
+          count:rec.length,overlay_png_base64:renderLayer(rec,w,h,COLORS[changeClass])
+        });
+      }
+    }
+  }
   const temporal={...temporalCore,layers:temporalLayers};
   const detections=records.map(r=>({label:r.class,canonical_label:r.class,score:null,box:[r.bbox[0],r.bbox[1],r.bbox[0]+r.bbox[2],r.bbox[1]+r.bbox[3]],polygon:r.points,area_px:r.area_px2}));
   const composite=document.createElement("canvas");composite.width=w;composite.height=h;const cctx=composite.getContext("2d");

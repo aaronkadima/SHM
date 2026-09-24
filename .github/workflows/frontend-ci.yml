@@ -37,6 +37,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-campaign-audit.mjs
 
+      - name: File integrity helper
+        working-directory: frontend
+        run: node scripts/check-file-integrity.mjs
+
       - name: Build
         working-directory: frontend
         run: npm run build

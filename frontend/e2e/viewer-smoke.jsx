@@ -28,7 +28,8 @@ const fakeResult={
     engine_id:"cdm_1",name:"CDM-1",status:"ok",latency_ms:12,detections:[],
     overlay_png_base64:transparentPng,
     metrics:{overlay_semantics:"transparent_layers",layers:[{id:"cracks",name:"Fissuras",color:"#e64b4b",count:1,overlay_png_base64:transparentPng},{id:"corrosion_rust",name:"Corrosão",color:"#b66a2a",count:1,overlay_png_base64:transparentPng}],summary:{total_objects:2,crack_count:1,crack_length_total_px:12,spalling_area_px2:0},runtime:"browser-smoke",temporal:{enabled:true,alignment:{accepted:false,dx_px:0,dy_px:0,improvement:0},quality:{status:"pass",validated_for_change_quantification:true,issues:[],warnings:[],metrics:{}},stats:{},layers:[{id:"growth:cracks",name:"Crescimento · Fissuras",color:"#ff8b55",count:1,overlay_png_base64:transparentPng}]}}
-  }]
+  }],
+  metadata:{client_elapsed_ms:1234}
 };
 
 function App(){
@@ -60,6 +61,8 @@ function App(){
           const devStampOk=devStamp?.textContent.replace(/\s+/g," ").trim()==="DEV · abc12345 !"&&devStamp?.classList.contains("divergent")&&devStamp?.title.includes("catálogo v1.2.0")&&devStamp?.title.includes("deploy divergent")&&deployState?.getAttribute("aria-label")==="Deploy divergent"&&!statusBar?.textContent?.includes("CDM-1");
           const staleUpdateVisible=!!updateButton&&updateButton.textContent.includes("Atualizar");
           const statusBarFit=!!statusBar&&!!statusMeta&&statusBar.scrollWidth<=statusBar.clientWidth+1&&statusMeta.scrollWidth<=statusMeta.clientWidth+1;
+          const runTimeRow=document.querySelector(".editorRunTime");
+          const measuredRuntimeOk=runTimeRow?.textContent.replace(/\s+/g," ").trim()==="Tempo da análise 1.23 s";
           const narrowSidebar=window.matchMedia("(max-width: 900px)").matches;
           const mobileInitialLayersCollapsedOk=!narrowSidebar||!document.querySelector(".editorLayers");
           const savedInitialPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
@@ -619,7 +622,7 @@ function App(){
             await sleep(40);
             const cameraEscapeOk=!document.querySelector(".editorCamera");
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,staleUpdateVisible,statusBarFit,mobileInitialLayersCollapsedOk,desktopLayerPreferencePreserved,compactDrawerDismissOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,cameraModalFitOk,cameraEscapeOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingAvoidsZoomOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,pathologyInitialStateOk,pathologyGroupInteractiveOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,staleUpdateVisible,statusBarFit,measuredRuntimeOk,mobileInitialLayersCollapsedOk,desktopLayerPreferencePreserved,compactDrawerDismissOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,cameraModalFitOk,cameraEscapeOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingAvoidsZoomOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,pathologyInitialStateOk,pathologyGroupInteractiveOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,phoneFitWithinViewportOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,sideWithinViewportOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,exportEscapeOk,

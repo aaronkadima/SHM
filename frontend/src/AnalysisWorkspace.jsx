@@ -767,13 +767,21 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",select
     </div>;
   }
   const persisting=busy&&progress?.state==="persisting";
+  const analysisBlockedReason=kind==="3d"
+    ?"Arquivo 3D reconhecido · análise 2D indisponível"
+    :kind==="unknown"
+      ?"Formato de arquivo não suportado"
+      :kind==="2d"&&!imageDecoded
+        ?previewError||"Aguardando decodificação da imagem"
+        :executionIssue;
   const statusMessage=error
     ||previewError
     ||(progress?.state==="cancelled"?"Análise cancelada":"")
     ||(persisting?"Análise concluída · salvando histórico local":"")
     ||(busy?("Processando análise · "+(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length))):"")
     ||statusNotice
-    ||(kind==="3d"?"Arquivo 3D reconhecido · análise 2D indisponível":kind==="unknown"?"Formato de arquivo não suportado":executionIssue||"Pronto");
+    ||analysisBlockedReason
+    ||"Pronto";
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><span className="editorMenus"><span>Arquivo</span><span>Editar</span><span>Visualizar</span><span>Análise</span></span></div>
@@ -784,7 +792,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",select
         <button disabled={busy} onClick={()=>picker.current?.click()}><ImagePlus size={16}/> Importar</button>
         {selected.length===1&&selected[0]==="cdm_1"&&<button disabled={busy} title="Carregar imagem anterior para comparação temporal" onClick={()=>referencePicker.current?.click()}><ImagePlus size={16}/> {referenceFile?"t0: "+referenceFile.name:"Referência t0"}</button>}
         <button disabled={busy} onClick={onSettings}><Settings2 size={16}/> Configurar</button>
-        <button className="editorPrimary" disabled={!file||kind!=="2d"||!selected.length||busy||!!executionIssue} title={executionIssue||"Executar análise"} onClick={onRun}><Play size={16}/> Analisar</button>
+        <button className="editorPrimary" disabled={!file||kind!=="2d"||!imageDecoded||!!previewError||!selected.length||busy||!!executionIssue} title={analysisBlockedReason||"Executar análise"} onClick={onRun}><Play size={16}/> Analisar</button>
       </div>
     </div>
     <div className="editorBody">
@@ -880,7 +888,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",select
         </button>}
       </div>
     </div>
-    <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?"transient ":"")+(executionIssue&&!busy&&!error&&!previewError&&kind!=="3d"?"blocked":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}{appInfo?.deployment?.status==="divergent"&&<button className="editorUpdateAvailable" type="button" title="Há uma versão publicada mais recente. Recarregar sem usar o HTML em cache." onClick={()=>{const url=new URL(window.location.href);url.searchParams.set("build",String(appInfo?.deployment?.manifest?.sha||Date.now()));window.location.replace(url.toString())}}><RefreshCw size={11}/> Atualizar</button>}{appInfo?.channel==="development"&&<span className={"editorDevStamp "+(appInfo?.deployment?.status||"")} title={"Build de desenvolvimento · "+(appInfo?.buildSha||"—")+" · catálogo v"+(appInfo?.catalogVersion||"—")+" · deploy "+(appInfo?.deployment?.status||"não verificado")+(appInfo?.deployment?.manifest?.sha?" · publicado "+appInfo.deployment.manifest.sha:"")}>DEV · {String(appInfo?.buildSha||"—").slice(0,8)}{" "}<i className="editorDeployState" aria-label={"Deploy "+(appInfo?.deployment?.status||"não verificado")}>{appInfo?.deployment?.status==="synced"?"✓":appInfo?.deployment?.status==="divergent"?"!":appInfo?.deployment?.status==="unavailable"?"?":appInfo?.deployment?.status==="checking"?"…":""}</i></span>}</span></div>
+    <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?"transient ":"")+(analysisBlockedReason&&!busy&&!error&&!previewError?"blocked":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}{appInfo?.deployment?.status==="divergent"&&<button className="editorUpdateAvailable" type="button" title="Há uma versão publicada mais recente. Recarregar sem usar o HTML em cache." onClick={()=>{const url=new URL(window.location.href);url.searchParams.set("build",String(appInfo?.deployment?.manifest?.sha||Date.now()));window.location.replace(url.toString())}}><RefreshCw size={11}/> Atualizar</button>}{appInfo?.channel==="development"&&<span className={"editorDevStamp "+(appInfo?.deployment?.status||"")} title={"Build de desenvolvimento · "+(appInfo?.buildSha||"—")+" · catálogo v"+(appInfo?.catalogVersion||"—")+" · deploy "+(appInfo?.deployment?.status||"não verificado")+(appInfo?.deployment?.manifest?.sha?" · publicado "+appInfo.deployment.manifest.sha:"")}>DEV · {String(appInfo?.buildSha||"—").slice(0,8)}{" "}<i className="editorDeployState" aria-label={"Deploy "+(appInfo?.deployment?.status||"não verificado")}>{appInfo?.deployment?.status==="synced"?"✓":appInfo?.deployment?.status==="divergent"?"!":appInfo?.deployment?.status==="unavailable"?"?":appInfo?.deployment?.status==="checking"?"…":""}</i></span>}</span></div>
     {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera" role="dialog" aria-modal="true" aria-label="Modo câmera"><header><b>Modo câmera</b><button aria-label="Fechar modo câmera" title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={()=>setCameraReady(true)}/><footer><span>{cameraError?"Verifique a permissão da câmera":cameraReady?"Prévia ao vivo · capture um quadro para análise 2D":"Aguardando câmera…"}</span><button onClick={capture} disabled={!!cameraError||!cameraReady}><Camera size={16}/> Capturar imagem</button></footer></div></div>}
   </section>
 }

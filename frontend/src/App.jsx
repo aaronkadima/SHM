@@ -115,7 +115,7 @@ export default function App(){
   const[historyBusy,setHistoryBusy]=useState(false);
   const[historyErr,setHistoryErr]=useState("");
   const[storageStatus,setStorageStatus]=useState(null);
-  const[deploymentCheck,setDeploymentCheck]=useState(()=>APP_CHANNEL==="development"?{status:BUILD_SHA==="local"?"local":"checking",manifest:null}:{status:"production",manifest:null});
+  const[deploymentCheck,setDeploymentCheck]=useState(()=>({status:BUILD_SHA==="local"?"local":"checking",manifest:null}));
   const activeRun=useRef(null),runSeq=useRef(0);
   const[activeView,setActiveView]=useState(()=>{
     const v=window.location.hash.replace(/^#\//,"");
@@ -130,20 +130,21 @@ export default function App(){
   useEffect(()=>{localStorage.setItem("shmCdm1Options",JSON.stringify(cdmOptions))},[cdmOptions]);
   useEffect(()=>{refreshHistory()},[]);
   useEffect(()=>{
-    if(APP_CHANNEL!=="development"||BUILD_SHA==="local")return;
+    if(BUILD_SHA==="local")return;
     let cancelled=false;
     const base=import.meta.env.BASE_URL||"/";
-    fetch(base+"build.json",{cache:"no-store",headers:{Accept:"application/json"}})
+    const expectedBranch=APP_CHANNEL==="development"?"dev":"main";
+    fetch(base+"build.json?ts="+Date.now(),{cache:"no-store",headers:{Accept:"application/json","Cache-Control":"no-cache"}})
       .then(response=>{if(!response.ok)throw new Error("HTTP "+response.status);return response.json()})
       .then(manifest=>{
         if(cancelled)return;
         const shaOk=String(manifest?.sha||"")===String(BUILD_SHA||"");
-        const channelOk=manifest?.channel==="development";
-        const branchOk=manifest?.branch==="feat/cdm-1";
+        const channelOk=manifest?.channel===APP_CHANNEL;
+        const branchOk=manifest?.branch===expectedBranch;
         const catalogOk=String(manifest?.catalogVersion||"")===String(CATALOG_VERSION||"");
-        setDeploymentCheck({status:shaOk&&channelOk&&branchOk&&catalogOk?"synced":"divergent",manifest});
+        setDeploymentCheck({status:shaOk&&channelOk&&branchOk&&catalogOk?"synced":"divergent",manifest,expectedBranch});
       })
-      .catch(error=>{if(!cancelled)setDeploymentCheck({status:"unavailable",manifest:null,error:String(error)})});
+      .catch(error=>{if(!cancelled)setDeploymentCheck({status:"unavailable",manifest:null,error:String(error),expectedBranch})});
     return()=>{cancelled=true};
   },[]);
   useEffect(()=>{

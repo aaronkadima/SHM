@@ -47,7 +47,16 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     setLocalPreview(null);
     if(!file||detectAsset(file)!=="2d")return()=>{cancelled=true};
     const reader=new FileReader();
-    reader.onload=()=>{if(!cancelled)setLocalPreview(typeof reader.result==="string"?reader.result:null)};
+    reader.onload=()=>{
+      if(cancelled)return;
+      const src=typeof reader.result==="string"?reader.result:null;
+      setLocalPreview(src);
+      if(!src)return;
+      const probe=new Image();
+      probe.onload=()=>{if(!cancelled)setImageSize({width:probe.naturalWidth||1,height:probe.naturalHeight||1})};
+      probe.onerror=()=>{if(!cancelled)setPreviewError("A imagem foi lida, mas o navegador não conseguiu decodificá-la.")};
+      probe.src=src;
+    };
     reader.onerror=()=>{if(!cancelled)setPreviewError("Não foi possível ler a imagem importada.")};
     reader.readAsDataURL(file);
     return()=>{cancelled=true;try{reader.abort()}catch{}};

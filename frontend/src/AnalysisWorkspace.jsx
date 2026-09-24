@@ -258,7 +258,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     return{
       minWidth:340,
       minHeight:65,
-      maxWidth:Math.max(1,Math.min(900,viewportRect.right-8-panelRect.left)),
+      maxWidth:Math.max(1,Math.min(900,panelRect.right-viewportRect.left-8)),
       maxHeight:Math.max(1,Math.min(900,viewport.clientHeight*.75,viewportRect.bottom-8-panelRect.top))
     };
   }

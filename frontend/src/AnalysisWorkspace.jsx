@@ -35,17 +35,22 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const [selectedDetection,setSelectedDetection]=useState(null);
   const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState("");
   const [imageSize,setImageSize]=useState({width:1,height:1});
+  const imageDecoded=imageSize.width>1&&imageSize.height>1;
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
   const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),drag=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{
+    let cancelled=false;
     setPreviewError("");
-    if(!file||detectAsset(file)!=="2d"){setLocalPreview(null);return}
-    const url=URL.createObjectURL(file);
-    setLocalPreview(url);
-    return()=>URL.revokeObjectURL(url);
+    setLocalPreview(null);
+    if(!file||detectAsset(file)!=="2d")return()=>{cancelled=true};
+    const reader=new FileReader();
+    reader.onload=()=>{if(!cancelled)setLocalPreview(typeof reader.result==="string"?reader.result:null)};
+    reader.onerror=()=>{if(!cancelled)setPreviewError("Não foi possível ler a imagem importada.")};
+    reader.readAsDataURL(file);
+    return()=>{cancelled=true;try{reader.abort()}catch{}};
   },[file]);
   useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setComparison("overlay");setShowRawT0(false)},[file,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
@@ -183,6 +188,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         {!layersOpen&&<button className="editorExpand" onClick={()=>setLayersOpen(true)} title="Mostrar camadas"><ChevronRight size={18}/></button>}
         <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
         {previewError&&<div className="editorPreviewError">{previewError}</div>}
+        {file&&kind==="2d"&&<div className={"editorCanvasStatus "+(imageDecoded?"ready":"loading")}>{imageDecoded?`Imagem carregada · ${imageSize.width}×${imageSize.height}`:localPreview?"Decodificando imagem…":"Lendo imagem…"}</div>}
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:

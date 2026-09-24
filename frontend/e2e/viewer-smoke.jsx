@@ -237,13 +237,14 @@ function App(){
             const viewportRect=viewport?.getBoundingClientRect();
             const floatingRect=floatingPanel?.getBoundingClientRect();
             const floatingClampDiag=viewportRect&&floatingRect?`vp=${Math.round(viewportRect.left)}/${Math.round(viewportRect.top)}/${Math.round(viewportRect.right)}/${Math.round(viewportRect.bottom)} panel=${Math.round(floatingRect.left)}/${Math.round(floatingRect.top)}/${Math.round(floatingRect.right)}/${Math.round(floatingRect.bottom)}`:"no-rect";
-            const floatingHorizontalOk=!!viewportRect&&!!floatingRect&&floatingRect.left>=viewportRect.left-1&&floatingRect.right<=viewportRect.right+1&&floatingRect.width<=viewportRect.width+1;
+            const floatingHorizontalOk=!!viewportRect&&!!floatingRect&&(phoneSidebar?(floatingRect.left>=viewportRect.left+7&&floatingRect.right<=viewportRect.right-7):(floatingRect.left>=viewportRect.left-1&&floatingRect.right<=viewportRect.right+1))&&floatingRect.width<=viewportRect.width+1;
             const floatingVerticalOk=!!viewportRect&&!!floatingRect&&floatingRect.top>=viewportRect.top+7&&floatingRect.bottom<=viewportRect.bottom-7;
             const floatingMaxWidthOk=!!floatingPanel&&getComputedStyle(floatingPanel).maxWidth!=="none";
             const floatingHandleOk=!!floatingHead&&floatingHead.tagName==="BUTTON"&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
-            const floatingClampOk=floatingHorizontalOk&&floatingVerticalOk&&floatingMaxWidthOk&&floatingHandleOk;
+            const floatingResizeModeOk=!!floatingPanel&&getComputedStyle(floatingPanel).resize===(phoneSidebar?"none":"both");
+            const floatingClampOk=floatingHorizontalOk&&floatingVerticalOk&&floatingMaxWidthOk&&floatingHandleOk&&floatingResizeModeOk;
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneOverlayArbitrationInitial,phoneOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneOverlayArbitrationInitial,phoneOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
@@ -252,7 +253,7 @@ function App(){
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=phone-single-panel results=viewport-clamped sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=phone-single-panel results=viewport-clamped+resize-aware sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
               setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }

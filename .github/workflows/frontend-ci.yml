@@ -226,7 +226,7 @@ jobs:
             exit 1
           fi
 
-          for SIZE in 1280,800 412,915 320,568; do
+          for SIZE in 1280,800 412,915 320,568 800,360; do
             TAG="$(echo "$SIZE" | tr ',' 'x')"
             timeout 30s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-background-networking --user-data-dir="/tmp/shm-model-$TAG-$RANDOM" --window-size="$SIZE" --virtual-time-budget=12000 --dump-dom http://127.0.0.1:4176/e2e/model-smoke.html > "/tmp/shm-model-$TAG-dom.html" 2>"/tmp/shm-model-$TAG-chrome.log" || {
               cat "/tmp/shm-model-$TAG-chrome.log"

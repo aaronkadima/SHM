@@ -15,11 +15,11 @@ check(workspace.includes('URL.createObjectURL(file)'),"viewer must be able to cr
 check(workspace.includes('setComparison("overlay")'),"new files must reset comparison mode to overlay");
 check(workspace.includes('const safeViewport={width:Math.max(480'),"viewer must protect against zero-size viewport collapse");
 check(workspace.includes('Math.max(160,safeImage.width*fit*panes)'),"viewer must keep a visible minimum display width");
-check(workspace.includes('comparison==="overlay"&&renderBasePane(prev,"Imagem original da inspeção","original + camadas",true,true)'),"overlay mode must render original + overlays in the same pane");
+check(workspace.includes('comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)'),"overlay mode must render original + overlays in the same pane");
 check(workspace.includes('comparison==="side"&&<>'),"side-by-side mode must have explicit two-pane composition");
-check(workspace.includes('renderBasePane(prev,"Imagem original da inspeção","original",true,false)'),"side-by-side left pane must be the original image");
-check(workspace.includes('renderBasePane(prev,"Imagem original com camadas de detecção","original + detecções",false,true)'),"side-by-side right pane must be original + overlays");
-check(workspace.includes('renderBasePane(prev,"Imagem atual t1 com camadas de detecção","t1 atual + camadas",true,true)'),"temporal t1 pane must include original + overlays");
+check(workspace.includes('renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)'),"side-by-side left pane must be the original image");
+check(workspace.includes('renderBasePane(basePreview,"Imagem original com camadas de detecção","original + detecções",false,true)'),"side-by-side right pane must be original + overlays");
+check(workspace.includes('renderBasePane(basePreview,"Imagem atual t1 com camadas de detecção","t1 atual + camadas",true,true)'),"temporal t1 pane must include original + overlays");
 check(styles.includes(".editorOverlayStack{position:absolute;inset:0"),"overlay stack must be anchored to the full pane");
 check(styles.includes(".editorBaseImage{position:absolute;inset:0"),"base image must share overlay coordinates");
 check(styles.includes(".editorSide .compositePane{border-left:2px solid white}"),"side-by-side composite pane must remain visually separated");

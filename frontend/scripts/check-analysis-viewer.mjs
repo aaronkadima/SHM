@@ -7,6 +7,8 @@ const check=(ok,msg)=>{if(!ok)failures.push(msg)};
 
 check(!workspace.includes("const image=pathologyLayers.length?null"),"CDM overlays must not suppress the original base image");
 check(workspace.includes('className="editorOverlayStack"'),"viewer must use an explicit overlay stack");
+check(workspace.includes('const useCombinedEngineOverlay=!!engineOverlay&&pathologyLayers.length===0'),"CDM combined overlay must be suppressed when individual pathology layers exist");
+check(workspace.includes('overlay_semantics')||workspace.includes('overlaySemantics'),"viewer must distinguish overlay semantics");
 check(workspace.includes('className="editorBaseImage"'),"viewer panes must include an original base image");
 check(workspace.includes('comparison==="overlay"&&renderBasePane(prev,"Imagem original da inspeção","original + camadas",true,true)'),"overlay mode must render original + overlays in the same pane");
 check(workspace.includes('comparison==="side"&&<>'),"side-by-side mode must have explicit two-pane composition");

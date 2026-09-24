@@ -8,9 +8,10 @@ import {STLLoader} from "three/addons/loaders/STLLoader.js";
 import {SVGRenderer} from "three/addons/renderers/SVGRenderer.js";
 
 export default function ModelViewport({file}){
-  const mount=useRef(null),view=useRef(null),[error,setError]=useState(""),[fallback,setFallback]=useState(false);
+  const mount=useRef(null),view=useRef(null),[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null);
   useEffect(()=>{
     if(!file||!mount.current)return;
+    setError("");setFallback(false);setLoading(true);setLoadProgress(null);
     const el=mount.current,scene=new THREE.Scene();scene.background=new THREE.Color(0xdce4e7);
     const camera=new THREE.PerspectiveCamera(45,1,.01,100000);
     let renderer,vectorFallback=false,dirty=true;
@@ -26,7 +27,7 @@ export default function ModelViewport({file}){
     const releaseUrl=()=>{if(!urlRevoked){URL.revokeObjectURL(url);urlRevoked=true}};
     const disposeMaterial=material=>{if(!material)return;for(const value of Object.values(material)){if(value?.isTexture)value.dispose?.()}material.dispose?.()};
     const fit=obj=>{
-      if(disposed){releaseUrl();return}model=obj;releaseUrl();
+      if(disposed){releaseUrl();return}model=obj;releaseUrl();setLoading(false);setLoadProgress(100);
       if(vectorFallback)obj.traverse(n=>{if(n.isMesh){
         const source=Array.isArray(n.material)?n.material[0]:n.material;
         n.material=new THREE.MeshBasicMaterial({color:source?.color?.clone()||new THREE.Color(0x689aa4),side:THREE.DoubleSide})
@@ -38,13 +39,14 @@ export default function ModelViewport({file}){
       view.current={camera,controls,center:center.clone(),radius};
       controls.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(radius,radius*.65,radius));camera.near=Math.max(.001,size.length()/10000);camera.far=Math.max(100,size.length()*100);camera.updateProjectionMatrix();controls.update();dirty=true
     };
-    const fail=e=>{releaseUrl();if(!disposed)setError("Não foi possível abrir o modelo: "+(e?.message||String(e)))};
+    const fail=e=>{releaseUrl();if(!disposed){setLoading(false);setLoadProgress(null);setError("Não foi possível abrir o modelo: "+(e?.message||String(e)))} };
+    const onProgress=event=>{if(disposed)return;const total=Number(event?.total)||0,loaded=Number(event?.loaded)||0;setLoadProgress(total>0?Math.max(0,Math.min(99,Math.round(loaded/total*100))):null)};
     try{
-      if(ext==="glb"||ext==="gltf")new GLTFLoader().load(url,g=>fit(g.scene),undefined,fail);
-      else if(ext==="obj")new OBJLoader().load(url,fit,undefined,fail);
+      if(ext==="glb"||ext==="gltf")new GLTFLoader().load(url,g=>fit(g.scene),onProgress,fail);
+      else if(ext==="obj")new OBJLoader().load(url,fit,onProgress,fail);
       else if(ext==="stl"||ext==="ply"){
         const loader=ext==="stl"?new STLLoader():new PLYLoader();
-        loader.load(url,g=>{g.computeVertexNormals();fit(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0x8aaeb3,side:THREE.DoubleSide})))},undefined,fail)
+        loader.load(url,g=>{g.computeVertexNormals();fit(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0x8aaeb3,side:THREE.DoubleSide})))},onProgress,fail)
       }else fail(new Error("Formato 3D não suportado pelo visualizador."));
     }catch(e){fail(e)}
     controls.addEventListener("change",()=>{dirty=true});
@@ -60,5 +62,5 @@ export default function ModelViewport({file}){
     if(direction==="top")camera.up.set(0,0,-1);
     controls.target.copy(center);camera.lookAt(center);controls.update()
   }
-  return <div className="modelViewport" ref={mount} role="region" aria-label="Visualizador 3D do modelo importado">{error&&<div className="modelError" role="alert">{error}</div>}<div className="modelViews" aria-label="Vistas do modelo 3D"><button onClick={()=>setView("perspective")}>Perspectiva</button><button onClick={()=>setView("front")}>Frontal</button><button onClick={()=>setView("top")}>Superior</button><button onClick={()=>setView("side")}>Lateral</button></div>{fallback&&<div className="modelFallback">Visualização vetorial · WebGL indisponível</div>}<div className="modelHint">3D · arraste para orbitar · roda para ampliar · botão direito para deslocar</div></div>
+  return <div className="modelViewport" ref={mount} role="region" aria-label="Visualizador 3D do modelo importado" aria-busy={loading}>{loading&&<div className="modelLoading" role="status" aria-live="polite"><b>Carregando modelo 3D</b><span>{loadProgress==null?"Preparando geometria…":loadProgress+"%"}</span>{loadProgress!=null&&<i><b style={{width:loadProgress+"%"}}/></i>}</div>}{error&&<div className="modelError" role="alert">{error}</div>}<div className="modelViews" aria-label="Vistas do modelo 3D"><button disabled={loading||!!error} onClick={()=>setView("perspective")}>Perspectiva</button><button disabled={loading||!!error} onClick={()=>setView("front")}>Frontal</button><button disabled={loading||!!error} onClick={()=>setView("top")}>Superior</button><button disabled={loading||!!error} onClick={()=>setView("side")}>Lateral</button></div>{fallback&&<div className="modelFallback">Visualização vetorial · WebGL indisponível</div>}<div className="modelHint">3D · arraste para orbitar · roda para ampliar · botão direito para deslocar</div></div>
 }

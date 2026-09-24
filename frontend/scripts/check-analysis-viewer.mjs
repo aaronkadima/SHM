@@ -21,6 +21,10 @@ check(workspace.includes('function changeComparison(mode){setComparison(mode);if
 check(workspace.includes('function setPathologyGroupVisible(next)'),"viewer must support group pathology visibility");
 check(workspace.includes('function isolatePathologyLayer(id)'),"viewer must support single-pathology isolation");
 check(workspace.includes('function movePathologyLayer(id,delta)'),"viewer must support pathology z-order changes");
+check(workspace.includes('function setSelectedPathologyOpacity(value)'),"viewer must support selected-layer opacity");
+check(workspace.includes('opacity:opacity*Number(pathologyOpacity[layer.id]??1)'),"pathology layer opacity must multiply the global opacity");
+check(workspace.includes('className="layerInspector"'),"viewer must expose a compact selected-layer inspector");
+check(workspace.includes('Opacidade da camada'),"selected-layer inspector must expose layer opacity");
 check(workspace.includes('function resetViewerPreferences()'),"viewer must expose a safe visualization reset");
 check(workspace.includes('Restaurar visualização'),"viewer must surface the visualization reset action");
 check(workspace.includes('[...orderedPathologyLayers].reverse()'),"top layer in the panel must render on top of the overlay stack");

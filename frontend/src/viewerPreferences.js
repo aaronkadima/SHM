@@ -4,15 +4,17 @@ export const DEFAULT_VIEWER_PREFERENCES={
   opacity:0.75,
   layersOpen:true,
   comparison:"overlay",
+  wipePosition:50,
   pathologyOrder:[],
   pathologyOpacity:{},
   pathologyLocked:[]
 };
 
-const VALID_COMPARISONS=new Set(["original","overlay","side"]);
+const VALID_COMPARISONS=new Set(["original","overlay","wipe","side"]);
 
 export function normalizeViewerPreferences(value={}){
   const opacity=Number(value?.opacity);
+  const wipePosition=Number(value?.wipePosition);
   const rawLayerOpacity=value?.pathologyOpacity&&typeof value.pathologyOpacity==="object"&&!Array.isArray(value.pathologyOpacity)?value.pathologyOpacity:{};
   const pathologyOpacity={};
   for(const [id,raw] of Object.entries(rawLayerOpacity)){
@@ -24,6 +26,7 @@ export function normalizeViewerPreferences(value={}){
     opacity:Number.isFinite(opacity)?Math.min(1,Math.max(0,opacity)):DEFAULT_VIEWER_PREFERENCES.opacity,
     layersOpen:typeof value?.layersOpen==="boolean"?value.layersOpen:DEFAULT_VIEWER_PREFERENCES.layersOpen,
     comparison:VALID_COMPARISONS.has(value?.comparison)?value.comparison:DEFAULT_VIEWER_PREFERENCES.comparison,
+    wipePosition:Number.isFinite(wipePosition)?Math.min(95,Math.max(5,wipePosition)):DEFAULT_VIEWER_PREFERENCES.wipePosition,
     pathologyOrder:Array.isArray(value?.pathologyOrder)?[...new Set(value.pathologyOrder.filter(x=>typeof x==="string"&&x.trim()))]:[],
     pathologyOpacity,
     pathologyLocked:Array.isArray(value?.pathologyLocked)?[...new Set(value.pathologyLocked.filter(x=>typeof x==="string"&&x.trim()))]:[]

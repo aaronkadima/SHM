@@ -40,6 +40,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const compactLayout=useRef(initialCompactLayout),desktopLayersPreference=useRef(initialViewerPrefs.layersOpen);
   const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null),fileDragDepth=useRef(0);
   useEffect(()=>setKind(detectAsset(file)),[file]);
+  useEffect(()=>{if(busy){fileDragDepth.current=0;setFileDragActive(false)}},[busy]);
   useEffect(()=>{
     const syncCompactLayout=()=>{
       const next=window.innerWidth<900;

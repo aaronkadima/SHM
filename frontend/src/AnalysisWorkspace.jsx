@@ -1,6 +1,6 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Download,ImagePlus,Layers3,Maximize2,Minus,Play,Plus,Settings2,X} from "lucide-react";
-import{loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
+import{DEFAULT_VIEWER_PREFERENCES,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
 const MODEL_EXT=/\.(glb|gltf|obj|ply|stl)$/i;
@@ -199,6 +199,17 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
       return next;
     });
   }
+  function resetViewerPreferences(){
+    setOpacity(DEFAULT_VIEWER_PREFERENCES.opacity);
+    setLayersOpen(DEFAULT_VIEWER_PREFERENCES.layersOpen);
+    setPreferredComparison(DEFAULT_VIEWER_PREFERENCES.comparison);
+    setComparison(DEFAULT_VIEWER_PREFERENCES.comparison);
+    setPathologyOrder(pathologyLayers.map(layer=>layer.id));
+    setVisible({});
+    setZoom(1);
+    setShowRawT0(false);
+    setPosition({x:0,y:0});
+  }
   const hasOverlayContent=useCombinedEngineOverlay||pathologyLayers.length>0||temporalLayers.length>0||boxes.length>0;
   function renderOverlayStack(){
     if(!hasOverlayContent)return null;
@@ -244,7 +255,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         <div className="editorPanelTitle"><b>Propriedades</b></div>
         <p>Tipo reconhecido: <b>{kind==="2d"?"Imagem 2D":kind==="3d"?"Modelo 3D":"Indefinido"}</b></p>
         {kind==="unknown"&&<div className="editorTypeChoice"><button onClick={()=>setKind("2d")}>Tratar como 2D</button><button onClick={()=>setKind("3d")}>Tratar como 3D</button></div>}
-        <p>Sobreposição: {Math.round(opacity*100)}%</p><input aria-label="Opacidade da sobreposição" type="range" min="0" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/>
+        <p>Sobreposição: {Math.round(opacity*100)}%</p><input aria-label="Opacidade da sobreposição" type="range" min="0" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/><button className="viewerReset" type="button" onClick={resetViewerPreferences}>Restaurar visualização</button>
       </aside>}
       <div className="editorViewport" ref={surface}>
         {!layersOpen&&<button className="editorExpand" onClick={()=>setLayersOpen(true)} title="Mostrar camadas"><ChevronRight size={18}/></button>}

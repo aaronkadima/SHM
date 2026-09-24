@@ -30,10 +30,11 @@ function App(){
           const noTopCollision=vr.top>=Math.max(br.bottom,cr.bottom)+4;
           const rendererFits=Math.abs(mr.left-vp.left)<1&&Math.abs(mr.top-vp.top)<1&&Math.abs(mr.width-vp.width)<2&&Math.abs(mr.height-vp.height)<2;
           const hintFits=!!hr&&hr.left>=vp.left-1&&hr.right<=vp.right+1&&hr.bottom<=vp.bottom+1;
-          const checks={badgeOk:badge.textContent.includes("3D detectado"),statusOk:status==="Arquivo 3D reconhecido · análise 2D indisponível",rendererFits,controlsWithin,noTopCollision,hintFits,buttonsOk:buttons.map(b=>b.textContent.trim()).join("|")==="Perspectiva|Frontal|Superior|Lateral"};
+          const loadingDone=model.getAttribute("aria-busy")==="false"&&!document.querySelector(".modelLoading")&&buttons.every(btn=>!btn.disabled);
+          const checks={badgeOk:badge.textContent.includes("3D detectado"),statusOk:status==="Arquivo 3D reconhecido · análise 2D indisponível",rendererFits,controlsWithin,noTopCollision,hintFits,loadingDone,buttonsOk:buttons.map(b=>b.textContent.trim()).join("|")==="Perspectiva|Frontal|Superior|Lateral"};
           const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
           const diag=" vp="+Math.round(vp.width)+"x"+Math.round(vp.height)+" views="+Math.round(vr.left)+"/"+Math.round(vr.top)+"/"+Math.round(vr.right)+"/"+Math.round(vr.bottom);
-          setResult(failed.length?"MODEL_SMOKE_FAIL "+failed.join(",")+diag:"MODEL_SMOKE_PASS viewport="+Math.round(vp.width)+"x"+Math.round(vp.height)+" renderer="+renderer.tagName.toLowerCase());
+          setResult(failed.length?"MODEL_SMOKE_FAIL "+failed.join(",")+diag:"MODEL_SMOKE_PASS viewport="+Math.round(vp.width)+"x"+Math.round(vp.height)+" renderer="+renderer.tagName.toLowerCase()+" load=done");
           return;
         }
         await sleep(100);

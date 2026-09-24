@@ -108,7 +108,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   }));
   const cdmSummary=chosen?.engine_id==="cdm_1"?chosen.metrics?.summary:null;
   const cdmRating=cdmSummary?.condition_rating;
-  const image=pathologyLayers.length?null:chosen?.overlay_png_base64?"data:image/png;base64,"+chosen.overlay_png_base64:null;
+  const engineOverlay=chosen?.overlay_png_base64?"data:image/png;base64,"+chosen.overlay_png_base64:null;
   const boxes=(chosen?.detections||[]).filter(d=>Array.isArray(d.box)&&d.box.length>=4&&(!pathologyLayers.length||visible["cdm_1:"+d.label]!==false));
   const detail=selectedDetection&&chosen&&selectedDetection.engineId===chosen.engine_id?boxes[selectedDetection.index]:null;
   const panes=comparison==="side"||comparison==="temporal"?2:1;
@@ -119,6 +119,23 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   function dragStart(e){if(e.target.closest("button"))return;drag.current={x:e.clientX-position.x,y:e.clientY-position.y};e.currentTarget.setPointerCapture(e.pointerId)}
   function dragMove(e){if(drag.current)setPosition({x:e.clientX-drag.current.x,y:e.clientY-drag.current.y})}
   function dragEnd(){drag.current=null}
+  const hasOverlayContent=!!engineOverlay||pathologyLayers.length>0||temporalLayers.length>0||boxes.length>0;
+  function renderOverlayStack(){
+    if(!hasOverlayContent)return null;
+    return <div className="editorOverlayStack" aria-label="Camadas de detecção sobre a imagem original">
+      {engineOverlay&&<img className="engineOverlayImage" src={engineOverlay} alt={"Sobreposição de "+(chosen?.name||"motor")} style={{opacity}}/>}
+      {pathologyLayers.filter(layer=>visible["cdm_1:"+layer.id]!==false).map(layer=><img className="pathologyOverlay" key={layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
+      {temporalLayers.filter(layer=>temporalLayerIsVisible(layer.id)).map(layer=><img className="pathologyOverlay temporalOverlay" key={"temporal-"+layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
+      {boxes.map((d,i)=><button key={i} className={"editorDetection "+(selectedDetection?.engineId===chosen?.engine_id&&selectedDetection.index===i?"selected":"")} title={d.label||"Achado"} aria-label={`Achado ${i+1}: ${d.label||"sem classificação"}`} style={{left:(d.box[0]/res.image_width*100)+"%",top:(d.box[1]/res.image_height*100)+"%",width:((d.box[2]-d.box[0])/res.image_width*100)+"%",height:((d.box[3]-d.box[1])/res.image_height*100)+"%"}} onClick={()=>{setActive(chosen.engine_id);setSelectedDetection({engineId:chosen.engine_id,index:i})}}/>)}
+    </div>;
+  }
+  function renderBasePane(src,alt,badge,onMeasure=false,withOverlay=false){
+    return <div className={"editorImagePane "+(withOverlay?"compositePane":"")}>
+      <img className="editorBaseImage" src={src} alt={alt} onLoad={onMeasure?e=>setImageSize({width:e.currentTarget.naturalWidth||1,height:e.currentTarget.naturalHeight||1}):undefined}/>
+      {withOverlay&&renderOverlayStack()}
+      {badge&&<span className="editorPaneBadge">{badge}</span>}
+    </div>;
+  }
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><span className="editorMenus"><span>Arquivo</span><span>Editar</span><span>Visualizar</span><span>Análise</span></span></div>
@@ -152,14 +169,15 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
         <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} style={{transform:`scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
-          <div className="editorImagePane"><img src={comparison==="temporal"?(showRawT0?referencePrev:(temporalAlignedPreview||referencePrev)):prev} alt={comparison==="temporal"?(showRawT0?"Referência temporal t0 bruta":temporalAlignedPreview?"Referência temporal t0 alinhada":"Referência temporal t0"):"Arquivo original da inspeção"} onLoad={e=>setImageSize({width:e.currentTarget.naturalWidth||1,height:e.currentTarget.naturalHeight||1})}/>{comparison==="temporal"&&<span className="editorPaneBadge">t0 {showRawT0?"bruto":temporalAlignedPreview?"alinhado":"referência"}</span>}</div>
-          {(image||pathologyLayers.length>0||temporalLayers.length>0)&&<div className="editorImagePane overlayPane">
-            {comparison==="temporal"&&<><img src={prev} alt="Imagem atual t1"/><span className="editorPaneBadge">t1 atual</span></>}
-            {image&&<img src={image} alt={"Sobreposição de "+chosen.name} style={{opacity}}/>}
-            {pathologyLayers.filter(layer=>visible["cdm_1:"+layer.id]!==false).map(layer=><img className="pathologyOverlay" key={layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
-            {temporalLayers.filter(layer=>temporalLayerIsVisible(layer.id)).map(layer=><img className="pathologyOverlay temporalOverlay" key={"temporal-"+layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
-            {boxes.map((d,i)=><button key={i} className={"editorDetection "+(selectedDetection?.engineId===chosen.engine_id&&selectedDetection.index===i?"selected":"")} title={d.label||"Achado"} aria-label={`Achado ${i+1}: ${d.label||"sem classificação"}`} style={{left:(d.box[0]/res.image_width*100)+"%",top:(d.box[1]/res.image_height*100)+"%",width:((d.box[2]-d.box[0])/res.image_width*100)+"%",height:((d.box[3]-d.box[1])/res.image_height*100)+"%"}} onClick={()=>{setActive(chosen.engine_id);setSelectedDetection({engineId:chosen.engine_id,index:i})}}/>)}
-          </div>}
+          {comparison==="overlay"&&renderBasePane(prev,"Imagem original da inspeção","original + camadas",true,true)}
+          {comparison==="side"&&<>
+            {renderBasePane(prev,"Imagem original da inspeção","original",true,false)}
+            {renderBasePane(prev,"Imagem original com camadas de detecção","original + detecções",false,true)}
+          </>}
+          {comparison==="temporal"&&<>
+            {renderBasePane(showRawT0?referencePrev:(temporalAlignedPreview||referencePrev),showRawT0?"Referência temporal t0 bruta":temporalAlignedPreview?"Referência temporal t0 alinhada":"Referência temporal t0","t0 "+(showRawT0?"bruto":temporalAlignedPreview?"alinhado":"referência"),false,false)}
+            {renderBasePane(prev,"Imagem atual t1 com camadas de detecção","t1 atual + camadas",true,true)}
+          </>}
         </div>}
         {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>setZoom(z=>Math.max(.25,z-.25))}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>setZoom(z=>Math.min(4,z+.25))}><Plus size={15}/></button></div>}
         {resultOpen&&(busy||results.length>0)&&<div className="editorFloating" style={{transform:`translate(${position.x}px,${position.y}px)`}}>

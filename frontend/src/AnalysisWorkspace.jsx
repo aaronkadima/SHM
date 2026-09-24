@@ -27,6 +27,14 @@ export function detectAsset(file){
   if(MODEL_EXT.test(name))return "3d";
   return "unknown";
 }
+export function clampPanelTranslation(next,{viewportWidth,viewportHeight,panelLeft,panelTop,panelWidth,panelHeight,margin=8}){
+  const minX=margin-panelLeft;
+  const maxX=viewportWidth-margin-panelLeft-panelWidth;
+  const minY=margin-panelTop;
+  const maxY=viewportHeight-margin-panelTop-panelHeight;
+  const clampAxis=(value,min,max)=>max>=min?Math.max(min,Math.min(max,Number(value)||0)):(min+max)/2;
+  return{x:Math.round(clampAxis(next?.x,minX,maxX)),y:Math.round(clampAxis(next?.y,minY,maxY))};
+}
 
 export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
@@ -205,13 +213,14 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   function clampResultPosition(next){
     const panel=resultPanel.current,viewport=surface.current;
     if(!panel||!viewport)return next;
-    const margin=8;
-    const minX=margin-panel.offsetLeft;
-    const maxX=viewport.clientWidth-margin-panel.offsetLeft-panel.offsetWidth;
-    const minY=margin-panel.offsetTop;
-    const maxY=viewport.clientHeight-margin-panel.offsetTop-panel.offsetHeight;
-    const clampAxis=(value,min,max)=>max>=min?Math.max(min,Math.min(max,value)):(min+max)/2;
-    return{x:Math.round(clampAxis(Number(next.x)||0,minX,maxX)),y:Math.round(clampAxis(Number(next.y)||0,minY,maxY))};
+    return clampPanelTranslation(next,{
+      viewportWidth:viewport.clientWidth,
+      viewportHeight:viewport.clientHeight,
+      panelLeft:panel.offsetLeft,
+      panelTop:panel.offsetTop,
+      panelWidth:panel.offsetWidth,
+      panelHeight:panel.offsetHeight
+    });
   }
   function dragStart(e){
     drag.current={clientX:e.clientX,clientY:e.clientY,startX:position.x,startY:position.y};

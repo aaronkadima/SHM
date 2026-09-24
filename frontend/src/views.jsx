@@ -366,7 +366,7 @@ export function EnginesView({appInfo,engines,visibleEng,engineQuery,setEngineQue
       <div className="catalogToolbar">
         <div className="searchBox"><Search size={14}/><input value={engineQuery} onChange={e=>setEngineQuery(e.target.value)} placeholder="Buscar motor, família ou tarefa..."/></div>
         <select value={engineFilter} onChange={e=>setEngineFilter(e.target.value)}>
-          <option value="all">Todos ({engines.length})</option><option value="browser">Direto no navegador ({browserReady})</option><option value="recommended">Recomendados ({recommended})</option><option value="verified">Cloud verificados ({cloudVerified})</option><option value="public">Checkpoints SHM públicos</option><option value="optional">Requerem configuração/runtime</option>
+          <option value="all">Todos ({engines.length})</option><option value="owned">Motores próprios</option><option value="browser">Direto no navegador ({browserReady})</option><option value="recommended">Recomendados ({recommended})</option><option value="verified">Cloud verificados ({cloudVerified})</option><option value="public">Checkpoints SHM públicos</option><option value="optional">Requerem configuração/runtime</option>
         </select>
         <button onClick={selectRecommended}>Recomendados</button><button onClick={selectVerified}>Cloud</button><button onClick={clearSelection}>Limpar</button>
       </div>

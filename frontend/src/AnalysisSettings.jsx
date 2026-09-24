@@ -1,5 +1,6 @@
-import React from "react";
-import {ArrowLeft,Check,Settings2} from "lucide-react";
+import React,{useState} from "react";
+import {ArrowLeft,Check,Code2,Download,ExternalLink,Settings2,X} from "lucide-react";
+import {engineCodePackage} from "./engineCodeCatalog.js";
 import "./analysis-settings.css";
 
 export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,cdmOptions,setCdmOptions,error}){
@@ -9,8 +10,35 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
   const localBrowser=!!selectedEngine?.browser_ready;
   const needsIndividual=selected.length===1&&!localBrowser;
   const needsComparator=selected.length>=2;
+  const [openCode,setOpenCode]=useState(null);
   const selectedNames=selected.map(id=>engines.find(e=>e.id===id)?.name||id);
   const selectedStatus=selectedNames.length?"Motores selecionados: "+selectedNames.join(", "):"Nenhum motor selecionado";
+  function exportEngineCode(engine){
+    const pkg=engineCodePackage(engine);
+    if(!pkg)return;
+    const blob=new Blob([pkg.source],{type:"text/plain;charset=utf-8"});
+    const url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download=pkg.fileName;a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),500);
+  }
+  function EngineCard({engine,owned=false}){
+    const pkg=engineCodePackage(engine),opened=openCode===engine.id;
+    return <div className={"settingsEngineCard "+(owned?"settingsEngineCardOwned":"")}>
+      <label className={"settingsEngine "+(owned?"settingsEnginePinned settingsOwnedEngine":"")}>
+        <span><b>{engine.name}{owned&&<em className="settingsOwnBadge">PRÓPRIO · BROWSER</em>}</b><small>{engine.family} · {engine.task.replaceAll("_"," ")}</small>{owned&&<small className="settingsEngineDescription">{engine.description}</small>}</span>
+        <input type="checkbox" checked={selected.includes(engine.id)} onChange={()=>toggle(engine.id)}/><span className="settingsSwitch" aria-hidden="true"/>
+      </label>
+      <div className="settingsEngineCodeActions">
+        <button type="button" className={opened?"active":""} onClick={()=>setOpenCode(opened?null:engine.id)}><Code2 size={13}/>{opened?"Ocultar código":"Ver código"}</button>
+        <button type="button" onClick={()=>exportEngineCode(engine)}><Download size={13}/>Exportar código</button>
+      </div>
+      {opened&&pkg&&<div className="settingsCodePanel">
+        <div className="settingsCodeHead"><div><b>{pkg.kind}</b><small>{pkg.fileName} · {pkg.language}</small></div><div>{engine.source_url&&<a href={engine.source_url} target="_blank" rel="noreferrer" title="Abrir origem do modelo"><ExternalLink size={13}/>Origem</a>}<button type="button" title="Fechar código" onClick={()=>setOpenCode(null)}><X size={13}/></button></div></div>
+        <p>Os comentários no início do arquivo descrevem as etapas de entrada, inferência, pós-processamento e serialização para facilitar implementação isolada ou migração para outra plataforma.</p>
+        <pre tabIndex="0"><code>{pkg.source}</code></pre>
+      </div>}
+    </div>;
+  }
   return <section className="analysisSettings" aria-label="Configurações da análise">
     <header className="settingsTop"><div><span className="editorMark">S</span><b>SHM Studio</b><em className={"settingsEnvBadge "+(appInfo?.channel||"production")}>{appInfo?.channel==="development"?"DEV":"PROD"} · v{appInfo?.catalogVersion||"—"} · {appInfo?.buildSha||"—"}</em></div><button onClick={onBack}><ArrowLeft size={16}/> Voltar ao canvas</button></header>
     <main className="settingsContent">
@@ -18,10 +46,10 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
       <div className="analysisSettingsCard"><h2>Motores disponíveis</h2><p>Um motor executa uma análise individual. Dois ou mais ativam a comparação.</p>
         <div className="settingsOwnedGroup">
           <div className="settingsGroupTitle"><span>MOTOR PRÓPRIO</span><small>Execução determinística local no navegador</small></div>
-          {ownedEngine?<label className="settingsEngine settingsEnginePinned settingsOwnedEngine"><span><b>{ownedEngine.name}<em className="settingsOwnBadge">PRÓPRIO · BROWSER</em></b><small>{ownedEngine.family} · {ownedEngine.task.replaceAll("_"," ")}</small><small className="settingsEngineDescription">{ownedEngine.description}</small></span><input type="checkbox" checked={selected.includes(ownedEngine.id)} onChange={()=>toggle(ownedEngine.id)}/><span className="settingsSwitch" aria-hidden="true"/></label>:<div className="settingsCatalogError">CDM-1 não foi encontrado no catálogo carregado nesta versão.</div>}
+          {ownedEngine?<EngineCard engine={ownedEngine} owned/>:<div className="settingsCatalogError">CDM-1 não foi encontrado no catálogo carregado nesta versão.</div>}
         </div>
         <div className="settingsGroupTitle settingsOtherTitle"><span>OUTROS MOTORES</span><small>{otherEngines.length} registrados</small></div>
-        <div className="settingsEngines">{otherEngines.map(e=><label key={e.id} className="settingsEngine"><span><b>{e.name}</b><small>{e.family} · {e.task.replaceAll("_"," ")}</small></span><input type="checkbox" checked={selected.includes(e.id)} onChange={()=>toggle(e.id)}/><span className="settingsSwitch" aria-hidden="true"/></label>)}</div>
+        <div className="settingsEngines">{otherEngines.map(e=><EngineCard key={e.id} engine={e}/>)}</div>
       </div>
       {selected.includes("cdm_1")&&<details className="analysisSettingsCard"><summary>CDM-1 · Parâmetros morfológicos</summary><p>Valores iniciais da extensão CDM 2.8.5. Na análise individual, o CDM-1 executa localmente no navegador; na comparação com outros motores, o comparador usa os valores iniciais.</p><div className="settingsMeta">
         {[["cdm_threshold","Limiar T",1,255,1],["cdm_kernel_size","Kernel black-hat",3,99,1],["cdm_min_area","Área mínima (px²)",1,1000000,1],["cdm_min_aspect_ratio","Alongamento mínimo",1,50,.1],["cdm_mm_per_px","Calibração (mm/px; 0 = sem escala)",0,1000,.001]].map(([key,label,min,max,step])=><label key={key} className="settingsField">{label}<input type="number" min={min} max={max} step={step} value={cdmOptions[key]} onChange={e=>setCdmOptions(v=>({...v,[key]:Number(e.target.value)}))}/></label>)}
@@ -36,7 +64,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
       </details>
       <details className="analysisSettingsCard"><summary>Identificação da inspeção</summary><div className="settingsMeta">{[["oae_id","OAE / estrutura"],["element_id","Elemento"],["source_id","Fonte / câmera"],["inspection_label","Campanha / inspeção"]].map(([key,label])=><label className="settingsField" key={key}>{label}<input value={inspectionMeta[key]} onChange={e=>updateInspectionMeta(key,e.target.value)}/></label>)}</div></details>
       {error&&<p className="settingsError" role="alert">{error}</p>}
-      <footer className="settingsBottom" aria-label="Barra de status das configurações"><span className="settingsStatusMessage">Configurações da análise</span><span className="settingsStatusEngines" title={selectedStatus}>{selectedStatus}</span><span className="settingsStatusMeta">{selected.length} selecionado(s)</span><button className="settingsApply" onClick={onBack}><Check size={14}/> Aplicar</button></footer>
     </main>
+    <footer className="settingsBottom" aria-label="Barra de status das configurações"><span className="settingsStatusMessage">Configurações da análise</span><span className="settingsStatusEngines" title={selectedStatus}>{selectedStatus}</span><span className="settingsStatusMeta">{selected.length} selecionado(s)</span><button className="settingsApply" onClick={onBack}><Check size={14}/> Aplicar</button></footer>
   </section>
 }

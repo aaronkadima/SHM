@@ -32,7 +32,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(206),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
-  const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[wipeDirection,setWipeDirection]=useState(null),[showRawT0,setShowRawT0]=useState(false);
+  const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[wipeDirection,setWipeDirection]=useState(null),[wipeDragging,setWipeDragging]=useState(false),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
   const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder),[pathologyOpacity,setPathologyOpacity]=useState(initialViewerPrefs.pathologyOpacity||{}),[pathologyLocked,setPathologyLocked]=useState(new Set(initialViewerPrefs.pathologyLocked||[])),[selectedPathologyId,setSelectedPathologyId]=useState(null);
   const [selectedDetection,setSelectedDetection]=useState(null);
@@ -185,7 +185,14 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   function markWipeDirection(direction){
     if(wipeDirectionTimer.current)clearTimeout(wipeDirectionTimer.current);
     setWipeDirection(direction);
-    wipeDirectionTimer.current=setTimeout(()=>{setWipeDirection(null);wipeDirectionTimer.current=null},260);
+    wipeDirectionTimer.current=setTimeout(()=>{if(!wipeDragging)setWipeDirection(null);wipeDirectionTimer.current=null},260);
+  }
+  function changeZoom(delta){
+    setZoom(current=>{
+      const next=Math.max(.25,Math.min(4,current+delta));
+      showStatusNotice("Zoom · "+Math.round(next*100)+"%",1000);
+      return next;
+    });
   }
   function dragStart(e){if(e.target.closest("button"))return;drag.current={x:e.clientX-position.x,y:e.clientY-position.y};e.currentTarget.setPointerCapture(e.pointerId)}
   function dragMove(e){if(drag.current)setPosition({x:e.clientX-drag.current.x,y:e.clientY-drag.current.y})}
@@ -207,8 +214,13 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     e.preventDefault();
     const startX=e.clientX;
     const startWidth=layersWidth;
-    const move=ev=>setLayersWidth(Math.max(180,Math.min(520,startWidth+ev.clientX-startX)));
+    let currentWidth=startWidth;
+    const move=ev=>{
+      currentWidth=Math.max(180,Math.min(520,startWidth+ev.clientX-startX));
+      setLayersWidth(currentWidth);
+    };
     const up=()=>{
+      showStatusNotice("Painel de camadas · "+Math.round(currentWidth)+" px",900);
       window.removeEventListener("mousemove",move);
       window.removeEventListener("mouseup",up);
     };
@@ -224,15 +236,20 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     if(!rect?.width)return;
     const startX=e.clientX;
     const startPosition=wipePosition;
+    setWipeDragging(true);
     const update=clientX=>{
       const deltaPx=clientX-startX;
       const next=Math.max(5,Math.min(95,startPosition+deltaPx/rect.width*100));
       if(Math.abs(deltaPx)>.5)markWipeDirection(deltaPx<0?"left":"right");
       setWipePosition(next);
+      return next;
     };
     const move=ev=>{ev.preventDefault();update(ev.clientX)};
     const up=ev=>{
-      update(ev.clientX);
+      const next=update(ev.clientX);
+      setWipeDragging(false);
+      setWipeDirection(null);
+      showStatusNotice("Divisor · "+Math.round(next)+"%",900);
       window.removeEventListener("mousemove",move);
       window.removeEventListener("mouseup",up);
     };
@@ -253,6 +270,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     if(rect&&rect.width>0&&rect.height>0)setViewportSize({width:rect.width,height:rect.height});
     setZoom(1);
     setCanvasPan({x:0,y:0});
+    showStatusNotice("Ajustado à tela · 100%",1000);
   }
   function changeComparison(mode){
     setComparison(mode);
@@ -342,6 +360,10 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
       {badge&&<span className="editorPaneBadge">{badge}</span>}
     </div>;
   }
+  function exportCdm(format,label){
+    showStatusNotice("Exportação CDM · "+label,1200);
+    onExportCdm(chosen,format);
+  }
   function renderWipePane(src){
     const resolvedSrc=src||localPreview;
     if(!resolvedSrc)return <div className="editorImagePane editorImageMissing"><span>Imagem base indisponível</span></div>;
@@ -351,7 +373,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         onError={()=>setPreviewError("Não foi possível decodificar a imagem importada.")}/>
       {renderOverlayStack({clipPath:`inset(0 0 0 ${wipePosition}%)`})}
       <div className="editorWipeDivider" style={{left:wipePosition+"%"}}>
-        <button className="editorWipeHandle" type="button" aria-label="Arrastar divisor original e detecção" title="Arraste para comparar original e detecção" onMouseDown={beginWipeDrag} onKeyDown={wipeHandleKey}>
+        <button className={"editorWipeHandle "+(wipeDragging?"dragging":"")} type="button" aria-label="Arrastar divisor original e detecção" title="Arraste para comparar original e detecção" onMouseDown={beginWipeDrag} onKeyDown={wipeHandleKey}>
           <span className={"wipeArrow left "+(wipeDirection==="left"?"active":"")} aria-hidden="true"/>
           <span className={"wipeArrow right "+(wipeDirection==="right"?"active":"")} aria-hidden="true"/>
         </button>
@@ -382,7 +404,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
       </div>
     </div>
     <div className="editorBody">
-      <div className="editorTools" aria-label="Ferramentas"><button title="Mostrar ou ocultar camadas" onClick={()=>setLayersOpen(v=>!v)}><Layers3/></button><button title="Ampliar" onClick={()=>setZoom(z=>Math.min(4,z+.25))}><Plus/></button><button title="Reduzir" onClick={()=>setZoom(z=>Math.max(.25,z-.25))}><Minus/></button><button title="Ajustar à tela" aria-label="Ajustar à tela" onClick={fitView}><Maximize2/></button><button title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button></div>
+      <div className="editorTools" aria-label="Ferramentas"><button title="Mostrar ou ocultar camadas" onClick={()=>setLayersOpen(v=>{const next=!v;showStatusNotice(next?"Camadas abertas":"Camadas recolhidas",900);return next})}><Layers3/></button><button title="Ampliar" onClick={()=>changeZoom(.25)}><Plus/></button><button title="Reduzir" onClick={()=>changeZoom(-.25)}><Minus/></button><button title="Ajustar à tela" aria-label="Ajustar à tela" onClick={fitView}><Maximize2/></button><button title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button></div>
       {layersOpen&&<><aside className="editorLayers" style={{width:layersWidth}}><div className="editorPanelTitle"><b>Camadas</b><button title="Recolher camadas" onClick={()=>setLayersOpen(false)}><ChevronLeft size={17}/></button></div>
         <div className="layerRow"><span>◉</span> Arquivo atual · t1</div>
         {referenceFile&&<div className="layerRow referenceLayer"><span>○</span><span>Referência · t0 <small>{referenceFile.name}</small>{linkedReferenceCompatibility&&<em className={"referenceCompatibility "+linkedReferenceCompatibility.status} title={linkedReferenceCompatibility.refLabel}>{linkedReferenceCompatibility.text}</em>}</span><button className="layerClear" disabled={busy} title="Remover referência t0" onClick={()=>onReferenceFile(null)}><X size={13}/></button></div>}
@@ -413,7 +435,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
             {renderBasePane(basePreview,"Imagem atual t1 com camadas de detecção","t1 atual + camadas",true,true)}
           </>}
         </div>}
-        {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>setZoom(z=>Math.max(.25,z-.25))}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>setZoom(z=>Math.min(4,z+.25))}><Plus size={15}/></button></div>}
+        {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>changeZoom(-.25)}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>changeZoom(.25)}><Plus size={15}/></button></div>}
         {resultOpen&&(busy||results.length>0)&&<div className="editorFloating" style={{transform:`translate(${position.x}px,${position.y}px)`}}>
           <div className="editorFloatHead" onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd}><b>Resultados</b><button title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel} disabled={progress?.state==="cancel_requested"}>{progress?.state==="cancel_requested"?"Cancelando…":"Cancelar"}</button>}</div>}
@@ -422,29 +444,29 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
           {cdmSummary&&<div className="editorCdmSummary"><b>CDM-1 · resumo morfológico</b><div><span>{cdmSummary.total_objects} achados</span><span>Fissuras: {cdmSummary.crack_count}</span><span>Comprimento: {Number(cdmSummary.crack_length_total_px||0).toFixed(1)} px</span><span>Desplacamento: {Number(cdmSummary.spalling_area_px2||0).toFixed(0)} px²</span></div>{cdmRating?.enabled&&<p>Estimativa por imagem: NT {cdmRating.NT_img} · EC {cdmRating.EC_DNIT_img} · GDE {Number(cdmRating.GDE_img||0).toFixed(2)}. Confirme em inspeção técnica.</p>}{temporal?.enabled&&<p><b>t0→t1:</b> crescimento {temporalGrowth.toFixed(temporalCalibrated?1:0)} {temporalUnit} · redução {temporalReduction.toFixed(temporalCalibrated?1:0)} {temporalUnit} · {temporalAlignment?.accepted?<>registro automático Δx={Number(temporalAlignment.dx_px||0).toFixed(0)} px, Δy={Number(temporalAlignment.dy_px||0).toFixed(0)} px · ganho {(Number(temporalAlignment.improvement||0)*100).toFixed(1)}%</>:<>alinhamento {temporal?.alignment_method==="translation_auto"?"automático sem translação aplicada":"por redimensionamento"}</>}.</p>}{temporalMetricRows.length>0&&<details className="editorTemporalMetrics"><summary>Quantificação por patologia <small>{temporalUnit}</small></summary><div className="editorTemporalTable"><span className="head">Patologia</span><span className="head">t0</span><span className="head">t1</span><span className="head">Δ</span><span className="head">Δ/t0</span>{temporalMetricRows.map(row=><React.Fragment key={row.cls}><span title={"IoU "+row.iou.toFixed(3)}>{row.label}</span><span>{row.previous.toFixed(1)}</span><span>{row.current.toFixed(1)}</span><span className={row.net>0?"positive":row.net<0?"negative":""}>{row.net>0?"+":""}{row.net.toFixed(1)}</span><span>{row.netRate==null?"—":(row.netRate>0?"+":"")+row.netRate.toFixed(1)+"%"}</span></React.Fragment>)}</div></details>}{temporalQualityLabel&&<p className={"editorTemporalQuality "+temporalQuality.status}><b>{temporalQualityLabel}</b>{temporalQuality?.metrics&&<> · sobreposição {(Number(temporalQuality.metrics.overlap_ratio||0)*100).toFixed(1)}% · Δ iluminação {(Number(temporalQuality.metrics.illumination_delta||0)*100).toFixed(1)}% · razão de nitidez {Number(temporalQuality.metrics.sharpness_ratio||0).toFixed(2)} · similaridade geométrica {Number(temporalQuality.metrics.edge_similarity||0).toFixed(2)}</>}{temporalQualityNotes.length>0&&<span> · {temporalQualityNotes.join("; ")}</span>}</p>}{temporalRegistrationWarning&&<p className="editorCdmWarning">{temporalRegistrationWarning}</p>}{chosen?.metrics?.performance_ms&&<p className="editorPerf"><b>Tempo real:</b> decodificação {(Number(chosen.metrics.performance_ms.decode||0)/1000).toFixed(2)} s · núcleo {(Number(chosen.metrics.performance_ms.core||0)/1000).toFixed(2)} s · renderização {(Number(chosen.metrics.performance_ms.render||0)/1000).toFixed(2)} s · total {(Number(chosen.metrics.performance_ms.total||0)/1000).toFixed(2)} s · {chosen.metrics.runtime||"browser"}</p>}</div>}
           {detail&&<div className="editorFinding"><b>{pathologyLayers.find(l=>l.id===detail.label)?.name||detail.label||detail.canonical_label||"Achado"} #{selectedDetection.index+1}</b><span>Motor: {chosen.name}</span><span>Confiança: {chosen.engine_id==="cdm_1"?"não calibrada":detail.score==null?"não informada":(Number(detail.score)*100).toFixed(1)+"%"}</span><span>Coordenadas: {detail.box.map(v=>Math.round(v)).join(", ")} px</span></div>}
           {results.length>0&&<div className="editorCompare editorViewActions">
-            <button className={"editorIconButton "+(comparison==="original"?"active":"")} aria-label="Original" title="Original" onClick={()=>changeComparison("original")}><ImageIcon size={15}/></button>
-            <button className={"editorIconButton "+(comparison==="overlay"?"active":"")} aria-label="Sobrepor" title="Sobrepor" onClick={()=>changeComparison("overlay")}><Layers3 size={15}/></button>
-            <button className={"editorIconButton "+(comparison==="wipe"?"active":"")} aria-label="Deslizar" title="Deslizar" onClick={()=>changeComparison("wipe")}><MoveHorizontal size={15}/></button>
-            <button className={"editorIconButton "+(comparison==="side"?"active":"")} aria-label="Lado a lado" title="Lado a lado" onClick={()=>changeComparison("side")}><Columns2 size={15}/></button>
+            <button className={"editorIconButton "+(comparison==="original"?"active":"")} aria-label="Original" title="Original" data-tooltip="Original" onClick={()=>changeComparison("original")}><ImageIcon size={15}/></button>
+            <button className={"editorIconButton "+(comparison==="overlay"?"active":"")} aria-label="Sobrepor" title="Sobrepor" data-tooltip="Sobrepor" onClick={()=>changeComparison("overlay")}><Layers3 size={15}/></button>
+            <button className={"editorIconButton "+(comparison==="wipe"?"active":"")} aria-label="Deslizar" title="Deslizar" data-tooltip="Deslizar" onClick={()=>changeComparison("wipe")}><MoveHorizontal size={15}/></button>
+            <button className={"editorIconButton "+(comparison==="side"?"active":"")} aria-label="Lado a lado" title="Lado a lado" data-tooltip="Lado a lado" onClick={()=>changeComparison("side")}><Columns2 size={15}/></button>
             {temporal?.enabled&&referencePrev&&<button className={comparison==="temporal"?"active temporalModeButton":"temporalModeButton"} title="Comparação temporal t0 / t1" onClick={()=>changeComparison("temporal")}>t0 / t1</button>}
             {comparison==="temporal"&&temporalAlignedPreview&&<button title={showRawT0?"Usar t0 alinhado":"Ver t0 bruto"} onClick={()=>setShowRawT0(v=>!v)}>{showRawT0?"Alinhado":"Bruto"}</button>}
             <details className="editorExportMenu editorExportUnified">
-              <summary className="editorIconButton" aria-label="Exportar" title="Exportar"><Download size={15}/></summary>
+              <summary className="editorIconButton" aria-label="Exportar" title="Exportar" data-tooltip="Exportar"><Download size={15}/></summary>
               <div>
                 <span className="editorExportSection">Comparação</span>
-                <button onClick={onExport}>JSON</button>
-                <button onClick={onExportCsv}>CSV</button>
-                {res.consensus_overlay_png_base64&&<button onClick={onExportMap}>Mapa PNG</button>}
+                <button onClick={()=>{showStatusNotice("Exportação · JSON",1200);onExport()}}>JSON</button>
+                <button onClick={()=>{showStatusNotice("Exportação · CSV",1200);onExportCsv()}}>CSV</button>
+                {res.consensus_overlay_png_base64&&<button onClick={()=>{showStatusNotice("Exportação · Mapa PNG",1200);onExportMap()}}>Mapa PNG</button>}
                 {cdmSummary&&<>
                   <span className="editorExportSection">CDM-1</span>
-                  <button onClick={()=>onExportCdm(chosen,"svg")}>SVG camadas</button>
-                  <button onClick={()=>onExportCdm(chosen,"csv")}>CSV técnico</button>
-                  <button onClick={()=>onExportCdm(chosen,"coco")}>COCO</button>
-                  <button onClick={()=>onExportCdm(chosen,"dxf")}>DXF</button>
-                  <button onClick={()=>onExportCdm(chosen,"bim")}>BIM JSON</button>
-                  <button disabled={!Number(chosen.metrics?.mm_per_px)} title={!Number(chosen.metrics?.mm_per_px)?"Calibre mm/px para exportar IFC":""} onClick={()=>onExportCdm(chosen,"ifc")}>IFC</button>
-                  <button onClick={()=>onExportCdm(chosen,"html")}>HTML</button>
-                  {temporalAlignedPreview&&<button onClick={()=>onExportCdm(chosen,"aligned_t0")}>PNG t0 alinhado</button>}
+                  <button onClick={()=>exportCdm("svg","SVG camadas")}>SVG camadas</button>
+                  <button onClick={()=>exportCdm("csv","CSV técnico")}>CSV técnico</button>
+                  <button onClick={()=>exportCdm("coco","COCO")}>COCO</button>
+                  <button onClick={()=>exportCdm("dxf","DXF")}>DXF</button>
+                  <button onClick={()=>exportCdm("bim","BIM JSON")}>BIM JSON</button>
+                  <button disabled={!Number(chosen.metrics?.mm_per_px)} title={!Number(chosen.metrics?.mm_per_px)?"Calibre mm/px para exportar IFC":""} onClick={()=>exportCdm("ifc","IFC")}>IFC</button>
+                  <button onClick={()=>exportCdm("html","HTML")}>HTML</button>
+                  {temporalAlignedPreview&&<button onClick={()=>exportCdm("aligned_t0","PNG t0 alinhado")}>PNG t0 alinhado</button>}
                 </>}
               </div>
             </details>

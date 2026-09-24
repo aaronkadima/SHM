@@ -60,6 +60,7 @@ function check(){
   const motorsCard=document.querySelector(".settingsMotorsCard");
   const footer=document.querySelector(".settingsBottom");
   const top=document.querySelector(".settingsTop");
+  const ownedCard=document.querySelector(".settingsEngineCardOwned");
   const motorCards=[...motors?.querySelectorAll(".settingsEngineCard")||[]];
   const firstOther=motorCards[0];
   if(!content||!motors||!motorsCard||!footer||!top||!firstOther)return false;
@@ -79,16 +80,19 @@ function check(){
   const cardRects=motorCards.slice(0,6).map(card=>card.getBoundingClientRect());
   const cardsSeparated=cardRects.length>=4&&cardRects.every((rect,index)=>index===0||rect.top>=cardRects[index-1].bottom-1)&&cardRects.every(rect=>rect.height>=55);
   const barsVisible=topRect.top>=-1&&topRect.bottom<=visualBottom+1&&footerRect.top>=0&&footerRect.bottom<=visualBottom+1;
+  const selectedCountOk=document.querySelector(".settingsStatusEngines")?.textContent?.trim()==="Motores selecionados: 1"&&!document.querySelector(".settingsStatusMeta");
+  const ownedActions=[...ownedCard?.querySelectorAll(".settingsEngineCodeActions button")||[]].map(button=>button.textContent.trim());
+  const cardActionsOk=ownedActions.some(text=>text.includes("Informações"))&&ownedActions.some(text=>text.includes("Atualização"));
   const noHorizontalOverflow=html.scrollWidth<=viewportW+2&&body.scrollWidth<=viewportW+2;
   const candidates=[html,body,content,motorsCard,motors];
   const verticalScrollers=candidates.filter(el=>el.scrollHeight>el.clientHeight+3&&["auto","scroll"].includes(getComputedStyle(el).overflowY));
   const intendedScrollers=verticalScrollers.length===2&&verticalScrollers.includes(content)&&verticalScrollers.includes(motors);
 
-  const checks={documentNoScroll,pageScrollEnabled,motorsScrollEnabled,motorsVisible,cardsSeparated,barsVisible,noHorizontalOverflow,intendedScrollers};
+  const checks={documentNoScroll,pageScrollEnabled,motorsScrollEnabled,motorsVisible,cardsSeparated,barsVisible,selectedCountOk,cardActionsOk,noHorizontalOverflow,intendedScrollers};
   const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
   result.textContent=failed.length
     ?"SETTINGS_SMOKE_FAIL "+failed.join(",")+" motorsHeight="+Math.round(motorsRect.height)+" viewport="+viewportW+"x"+viewportH+" html="+html.scrollHeight+"/"+html.clientHeight+" body="+body.scrollHeight+"/"+body.clientHeight+" footer="+Math.round(footerRect.top)+"-"+Math.round(footerRect.bottom)+" visualBottom="+Math.round(visualBottom)
-    :"SETTINGS_SMOKE_PASS viewport="+viewportW+"x"+viewportH+" motorsHeight="+Math.round(motorsRect.height)+" cards=separated scroll=page+motors footer=visual-viewport";
+    :"SETTINGS_SMOKE_PASS viewport="+viewportW+"x"+viewportH+" motorsHeight="+Math.round(motorsRect.height)+" cards=separated actions=info+update selected=count scroll=page+motors footer=visual-viewport";
   return true;
 }
 

@@ -20,11 +20,12 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
   const [imageSize,setImageSize]=useState({width:1,height:1});
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
-  const runStarted=useRef(null);
+  const runStarted=useRef(null),narrowLayout=useRef(window.innerWidth<760);
   const video=useRef(null),stream=useRef(null),picker=useRef(null),surface=useRef(null),drag=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1)},[file]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
+  useEffect(()=>{const onResize=()=>{const narrow=window.innerWidth<760;if(narrow&&!narrowLayout.current)setLayersOpen(false);narrowLayout.current=narrow};window.addEventListener("resize",onResize);return()=>window.removeEventListener("resize",onResize)},[]);
   useEffect(()=>{if(busy){const now=performance.now();runStarted.current=now;setStartAt(now);setElapsed(0);setDurationMs(null)}
     else{if(runStarted.current!=null){setDurationMs(performance.now()-runStarted.current);runStarted.current=null}setStartAt(null)}},[busy]);
   useEffect(()=>{if(startAt==null)return;const tick=()=>setElapsed(Math.floor((performance.now()-startAt)/1000));tick();const id=setInterval(tick,250);return()=>clearInterval(id)},[startAt]);
@@ -47,6 +48,7 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
   const fit=Math.min(viewportSize.width*.83/(imageSize.width*panes),viewportSize.height*.8/imageSize.height);
   const displaySize={width:Math.max(1,imageSize.width*fit*panes),height:Math.max(1,imageSize.height*fit)};
   const pct=progress?.total?Math.min(100,Math.round(progress.completed/progress.total*100)):0;
+  const selectedEnginePreview=selectedEngines.slice(0,8),hiddenSelectedEngines=Math.max(0,selectedEngines.length-selectedEnginePreview.length);
   function capture(){const v=video.current;if(!v?.videoWidth)return;const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);c.toBlob(blob=>{if(blob){onFile(new File([blob],"captura-"+Date.now()+".png",{type:"image/png"}));setCameraOpen(false)}else setCameraError("Falha ao converter o quadro capturado.")},"image/png")}
   function dragStart(e){if(e.target.closest("button"))return;drag.current={x:e.clientX-position.x,y:e.clientY-position.y};e.currentTarget.setPointerCapture(e.pointerId)}
   function dragMove(e){if(drag.current)setPosition({x:e.clientX-drag.current.x,y:e.clientY-drag.current.y})}
@@ -71,7 +73,7 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
         <p>Tipo reconhecido: <b>{kind==="2d"?"Imagem 2D":kind==="3d"?"Modelo 3D":"Indefinido"}</b></p>
         {kind==="unknown"&&<div className="editorTypeChoice"><button onClick={()=>setKind("2d")}>Tratar como 2D</button><button onClick={()=>setKind("3d")}>Tratar como 3D</button></div>}
         <p>Sobreposição: {Math.round(opacity*100)}%</p><input aria-label="Opacidade da sobreposição" type="range" min="0" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/>
-        <div className="editorSelectedEngines" aria-label="Motores selecionados"><span>Motores ativos</span>{selectedEngines.length?selectedEngines.map(e=><small key={e.id} title={e.name}>{e.name}</small>):<small>Nenhum motor</small>}</div>
+        <div className="editorSelectedEngines" aria-label="Motores selecionados"><span>Motores ativos</span>{selectedEnginePreview.length?selectedEnginePreview.map(e=><small key={e.id} title={e.name}>{e.name}</small>):<small>Nenhum motor</small>}{hiddenSelectedEngines>0&&<small className="editorSelectedMore" title={selectedEngines.slice(8).map(e=>e.name).join(", ")}>+ {hiddenSelectedEngines} outro(s)</small>}</div>
       </aside>}
       <div className="editorViewport" ref={surface}>
         {!layersOpen&&<button className="editorExpand" onClick={()=>setLayersOpen(true)} title="Mostrar camadas"><ChevronRight size={18}/></button>}

@@ -45,6 +45,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-file-integrity.mjs
 
+      - name: Analysis viewer composition
+        working-directory: frontend
+        run: node scripts/check-analysis-viewer.mjs
+
       - name: Build
         working-directory: frontend
         run: npm run build

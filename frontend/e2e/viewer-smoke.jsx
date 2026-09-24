@@ -89,12 +89,20 @@ function App(){
             zoomPlus?.click();
             await sleep(40);
             const zoomBefore=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
+            const canvas=document.querySelector(".editorImage");
+            canvas?.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,button:1,buttons:4,clientX:100,clientY:100,pointerId:7}));
+            canvas?.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,buttons:4,clientX:145,clientY:128,pointerId:7}));
+            canvas?.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,button:1,buttons:0,clientX:145,clientY:128,pointerId:7}));
+            await sleep(60);
+            const panTransform=canvas?.style.transform||"";
+            const panOk=panTransform.includes("translate(45px, 28px)")&&panTransform.includes("scale(1.25)");
             const fitButton=[...document.querySelectorAll("button")].find(b=>b.getAttribute("aria-label")==="Ajustar à tela");
             fitButton?.click();
             await sleep(60);
             const zoomAfterFit=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const fitPaneRect=document.querySelector(".editorImagePane")?.getBoundingClientRect();
-            const fitButtonOk=zoomAfterFit==="100%"&&!!fitPaneRect&&fitPaneRect.width>100&&fitPaneRect.height>80;
+            const fitTransform=document.querySelector(".editorImage")?.style.transform||"";
+            const fitButtonOk=zoomAfterFit==="100%"&&fitTransform.includes("translate(0px, 0px)")&&fitTransform.includes("scale(1)")&&!!fitPaneRect&&fitPaneRect.width>100&&fitPaneRect.height>80;
             zoomPlus?.click();
             await sleep(40);
             const zoomBeforeSide=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
@@ -151,8 +159,8 @@ function App(){
             const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50;
-            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&zoomBefore==="125%"&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&wipeInitialOk&&wipeMovedOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 wipe=67 side=2 temporal=2 layers=toggle+solo+order+opacity+lock reset=ok fit=button+viewport+100%");
+            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&zoomBefore==="125%"&&panOk&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&wipeInitialOk&&wipeMovedOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 wipe=67 side=2 temporal=2 layers=toggle+solo+order+opacity+lock reset=ok fit=button+viewport+100% pan=middle-drag");
               return;
             }
           }

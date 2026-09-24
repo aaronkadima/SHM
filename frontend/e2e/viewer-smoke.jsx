@@ -510,8 +510,20 @@ function App(){
             await sleep(100);
             const afterBusyPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const busyPreferenceRestored=afterBusyPrefs.resultPanelOpen===false&&!document.querySelector(".editorFloating")&&!!document.querySelector(".editorResultsTab");
+            const compactControlLabels=[
+              "Mostrar ou ocultar painel de camadas",
+              "Ampliar zoom",
+              "Reduzir zoom",
+              "Ajustar à tela",
+              "Abrir modo câmera",
+              "Recolher painel de camadas",
+              "Remover referência temporal t0",
+              "Subir camada Corrosão",
+              "Descer camada Fissuras"
+            ];
+            const compactControlA11yOk=compactControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`));
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,

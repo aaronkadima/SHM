@@ -37,6 +37,10 @@ function App(){
         const pane=document.querySelector(".editorImagePane");
         const status=document.querySelector(".editorStatusMessage");
         if(img&&pane&&status?.textContent?.includes("Imagem carregada")&&img.naturalWidth===320&&img.naturalHeight===180){
+          const initialImageNoticeOk=status.textContent.includes("viewer-smoke.svg")&&status.textContent.includes("320×180");
+          await sleep(1900);
+          const imageNoticeCleared=!document.querySelector(".editorStatusMessage")?.textContent?.includes("Imagem carregada");
+          const engineStatusPersistent=document.querySelector(".editorStatusEngines")?.textContent?.includes("Motores selecionados: CDM-1");
           const rect=pane.getBoundingClientRect();
           if(rect.width>100&&rect.height>80){
             const stack=document.querySelector(".editorOverlayStack");
@@ -127,13 +131,13 @@ function App(){
             const zoomAfterOverlay=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const iconActionsOk=["Original","Sobrepor","Deslizar","Lado a lado"].every(label=>{
               const button=document.querySelector('button[aria-label="'+label+'"]');
-              return !!button&&!!button.querySelector("svg")&&button.getAttribute("title")===label;
+              return !!button&&!!button.querySelector("svg")&&button.getAttribute("title")===label&&button.getAttribute("data-tooltip")===label;
             });
             const exportSummary=document.querySelector('.editorExportUnified summary[aria-label="Exportar"]');
             exportSummary?.click();
             await sleep(40);
             const exportLabels=[...document.querySelectorAll(".editorExportUnified>div button")].map(b=>b.textContent.trim());
-            const unifiedExportOk=!!exportSummary&&!!exportSummary.querySelector("svg")&&exportLabels.includes("JSON")&&exportLabels.includes("CSV")&&exportLabels.includes("SVG camadas")&&exportLabels.includes("CSV técnico")&&exportLabels.includes("COCO")&&exportLabels.includes("DXF")&&exportLabels.includes("BIM JSON")&&exportLabels.includes("IFC")&&exportLabels.includes("HTML")&&!document.querySelector(".editorCdmExports");
+            const unifiedExportOk=!!exportSummary&&exportSummary.getAttribute("data-tooltip")==="Exportar"&&!!exportSummary.querySelector("svg")&&exportLabels.includes("JSON")&&exportLabels.includes("CSV")&&exportLabels.includes("SVG camadas")&&exportLabels.includes("CSV técnico")&&exportLabels.includes("COCO")&&exportLabels.includes("DXF")&&exportLabels.includes("BIM JSON")&&exportLabels.includes("IFC")&&exportLabels.includes("HTML")&&!document.querySelector(".editorCdmExports");
             exportSummary?.click();
             const wipe=document.querySelector('button[aria-label="Deslizar"]');
             wipe?.click();
@@ -177,8 +181,8 @@ function App(){
             const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50;
-            if(overlayGeometryOk&&engineStatusOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&noFloatingLayersButton&&layerResizeOk&&zoomBefore==="125%"&&panOk&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&iconActionsOk&&unifiedExportOk&&wipeInitialOk&&wipeMovedOk&&wipeDirectionOk&&wipeStatusOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=dynamic+engines layers=toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified wipe=anchored+direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+            if(initialImageNoticeOk&&imageNoticeCleared&&engineStatusPersistent&&overlayGeometryOk&&engineStatusOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&noFloatingLayersButton&&layerResizeOk&&zoomBefore==="125%"&&panOk&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&iconActionsOk&&unifiedExportOk&&wipeInitialOk&&wipeMovedOk&&wipeDirectionOk&&wipeStatusOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+persistent-engines layers=toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified wipe=anchored+direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
               return;
             }
           }

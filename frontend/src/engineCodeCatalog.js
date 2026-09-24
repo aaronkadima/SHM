@@ -236,6 +236,8 @@ export function engineCodePackage(engine){
       kind:"Código real · browser",
       language:"javascript",
       fileName:"cdm-1-browser.js",
+      repositoryPath:"frontend/src/cdmBrowser.js",
+      repositorySource:cdmBrowserSource,
       source:commentHeader(engine,"código real do motor browser",[
         "Ler e normalizar a imagem preservando a geometria de pixels.",
         "Construir respostas morfológicas e máscaras das cinco famílias de patologia.",
@@ -250,6 +252,8 @@ export function engineCodePackage(engine){
       kind:"Código real · browser",
       language:"javascript",
       fileName:"opencv-crack-browser.js",
+      repositoryPath:"frontend/src/browserEngines.js",
+      repositorySource:browserEnginesSource,
       source:commentHeader(engine,"código real do runtime browser compartilhado",[
         "Converter a imagem para escala de cinza.",
         "Aplicar fechamento morfológico e black-hat para realçar candidatos escuros.",

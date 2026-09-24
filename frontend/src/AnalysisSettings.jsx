@@ -9,6 +9,8 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
   const localBrowser=!!selectedEngine?.browser_ready;
   const needsIndividual=selected.length===1&&!localBrowser;
   const needsComparator=selected.length>=2;
+  const selectedNames=selected.map(id=>engines.find(e=>e.id===id)?.name||id);
+  const selectedStatus=selectedNames.length?"Motores selecionados: "+selectedNames.join(", "):"Nenhum motor selecionado";
   return <section className="analysisSettings" aria-label="Configurações da análise">
     <header className="settingsTop"><div><span className="editorMark">S</span><b>SHM Studio</b><em className={"settingsEnvBadge "+(appInfo?.channel||"production")}>{appInfo?.channel==="development"?"DEV":"PROD"} · v{appInfo?.catalogVersion||"—"} · {appInfo?.buildSha||"—"}</em></div><button onClick={onBack}><ArrowLeft size={16}/> Voltar ao canvas</button></header>
     <main className="settingsContent">
@@ -34,7 +36,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
       </details>
       <details className="analysisSettingsCard"><summary>Identificação da inspeção</summary><div className="settingsMeta">{[["oae_id","OAE / estrutura"],["element_id","Elemento"],["source_id","Fonte / câmera"],["inspection_label","Campanha / inspeção"]].map(([key,label])=><label className="settingsField" key={key}>{label}<input value={inspectionMeta[key]} onChange={e=>updateInspectionMeta(key,e.target.value)}/></label>)}</div></details>
       {error&&<p className="settingsError" role="alert">{error}</p>}
-      <div className="settingsBottom"><span>{selected.length} motor(es) selecionado(s)</span><button onClick={onBack}><Check size={16}/> Aplicar e voltar ao canvas</button></div>
+      <footer className="settingsBottom" aria-label="Barra de status das configurações"><span className="settingsStatusMessage">Configurações da análise</span><span className="settingsStatusEngines" title={selectedStatus}>{selectedStatus}</span><span className="settingsStatusMeta">{selected.length} selecionado(s)</span><button className="settingsApply" onClick={onBack}><Check size={14}/> Aplicar</button></footer>
     </main>
   </section>
 }

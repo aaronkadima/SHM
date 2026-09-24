@@ -1,4 +1,4 @@
-const LOCAL_HOSTS=new Set(["localhost","127.0.0.1","::1"]);
+const LOCAL_HOSTS=new Set(["localhost","127.0.0.1","::1","[::1]"]);
 
 export function executionEndpointIssue(raw,{label="serviço",hostname=""}={}){
   const value=String(raw||"").trim().replace(/\/$/,"");

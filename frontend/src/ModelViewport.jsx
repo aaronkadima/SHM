@@ -22,9 +22,11 @@ export default function ModelViewport({file}){
     const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(3,5,7);scene.add(light);
     const resize=()=>{const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);dirty=true};
     const observer=new ResizeObserver(resize);observer.observe(el);resize();
-    let disposed=false,model=null;const url=URL.createObjectURL(file),ext=file.name.split(".").pop().toLowerCase();
+    let disposed=false,model=null,urlRevoked=false;const url=URL.createObjectURL(file),ext=file.name.split(".").pop().toLowerCase();
+    const releaseUrl=()=>{if(!urlRevoked){URL.revokeObjectURL(url);urlRevoked=true}};
+    const disposeMaterial=material=>{if(!material)return;for(const value of Object.values(material)){if(value?.isTexture)value.dispose?.()}material.dispose?.()};
     const fit=obj=>{
-      if(disposed)return;model=obj;
+      if(disposed){releaseUrl();return}model=obj;releaseUrl();
       if(vectorFallback)obj.traverse(n=>{if(n.isMesh){
         const source=Array.isArray(n.material)?n.material[0]:n.material;
         n.material=new THREE.MeshBasicMaterial({color:source?.color?.clone()||new THREE.Color(0x689aa4),side:THREE.DoubleSide})
@@ -36,7 +38,7 @@ export default function ModelViewport({file}){
       view.current={camera,controls,center:center.clone(),radius};
       controls.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(radius,radius*.65,radius));camera.near=Math.max(.001,size.length()/10000);camera.far=Math.max(100,size.length()*100);camera.updateProjectionMatrix();controls.update();dirty=true
     };
-    const fail=e=>!disposed&&setError("Não foi possível abrir o modelo: "+(e?.message||String(e)));
+    const fail=e=>{releaseUrl();if(!disposed)setError("Não foi possível abrir o modelo: "+(e?.message||String(e)))};
     try{
       if(ext==="glb"||ext==="gltf")new GLTFLoader().load(url,g=>fit(g.scene),undefined,fail);
       else if(ext==="obj")new OBJLoader().load(url,fit,undefined,fail);
@@ -47,7 +49,7 @@ export default function ModelViewport({file}){
     }catch(e){fail(e)}
     controls.addEventListener("change",()=>{dirty=true});
     let animation;const draw=()=>{animation=requestAnimationFrame(draw);controls.update();if(!vectorFallback||dirty){renderer.render(scene,camera);dirty=false}};draw();
-    return()=>{disposed=true;view.current=null;cancelAnimationFrame(animation);observer.disconnect();controls.dispose();scene.remove(model);model?.traverse?.(n=>{n.geometry?.dispose();if(n.material){const materials=Array.isArray(n.material)?n.material:[n.material];materials.forEach(m=>m.dispose())}});renderer.dispose?.();renderer.domElement.remove();URL.revokeObjectURL(url)}
+    return()=>{disposed=true;view.current=null;cancelAnimationFrame(animation);observer.disconnect();controls.dispose();scene.remove(model);model?.traverse?.(n=>{n.geometry?.dispose();if(n.material){const materials=Array.isArray(n.material)?n.material:[n.material];materials.forEach(disposeMaterial)}});renderer.dispose?.();renderer.domElement.remove();releaseUrl()}
   },[file]);
   function setView(direction){
     const data=view.current;if(!data)return;

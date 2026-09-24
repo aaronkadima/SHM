@@ -29,7 +29,7 @@ export function detectAsset(file){
 }
 export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
-  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(360),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
+  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[wipeDirection,setWipeDirection]=useState(null),[wipeDragging,setWipeDragging]=useState(false),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState(initialViewerPrefs.resultPanelPosition||DEFAULT_VIEWER_PREFERENCES.resultPanelPosition),[resultPanelSize,setResultPanelSize]=useState(initialViewerPrefs.resultPanelSize||DEFAULT_VIEWER_PREFERENCES.resultPanelSize);
@@ -100,7 +100,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     reclamp();
     return()=>{observer.disconnect();if(frame)cancelAnimationFrame(frame)};
   },[resultOpen,busy,res]);
-  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked],resultPanelOpen:resultOpenPreference.current,resultPanelPosition:position,resultPanelSize})},[opacity,layersOpen,preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked,resultOpen,position,resultPanelSize]);
+  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,layersWidth,comparison:preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked],resultPanelOpen:resultOpenPreference.current,resultPanelPosition:position,resultPanelSize})},[opacity,layersOpen,layersWidth,preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked,resultOpen,position,resultPanelSize]);
   useEffect(()=>{
     if(busy){
       busyForcedResults.current=true;
@@ -411,6 +411,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   function resetViewerPreferences(){
     setOpacity(DEFAULT_VIEWER_PREFERENCES.opacity);
     setLayersOpen(DEFAULT_VIEWER_PREFERENCES.layersOpen);
+    setLayersWidth(DEFAULT_VIEWER_PREFERENCES.layersWidth);
     setPreferredComparison(DEFAULT_VIEWER_PREFERENCES.comparison);
     setComparison(DEFAULT_VIEWER_PREFERENCES.comparison);
     setWipePosition(DEFAULT_VIEWER_PREFERENCES.wipePosition);
@@ -498,7 +499,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
           <button title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button>
         </div>
       </div>
-      {layersOpen&&<><aside className={"editorLayers "+(selectedEngineLabels.length>=24?"engineDensityUltra":selectedEngineLabels.length>=12?"engineDensityDense":"")} data-engine-count={selectedEngineLabels.length} style={{width:layersWidth,"--engine-count":Math.max(1,selectedEngineLabels.length)}}><div className="editorLayersContent"><div className="editorPanelTitle"><b>Camadas</b><button title="Recolher camadas" onClick={()=>setLayersOpen(false)}><ChevronLeft size={17}/></button></div>
+      {layersOpen&&<><aside className={"editorLayers "+(selectedEngineLabels.length>=24?"engineDensityUltra":selectedEngineLabels.length>=12?"engineDensityDense":"")} data-engine-count={selectedEngineLabels.length} data-layer-width={layersWidth} style={{width:layersWidth,"--engine-count":Math.max(1,selectedEngineLabels.length)}}><div className="editorLayersContent"><div className="editorPanelTitle"><b>Camadas</b><button title="Recolher camadas" onClick={()=>setLayersOpen(false)}><ChevronLeft size={17}/></button></div>
         <div className="layerRow"><span>◉</span> Arquivo atual · t1</div>
         {referenceFile&&<div className="layerRow referenceLayer"><span>○</span><span>Referência · t0 <small>{referenceFile.name}</small>{linkedReferenceCompatibility&&<em className={"referenceCompatibility "+linkedReferenceCompatibility.status} title={linkedReferenceCompatibility.refLabel}>{linkedReferenceCompatibility.text}</em>}</span><button className="layerClear" disabled={busy} title="Remover referência t0" onClick={()=>onReferenceFile(null)}><X size={13}/></button></div>}
         {results.map(r=><label className="layerRow" key={r.engine_id}><input type="checkbox" checked={visible[r.engine_id]!==false} onChange={e=>setVisible(v=>({...v,[r.engine_id]:e.target.checked}))}/>{r.name}</label>)}

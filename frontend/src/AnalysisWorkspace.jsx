@@ -11,7 +11,7 @@ export function detectAsset(file){
   return "unknown";
 }
 
-export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,onFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap}){
+export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,selectedEngines=[],onFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap}){
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(true),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(.75),[comparison,setComparison]=useState("overlay");
@@ -71,6 +71,7 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
         <p>Tipo reconhecido: <b>{kind==="2d"?"Imagem 2D":kind==="3d"?"Modelo 3D":"Indefinido"}</b></p>
         {kind==="unknown"&&<div className="editorTypeChoice"><button onClick={()=>setKind("2d")}>Tratar como 2D</button><button onClick={()=>setKind("3d")}>Tratar como 3D</button></div>}
         <p>Sobreposição: {Math.round(opacity*100)}%</p><input aria-label="Opacidade da sobreposição" type="range" min="0" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/>
+        <div className="editorSelectedEngines" aria-label="Motores selecionados"><span>Motores ativos</span>{selectedEngines.length?selectedEngines.map(e=><small key={e.id} title={e.name}>{e.name}</small>):<small>Nenhum motor</small>}</div>
       </aside>}
       <div className="editorViewport" ref={surface}>
         {!layersOpen&&<button className="editorExpand" onClick={()=>setLayersOpen(true)} title="Mostrar camadas"><ChevronRight size={18}/></button>}
@@ -96,7 +97,7 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
         {!resultOpen&&results.length>0&&<button className="editorResultsTab" onClick={()=>setResultOpen(true)}>Resultados · {results.length}</button>}
       </div>
     </div>
-    <div className="editorStatus"><span>{error|| (kind==="3d"?"Arquivo 3D reconhecido; análise 2D indisponível":selected.length?selected.length+" motor(es) configurado(s)":"Configure os motores antes de analisar")}</span><span>Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}</span></div>
+    <div className="editorStatus"><span>{error||(kind==="3d"?"Arquivo 3D reconhecido; análise 2D indisponível":busy?"Análise em execução":file?"Arquivo pronto para análise":"Importe um arquivo para iniciar")}</span><span>Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}</span></div>
     {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera"><header><b>Modo câmera</b><button title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={()=>setCameraReady(true)}/><footer><span>{cameraError?"Verifique a permissão da câmera":cameraReady?"Prévia ao vivo · capture um quadro para análise 2D":"Aguardando câmera…"}</span><button onClick={capture} disabled={!!cameraError||!cameraReady}><Camera size={16}/> Capturar imagem</button></footer></div></div>}
   </section>
 }

@@ -1,6 +1,20 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "engines": [
+    {
+      "id": "cdm_1",
+      "name": "CDM-1",
+      "family": "Concrete Damage Morphology / SHM",
+      "task": "multi_pathology_morphology",
+      "description": "Motor morfológico determinístico para detecção e organização em camadas de fissuras, desplacamento, corrosão e armadura exposta.",
+      "recommended": true,
+      "cloud_verified": false,
+      "domain_mode": "classical",
+      "browser_ready": true,
+      "browser_runtime": "builtin-js",
+      "browser_revision": "cdm-morphology-browser-v1",
+      "repository_path": "frontend/src/browserEngines.js"
+    },
     {
       "id": "opencv_crack",
       "name": "OpenCV Crack Baseline",

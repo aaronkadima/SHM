@@ -1,6 +1,6 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Settings2,Unlock,X} from "lucide-react";
-import{DEFAULT_VIEWER_PREFERENCES,clampFloatingPanelPosition,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
+import{DEFAULT_VIEWER_PREFERENCES,clampFloatingPanelPosition,clampLayersPanelWidth,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
 const MODEL_EXT=/\.(glb|gltf|obj|ply|stl)$/i;
@@ -296,7 +296,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     const startWidth=layersWidth;
     let currentWidth=startWidth;
     const move=ev=>{
-      currentWidth=Math.max(340,Math.min(600,startWidth+ev.clientX-startX));
+      currentWidth=clampLayersPanelWidth(startWidth+ev.clientX-startX);
       setLayersWidth(currentWidth);
     };
     const up=()=>{
@@ -306,6 +306,14 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     };
     window.addEventListener("mousemove",move);
     window.addEventListener("mouseup",up);
+  }
+  function resizeLayersKey(e){
+    const next=e.key==="Home"?340:e.key==="End"?600:e.key==="ArrowLeft"?layersWidth-20:e.key==="ArrowRight"?layersWidth+20:null;
+    if(next==null)return;
+    e.preventDefault();
+    const width=clampLayersPanelWidth(next);
+    setLayersWidth(width);
+    showStatusNotice("Painel de camadas · "+width+" px",700);
   }
   function beginWipeDrag(e){
     if(e.button!==0)return;
@@ -518,7 +526,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
             {selectedEngineLabels.length>12&&<span className="editorSidebarEngineOverflow">+{selectedEngineLabels.length-12} motores</span>}
           </div>
         </div>
-      </aside><div className="editorLayerResizeHandle" role="separator" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" title="Arraste para ampliar ou reduzir o painel de camadas" onMouseDown={beginLayersResize}/></>}
+      </aside><div className="editorLayerResizeHandle" role="separator" tabIndex="0" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" aria-valuemin="340" aria-valuemax="600" aria-valuenow={Math.round(layersWidth)} aria-valuetext={Math.round(layersWidth)+" pixels"} title="Arraste ou use ← →, Home e End" onKeyDown={resizeLayersKey} onMouseDown={beginLayersResize}/></>}
       <div className="editorViewport" ref={surface}>
         <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}

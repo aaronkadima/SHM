@@ -915,6 +915,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     ||statusNotice
     ||analysisBlockedReason
     ||"Pronto";
+  const analysisDisabled=!file||kind!=="2d"||!imageDecoded||!!previewError||!selected.length||busy||referenceValidating||!!executionIssue;
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><nav className="editorMenus" aria-label="Menu do editor">
@@ -938,7 +939,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         </div></details>
         <details className="editorMenu" name="shm-editor-menu"><summary>Análise</summary><div className="editorMenuPanel editorMenuPanelRight" role="menu">
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onSettings)}><span>Configurações</span><small>Ctrl/Cmd+,</small></button>
-          <button type="button" role="menuitem" disabled={!!analyzeButton.current?.disabled} onClick={e=>runEditorMenuAction(e,()=>analyzeButton.current?.click())}><span>Executar análise</span><small>Ctrl/Cmd+Enter</small></button>
+          <button type="button" role="menuitem" disabled={analysisDisabled} onClick={e=>runEditorMenuAction(e,()=>analyzeButton.current?.click())}><span>Executar análise</span><small>Ctrl/Cmd+Enter</small></button>
         </div></details>
       </nav></div>
       <div className="editorFileTitle">{file?.name||"Nova inspeção"} {kind&&"· "+(kind==="unknown"?"NÃO SUPORTADO":kind.toUpperCase())}<span className="editorEngineState">{selectedEngineLabels.length===0?"Nenhum motor":selectedEngineLabels.length===1?selectedEngineLabels[0].name+(selectedEngineLabels[0].browser_ready?" · browser local":""):selectedEngineLabels.length+" motores · comparação"}</span></div>
@@ -948,7 +949,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         <button disabled={busy} aria-keyshortcuts="Control+O Meta+O" title="Importar arquivo · Ctrl/Cmd+O" onClick={()=>picker.current?.click()}><ImagePlus size={16}/> Importar</button>
         {selected.length===1&&selected[0]==="cdm_1"&&<button disabled={busy||referenceValidating} title={referenceValidating?"Validando referência t0…":"Carregar imagem anterior para comparação temporal"} onClick={()=>referencePicker.current?.click()}><ImagePlus size={16}/> {referenceValidating?"Validando t0…":referenceFile?"t0: "+referenceFile.name:"Referência t0"}</button>}
         <button disabled={busy} aria-keyshortcuts="Control+, Meta+," title="Configurações · Ctrl/Cmd+," onClick={onSettings}><Settings2 size={16}/> Configurar</button>
-        <button ref={analyzeButton} className="editorPrimary" aria-keyshortcuts="Control+Enter Meta+Enter" disabled={!file||kind!=="2d"||!imageDecoded||!!previewError||!selected.length||busy||referenceValidating||!!executionIssue} title={(analysisBlockedReason||"Executar análise")+" · Ctrl/Cmd+Enter"} onClick={onRun}><Play size={16}/> Analisar</button>
+        <button ref={analyzeButton} className="editorPrimary" aria-keyshortcuts="Control+Enter Meta+Enter" disabled={analysisDisabled} title={(analysisBlockedReason||"Executar análise")+" · Ctrl/Cmd+Enter"} onClick={onRun}><Play size={16}/> Analisar</button>
       </div>
     </div>
     <div className="editorBody">

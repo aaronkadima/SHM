@@ -60,6 +60,14 @@ function App(){
           const devStampOk=devStamp?.textContent.replace(/\s+/g," ").trim()==="DEV · abc12345 !"&&devStamp?.classList.contains("divergent")&&devStamp?.title.includes("catálogo v1.2.0")&&devStamp?.title.includes("deploy divergent")&&deployState?.getAttribute("aria-label")==="Deploy divergent"&&!statusBar?.textContent?.includes("CDM-1");
           const staleUpdateVisible=!!updateButton&&updateButton.textContent.includes("Atualizar");
           const statusBarFit=!!statusBar&&!!statusMeta&&statusBar.scrollWidth<=statusBar.clientWidth+1&&statusMeta.scrollWidth<=statusMeta.clientWidth+1;
+          const narrowSidebar=window.matchMedia("(max-width: 900px)").matches;
+          const mobileInitialLayersCollapsedOk=!narrowSidebar||!document.querySelector(".editorLayers");
+          const savedInitialPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
+          const desktopLayerPreferencePreserved=!narrowSidebar||savedInitialPrefs.layersOpen===true;
+          if(narrowSidebar){
+            document.querySelector('button[aria-label="Mostrar ou ocultar painel de camadas"]')?.click();
+            await sleep(60);
+          }
           const sidebarEngines=document.querySelector(".editorSidebarEngines");
           const engineStatusPersistent=!!sidebarEngines&&sidebarEngines.textContent.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
           const engineNames=[...document.querySelectorAll(".editorSidebarEngineName")].map(node=>node.textContent.trim());
@@ -68,7 +76,6 @@ function App(){
           const multiEngineFooterOk=document.querySelector(".editorLayers")?.dataset.engineCount===String(expectedEngineCount)&&engineNames.length===12&&engineNames[0]==="CDM-1"&&engineOverflow?.textContent.trim()==="+22 motores"&&sidebarEngines?.title.includes("FastFlow")&&getComputedStyle(document.querySelector(".editorSidebarEngineList")).overflow==="hidden"&&document.querySelector(".editorLayers")?.classList.contains("engineDensityUltra")&&parseFloat(getComputedStyle(document.querySelector(".editorSidebarEngineName")).fontSize)>=5.5;
           const sidebarStyle=getComputedStyle(document.querySelector(".editorLayers"));
           const sidebarResizeStyle=getComputedStyle(document.querySelector(".editorLayerResizeHandle"));
-          const narrowSidebar=window.matchMedia("(max-width: 900px)").matches;
           const phoneSidebar=window.matchMedia("(max-width: 560px)").matches;
           const compactOverlay=window.matchMedia("(max-width: 740px)").matches;
           const sidebarRect=document.querySelector(".editorLayers")?.getBoundingClientRect();
@@ -569,7 +576,7 @@ function App(){
               alwaysPresentControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`))&&
               (!sidebarCurrentlyOpen||sidebarControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`)));
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,staleUpdateVisible,statusBarFit,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,staleUpdateVisible,statusBarFit,mobileInitialLayersCollapsedOk,desktopLayerPreferencePreserved,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,phoneFitWithinViewportOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,sideWithinViewportOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,exportEscapeOk,

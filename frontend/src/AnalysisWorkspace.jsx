@@ -1,6 +1,6 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Settings2,Unlock,X} from "lucide-react";
-import{DEFAULT_VIEWER_PREFERENCES,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
+import{DEFAULT_VIEWER_PREFERENCES,clampFloatingPanelPosition,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
 const MODEL_EXT=/\.(glb|gltf|obj|ply|stl)$/i;
@@ -27,15 +27,6 @@ export function detectAsset(file){
   if(MODEL_EXT.test(name))return "3d";
   return "unknown";
 }
-export function clampPanelTranslation(next,{viewportWidth,viewportHeight,panelLeft,panelTop,panelWidth,panelHeight,margin=8}){
-  const minX=margin-panelLeft;
-  const maxX=viewportWidth-margin-panelLeft-panelWidth;
-  const minY=margin-panelTop;
-  const maxY=viewportHeight-margin-panelTop-panelHeight;
-  const clampAxis=(value,min,max)=>max>=min?Math.max(min,Math.min(max,Number(value)||0)):(min+max)/2;
-  return{x:Math.round(clampAxis(next?.x,minX,maxX)),y:Math.round(clampAxis(next?.y,minY,maxY))};
-}
-
 export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(360),[resultOpen,setResultOpen]=useState(true);
@@ -213,7 +204,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   function clampResultPosition(next){
     const panel=resultPanel.current,viewport=surface.current;
     if(!panel||!viewport)return next;
-    return clampPanelTranslation(next,{
+    return clampFloatingPanelPosition(next,{
       viewportWidth:viewport.clientWidth,
       viewportHeight:viewport.clientHeight,
       panelLeft:panel.offsetLeft,

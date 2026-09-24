@@ -52,3 +52,23 @@ export function saveViewerPreferences(value,storage=globalThis?.localStorage){
     return false;
   }
 }
+
+
+export function clampFloatingPanelPosition(next,geometry={}){
+  const margin=Number.isFinite(Number(geometry.margin))?Number(geometry.margin):8;
+  const panelLeft=Number(geometry.panelLeft)||0;
+  const panelTop=Number(geometry.panelTop)||0;
+  const panelWidth=Math.max(0,Number(geometry.panelWidth)||0);
+  const panelHeight=Math.max(0,Number(geometry.panelHeight)||0);
+  const viewportWidth=Math.max(0,Number(geometry.viewportWidth)||0);
+  const viewportHeight=Math.max(0,Number(geometry.viewportHeight)||0);
+  const minX=margin-panelLeft;
+  const maxX=viewportWidth-margin-panelLeft-panelWidth;
+  const minY=margin-panelTop;
+  const maxY=viewportHeight-margin-panelTop-panelHeight;
+  const clampAxis=(value,min,max)=>max>=min?Math.max(min,Math.min(max,value)):(min+max)/2;
+  return{
+    x:Math.round(clampAxis(Number(next?.x)||0,minX,maxX)),
+    y:Math.round(clampAxis(Number(next?.y)||0,minY,maxY))
+  };
+}

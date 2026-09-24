@@ -84,6 +84,7 @@ check(!workspace.includes('className="editorCompare editorCdmExports"'),"legacy 
 check(workspace.includes('const safeViewport={width:Math.max(1,Number(viewportSize.width)||1),height:Math.max(1,Number(viewportSize.height)||1)}'),"viewer fit must use the measured viewport while protecting only against zero-size collapse");
 check(workspace.includes('Math.max(96,safeImage.width*fit*panes)')&&workspace.includes('Math.max(72,safeImage.height*fit)'),"viewer must keep a small visible minimum without forcing mobile overflow");
 check(workspace.includes('Imagem carregada'),"viewer must expose decoded image dimensions");
+check(workspace.includes('kind==="unknown"?<div className="editorEmpty editorUnsupported"')&&workspace.includes('"Formato não suportado"')&&workspace.includes('SUPPORTED_IMAGE_EXTENSIONS')&&workspace.includes('SUPPORTED_MODEL_EXTENSIONS'),"unsupported files must render an explicit non-2D state with supported-format guidance");
 check(workspace.includes('comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)'),"original mode must render the base image without overlays");
 check(workspace.includes('comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)'),"overlay mode must render original + overlays in the same pane");
 check(workspace.includes('comparison==="side"&&<>'),"side-by-side mode must have explicit two-pane composition");

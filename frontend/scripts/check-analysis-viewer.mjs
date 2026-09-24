@@ -28,7 +28,7 @@ check(workspace.includes('function canvasPanStart(e)')&&workspace.includes('e.bu
 check(workspace.includes('translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})'),"canvas transform must compose pan and zoom");
 check(workspace.includes('setCanvasPan({x:0,y:0});'),"fit/reset flows must be able to recenter the canvas");
 check(workspace.includes('function changeComparison(mode){')&&workspace.includes('if(mode!=="temporal")setPreferredComparison(mode);')&&workspace.includes('showStatusNotice("Visualização · "'),"comparison mode changes must refit, preserve the non-temporal preference and surface transient status");
-check(workspace.includes('function beginLayersResize(e)')&&workspace.includes('setLayersWidth(Math.max(180,Math.min(520'),"layer panel must support horizontal width resizing");
+check(workspace.includes('function beginLayersResize(e)')&&workspace.includes('currentWidth=Math.max(180,Math.min(520')&&workspace.includes('setLayersWidth(currentWidth)'),"layer panel must support horizontal width resizing");
 check(workspace.includes('className="editorLayerResizeHandle"'),"layer panel must expose a resize separator");
 check(workspace.includes('function setPathologyGroupVisible(next)'),"viewer must support group pathology visibility");
 check(workspace.includes('function isolatePathologyLayer(id)'),"viewer must support single-pathology isolation");
@@ -49,7 +49,7 @@ check(workspace.includes('aria-label="Deslizar"')&&workspace.includes('<MoveHori
 check(workspace.includes('data-tooltip="Original"')&&workspace.includes('data-tooltip="Sobrepor"')&&workspace.includes('data-tooltip="Deslizar"')&&workspace.includes('data-tooltip="Lado a lado"')&&workspace.includes('data-tooltip="Exportar"'),"result icons must expose immediate hover labels");
 check(workspace.includes('function renderWipePane(src)'),"viewer must render the swipe comparison in a dedicated pane");
 check(workspace.includes('clipPath:`inset(0 0 0 ${wipePosition}%)`'),"swipe mode must clip only the overlay stack");
-check(workspace.includes('className="editorWipeHandle"')&&workspace.includes('aria-label="Arrastar divisor original e detecção"'),"swipe mode must expose a draggable on-canvas direction handle");
+check(workspace.includes('editorWipeHandle "+(wipeDragging?"dragging":"")')&&workspace.includes('aria-label="Arrastar divisor original e detecção"'),"swipe mode must expose a draggable on-canvas direction handle with an explicit drag state");
 check(workspace.includes('wipeArrow left')&&workspace.includes('wipeArrow right')&&workspace.includes('markWipeDirection'),"swipe handle must expose independent directional-arrow states");
 check(workspace.includes('function beginWipeDrag(e)')&&workspace.includes('const startX=e.clientX;')&&workspace.includes('const startPosition=wipePosition;')&&workspace.includes('startPosition+deltaPx/rect.width*100')&&workspace.includes('setWipePosition(next)'),"swipe handle must stay anchored on press and move by relative drag delta");
 check(!workspace.includes('className="editorWipeControl"'),"swipe mode must not render a lower range control over the zoom control");

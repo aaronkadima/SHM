@@ -92,10 +92,12 @@ function App(){
           const sidebarStyle=getComputedStyle(document.querySelector(".editorLayers"));
           const sidebarResizeStyle=getComputedStyle(document.querySelector(".editorLayerResizeHandle"));
           const phoneSidebar=window.matchMedia("(max-width: 560px)").matches;
+          const tinyPhone=window.matchMedia("(max-width: 340px)").matches;
           const compactOverlay=window.matchMedia("(max-width: 740px)").matches;
           const sidebarRect=document.querySelector(".editorLayers")?.getBoundingClientRect();
           const sidebarFixedOk=sidebarStyle.overflow==="hidden"&&sidebarStyle.overscrollBehavior==="none"&&(narrowSidebar?sidebarStyle.position==="absolute":sidebarStyle.position==="sticky");
-          const mobileSidebarOk=!narrowSidebar||(sidebarResizeStyle.display==="none"&&Math.abs((sidebarRect?.left||0)-56)<2&&(!phoneSidebar||(sidebarRect?.width||0)<=240));
+          const expectedSidebarLeft=tinyPhone?50:56;
+          const mobileSidebarOk=!narrowSidebar||(sidebarResizeStyle.display==="none"&&Math.abs((sidebarRect?.left||0)-expectedSidebarLeft)<2&&(!phoneSidebar||(sidebarRect?.width||0)<=240));
           const topBar=document.querySelector(".editorTop");
           const topActions=document.querySelector(".editorTopActions");
           const brand=document.querySelector(".editorBrand");
@@ -106,7 +108,8 @@ function App(){
           const topActionsFit=!!topRect&&!!actionsRect&&!!brandRect&&actionsRect.right<=topRect.right+1&&brandRect.left>=topRect.left-1&&topButtons.every(button=>{const r=button.getBoundingClientRect();return r.left>=topRect.left-1&&r.right<=topRect.right+1})&&topBar.scrollWidth<=topBar.clientWidth+1;
           const brandTitle=document.querySelector(".editorBrand strong");
           const brandTitleStyle=brandTitle?getComputedStyle(brandTitle):null;
-          const phoneTopCompactOk=!phoneSidebar||(brandTitleStyle?.display!=="none"&&brandTitle?.textContent.trim()==="SHM Studio"&&topButtons.every(button=>Math.abs(button.getBoundingClientRect().width-32)<1));
+          const expectedTopButtonWidth=tinyPhone?30:32;
+          const phoneTopCompactOk=!phoneSidebar||(brandTitleStyle?.display!=="none"&&brandTitle?.textContent.trim()==="SHM Studio"&&topButtons.every(button=>Math.abs(button.getBoundingClientRect().width-expectedTopButtonWidth)<1));
           const zoomControl=document.querySelector(".editorZoom");
           const zoomRect=zoomControl?.getBoundingClientRect();
           const cameraRect=document.querySelector(".editorCameraEntry")?.getBoundingClientRect();
@@ -119,7 +122,7 @@ function App(){
             zoomRect.left>=editorViewportRect.left-1&&zoomRect.right<=editorViewportRect.right+1&&
             zoomRect.bottom<=editorViewportRect.bottom+1
           );
-          const responsiveDiag=`iw=${window.innerWidth},narrow=${narrowSidebar},phone=${phoneSidebar},compact=${compactOverlay},sidebar=${sidebarRect?Math.round(sidebarRect.left)+"/"+Math.round(sidebarRect.width):"none"},resize=${sidebarResizeStyle.display},brand=${brandTitleStyle?.display||"missing"},brandText=${brandTitle?.textContent.trim()||"missing"},zoom=${zoomRect?Math.round(zoomRect.width)+"x"+Math.round(zoomRect.height):"missing"},camera=${cameraRect?Math.round(cameraRect.left)+"/"+Math.round(cameraRect.right):"missing"},type=${typeRect?Math.round(typeRect.left)+"/"+Math.round(typeRect.right):"missing"},buttons=${topButtons.map(button=>Math.round(button.getBoundingClientRect().width)).join("/")}`;
+          const responsiveDiag=`iw=${window.innerWidth},narrow=${narrowSidebar},phone=${phoneSidebar},tiny=${tinyPhone},compact=${compactOverlay},sidebar=${sidebarRect?Math.round(sidebarRect.left)+"/"+Math.round(sidebarRect.width):"none"},resize=${sidebarResizeStyle.display},brand=${brandTitleStyle?.display||"missing"},brandText=${brandTitle?.textContent.trim()||"missing"},zoom=${zoomRect?Math.round(zoomRect.width)+"x"+Math.round(zoomRect.height):"missing"},camera=${cameraRect?Math.round(cameraRect.left)+"/"+Math.round(cameraRect.right):"missing"},type=${typeRect?Math.round(typeRect.left)+"/"+Math.round(typeRect.right):"missing"},buttons=${topButtons.map(button=>Math.round(button.getBoundingClientRect().width)).join("/")}`;
           const editorRect=document.querySelector(".analysisEditor")?.getBoundingClientRect();
           const statusRect=document.querySelector(".editorStatus")?.getBoundingClientRect();
           const viewportLockOk=!!editorRect&&!!statusRect&&editorRect.top>=-1&&editorRect.bottom<=window.innerHeight+1&&statusRect.bottom<=window.innerHeight+1&&document.documentElement.scrollHeight<=window.innerHeight+1;

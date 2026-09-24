@@ -211,6 +211,33 @@ function App(){
             const fitPaneRect=document.querySelector(".editorImagePane")?.getBoundingClientRect();
             const fitTransform=document.querySelector(".editorImage")?.style.transform||"";
             const fitButtonOk=zoomAfterFit==="100%"&&fitTransform.includes("translate(0px, 0px)")&&fitTransform.includes("scale(1)")&&!!fitPaneRect&&fitPaneRect.width>100&&fitPaneRect.height>80;
+            let spaceDragPanOk=true;
+            if(!phoneSidebar&&canvas){
+              canvas.focus();
+              const beforePrimary=canvas.style.transform||"";
+              canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:101,pointerType:"mouse",isPrimary:true,button:0,buttons:1,clientX:120,clientY:120}));
+              canvas.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:101,pointerType:"mouse",isPrimary:true,button:0,buttons:1,clientX:156,clientY:144}));
+              canvas.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:101,pointerType:"mouse",isPrimary:true,button:0,buttons:0,clientX:156,clientY:144}));
+              await sleep(20);
+              const primaryWithoutSpaceIgnored=(canvas.style.transform||"")===beforePrimary;
+
+              canvas.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:" "}));
+              await sleep(10);
+              const spaceReady=canvas.dataset.panMode==="ready";
+              canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:102,pointerType:"mouse",isPrimary:true,button:0,buttons:1,clientX:120,clientY:120}));
+              const grabbing=canvas.dataset.panMode==="grabbing";
+              canvas.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:102,pointerType:"mouse",isPrimary:true,button:0,buttons:1,clientX:156,clientY:144}));
+              canvas.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:102,pointerType:"mouse",isPrimary:true,button:0,buttons:0,clientX:156,clientY:144}));
+              await sleep(30);
+              const spacePanTransform=canvasTransformValues(canvas);
+              canvas.dispatchEvent(new KeyboardEvent("keyup",{bubbles:true,key:" "}));
+              await sleep(10);
+              const spaceReleased=canvas.dataset.panMode==="idle";
+              spaceDragPanOk=primaryWithoutSpaceIgnored&&spaceReady&&grabbing&&spaceReleased&&!!spacePanTransform&&spacePanTransform.x===36&&spacePanTransform.y===24&&spacePanTransform.zoom===1;
+
+              canvas.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"0"}));
+              await sleep(30);
+            }
             canvas?.focus();
             canvas?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
             canvas?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowDown"}));
@@ -485,7 +512,7 @@ function App(){
             const checks={
               initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
-              zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
+              zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
               wipeInitialOk,wipeMovedOk,wipeDirectionOk,wipeStatusOk,zoomAfterWipe:zoomAfterWipe==="100%",
               temporalOk,zoomAfterTemporal:zoomAfterTemporal==="100%",originalPanes:originalPanes===1,originalImages:originalImages===1,originalStacks:originalStacks===0,zoomAfterOriginal:zoomAfterOriginal==="100%",resetOk

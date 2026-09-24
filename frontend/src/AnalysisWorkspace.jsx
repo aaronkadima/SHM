@@ -33,13 +33,21 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(.75),[comparison,setComparison]=useState("overlay"),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
   const [selectedDetection,setSelectedDetection]=useState(null);
+  const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState("");
   const [imageSize,setImageSize]=useState({width:1,height:1});
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
   const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),drag=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
-  useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setShowRawT0(false)},[file,referenceFile]);
+  useEffect(()=>{
+    setPreviewError("");
+    if(!file||detectAsset(file)!=="2d"){setLocalPreview(null);return}
+    const url=URL.createObjectURL(file);
+    setLocalPreview(url);
+    return()=>URL.revokeObjectURL(url);
+  },[file]);
+  useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setComparison("overlay");setShowRawT0(false)},[file,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
   useEffect(()=>{if(busy)setResultOpen(true)},[busy]);
   useEffect(()=>{if(busy){const now=performance.now();runStarted.current=now;setStartAt(now);setElapsed(0);setDurationMs(null)}
@@ -71,6 +79,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const results=res?.results||[];
   const shown=results.filter(r=>visible[r.engine_id]!==false);
   const chosen=shown.find(r=>r.engine_id===active)||shown[0];
+  const basePreview=prev||localPreview;
   const pathologyLayers=chosen?.engine_id==="cdm_1"?chosen.metrics?.layers||[]:[];
   const temporal=chosen?.engine_id==="cdm_1"?chosen.metrics?.temporal:null;
   const temporalAlignment=temporal?.alignment||null;
@@ -114,8 +123,10 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const boxes=(chosen?.detections||[]).filter(d=>Array.isArray(d.box)&&d.box.length>=4&&(!pathologyLayers.length||visible["cdm_1:"+d.label]!==false));
   const detail=selectedDetection&&chosen&&selectedDetection.engineId===chosen.engine_id?boxes[selectedDetection.index]:null;
   const panes=comparison==="side"||comparison==="temporal"?2:1;
-  const fit=Math.min(viewportSize.width*.83/(imageSize.width*panes),viewportSize.height*.8/imageSize.height);
-  const displaySize={width:Math.max(1,imageSize.width*fit*panes),height:Math.max(1,imageSize.height*fit)};
+  const safeViewport={width:Math.max(480,Number(viewportSize.width)||0),height:Math.max(360,Number(viewportSize.height)||0)};
+  const safeImage={width:Math.max(1,Number(imageSize.width)||1),height:Math.max(1,Number(imageSize.height)||1)};
+  const fit=Math.min(safeViewport.width*.83/(safeImage.width*panes),safeViewport.height*.8/safeImage.height);
+  const displaySize={width:Math.max(160,safeImage.width*fit*panes),height:Math.max(120,safeImage.height*fit)};
   const pct=progress?.total?Math.min(100,Math.round(progress.completed/progress.total*100)):0;
   function capture(){const v=video.current;if(!v?.videoWidth)return;const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);c.toBlob(blob=>{if(blob){onFile(new File([blob],"captura-"+Date.now()+".png",{type:"image/png"}));setCameraOpen(false)}else setCameraError("Falha ao converter o quadro capturado.")},"image/png")}
   function dragStart(e){if(e.target.closest("button"))return;drag.current={x:e.clientX-position.x,y:e.clientY-position.y};e.currentTarget.setPointerCapture(e.pointerId)}
@@ -132,8 +143,12 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     </div>;
   }
   function renderBasePane(src,alt,badge,onMeasure=false,withOverlay=false){
+    const resolvedSrc=src||localPreview;
+    if(!resolvedSrc)return <div className={"editorImagePane editorImageMissing "+(withOverlay?"compositePane":"")}><span>Imagem base indisponível</span></div>;
     return <div className={"editorImagePane "+(withOverlay?"compositePane":"")}>
-      <img className="editorBaseImage" src={src} alt={alt} onLoad={onMeasure?e=>setImageSize({width:e.currentTarget.naturalWidth||1,height:e.currentTarget.naturalHeight||1}):undefined}/>
+      <img className="editorBaseImage" src={resolvedSrc} alt={alt}
+        onLoad={e=>{setPreviewError("");if(onMeasure)setImageSize({width:e.currentTarget.naturalWidth||1,height:e.currentTarget.naturalHeight||1})}}
+        onError={()=>{if(resolvedSrc===prev&&localPreview&&localPreview!==prev)setPreviewError("Preview principal indisponível; usando cópia local do arquivo.");else setPreviewError("Não foi possível decodificar a imagem importada.")}}/>
       {withOverlay&&renderOverlayStack()}
       {badge&&<span className="editorPaneBadge">{badge}</span>}
     </div>;
@@ -167,18 +182,19 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
       <div className="editorViewport" ref={surface}>
         {!layersOpen&&<button className="editorExpand" onClick={()=>setLayersOpen(true)} title="Mostrar camadas"><ChevronRight size={18}/></button>}
         <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
+        {previewError&&<div className="editorPreviewError">{previewError}</div>}
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
         <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} style={{transform:`scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
-          {comparison==="overlay"&&renderBasePane(prev,"Imagem original da inspeção","original + camadas",true,true)}
+          {comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)}
           {comparison==="side"&&<>
-            {renderBasePane(prev,"Imagem original da inspeção","original",true,false)}
-            {renderBasePane(prev,"Imagem original com camadas de detecção","original + detecções",false,true)}
+            {renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}
+            {renderBasePane(basePreview,"Imagem original com camadas de detecção","original + detecções",false,true)}
           </>}
           {comparison==="temporal"&&<>
             {renderBasePane(showRawT0?referencePrev:(temporalAlignedPreview||referencePrev),showRawT0?"Referência temporal t0 bruta":temporalAlignedPreview?"Referência temporal t0 alinhada":"Referência temporal t0","t0 "+(showRawT0?"bruto":temporalAlignedPreview?"alinhado":"referência"),false,false)}
-            {renderBasePane(prev,"Imagem atual t1 com camadas de detecção","t1 atual + camadas",true,true)}
+            {renderBasePane(basePreview,"Imagem atual t1 com camadas de detecção","t1 atual + camadas",true,true)}
           </>}
         </div>}
         {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>setZoom(z=>Math.max(.25,z-.25))}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>setZoom(z=>Math.min(4,z+.25))}><Plus size={15}/></button></div>}

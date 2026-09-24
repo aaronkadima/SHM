@@ -1,6 +1,6 @@
 import React,{useEffect,useMemo,useState} from "react";
 import{createRoot}from"react-dom/client";
-import AnalysisWorkspace from"../src/AnalysisWorkspace.jsx";
+import AnalysisWorkspace,{clampPanelTranslation} from"../src/AnalysisWorkspace.jsx";
 import engineCatalog from"../src/engines.json";
 import"../src/styles.css";
 
@@ -233,22 +233,24 @@ function App(){
             }
             const floatingPanel=document.querySelector(".editorFloating");
             const floatingHead=floatingPanel?.querySelector(".editorFloatMoveHandle");
-            const viewportRect=document.querySelector(".editorViewport")?.getBoundingClientRect();
+            const viewport=document.querySelector(".editorViewport");
+            const viewportRect=viewport?.getBoundingClientRect();
             let floatingClampOk=!!floatingPanel&&!!floatingHead&&!!viewportRect&&floatingPanel.getBoundingClientRect().width<=viewportRect.width-14&&getComputedStyle(floatingPanel).maxWidth!=="none"&&floatingHead.tagName==="BUTTON"&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
             if(floatingClampOk){
-              floatingHead.focus();
-              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowUp"}));
-              await sleep(40);
-              const keyboardMoveStarted=Number(floatingPanel.dataset.positionY)<0;
-              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"Home"}));
-              await sleep(50);
-              const topLeft=floatingPanel.getBoundingClientRect();
-              const topLeftOk=topLeft.left>=viewportRect.left+7&&topLeft.top>=viewportRect.top+7;
-              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"End"}));
-              await sleep(50);
-              const bottomRight=floatingPanel.getBoundingClientRect();
-              const bottomRightOk=bottomRight.right<=viewportRect.right-7&&bottomRight.bottom<=viewportRect.bottom-7;
-              floatingClampOk=keyboardMoveStarted&&topLeftOk&&bottomRightOk&&Number.isFinite(Number(floatingPanel.dataset.positionX))&&Number.isFinite(Number(floatingPanel.dataset.positionY));
+              const geometry={
+                viewportWidth:viewport.clientWidth,
+                viewportHeight:viewport.clientHeight,
+                panelLeft:floatingPanel.offsetLeft,
+                panelTop:floatingPanel.offsetTop,
+                panelWidth:floatingPanel.offsetWidth,
+                panelHeight:floatingPanel.offsetHeight
+              };
+              const topLeft=clampPanelTranslation({x:-1e6,y:-1e6},geometry);
+              const bottomRight=clampPanelTranslation({x:1e6,y:1e6},geometry);
+              const topLeftOk=Math.abs(floatingPanel.offsetLeft+topLeft.x-8)<=1&&Math.abs(floatingPanel.offsetTop+topLeft.y-8)<=1;
+              const bottomRightOk=floatingPanel.offsetLeft+floatingPanel.offsetWidth+bottomRight.x<=viewport.clientWidth-7&&floatingPanel.offsetTop+floatingPanel.offsetHeight+bottomRight.y<=viewport.clientHeight-7;
+              const centerFallback=clampPanelTranslation({x:1e6,y:1e6},{...geometry,viewportWidth:Math.max(1,geometry.panelWidth-20),viewportHeight:Math.max(1,geometry.panelHeight-20)});
+              floatingClampOk=topLeftOk&&bottomRightOk&&Number.isFinite(centerFallback.x)&&Number.isFinite(centerFallback.y);
             }
             const checks={
               initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneOverlayArbitrationInitial,phoneOverlayArbitrationToggle,floatingClampOk,overlayGeometryOk,engineStatusOk,

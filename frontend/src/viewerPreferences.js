@@ -95,6 +95,19 @@ export function clampResultPanelSize(next,geometry={}){
   };
 }
 
+export function zoomCanvasPanAroundPoint(pan,fromZoom,toZoom,startPoint,endPoint=startPoint){
+  const from=Math.max(.25,Math.min(4,Number(fromZoom)||1));
+  const to=Math.max(.25,Math.min(4,Number(toZoom)||1));
+  const ratio=to/from;
+  const startX=Number(startPoint?.x)||0,startY=Number(startPoint?.y)||0;
+  const endX=Number(endPoint?.x)||0,endY=Number(endPoint?.y)||0;
+  const panX=Number(pan?.x)||0,panY=Number(pan?.y)||0;
+  return{
+    x:endX-ratio*(startX-panX),
+    y:endY-ratio*(startY-panY)
+  };
+}
+
 export function clampCanvasPan(next,geometry={}){
   const viewportWidth=Math.max(1,Number(geometry.viewportWidth)||1);
   const viewportHeight=Math.max(1,Number(geometry.viewportHeight)||1);

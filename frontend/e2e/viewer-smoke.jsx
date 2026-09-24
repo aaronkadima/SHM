@@ -105,9 +105,9 @@ function App(){
             const referenceText=document.querySelector(".referenceLayer>span:nth-child(2)");
             const layerResizeOk=!!layersPanel&&!!layersResize&&(narrowSidebar?getComputedStyle(layersResize).display==="none":getComputedStyle(layersResize).cursor==="col-resize"&&layersPanel.getBoundingClientRect().width>=340);
             const layerNoWrapOk=getComputedStyle(pathologyName).whiteSpace==="nowrap"&&getComputedStyle(referenceText).whiteSpace==="nowrap";
-            const selectedLayer=document.querySelector(".pathologyLayer.selected");
-            const selectedSolo=selectedLayer?.querySelector(".layerSolo");
-            const selectedOrder=selectedLayer?.querySelector(".layerOrderControls");
+            const selectedLayerRow=document.querySelector(".pathologyLayer.selected");
+            const selectedSolo=selectedLayerRow?.querySelector(".layerSolo");
+            const selectedOrder=selectedLayerRow?.querySelector(".layerOrderControls");
             const selectedActionsVisible=!!selectedSolo&&!!selectedOrder&&getComputedStyle(selectedSolo).opacity==="1"&&getComputedStyle(selectedOrder).opacity==="1";
             const sidebarFooter=document.querySelector(".editorSidebarEngines");
             const viewerReset=document.querySelector(".viewerReset");

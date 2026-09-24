@@ -127,7 +127,7 @@ export default function App(){
   const[historyErr,setHistoryErr]=useState("");
   const[storageStatus,setStorageStatus]=useState(null);
   const[deploymentCheck,setDeploymentCheck]=useState(()=>({status:BUILD_SHA==="local"?"local":"checking",manifest:null}));
-  const activeRun=useRef(null),runSeq=useRef(0),referencePickSeq=useRef(0);
+  const activeRun=useRef(null),runSeq=useRef(0),referencePickSeq=useRef(0),historyOpenSeq=useRef(0);
   const[activeView,setActiveView]=useState(()=>{
     const v=window.location.hash.replace(/^#\//,"");
     return ["dashboard","cameras","analysis","alerts","reports","engines","settings"].includes(v)?v:"analysis";
@@ -182,20 +182,22 @@ export default function App(){
   }
   async function openHistory(id,target="reports"){
     setHistoryErr("");
+    const historyToken=++historyOpenSeq.current;
+    let restoredPreview=null,restoredReferencePreview=null;
     try{
       const record=await getInspection(id);
+      if(historyToken!==historyOpenSeq.current)return;
       if(!record)throw new Error("Inspeção não encontrada.");
       const blob=record.image_blob;
       let referenceBlob=record.reference_image_blob;
       let linkedReferenceRecord=null;
       if(!referenceBlob&&record.reference_inspection_id){
         linkedReferenceRecord=await getInspection(record.reference_inspection_id);
+        if(historyToken!==historyOpenSeq.current)return;
         referenceBlob=linkedReferenceRecord?.image_blob||null;
       }
       let restoredFile=null;
-      let restoredPreview=null;
       let restoredReferenceFile=null;
-      let restoredReferencePreview=null;
       if(blob){
         const meta=record.file_meta||{};
         restoredFile=new File([blob],meta.name||"inspecao",{type:meta.type||blob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
@@ -207,11 +209,17 @@ export default function App(){
         const candidateReferenceFile=new File([referenceBlob],meta.name||"referencia-t0",{type:meta.type||referenceBlob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
         try{
           await validateReferenceImage(candidateReferenceFile);
+          if(historyToken!==historyOpenSeq.current)return;
           restoredReferenceFile=candidateReferenceFile;
           restoredReferencePreview=URL.createObjectURL(referenceBlob);
         }catch(e){
           referenceRestoreWarning="Referência t0 armazenada ignorada: "+(e?.message||String(e));
         }
+      }
+      if(historyToken!==historyOpenSeq.current){
+        if(restoredPreview)URL.revokeObjectURL(restoredPreview);
+        if(restoredReferencePreview)URL.revokeObjectURL(restoredReferencePreview);
+        return;
       }
       if(prev)URL.revokeObjectURL(prev);
       if(referencePrev)URL.revokeObjectURL(referencePrev);
@@ -227,9 +235,10 @@ export default function App(){
       setSel(new Set(record.summary?.engine_ids||record.result?.metadata?.engine_ids||[]));
       setProgress(null);setJobId(null);setErr(referenceRestoreWarning);
       navigate(target);
-    }catch(e){setHistoryErr("Falha ao abrir inspeção: "+String(e))}
+    }catch(e){if(historyToken===historyOpenSeq.current)setHistoryErr("Falha ao abrir inspeção: "+String(e))}
   }
   async function useHistoryAsReference(id){
+    historyOpenSeq.current++;
     setHistoryErr("");
     const referenceToken=++referencePickSeq.current;
     setReferenceValidating(true);
@@ -326,10 +335,12 @@ export default function App(){
     catch(e){setComparatorOnline(false);setErr("Comparador indisponível: "+String(e))}
   }
   function pick(f){
+    historyOpenSeq.current++;
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
     if(prev)URL.revokeObjectURL(prev);setPrev(f?URL.createObjectURL(f):null);
   }
   async function pickReference(f){
+    historyOpenSeq.current++;
     const referenceToken=++referencePickSeq.current;
     if(!f){
       setReferenceValidating(false);

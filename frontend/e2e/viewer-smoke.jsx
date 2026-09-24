@@ -28,6 +28,20 @@ const fakeResult={
 function App(){
   const[result,setResult]=useState("VIEWER_SMOKE_PENDING");
   const selected=useMemo(()=>["cdm_1"],[]);
+  const selectedEngineLabels=useMemo(()=>([
+    {id:"cdm_1",name:"CDM-1",browser_ready:true},
+    {id:"opencv_crack",name:"OpenCV Crack Baseline",browser_ready:true},
+    {id:"yolov8_public_crack",name:"YOLO Crack Detector (public)",browser_ready:false},
+    {id:"yolov8_public_damage_seg",name:"YOLOv8 Structural Damage Segmentation (public)",browser_ready:false},
+    {id:"yolo_public_glasseye",name:"GlassEye Infrastructure Defect Detector (public)",browser_ready:false},
+    {id:"yolov8_public_corrosion",name:"YOLOv8 Corrosion Segmentation (public)",browser_ready:false},
+    {id:"yolov8n_public_crack_seg",name:"YOLOv8n Crack Segmentation (OpenSistemas)",browser_ready:false},
+    {id:"unet_public_crack",name:"U-Net Concrete Crack (public)",browser_ready:false},
+    {id:"segformer_public_crack",name:"SegFormer-B0 Crack Segmentation (public)",browser_ready:false},
+    {id:"grounding_dino",name:"Grounding DINO",browser_ready:false},
+    {id:"owlv2",name:"OWLv2",browser_ready:false},
+    {id:"clipseg",name:"CLIPSeg",browser_ready:false}
+  ]),[]);
   useEffect(()=>{
     let cancelled=false;
     const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -42,6 +56,8 @@ function App(){
           const imageNoticeCleared=!document.querySelector(".editorStatusMessage")?.textContent?.includes("Imagem carregada");
           const sidebarEngines=document.querySelector(".editorSidebarEngines");
           const engineStatusPersistent=!!sidebarEngines&&sidebarEngines.textContent.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
+          const engineNames=[...document.querySelectorAll(".editorSidebarEngineName")].map(node=>node.textContent.trim());
+          const multiEngineFooterOk=sidebarEngines?.dataset.engineCount==="12"&&engineNames.length===12&&engineNames[0]==="CDM-1"&&engineNames.at(-1)==="CLIPSeg"&&getComputedStyle(document.querySelector(".editorSidebarEngineList")).overflow==="hidden";
           const sidebarStyle=getComputedStyle(document.querySelector(".editorLayers"));
           const sidebarResizeStyle=getComputedStyle(document.querySelector(".editorLayerResizeHandle"));
           const narrowSidebar=window.matchMedia("(max-width: 900px)").matches;
@@ -200,7 +216,7 @@ function App(){
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50;
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,engineStatusPersistent,sidebarFixedOk,mobileSidebarOk,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
@@ -209,7 +225,7 @@ function App(){
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image sidebar=engines+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image sidebar=engines+multi-count+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
               setResult("VIEWER_SMOKE_FAIL "+failed.join(","));
             }
@@ -225,7 +241,7 @@ function App(){
   return <>
     <div style={{height:"760px"}}>
       <AnalysisWorkspace
-        selectedEngineLabels={[{id:"cdm_1",name:"CDM-1",browser_ready:true}]}
+        selectedEngineLabels={selectedEngineLabels}
         file={file} prev={null} referenceFile={referenceFile} referencePrev={referencePrev}
         referenceInspectionId={null} referenceInspectionMeta={null}
         inspectionMeta={{oae_id:"SMOKE",element_id:"E1",source_id:"CI"}}

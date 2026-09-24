@@ -114,6 +114,7 @@ export default function App(){
   const[referencePrev,setReferencePrev]=useState(null);
   const[referenceInspectionId,setReferenceInspectionId]=useState(null);
   const[referenceInspectionMeta,setReferenceInspectionMeta]=useState(null);
+  const[referenceValidating,setReferenceValidating]=useState(false);
   const[res,setRes]=useState(null);
   const[busy,setBusy]=useState(false);
   const[jobId,setJobId]=useState(null);
@@ -238,6 +239,7 @@ export default function App(){
       const meta=record.file_meta||{};
       const restoredReferenceFile=new File([blob],meta.name||"referencia-t0",{type:meta.type||blob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
       const referenceToken=++referencePickSeq.current;
+      setReferenceValidating(true);
       await validateReferenceImage(restoredReferenceFile);
       if(referenceToken!==referencePickSeq.current)return;
       if(referencePrev)URL.revokeObjectURL(referencePrev);
@@ -256,6 +258,7 @@ export default function App(){
       setSel(new Set(["cdm_1"]));
       navigate("analysis");
     }catch(e){setHistoryErr("Falha ao preparar referência t0: "+String(e))}
+    finally{setReferenceValidating(false)}
   }
   async function removeHistory(id){
     try{await deleteInspection(id);await refreshHistory()}
@@ -324,12 +327,14 @@ export default function App(){
   async function pickReference(f){
     const referenceToken=++referencePickSeq.current;
     if(!f){
+      setReferenceValidating(false);
       setReferenceFile(null);setReferenceInspectionId(null);setReferenceInspectionMeta(null);setRes(null);setProgress(null);setJobId(null);setErr("");
       if(referencePrev)URL.revokeObjectURL(referencePrev);
       setReferencePrev(null);
       return;
     }
     setErr("");
+    setReferenceValidating(true);
     try{
       await validateReferenceImage(f);
       if(referenceToken!==referencePickSeq.current)return;
@@ -337,6 +342,7 @@ export default function App(){
       if(referencePrev)URL.revokeObjectURL(referencePrev);
       setReferenceFile(f);setReferencePrev(nextPreview);setReferenceInspectionId(null);setReferenceInspectionMeta(null);setRes(null);setProgress(null);setJobId(null);
     }catch(e){if(referenceToken===referencePickSeq.current)setErr("Referência t0 inválida: "+(e?.message||String(e)))}
+    finally{if(referenceToken===referencePickSeq.current)setReferenceValidating(false)}
   }
   function toggle(id){setErr("");setSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n})}
   function selectRecommended(){setSel(new Set(engines.filter(e=>e.recommended).map(e=>e.id)))}
@@ -398,6 +404,7 @@ export default function App(){
 
   async function run(){
     if(!file||!selected.length||busy)return;
+    if(referenceValidating){setErr("Aguarde a validação da referência t0 antes de iniciar a análise.");return}
     if(executionIssue){setErr(executionIssue);return}
     const mode=runMode,engineIds=[...selected],inspection={...inspectionMeta};
     const sourceFile=file,sourceReference=referenceFile,sourceReferenceInspectionId=referenceInspectionId,sourceReferenceInspectionMeta=referenceInspectionMeta?{...referenceInspectionMeta}:null;
@@ -492,7 +499,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
+    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={referenceValidating} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
     {activeView==="engines"&&<EnginesView appInfo={APP_INFO} engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 

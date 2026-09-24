@@ -32,13 +32,13 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder),[pathologyOpacity,setPathologyOpacity]=useState(initialViewerPrefs.pathologyOpacity||{}),[pathologyLocked,setPathologyLocked]=useState(new Set(initialViewerPrefs.pathologyLocked||[])),[selectedPathologyId,setSelectedPathologyId]=useState(null);
   const [selectedDetection,setSelectedDetection]=useState(null);
   const [pathologyGroupOpen,setPathologyGroupOpen]=useState(()=>typeof window==="undefined"||window.innerHeight>=620);
-  const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState(""),[statusNotice,setStatusNotice]=useState("");
+  const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState(""),[statusNotice,setStatusNotice]=useState(""),[fileDragActive,setFileDragActive]=useState(false);
   const [imageSize,setImageSize]=useState({width:1,height:1});
   const imageDecoded=imageSize.width>1&&imageSize.height>1;
   const [viewportSize,setViewportSize]=useState({width:0,height:0});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0);
   const compactLayout=useRef(initialCompactLayout),desktopLayersPreference=useRef(initialViewerPrefs.layersOpen);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null),fileDragDepth=useRef(0);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{
     const syncCompactLayout=()=>{
@@ -255,6 +255,39 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   useEffect(()=>{setCanvasPan(current=>{const next=clampCanvasPan(current,{viewportWidth:surface.current?.clientWidth||viewportSize.width,viewportHeight:surface.current?.clientHeight||viewportSize.height,canvasWidth:displaySize.width,canvasHeight:displaySize.height,zoom,minVisible:56});return next.x===current.x&&next.y===current.y?current:next})},[zoom,viewportSize.width,viewportSize.height,displaySize.width,displaySize.height]);
   const pct=progress?.total?Math.min(100,Math.round(progress.completed/progress.total*100)):0;
   function capture(){const v=video.current;if(!v?.videoWidth)return;const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);c.toBlob(blob=>{if(blob){onFile(new File([blob],"captura-"+Date.now()+".png",{type:"image/png"}));setCameraOpen(false)}else setCameraError("Falha ao converter o quadro capturado.")},"image/png")}
+  function fileDragHasFiles(e){
+    const types=[...(e?.dataTransfer?.types||[])];
+    return types.includes("Files");
+  }
+  function fileDragEnter(e){
+    if(!fileDragHasFiles(e))return;
+    e.preventDefault();
+    fileDragDepth.current++;
+    if(!busy)setFileDragActive(true);
+  }
+  function fileDragOver(e){
+    if(!fileDragHasFiles(e))return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect=busy?"none":"copy";
+  }
+  function fileDragLeave(e){
+    if(!fileDragHasFiles(e))return;
+    e.preventDefault();
+    fileDragDepth.current=Math.max(0,fileDragDepth.current-1);
+    if(fileDragDepth.current===0)setFileDragActive(false);
+  }
+  function fileDrop(e){
+    if(!fileDragHasFiles(e))return;
+    e.preventDefault();
+    fileDragDepth.current=0;
+    setFileDragActive(false);
+    if(busy){showStatusNotice("Aguarde a análise atual terminar para importar outro arquivo.",1800);return}
+    const files=[...(e.dataTransfer.files||[])];
+    if(files.length!==1){showStatusNotice("Solte apenas um arquivo por vez.",1800);return}
+    const dropped=files[0];
+    onFile(dropped);
+    showStatusNotice(detectAsset(dropped)==="unknown"?"Arquivo recebido · formato não suportado":"Arquivo importado por arrastar e soltar",1600);
+  }
   function showStatusNotice(message,ms=1800){
     if(statusTimer.current)clearTimeout(statusTimer.current);
     setStatusNotice(message);
@@ -829,8 +862,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           </div>
         </div>
       </aside><div className="editorLayerResizeHandle" role="separator" tabIndex="0" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" aria-valuemin="340" aria-valuemax="600" aria-valuenow={Math.round(layersWidth)} aria-valuetext={Math.round(layersWidth)+" pixels"} title="Arraste ou use ← →, Home e End" onKeyDown={resizeLayersKey} onPointerDown={beginLayersResize}/></>}
-      <div className="editorViewport" ref={surface}>
+      <div className={"editorViewport "+(fileDragActive?"fileDragActive":"")} ref={surface} onDragEnter={fileDragEnter} onDragOver={fileDragOver} onDragLeave={fileDragLeave} onDrop={fileDrop}>
         <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
+        {fileDragActive&&<div className="editorDropOverlay" aria-hidden="true"><ImagePlus size={30}/><b>Solte para importar</b><span>Imagem 2D ou modelo 3D suportado</span></div>}
         {file&&<div className={"editorTypeBadge "+(kind==="unknown"?"unsupported":"")}>{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Formato não suportado"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:

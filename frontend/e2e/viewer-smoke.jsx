@@ -50,7 +50,7 @@ function App(){
           const engineStatusPersistent=!!sidebarEngines&&sidebarEngines.textContent.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
           const engineNames=[...document.querySelectorAll(".editorSidebarEngineName")].map(node=>node.textContent.trim());
           const expectedEngineCount=engineCatalog.engines.length;
-          const multiEngineFooterOk=sidebarEngines?.dataset.engineCount===String(expectedEngineCount)&&engineNames.length===expectedEngineCount&&engineNames[0]==="CDM-1"&&new Set(engineNames).size===expectedEngineCount&&getComputedStyle(document.querySelector(".editorSidebarEngineList")).overflow==="hidden";
+          const multiEngineFooterOk=document.querySelector(".editorLayers")?.dataset.engineCount===String(expectedEngineCount)&&engineNames.length===expectedEngineCount&&engineNames[0]==="CDM-1"&&new Set(engineNames).size===expectedEngineCount&&getComputedStyle(document.querySelector(".editorSidebarEngineList")).overflow==="hidden"&&document.querySelector(".editorLayers")?.classList.contains("engineDensityUltra");
           const sidebarStyle=getComputedStyle(document.querySelector(".editorLayers"));
           const sidebarResizeStyle=getComputedStyle(document.querySelector(".editorLayerResizeHandle"));
           const narrowSidebar=window.matchMedia("(max-width: 900px)").matches;

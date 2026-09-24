@@ -290,22 +290,27 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     canvasDrag.current=null;
   }
   function beginLayersResize(e){
-    if(e.button!==0)return;
+    if(e.button!==0||e.isPrimary===false)return;
     e.preventDefault();
+    const pointerId=e.pointerId;
     const startX=e.clientX;
     const startWidth=layersWidth;
     let currentWidth=startWidth;
     const move=ev=>{
+      if(ev.pointerId!==pointerId)return;
       currentWidth=clampLayersPanelWidth(startWidth+ev.clientX-startX);
       setLayersWidth(currentWidth);
     };
-    const up=()=>{
+    const finish=ev=>{
+      if(ev.pointerId!==pointerId)return;
       showStatusNotice("Painel de camadas · "+Math.round(currentWidth)+" px",900);
-      window.removeEventListener("mousemove",move);
-      window.removeEventListener("mouseup",up);
+      window.removeEventListener("pointermove",move);
+      window.removeEventListener("pointerup",finish);
+      window.removeEventListener("pointercancel",finish);
     };
-    window.addEventListener("mousemove",move);
-    window.addEventListener("mouseup",up);
+    window.addEventListener("pointermove",move);
+    window.addEventListener("pointerup",finish);
+    window.addEventListener("pointercancel",finish);
   }
   function resizeLayersKey(e){
     const next=e.key==="Home"?340:e.key==="End"?600:e.key==="ArrowLeft"?layersWidth-20:e.key==="ArrowRight"?layersWidth+20:null;
@@ -526,7 +531,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
             {selectedEngineLabels.length>12&&<span className="editorSidebarEngineOverflow">+{selectedEngineLabels.length-12} motores</span>}
           </div>
         </div>
-      </aside><div className="editorLayerResizeHandle" role="separator" tabIndex="0" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" aria-valuemin="340" aria-valuemax="600" aria-valuenow={Math.round(layersWidth)} aria-valuetext={Math.round(layersWidth)+" pixels"} title="Arraste ou use ← →, Home e End" onKeyDown={resizeLayersKey} onMouseDown={beginLayersResize}/></>}
+      </aside><div className="editorLayerResizeHandle" role="separator" tabIndex="0" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" aria-valuemin="340" aria-valuemax="600" aria-valuenow={Math.round(layersWidth)} aria-valuetext={Math.round(layersWidth)+" pixels"} title="Arraste ou use ← →, Home e End" onKeyDown={resizeLayersKey} onPointerDown={beginLayersResize}/></>}
       <div className="editorViewport" ref={surface}>
         <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}

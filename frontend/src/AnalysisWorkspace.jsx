@@ -38,7 +38,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState(""),[statusNotice,setStatusNotice]=useState("");
   const [imageSize,setImageSize]=useState({width:1,height:1});
   const imageDecoded=imageSize.width>1&&imageSize.height>1;
-  const [viewportSize,setViewportSize]=useState({width:1000,height:700});
+  const [viewportSize,setViewportSize]=useState({width:0,height:0});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
   const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
@@ -233,10 +233,10 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const boxes=(chosen?.detections||[]).filter(d=>Array.isArray(d.box)&&d.box.length>=4&&(!pathologyLayers.length||visible["cdm_1:"+d.label]!==false));
   const detail=selectedDetection&&chosen&&selectedDetection.engineId===chosen.engine_id?boxes[selectedDetection.index]:null;
   const panes=comparison==="side"||comparison==="temporal"?2:1;
-  const safeViewport={width:Math.max(480,Number(viewportSize.width)||0),height:Math.max(360,Number(viewportSize.height)||0)};
+  const safeViewport={width:Math.max(1,Number(viewportSize.width)||1),height:Math.max(1,Number(viewportSize.height)||1)};
   const safeImage={width:Math.max(1,Number(imageSize.width)||1),height:Math.max(1,Number(imageSize.height)||1)};
   const fit=Math.min(safeViewport.width*.83/(safeImage.width*panes),safeViewport.height*.8/safeImage.height);
-  const displaySize={width:Math.max(160,safeImage.width*fit*panes),height:Math.max(120,safeImage.height*fit)};
+  const displaySize={width:Math.max(96,safeImage.width*fit*panes),height:Math.max(72,safeImage.height*fit)};
   useEffect(()=>{setCanvasPan(current=>{const next=clampCanvasPan(current,{viewportWidth:surface.current?.clientWidth||viewportSize.width,viewportHeight:surface.current?.clientHeight||viewportSize.height,canvasWidth:displaySize.width,canvasHeight:displaySize.height,zoom,minVisible:56});return next.x===current.x&&next.y===current.y?current:next})},[zoom,viewportSize.width,viewportSize.height,displaySize.width,displaySize.height]);
   const pct=progress?.total?Math.min(100,Math.round(progress.completed/progress.total*100)):0;
   function capture(){const v=video.current;if(!v?.videoWidth)return;const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);c.toBlob(blob=>{if(blob){onFile(new File([blob],"captura-"+Date.now()+".png",{type:"image/png"}));setCameraOpen(false)}else setCameraError("Falha ao converter o quadro capturado.")},"image/png")}

@@ -158,14 +158,14 @@ function App(){
               const handlePressed=wipeHandle.getBoundingClientRect();
               window.dispatchEvent(new MouseEvent("mouseup",{bubbles:true,button:0,buttons:0,clientX:hx,clientY:hy}));
               await sleep(30);
-              window.__wipeAnchorOk=Math.abs(handlePressed.top-handleBefore.top)<.5&&Math.abs(handlePressed.left-handleBefore.left)<.5&&handleBefore.width<=19&&handleBefore.height<=29;
+              window.__wipeAnchorOk=Math.abs(handlePressed.top-handleBefore.top)<.5&&Math.abs(handlePressed.left-handleBefore.left)<.5&&handleBefore.width<=21&&handleBefore.height<=27;
             }
             const wipeAnchorOk=window.__wipeAnchorOk===true;
             for(let n=0;n<9;n++)wipeHandle?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
             await sleep(90);
             const wipePct=parseFloat(document.querySelector(".editorWipeDivider")?.style.left||"0");
             const wipeMovedOk=Math.abs(wipePct-68)<.6&&document.querySelector(".editorWipePane .editorOverlayStack")?.style.clipPath?.includes(wipePct.toFixed(0)+"%");
-            const wipeDirectionOk=!!document.querySelector(".editorWipeHandle .wipeArrow.right.active")&&!document.querySelector(".editorWipeHandle .wipeArrow.left.active");
+            const wipeDirectionOk=!!document.querySelector(".editorWipeHandle .wipeArrowIcon.right.active")&&!document.querySelector(".editorWipeHandle .wipeArrowIcon.left.active");
             const zoomAfterWipe=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const wipeStatusOk=document.querySelector(".editorStatusMeta")?.textContent?.includes("divisor 68%");
             const temporal=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="t0 / t1");

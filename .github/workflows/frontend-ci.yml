@@ -33,6 +33,10 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Engine catalog
+        working-directory: frontend
+        run: node scripts/check-engine-catalog.mjs
+
       - name: Campaign chain audit
         working-directory: frontend
         run: node scripts/check-campaign-audit.mjs

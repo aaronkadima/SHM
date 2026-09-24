@@ -236,6 +236,7 @@ function App(){
             const viewport=document.querySelector(".editorViewport");
             const viewportRect=viewport?.getBoundingClientRect();
             const floatingRect=floatingPanel?.getBoundingClientRect();
+            const floatingClampDiag=viewportRect&&floatingRect?`vp=${Math.round(viewportRect.left)}/${Math.round(viewportRect.top)}/${Math.round(viewportRect.right)}/${Math.round(viewportRect.bottom)} panel=${Math.round(floatingRect.left)}/${Math.round(floatingRect.top)}/${Math.round(floatingRect.right)}/${Math.round(floatingRect.bottom)}`:"no-rect";
             const floatingHorizontalOk=!!viewportRect&&!!floatingRect&&floatingRect.left>=viewportRect.left+7&&floatingRect.right<=viewportRect.right-7;
             const floatingVerticalOk=!!viewportRect&&!!floatingRect&&floatingRect.top>=viewportRect.top+7&&floatingRect.bottom<=viewportRect.bottom-7;
             const floatingMaxWidthOk=!!floatingPanel&&getComputedStyle(floatingPanel).maxWidth!=="none";
@@ -253,7 +254,7 @@ function App(){
             if(!failed.length){
               setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=phone-single-panel results=viewport-clamped sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
-              setResult("VIEWER_SMOKE_FAIL "+failed.join(","));
+              setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }
             return;
           }

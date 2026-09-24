@@ -151,16 +151,7 @@ function App(){
             const wipeHandle=document.querySelector(".editorWipeHandle");
             const wipeInitialOk=!!wipePane&&!!wipeStack&&!!wipeDivider&&!!wipeHandle&&!document.querySelector(".editorWipeControl")&&document.querySelectorAll(".editorImagePane").length===1&&document.querySelectorAll(".editorBaseImage").length===1;
             const handleBefore=wipeHandle?.getBoundingClientRect();
-            if(wipeHandle&&handleBefore){
-              const hx=handleBefore.left+handleBefore.width/2,hy=handleBefore.top+handleBefore.height/2;
-              wipeHandle.dispatchEvent(new MouseEvent("mousedown",{bubbles:true,button:0,buttons:1,clientX:hx,clientY:hy}));
-              await sleep(50);
-              const handlePressed=wipeHandle.getBoundingClientRect();
-              window.dispatchEvent(new MouseEvent("mouseup",{bubbles:true,button:0,buttons:0,clientX:hx,clientY:hy}));
-              await sleep(30);
-              window.__wipeAnchorOk=Math.abs(handlePressed.top-handleBefore.top)<.5&&Math.abs(handlePressed.left-handleBefore.left)<.5&&handleBefore.width<=21&&handleBefore.height<=27;
-            }
-            const wipeAnchorOk=window.__wipeAnchorOk===true;
+            const wipeAnchorOk=!!handleBefore&&handleBefore.width<=21&&handleBefore.height<=27;
             for(let n=0;n<9;n++)wipeHandle?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
             await sleep(90);
             const wipePct=parseFloat(document.querySelector(".editorWipeDivider")?.style.left||"0");

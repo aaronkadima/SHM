@@ -239,14 +239,19 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     });
   }
   function dragStart(e){
-    drag.current={clientX:e.clientX,clientY:e.clientY,startX:position.x,startY:position.y};
+    if(e.button!==0||e.isPrimary===false)return;
+    e.preventDefault();
+    drag.current={pointerId:e.pointerId,clientX:e.clientX,clientY:e.clientY,startX:position.x,startY:position.y};
     try{e.currentTarget.setPointerCapture?.(e.pointerId)}catch{}
   }
   function dragMove(e){
-    if(!drag.current)return;
-    setPosition(clampResultPosition({x:drag.current.startX+e.clientX-drag.current.clientX,y:drag.current.startY+e.clientY-drag.current.clientY}));
+    const dragState=drag.current;
+    if(!dragState||e.pointerId!==dragState.pointerId)return;
+    setPosition(clampResultPosition({x:dragState.startX+e.clientX-dragState.clientX,y:dragState.startY+e.clientY-dragState.clientY}));
   }
   function dragEnd(e){
+    const dragState=drag.current;
+    if(!dragState||e?.pointerId!==dragState.pointerId)return;
     drag.current=null;
     try{e?.currentTarget?.releasePointerCapture?.(e.pointerId)}catch{}
   }

@@ -23,6 +23,9 @@ check(workspace.includes('renderBasePane(basePreview,"Imagem original da inspeç
 check(workspace.includes('renderBasePane(basePreview,"Imagem original com camadas de detecção","original + detecções",false,true)'),"side-by-side right pane must be original + overlays");
 check(workspace.includes('renderBasePane(basePreview,"Imagem atual t1 com camadas de detecção","t1 atual + camadas",true,true)'),"temporal t1 pane must include original + overlays");
 check(styles.includes(".editorOverlayStack{position:absolute;inset:0"),"overlay stack must be anchored to the full pane");
+check(!styles.includes(".editorImagePane{position:relative}"),"global relative pane override must not collapse overlay mode");
+check(styles.includes(".editorImage>.editorImagePane{position:absolute;inset:0;width:100%;height:100%}"),"overlay pane must fill the entire viewer");
+check(styles.includes(".editorImage.editorSide>.editorImagePane{position:relative;inset:auto;width:50%;height:100%}"),"side-by-side panes must split the viewer without affecting overlay mode");
 check(styles.includes(".editorBaseImage{position:absolute;inset:0"),"base image must share overlay coordinates");
 check(styles.includes(".editorSide .compositePane{border-left:2px solid white}"),"side-by-side composite pane must remain visually separated");
 

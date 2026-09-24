@@ -1,6 +1,6 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Settings2,Unlock,X} from "lucide-react";
-import{DEFAULT_VIEWER_PREFERENCES,clampFloatingPanelPosition,clampLayersPanelWidth,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
+import{DEFAULT_VIEWER_PREFERENCES,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
 const MODEL_EXT=/\.(glb|gltf|obj|ply|stl)$/i;
@@ -41,7 +41,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeGesture=useRef(false),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{
     let cancelled=false;
@@ -85,10 +85,6 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     const reclamp=()=>{
       if(frame)cancelAnimationFrame(frame);
       frame=requestAnimationFrame(()=>{
-        if(resultResizeGesture.current&&!window.matchMedia("(max-width:560px)").matches&&resultPanel.current){
-          const width=Math.round(resultPanel.current.offsetWidth),height=Math.round(resultPanel.current.offsetHeight);
-          setResultPanelSize(current=>current.width===width&&current.height===height?current:{width,height});
-        }
         setPosition(current=>{
           const next=clampResultPosition(current);
           return next.x===current.x&&next.y===current.y?current:next;
@@ -254,16 +250,68 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     drag.current=null;
     try{e?.currentTarget?.releasePointerCapture?.(e.pointerId)}catch{}
   }
-  function detectResultResizeStart(e){
-    const panel=resultPanel.current;
-    if(!panel||window.matchMedia("(max-width:560px)").matches)return;
-    const rect=panel.getBoundingClientRect();
-    resultResizeGesture.current=e.clientX>=rect.right-22&&e.clientY>=rect.bottom-22;
-    if(resultResizeGesture.current){
-      const stop=()=>{resultResizeGesture.current=false;window.removeEventListener("pointerup",stop);window.removeEventListener("pointercancel",stop)};
-      window.addEventListener("pointerup",stop,{once:true});
-      window.addEventListener("pointercancel",stop,{once:true});
+  function resultResizeGeometry(){
+    const panel=resultPanel.current,viewport=surface.current;
+    if(!panel||!viewport)return null;
+    const viewportRect=viewport.getBoundingClientRect();
+    const panelRect=panel.getBoundingClientRect();
+    return{
+      minWidth:340,
+      minHeight:65,
+      maxWidth:Math.max(1,Math.min(900,viewportRect.right-8-panelRect.left)),
+      maxHeight:Math.max(1,Math.min(900,viewport.clientHeight*.75,viewportRect.bottom-8-panelRect.top))
+    };
+  }
+  function beginResultResize(e){
+    if(e.button!==0||e.isPrimary===false||window.matchMedia("(max-width:560px)").matches)return;
+    const panel=resultPanel.current,geometry=resultResizeGeometry();
+    if(!panel||!geometry)return;
+    e.preventDefault();
+    e.stopPropagation();
+    const pointerId=e.pointerId;
+    resultResizeDrag.current={pointerId,startX:e.clientX,startY:e.clientY,startWidth:panel.offsetWidth,startHeight:panel.offsetHeight,geometry};
+    const move=ev=>{
+      const dragState=resultResizeDrag.current;
+      if(!dragState||ev.pointerId!==dragState.pointerId)return;
+      setResultPanelSize(clampResultPanelSize({
+        width:dragState.startWidth+ev.clientX-dragState.startX,
+        height:dragState.startHeight+ev.clientY-dragState.startY
+      },dragState.geometry));
+    };
+    const finish=ev=>{
+      const dragState=resultResizeDrag.current;
+      if(!dragState||ev.pointerId!==dragState.pointerId)return;
+      resultResizeDrag.current=null;
+      const panelNow=resultPanel.current;
+      if(panelNow)showStatusNotice("Resultados · "+Math.round(panelNow.offsetWidth)+"×"+Math.round(panelNow.offsetHeight)+" px",800);
+      window.removeEventListener("pointermove",move);
+      window.removeEventListener("pointerup",finish);
+      window.removeEventListener("pointercancel",finish);
+    };
+    window.addEventListener("pointermove",move);
+    window.addEventListener("pointerup",finish);
+    window.addEventListener("pointercancel",finish);
+  }
+  function resizeResultPanelKey(e){
+    const panel=resultPanel.current,geometry=resultResizeGeometry();
+    if(!panel||!geometry||window.matchMedia("(max-width:560px)").matches)return;
+    if(e.key==="Home"){
+      e.preventDefault();
+      setResultPanelSize({...DEFAULT_VIEWER_PREFERENCES.resultPanelSize});
+      return;
     }
+    if(e.key==="End"){
+      e.preventDefault();
+      setResultPanelSize(clampResultPanelSize({width:geometry.maxWidth,height:geometry.maxHeight},geometry));
+      return;
+    }
+    const delta={ArrowLeft:[-20,0],ArrowRight:[20,0],ArrowUp:[0,-20],ArrowDown:[0,20]}[e.key];
+    if(!delta)return;
+    e.preventDefault();
+    setResultPanelSize(current=>clampResultPanelSize({
+      width:(Number(current.width)||panel.offsetWidth)+delta[0],
+      height:(Number(current.height)||panel.offsetHeight)+delta[1]
+    },geometry));
   }
   function moveResultPanelKey(e){
     if(e.key==="Home"||e.key==="End"){
@@ -551,8 +599,8 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
           </>}
         </div>}
         {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>changeZoom(-.25)}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>changeZoom(.25)}><Plus size={15}/></button></div>}
-        {resultOpen&&(busy||results.length>0)&&<div ref={resultPanel} className="editorFloating" data-position-x={position.x} data-position-y={position.y} data-panel-width={resultPanelSize.width} data-panel-height={resultPanelSize.height||""} onPointerDownCapture={detectResultResizeStart} style={{transform:`translate(${position.x}px,${position.y}px)`,"--result-panel-width":resultPanelSize.width+"px",...(resultPanelSize.height?{"--result-panel-height":resultPanelSize.height+"px"}:{})}}>
-          <div className="editorFloatHead"><button type="button" className="editorFloatMoveHandle" aria-label="Mover painel de resultados" title="Arraste ou use setas, Home e End para mover" onKeyDown={moveResultPanelKey} onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}><b>Resultados</b></button><button type="button" title="Recolher resultados" onClick={()=>setResultOpenPreference(false)}><Minus size={16}/></button></div>
+        {resultOpen&&(busy||results.length>0)&&<div ref={resultPanel} className="editorFloating" data-position-x={position.x} data-position-y={position.y} data-panel-width={resultPanelSize.width} data-panel-height={resultPanelSize.height||""} style={{transform:`translate(${position.x}px,${position.y}px)`,"--result-panel-width":resultPanelSize.width+"px",...(resultPanelSize.height?{"--result-panel-height":resultPanelSize.height+"px"}:{})}}>
+          <div className="editorFloatHead"><button type="button" className="editorFloatMoveHandle" aria-label="Mover painel de resultados" title="Arraste ou use setas, Home e End para mover" onKeyDown={moveResultPanelKey} onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}><b>Resultados</b></button><button type="button" className="editorFloatResizeHandle" aria-label="Redimensionar painel de resultados" title="Arraste ou use setas; Home restaura e End maximiza" onKeyDown={resizeResultPanelKey} onPointerDown={beginResultResize}><Maximize2 size={13}/></button><button type="button" title="Recolher resultados" onClick={()=>setResultOpenPreference(false)}><Minus size={16}/></button></div>
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel} disabled={progress?.state==="cancel_requested"}>{progress?.state==="cancel_requested"?"Cancelando…":"Cancelar"}</button>}</div>}
           {!busy&&res&&durationMs!=null&&<div className="editorRunTime editorMetricRow"><span className="editorMetricLabel">Tempo medido</span><b className="editorMetricValue">{(durationMs/1000).toFixed(2)} s</b></div>}
           {results.map(r=><button key={r.engine_id} className={"editorResultRow "+(chosen?.engine_id===r.engine_id?"active":"")} onClick={()=>{setActive(r.engine_id);setVisible(v=>({...v,[r.engine_id]:true}))}}><span className="editorResultEngine">{r.name}</span><span className="editorResultMetric"><small>Achados</small><b>{r.detections?.length||0}</b></span><span className="editorResultMetric"><small>Latência</small><b>{Number(r.latency_ms||0).toFixed(0)} ms</b></span></button>)}

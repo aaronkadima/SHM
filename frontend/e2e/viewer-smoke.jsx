@@ -234,7 +234,7 @@ function App(){
             const floatingPanel=document.querySelector(".editorFloating");
             const floatingHead=floatingPanel?.querySelector(".editorFloatMoveHandle");
             const viewportRect=document.querySelector(".editorViewport")?.getBoundingClientRect();
-            let floatingClampOk=!!floatingPanel&&!!floatingHead&&!!viewportRect&&parseFloat(getComputedStyle(floatingPanel).maxWidth)>0&&floatingHead.tagName==="BUTTON"&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
+            let floatingClampOk=!!floatingPanel&&!!floatingHead&&!!viewportRect&&floatingPanel.getBoundingClientRect().width<=viewportRect.width-14&&getComputedStyle(floatingPanel).maxWidth!=="none"&&floatingHead.tagName==="BUTTON"&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
             if(floatingClampOk){
               floatingHead.focus();
               floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowUp"}));

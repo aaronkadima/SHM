@@ -53,6 +53,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-asset-detection.mjs
 
+      - name: 3D model asset validation
+        working-directory: frontend
+        run: node scripts/check-model-asset-validation.mjs
+
       - name: Viewer preferences
         working-directory: frontend
         run: node scripts/check-viewer-preferences.mjs

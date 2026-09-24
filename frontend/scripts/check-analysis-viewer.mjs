@@ -14,6 +14,8 @@ check(workspace.includes('const basePreview=localPreview||prev'),"viewer must pr
 check(workspace.includes('new FileReader()'),"viewer must read the imported image independently");
 check(workspace.includes('reader.readAsDataURL(file)'),"viewer must use a persistent data URL preview");
 check(workspace.includes('setComparison("overlay")'),"new files must reset comparison mode to overlay");
+check(workspace.includes('function fitView(){setZoom(1)}'),"viewer must expose fit-to-screen behavior");
+check(workspace.includes('function changeComparison(mode){setComparison(mode);fitView()}'),"comparison mode changes must refit the canvas");
 check(workspace.includes('const safeViewport={width:Math.max(480'),"viewer must protect against zero-size viewport collapse");
 check(workspace.includes('Math.max(160,safeImage.width*fit*panes)'),"viewer must keep a visible minimum display width");
 check(workspace.includes('Imagem carregada'),"viewer must expose decoded image dimensions");

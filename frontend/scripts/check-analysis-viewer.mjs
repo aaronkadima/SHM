@@ -23,7 +23,7 @@ check(workspace.includes('function isolatePathologyLayer(id)'),"viewer must supp
 check(workspace.includes('function movePathologyLayer(id,delta)'),"viewer must support pathology z-order changes");
 check(workspace.includes('function setSelectedPathologyOpacity(value)'),"viewer must support selected-layer opacity");
 check(workspace.includes('opacity:opacity*Number(pathologyOpacity[layer.id]??1)'),"pathology layer opacity must multiply the global opacity");
-check(workspace.includes('className="layerInspector"'),"viewer must expose a compact selected-layer inspector");
+check(workspace.includes('className={"layerInspector "'),"viewer must expose a compact selected-layer inspector");
 check(workspace.includes('Opacidade da camada'),"selected-layer inspector must expose layer opacity");
 check(workspace.includes('function toggleSelectedPathologyLock()'),"viewer must support persistent pathology locks");
 check(workspace.includes('if(pathologyLocked.has(id))return'),"locked layers must reject direct z-order changes");

@@ -38,7 +38,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const [viewportSize,setViewportSize]=useState({width:0,height:0});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0);
   const compactLayout=useRef(initialCompactLayout),desktopLayersPreference=useRef(initialViewerPrefs.layersOpen);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null),fileDragDepth=useRef(0);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null),fileDragDepth=useRef(0),cameraCaptureSeq=useRef(0);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{if(busy){fileDragDepth.current=0;setFileDragActive(false);setCameraOpen(false)}},[busy]);
   useEffect(()=>{
@@ -184,7 +184,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       const message=name==="NotAllowedError"?"Permissão de câmera negada. Autorize o acesso nas configurações do navegador.":name==="NotFoundError"?"Nenhuma câmera compatível foi encontrada.":"Não foi possível acessar a câmera: "+(e?.message||String(e));
       setCameraError(message);
     });
-    return()=>{cancelled=true;setCameraCapturing(false);setCameraReady(false);stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;if(video.current)video.current.srcObject=null}
+    return()=>{cancelled=true;cameraCaptureSeq.current++;setCameraCapturing(false);setCameraReady(false);stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;if(video.current)video.current.srcObject=null}
   },[cameraOpen,cameraFacing]);
   useEffect(()=>{if(!cameraOpen)return;const onKey=e=>{if(e.key==="Escape")setCameraOpen(false)};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[cameraOpen]);
   const linkedReferenceCompatibility=referenceInspectionId&&referenceInspectionMeta?(()=>{
@@ -285,9 +285,11 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     const canvas=document.createElement("canvas");canvas.width=v.videoWidth;canvas.height=v.videoHeight;
     const context=canvas.getContext("2d");
     if(!context){setCameraError("O navegador não conseguiu preparar a captura.");return}
+    const captureToken=++cameraCaptureSeq.current;
     setCameraCapturing(true);
     context.drawImage(v,0,0);
     canvas.toBlob(blob=>{
+      if(captureToken!==cameraCaptureSeq.current)return;
       if(blob){
         onFile(new File([blob],"captura-"+new Date().toISOString().replace(/[:.]/g,"-")+".png",{type:"image/png",lastModified:Date.now()}));
         setCameraOpen(false);

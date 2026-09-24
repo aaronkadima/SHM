@@ -99,6 +99,8 @@ check(styles.includes(".editorSide .compositePane{border-left:2px solid white}")
 check(styles.includes(".editorTop{")&&styles.includes("position:sticky;top:0;z-index:40"),"analysis top bar must stay fixed while the workspace scrolls");
 check(styles.includes(".editorStatus{")&&styles.includes("position:sticky;bottom:0;z-index:40"),"analysis bottom status bar must stay fixed while the workspace scrolls");
 check(settings.includes('className="settingsBottom"')&&settings.includes('settingsStatusEngines')&&settings.includes('settingsApply'),"settings page must expose the shared bottom status-bar pattern");
+check(settings.includes('const selectedStatus="Motores selecionados: "+selected.length')&&!settings.includes('const selectedNames='),"settings footer must show the selected engine count instead of engine names");
+check(!settings.includes('className="settingsStatusMeta"'),"settings footer must not duplicate the selected count in a second status region");
 check(app.includes('activeView==="settings"?"settingsShell":"")'),"settings route must receive a dedicated shell class");
 check(styles.includes(".appShell.settingsShell{position:fixed;inset:0;width:100%;height:100dvh;max-height:100dvh;min-height:0;overflow:hidden}")&&styles.includes(".settingsShell .appMain{height:100%;min-height:0;overflow:hidden}"),"settings shell must be fixed to the dynamic viewport so the footer remains visible and the document cannot scroll");
 check(settingsStyles.includes(".analysisSettings{height:100%;min-height:0")&&settingsStyles.includes("display:flex;flex-direction:column;overflow:hidden"),"settings page must fill the locked shell without creating a second page scroll");
@@ -113,11 +115,17 @@ check(settingsStyles.includes(".analysisSettingsCard:not(.settingsMotorsCard){pa
 check(styles.includes("body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}"),"settings route must suppress document-level scrolling and follow the dynamic viewport");
 check(settingsStyles.includes(".settingsBottom{min-height:42px;flex:0 0 auto;z-index:90"),"settings bottom bar must remain visible as the fixed flex footer");
 check(settings.includes('function EngineCard({engine,owned=false})')&&settings.includes('Ver código')&&settings.includes('Exportar código'),"every engine settings card must expose code inspection and export actions");
+check(settings.includes('Informações')&&settings.includes('Atualização')&&settings.includes('function checkBrowserUpdate(engine)'),"engine cards must expose information and repository update checks");
+check(settings.includes('https://api.github.com/repos/aaronkadima/SHM/contents/')&&settings.includes('repositoryRef=appInfo?.channel==="development"?"feat/cdm-1":"main"'),"browser engine update check must compare against the matching GitHub repository branch");
+check(settings.includes('normalizeSource(remoteSource)===normalizeSource(pkg.repositorySource)')&&settings.includes('Atualizado · código browser igual ao repositório.')&&settings.includes('Diferente · o build browser não coincide com o repositório.'),"browser engine update check must report current and divergent source states");
+check(settings.includes('className="settingsEngineInfo"')&&settings.includes('Arquivo no repositório')&&settings.includes('Licença'),"engine information panel must expose technical metadata");
 check(settings.includes('engineCodePackage(engine)')&&settings.includes('new Blob([pkg.source]'),"engine code export must download the same source displayed by the card");
 check(engineCodeCatalog.includes('import cdmBrowserSource from "./cdmBrowser.js?raw"')&&engineCodeCatalog.includes('import browserEnginesSource from "./browserEngines.js?raw"'),"browser-ready engine code views must be backed by the real repository source");
+check(engineCodeCatalog.includes('repositoryPath:"frontend/src/cdmBrowser.js"')&&engineCodeCatalog.includes('repositorySource:cdmBrowserSource')&&engineCodeCatalog.includes('repositoryPath:"frontend/src/browserEngines.js"')&&engineCodeCatalog.includes('repositorySource:browserEnginesSource'),"browser code packages must expose their exact repository source for sync verification");
 check(engineCodeCatalog.includes('function openCvStandaloneSource()')&&engineCodeCatalog.includes('export {runOpenCVBaseline};'),"OpenCV export must strip the shared dispatcher and remain independently reusable");
 check(engineCodeCatalog.includes('template de portabilidade Python')&&engineCodeCatalog.includes('Etapas da implementação'),"non-browser engines must expose clearly identified commented portability templates");
 check(settingsStyles.includes(".settingsCodePanel pre{")&&settingsStyles.includes("max-height:360px;overflow:auto"),"engine source viewer must remain bounded and scrollable inside the card");
+check(settingsStyles.includes(".settingsEngineInfo{display:grid")&&settingsStyles.includes(".settingsSyncState.current")&&settingsStyles.includes(".settingsSyncButton.different"),"engine info and repository sync states must have dedicated compact styling");
 
 if(failures.length){
   console.error("Analysis viewer composition failures:");

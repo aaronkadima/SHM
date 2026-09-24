@@ -1,3 +1,4 @@
+import{sha256Blob}from"./fileIntegrity.js";
 const DB_NAME="shm-oae-brasil";
 const DB_VERSION=1;
 const STORE="inspections";
@@ -106,6 +107,10 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
       };
     }
   }
+  const [imageSha256,referenceImageSha256]=await Promise.all([
+    file?sha256Blob(file):Promise.resolve(null),
+    referenceFile?sha256Blob(referenceFile):Promise.resolve(null)
+  ]);
   const normalizedReferenceMeta=referenceInspectionMeta?{
     oae_id:String(referenceInspectionMeta.oae_id||"").trim(),
     element_id:String(referenceInspectionMeta.element_id||"").trim(),
@@ -133,11 +138,13 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
     inspection:{...inspection},
     file_meta:file?{name:file.name,type:file.type,size:file.size,lastModified:file.lastModified}: {},
     image_blob:file||null,
+    image_sha256:imageSha256,
     reference_file_meta:referenceFile?{name:referenceFile.name,type:referenceFile.type,size:referenceFile.size,lastModified:referenceFile.lastModified}: {},
     reference_inspection_id:referenceInspectionId||null,
     reference_origin_inspection_id:referenceInspectionId||null,
     reference_inspection_meta:normalizedReferenceMeta,
     reference_image_blob:referenceFile&&!referenceInspectionId?referenceFile:null,
+    reference_image_sha256:referenceImageSha256,
     result,
     summary:{
       mode:result.metadata?.mode||"unknown",
@@ -146,6 +153,8 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
       engines_ok:(result.results||[]).filter(r=>r.status==="ok").length,
       engines_failed:(result.results||[]).filter(r=>r.status!=="ok").length,
       detections:totalDetections(result),
+      image_sha256:imageSha256,
+      reference_image_sha256:referenceImageSha256,
       image_width:result.image_width||null,
       image_height:result.image_height||null,
       consensus_classes:Object.keys(result.consensus||{}).length,
@@ -242,6 +251,7 @@ export async function deleteInspection(id){
       if(row.id===id||row.reference_inspection_id!==id)continue;
       const materialized=target.image_blob||row.reference_image_blob||null;
       row.reference_image_blob=materialized;
+      row.reference_image_sha256=row.reference_image_sha256||target.image_sha256||target.summary?.image_sha256||null;
       row.reference_file_meta=row.reference_file_meta&&Object.keys(row.reference_file_meta).length?row.reference_file_meta:(target.file_meta||{});
       row.reference_inspection_meta=row.reference_inspection_meta||target.inspection||null;
       row.reference_origin_inspection_id=row.reference_origin_inspection_id||id;

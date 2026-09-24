@@ -362,6 +362,9 @@ function App(){
             const panes=[...document.querySelectorAll(".editorImagePane")];
             const images=[...document.querySelectorAll(".editorBaseImage")];
             const sideOk=panes.length===2&&images.length===2&&panes.every(p=>{const r=p.getBoundingClientRect();return r.width>80&&r.height>80});
+            const sideCanvasRect=document.querySelector(".editorImage")?.getBoundingClientRect();
+            const sideViewportRect=document.querySelector(".editorViewport")?.getBoundingClientRect();
+            const sideWithinViewportOk=!phoneSidebar||(!!sideCanvasRect&&!!sideViewportRect&&sideCanvasRect.left>=sideViewportRect.left-1&&sideCanvasRect.right<=sideViewportRect.right+1&&sideCanvasRect.top>=sideViewportRect.top-1&&sideCanvasRect.bottom<=sideViewportRect.bottom+1);
             const zoomAfterSide=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const overlay=document.querySelector('button[aria-label="Sobrepor"]');
             overlay?.click();
@@ -406,6 +409,9 @@ function App(){
             const temporalBadges=[...document.querySelectorAll(".editorPaneBadge")].map(x=>x.textContent.trim());
             const temporalStacks=document.querySelectorAll(".editorOverlayStack").length;
             const temporalOk=temporalPanes.length===2&&temporalPanes.every(p=>{const r=p.getBoundingClientRect();return r.width>80&&r.height>80})&&temporalBadges.some(x=>x.startsWith("t0"))&&temporalBadges.some(x=>x.startsWith("t1"))&&temporalStacks===1;
+            const temporalCanvasRect=document.querySelector(".editorImage")?.getBoundingClientRect();
+            const temporalViewportRect=document.querySelector(".editorViewport")?.getBoundingClientRect();
+            const temporalWithinViewportOk=!phoneSidebar||(!!temporalCanvasRect&&!!temporalViewportRect&&temporalCanvasRect.left>=temporalViewportRect.left-1&&temporalCanvasRect.right<=temporalViewportRect.right+1&&temporalCanvasRect.top>=temporalViewportRect.top-1&&temporalCanvasRect.bottom<=temporalViewportRect.bottom+1);
             const zoomAfterTemporal=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const original=document.querySelector('button[aria-label="Original"]');
             original?.click();
@@ -560,10 +566,10 @@ function App(){
             const checks={
               initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
-              zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,phoneFitWithinViewportOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
+              zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,phoneFitWithinViewportOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,sideWithinViewportOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,exportEscapeOk,
               wipeInitialOk,wipeMovedOk,wipeDirectionOk,wipeStatusOk,zoomAfterWipe:zoomAfterWipe==="100%",
-              temporalOk,zoomAfterTemporal:zoomAfterTemporal==="100%",originalPanes:originalPanes===1,originalImages:originalImages===1,originalStacks:originalStacks===0,zoomAfterOriginal:zoomAfterOriginal==="100%",resetOk
+              temporalOk,temporalWithinViewportOk,zoomAfterTemporal:zoomAfterTemporal==="100%",originalPanes:originalPanes===1,originalImages:originalImages===1,originalStacks:originalStacks===0,zoomAfterOriginal:zoomAfterOriginal==="100%",resetOk
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){

@@ -592,10 +592,9 @@ function App(){
             setAnalysisRes(fakeResult);
             setRunProgress({completed:100,total:100,state:"persisting",current_engine:"Salvando histórico local"});
             await sleep(100);
-            const persistingPanel=document.querySelector(".editorProgress.persisting");
+            const persistingTab=document.querySelector(".editorResultsTab");
             const persistingStatus=document.querySelector(".editorStatusMessage")?.textContent?.trim();
-            const persistingRuntime=document.querySelector(".editorProgress strong")?.textContent?.trim();
-            const persistencePhaseOk=!!persistingPanel&&persistingPanel.textContent.includes("Salvando histórico local")&&!persistingPanel.textContent.includes("Cancelar")&&persistingStatus==="Análise concluída · salvando histórico local"&&persistingRuntime==="00:01";
+            const persistencePhaseOk=!!persistingTab&&persistingTab.classList.contains("persisting")&&persistingTab.querySelector("strong")?.textContent.trim()==="100%"&&persistingTab.getAttribute("aria-label")==="Reabrir resultados · salvando histórico"&&!persistingTab.textContent.includes("Cancelar")&&persistingStatus==="Análise concluída · salvando histórico local";
             setBusy(false);
             setRunProgress(null);
             await sleep(100);

@@ -318,6 +318,20 @@ jobs:
 
           grep "SETTINGS_SMOKE_PASS" /tmp/shm-settings-mini-dom.html
 
+          timeout 30s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-background-networking --user-data-dir="/tmp/shm-settings-landscape-chrome-$RANDOM" --window-size=800,360 --virtual-time-budget=12000 --dump-dom http://127.0.0.1:4174/e2e/settings-mobile-smoke.html > /tmp/shm-settings-landscape-dom.html 2>/tmp/shm-settings-landscape-chrome.log || {
+              cat /tmp/shm-settings-landscape-chrome.log
+              exit 1
+            }
+
+          if ! grep -q "SETTINGS_SMOKE_PASS" /tmp/shm-settings-landscape-dom.html; then
+            cat /tmp/shm-settings-vite.log
+            cat /tmp/shm-settings-landscape-chrome.log
+            cat /tmp/shm-settings-landscape-dom.html
+            exit 1
+          fi
+
+          grep "SETTINGS_SMOKE_PASS" /tmp/shm-settings-landscape-dom.html
+
       - name: Build
         working-directory: frontend
         run: npm run build

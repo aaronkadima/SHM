@@ -5,13 +5,16 @@ import"../src/styles.css";
 
 const svg='<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#c9d7dc"/><rect x="40" y="30" width="240" height="120" rx="8" fill="#71858d"/><path d="M70 120 L150 70 L240 125" stroke="#ffffff" stroke-width="5" fill="none"/></svg>';
 const file=new File([svg],"viewer-smoke.svg",{type:"image/svg+xml"});
+const t0Svg='<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#d8c7b8"/><circle cx="160" cy="90" r="60" fill="#7b6655"/></svg>';
+const referenceFile=new File([t0Svg],"viewer-smoke-t0.svg",{type:"image/svg+xml"});
+const referencePrev="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(t0Svg);
 const transparentPng="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL9WQAAAABJRU5ErkJggg==";
 const fakeResult={
   image_width:320,image_height:180,
   results:[{
     engine_id:"cdm_1",name:"CDM-1",status:"ok",latency_ms:12,detections:[],
     overlay_png_base64:transparentPng,
-    metrics:{overlay_semantics:"transparent_layers",layers:[{id:"cracks",name:"Fissuras",color:"#e64b4b",count:1,overlay_png_base64:transparentPng},{id:"corrosion_rust",name:"Corrosão",color:"#b66a2a",count:1,overlay_png_base64:transparentPng}],summary:{total_objects:2,crack_count:1,crack_length_total_px:12,spalling_area_px2:0},runtime:"browser-smoke"}
+    metrics:{overlay_semantics:"transparent_layers",layers:[{id:"cracks",name:"Fissuras",color:"#e64b4b",count:1,overlay_png_base64:transparentPng},{id:"corrosion_rust",name:"Corrosão",color:"#b66a2a",count:1,overlay_png_base64:transparentPng}],summary:{total_objects:2,crack_count:1,crack_length_total_px:12,spalling_area_px2:0},runtime:"browser-smoke",temporal:{enabled:true,alignment:{accepted:false,dx_px:0,dy_px:0,improvement:0},quality:{status:"pass",validated_for_change_quantification:true,issues:[],warnings:[],metrics:{}},stats:{},layers:[{id:"growth:cracks",name:"Crescimento · Fissuras",color:"#ff8b55",count:1,overlay_png_base64:transparentPng}]}}
   }]
 };
 
@@ -71,6 +74,14 @@ function App(){
             const overlayImages=document.querySelectorAll(".editorBaseImage").length;
             const overlayStacks=document.querySelectorAll(".editorOverlayStack").length;
             const zoomAfterOverlay=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
+            const temporal=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="t0 / t1");
+            temporal?.click();
+            await sleep(80);
+            const temporalPanes=[...document.querySelectorAll(".editorImagePane")];
+            const temporalBadges=[...document.querySelectorAll(".editorPaneBadge")].map(x=>x.textContent.trim());
+            const temporalStacks=document.querySelectorAll(".editorOverlayStack").length;
+            const temporalOk=temporalPanes.length===2&&temporalPanes.every(p=>{const r=p.getBoundingClientRect();return r.width>80&&r.height>80})&&temporalBadges.some(x=>x.startsWith("t0"))&&temporalBadges.some(x=>x.startsWith("t1"))&&temporalStacks===1;
+            const zoomAfterTemporal=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const original=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="Original");
             original?.click();
             await sleep(80);
@@ -78,8 +89,8 @@ function App(){
             const originalImages=document.querySelectorAll(".editorBaseImage").length;
             const originalStacks=document.querySelectorAll(".editorOverlayStack").length;
             const zoomAfterOriginal=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 layers=toggle+solo+order fit=100%");
+            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 temporal=2 layers=toggle+solo+order fit=100%");
               return;
             }
           }
@@ -94,7 +105,7 @@ function App(){
     <div style={{height:"760px"}}>
       <AnalysisWorkspace
         selectedEngineLabels={[{id:"cdm_1",name:"CDM-1",browser_ready:true}]}
-        file={file} prev={null} referenceFile={null} referencePrev={null}
+        file={file} prev={null} referenceFile={referenceFile} referencePrev={referencePrev}
         referenceInspectionId={null} referenceInspectionMeta={null}
         inspectionMeta={{oae_id:"SMOKE",element_id:"E1",source_id:"CI"}}
         res={fakeResult} busy={false} progress={null} selected={selected}

@@ -16,7 +16,8 @@ check(workspace.includes('const basePreview=localPreview||prev'),"viewer must pr
 check(workspace.includes('new FileReader()'),"viewer must read the imported image independently");
 check(workspace.includes('reader.readAsDataURL(file)'),"viewer must use a persistent data URL preview");
 check(workspace.includes('setComparison(preferredComparison)'),"new files must restore the persisted non-temporal comparison mode");
-check(workspace.includes('function fitView(){setZoom(1)}'),"viewer must expose fit-to-screen behavior");
+check(workspace.includes('function fitView(){')&&workspace.includes('surface.current?.getBoundingClientRect()')&&workspace.includes('setViewportSize({width:rect.width,height:rect.height})')&&workspace.includes('setZoom(1);'),"viewer fit-to-screen must recalculate the real viewport and reset relative zoom");
+check(workspace.includes('aria-label="Ajustar à tela"'),"fit-to-screen control must be accessible and targetable by browser smoke");
 check(workspace.includes('function changeComparison(mode){setComparison(mode);if(mode!=="temporal")setPreferredComparison(mode);fitView()}'),"comparison mode changes must refit while keeping temporal mode non-persistent");
 check(workspace.includes('function setPathologyGroupVisible(next)'),"viewer must support group pathology visibility");
 check(workspace.includes('function isolatePathologyLayer(id)'),"viewer must support single-pathology isolation");

@@ -42,7 +42,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),drag=useRef(null),canvasDrag=useRef(null),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),canvasDrag=useRef(null),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{
     let cancelled=false;
@@ -72,6 +72,14 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   useEffect(()=>()=>{if(statusTimer.current)clearTimeout(statusTimer.current);if(wipeDirectionTimer.current)clearTimeout(wipeDirectionTimer.current)},[]);
   useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setCanvasPan({x:0,y:0});setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
+  useEffect(()=>{
+    if(!resultOpen)return;
+    const id=requestAnimationFrame(()=>setPosition(current=>{
+      const next=clampResultPosition(current);
+      return next.x===current.x&&next.y===current.y?current:next;
+    }));
+    return()=>cancelAnimationFrame(id);
+  },[viewportSize.width,viewportSize.height,resultOpen]);
   useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked]})},[opacity,layersOpen,preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked]);
   useEffect(()=>{if(busy)setResultOpen(true)},[busy]);
   useEffect(()=>{if(busy){const now=performance.now();runStarted.current=now;setStartAt(now);setElapsed(0);setDurationMs(null)}
@@ -194,9 +202,27 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
       return next;
     });
   }
-  function dragStart(e){if(e.target.closest("button"))return;drag.current={x:e.clientX-position.x,y:e.clientY-position.y};e.currentTarget.setPointerCapture(e.pointerId)}
-  function dragMove(e){if(drag.current)setPosition({x:e.clientX-drag.current.x,y:e.clientY-drag.current.y})}
-  function dragEnd(){drag.current=null}
+  function clampResultPosition(next){
+    const panel=resultPanel.current,viewport=surface.current;
+    if(!panel||!viewport)return next;
+    const margin=8;
+    const minX=margin-panel.offsetLeft;
+    const maxX=viewport.clientWidth-margin-panel.offsetLeft-panel.offsetWidth;
+    const minY=margin-panel.offsetTop;
+    const maxY=viewport.clientHeight-margin-panel.offsetTop-panel.offsetHeight;
+    const clampAxis=(value,min,max)=>max>=min?Math.max(min,Math.min(max,value)):(min+max)/2;
+    return{x:Math.round(clampAxis(Number(next.x)||0,minX,maxX)),y:Math.round(clampAxis(Number(next.y)||0,minY,maxY))};
+  }
+  function dragStart(e){
+    if(e.target.closest("button"))return;
+    drag.current={clientX:e.clientX,clientY:e.clientY,startX:position.x,startY:position.y};
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }
+  function dragMove(e){
+    if(!drag.current)return;
+    setPosition(clampResultPosition({x:drag.current.startX+e.clientX-drag.current.clientX,y:drag.current.startY+e.clientY-drag.current.clientY}));
+  }
+  function dragEnd(e){drag.current=null;e?.currentTarget?.releasePointerCapture?.(e.pointerId)}
   function canvasPanStart(e){
     if(e.button!==1)return;
     e.preventDefault();
@@ -449,7 +475,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
           </>}
         </div>}
         {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>changeZoom(-.25)}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>changeZoom(.25)}><Plus size={15}/></button></div>}
-        {resultOpen&&(busy||results.length>0)&&<div className="editorFloating" style={{transform:`translate(${position.x}px,${position.y}px)`}}>
+        {resultOpen&&(busy||results.length>0)&&<div ref={resultPanel} className="editorFloating" data-position-x={position.x} data-position-y={position.y} style={{transform:`translate(${position.x}px,${position.y}px)`}}>
           <div className="editorFloatHead" onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd}><b>Resultados</b><button title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel} disabled={progress?.state==="cancel_requested"}>{progress?.state==="cancel_requested"?"Cancelando…":"Cancelar"}</button>}</div>}
           {!busy&&res&&durationMs!=null&&<div className="editorRunTime editorMetricRow"><span className="editorMetricLabel">Tempo medido</span><b className="editorMetricValue">{(durationMs/1000).toFixed(2)} s</b></div>}

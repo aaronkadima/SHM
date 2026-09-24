@@ -349,9 +349,9 @@ export function CamerasView({prev,res,inspection,onNavigate}){
   </section>
 }
 
-export function EnginesView({engines,visibleEng,engineQuery,setEngineQuery,engineFilter,setEngineFilter,browserReady,recommended,cloudVerified,sel,toggle,selectRecommended,selectVerified,clearSelection,individualOnline,comparatorOnline}){
+export function EnginesView({appInfo,engines,visibleEng,engineQuery,setEngineQuery,engineFilter,setEngineFilter,browserReady,recommended,cloudVerified,sel,toggle,selectRecommended,selectVerified,clearSelection,individualOnline,comparatorOnline}){
   return <section className="viewPage">
-    <SectionHead eyebrow="CATÁLOGO & RUNTIME" title="Motores" description="Inventário dos motores registrados no repositório, seus modos de execução e disponibilidade declarada."/>
+    <SectionHead eyebrow="CATÁLOGO & RUNTIME" title="Motores" description={"Inventário dos motores registrados no repositório · "+(appInfo?.channel==="development"?"DESENVOLVIMENTO":"PRODUÇÃO")+" · catálogo v"+(appInfo?.catalogVersion||"—")+" · "+(appInfo?.buildSha||"—")}/>
     <div className="kpiGrid engineKpis">
       <div className="kpiCard"><span>TOTAL</span><b>{engines.length}</b><small>motores registrados</small></div>
       <div className="kpiCard"><span>BROWSER</span><b>{browserReady}</b><small>execução sem servidor</small></div>
@@ -372,9 +372,9 @@ export function EnginesView({engines,visibleEng,engineQuery,setEngineQuery,engin
       </div>
       <div className="engineTable">
         <div className="engineTableHead"><span></span><span>Motor</span><span>Família / tarefa</span><span>Modo</span><span>Flags</span></div>
-        {visibleEng.map(e=><label className="engineTableRow" key={e.id}>
+        {visibleEng.map(e=><label className={"engineTableRow "+(e.id==="cdm_1"?"enginePinned":"")} key={e.id}>
           <input type="checkbox" checked={sel.has(e.id)} onChange={()=>toggle(e.id)}/>
-          <div><b>{e.name}</b>{e.description&&<small>{e.description}</small>}</div>
+          <div><b>{e.name}{e.id==="cdm_1"&&<em className="engineOwnBadge">PRÓPRIO · BROWSER</em>}</b>{e.description&&<small>{e.description}</small>}</div>
           <span>{e.family} · {(e.task||"").replaceAll("_"," ")}</span>
           <span>{engineModeLabel(e)}</span>
           <div className="flagGroup">{e.browser_ready&&<em>browser</em>}{e.recommended&&<em>recomendado</em>}{e.cloud_verified&&<em>cloud</em>}{e.source_url&&<a href={e.source_url} target="_blank" rel="noreferrer">fonte <ExternalLink size={10}/></a>}</div>

@@ -460,3 +460,79 @@ chain edge.
 
 The frontend CI validates both the chain-level hash logic and the SHA-256 helper
 against the known SHA-256 digest of the string \`abc\`.
+
+## Analysis viewer and layer interaction
+
+The development frontend now treats the original inspection image as a mandatory
+base layer and renders detection content in a separate overlay stack sharing the
+same geometry.
+
+Viewer modes:
+
+- **Original**: current t1 image only, without detection overlays;
+- **Sobrepor**: current t1 image plus active detection/pathology layers;
+- **Lado a lado**: left = original t1; right = original t1 plus overlays;
+- **t0 / t1**: left = temporal reference t0; right = current t1 plus active
+  pathology and temporal-change layers.
+
+Changing modes automatically returns the viewer to fit-to-screen (100% relative
+viewer zoom), preventing an old zoom state from making a new comparison appear
+empty.
+
+The 2D preview is decoded independently from the imported File with
+FileReader.readAsDataURL. The viewer preloads the decoded image dimensions,
+reports them in the canvas, protects against zero-sized viewport measurements
+and keeps overlay panes at explicit nonzero geometry. A CSS invariant prevents a
+relative-position override from collapsing Overlay mode.
+
+### CDM layer controls
+
+Current CDM pathology layers are grouped under **CDM-1 · Patologias**. The group
+supports:
+
+- show all;
+- hide all;
+- isolate a single pathology (Só);
+- move a pathology up/down in the layer list.
+
+The top item in the layer panel is also the top visual layer. Internally the
+render order is reversed so DOM stacking matches the Inkscape-style panel order.
+
+Temporal t0→t1 layers remain in a separate group with independent show/hide
+controls and retain the temporal-quality gate behavior.
+
+### Viewer preferences
+
+Safe visual preferences are stored locally in the browser:
+
+- overlay opacity;
+- layer-panel open/closed state;
+- preferred non-temporal mode (original, overlay, or side);
+- pathology z-order.
+
+Inspection-specific state such as zoom, temporal t0/t1 mode and individual
+pathology visibility is not persisted. A **Restaurar visualização** action resets
+the viewer to overlay mode, 75% overlay opacity, default pathology order, all
+current pathology layers visible, 100% viewer zoom and the default layer-panel
+state.
+
+### Browser regression
+
+Frontend CI now starts the real Vite app in a Chromium-compatible browser and
+executes a viewer smoke harness. The browser-level regression verifies:
+
+- decoding a real 320×180 image;
+- nonzero canvas/pane geometry;
+- exact overlay/base geometry;
+- pathology group show/hide;
+- single-pathology isolation;
+- pathology z-order changes;
+- Original mode with no overlay stack;
+- Overlay mode with base + overlay stack;
+- Side-by-Side mode with two base images;
+- t0/t1 mode with a real reference image;
+- automatic fit-to-screen on mode changes;
+- full viewer reset back to the default visual state.
+
+This browser test complements the static viewer assertions and prevents CSS-only
+regressions from passing CI unnoticed.

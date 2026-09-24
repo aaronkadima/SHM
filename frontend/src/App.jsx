@@ -5,6 +5,7 @@ import AnalysisWorkspace from"./AnalysisWorkspace.jsx";
 import AnalysisSettings from"./AnalysisSettings.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
 import{analysisExecutionIssue,executionEndpointIssue}from"./executionConfig.js";
+import{buildComparisonCsv}from"./resultExport.js";
 import{sortEngines,engineMatchesFilter,engineMatchesQuery}from"./engineCatalog.js";
 import{buildCdmSvg,buildCdmCsv,buildCdmCoco,buildCdmDxf,buildCdmBimJson,buildCdmIfc,buildCdmHtml}from"./cdmExports.js";
 import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
@@ -45,21 +46,8 @@ function downloadBlob(name,type,text){
   const b=new Blob([text],{type});const u=URL.createObjectURL(b);const a=document.createElement("a");
   a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),500);
 }
-function csvCell(v){const s=v==null?"":String(v);return '"'+s.replaceAll('"','""')+'"'}
 function exportJson(res){downloadBlob("shm-comparison.json","application/json",JSON.stringify(res,null,2))}
-function exportCsv(res){
-  const analysisElapsedMs=Number(res?.metadata?.client_elapsed_ms);
-  const measured=Number.isFinite(analysisElapsedMs)?analysisElapsedMs:"";
-  const rows=[["engine","status","latency_ms","analysis_elapsed_ms","detections","label","canonical_label","score","x1","y1","x2","y2","area_px"]];
-  for(const r of res.results||[]){
-    if(!r.detections?.length)rows.push([r.name,r.status,r.latency_ms,measured,0,"","","","","","","",""]);
-    else for(const d of r.detections){
-      const b=d.box||[];
-      rows.push([r.name,r.status,r.latency_ms,measured,r.detections.length,d.label,d.canonical_label||"",d.score,b[0],b[1],b[2],b[3],d.area_px]);
-    }
-  }
-  downloadBlob("shm-comparison.csv","text/csv;charset=utf-8","\uFEFF"+rows.map(x=>x.map(csvCell).join(",")).join("\n"));
-}
+function exportCsv(res){downloadBlob("shm-comparison.csv","text/csv;charset=utf-8",buildComparisonCsv(res))}
 function downloadConsensus(res){if(res.consensus_overlay_png_base64)saveBase64("shm-consensus.png",res.consensus_overlay_png_base64)}
 function combinedSignal(signal,timeoutMs){
   const timeout=typeof AbortSignal!=="undefined"&&AbortSignal.timeout?AbortSignal.timeout(timeoutMs):null;

@@ -5,7 +5,8 @@ export const DEFAULT_VIEWER_PREFERENCES={
   layersOpen:true,
   comparison:"overlay",
   pathologyOrder:[],
-  pathologyOpacity:{}
+  pathologyOpacity:{},
+  pathologyLocked:[]
 };
 
 const VALID_COMPARISONS=new Set(["original","overlay","side"]);
@@ -24,7 +25,8 @@ export function normalizeViewerPreferences(value={}){
     layersOpen:typeof value?.layersOpen==="boolean"?value.layersOpen:DEFAULT_VIEWER_PREFERENCES.layersOpen,
     comparison:VALID_COMPARISONS.has(value?.comparison)?value.comparison:DEFAULT_VIEWER_PREFERENCES.comparison,
     pathologyOrder:Array.isArray(value?.pathologyOrder)?[...new Set(value.pathologyOrder.filter(x=>typeof x==="string"&&x.trim()))]:[],
-    pathologyOpacity
+    pathologyOpacity,
+    pathologyLocked:Array.isArray(value?.pathologyLocked)?[...new Set(value.pathologyLocked.filter(x=>typeof x==="string"&&x.trim()))]:[]
   };
 }
 

@@ -234,22 +234,20 @@ function App(){
             const floatingPanel=document.querySelector(".editorFloating");
             const floatingHead=floatingPanel?.querySelector(".editorFloatHead");
             const viewportRect=document.querySelector(".editorViewport")?.getBoundingClientRect();
-            let floatingClampOk=!!floatingPanel&&!!floatingHead&&!!viewportRect&&parseFloat(getComputedStyle(floatingPanel).maxWidth)>0;
+            let floatingClampOk=!!floatingPanel&&!!floatingHead&&!!viewportRect&&parseFloat(getComputedStyle(floatingPanel).maxWidth)>0&&floatingHead.tabIndex===0&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
             if(floatingClampOk){
-              const start=floatingHead.getBoundingClientRect();
-              const sx=start.left+20,sy=start.top+16;
-              floatingHead.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:41,clientX:sx,clientY:sy,button:0}));
-              floatingHead.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:41,clientX:-1200,clientY:-1200,button:0}));
-              floatingHead.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:41,clientX:-1200,clientY:-1200,button:0}));
-              await sleep(80);
+              for(let n=0;n<60;n++){
+                floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowLeft"}));
+                floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowUp"}));
+              }
+              await sleep(100);
               const topLeft=floatingPanel.getBoundingClientRect();
               const topLeftOk=topLeft.left>=viewportRect.left+7&&topLeft.top>=viewportRect.top+7;
-              const head2=floatingHead.getBoundingClientRect();
-              const sx2=head2.left+20,sy2=head2.top+16;
-              floatingHead.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:42,clientX:sx2,clientY:sy2,button:0}));
-              floatingHead.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:42,clientX:5000,clientY:5000,button:0}));
-              floatingHead.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:42,clientX:5000,clientY:5000,button:0}));
-              await sleep(80);
+              for(let n=0;n<100;n++){
+                floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
+                floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowDown"}));
+              }
+              await sleep(100);
               const bottomRight=floatingPanel.getBoundingClientRect();
               const bottomRightOk=bottomRight.right<=viewportRect.right-7&&bottomRight.bottom<=viewportRect.bottom-7;
               floatingClampOk=topLeftOk&&bottomRightOk&&Number.isFinite(Number(floatingPanel.dataset.positionX))&&Number.isFinite(Number(floatingPanel.dataset.positionY));

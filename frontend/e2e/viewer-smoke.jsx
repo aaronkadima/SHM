@@ -84,6 +84,9 @@ function App(){
           const zoomRect=zoomControl?.getBoundingClientRect();
           const phoneZoomCompactOk=!phoneSidebar||(!!zoomRect&&zoomRect.height<=42&&zoomRect.width<=140);
           const responsiveDiag=`iw=${window.innerWidth},narrow=${narrowSidebar},phone=${phoneSidebar},compact=${compactOverlay},sidebar=${sidebarRect?Math.round(sidebarRect.left)+"/"+Math.round(sidebarRect.width):"none"},resize=${sidebarResizeStyle.display},brand=${brandTitleStyle?.display||"missing"},brandText=${brandTitle?.textContent.trim()||"missing"},zoom=${zoomRect?Math.round(zoomRect.width)+"x"+Math.round(zoomRect.height):"missing"},buttons=${topButtons.map(button=>Math.round(button.getBoundingClientRect().width)).join("/")}`;
+          const editorRect=document.querySelector(".analysisEditor")?.getBoundingClientRect();
+          const statusRect=document.querySelector(".editorStatus")?.getBoundingClientRect();
+          const viewportLockOk=!!editorRect&&!!statusRect&&editorRect.top>=-1&&editorRect.bottom<=window.innerHeight+1&&statusRect.bottom<=window.innerHeight+1&&document.documentElement.scrollHeight<=window.innerHeight+1;
           const resultsPanel=document.querySelector(".editorFloating");
           const compactOverlayArbitrationInitial=!compactOverlay||getComputedStyle(resultsPanel).visibility==="hidden";
           const rect=pane.getBoundingClientRect();
@@ -543,7 +546,7 @@ function App(){
               alwaysPresentControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`))&&
               (!sidebarCurrentlyOpen||sidebarControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`)));
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,viewportLockOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,exportEscapeOk,

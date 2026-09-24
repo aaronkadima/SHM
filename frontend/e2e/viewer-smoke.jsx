@@ -269,7 +269,7 @@ function App(){
             collapseDuringBusy?.click();
             await sleep(60);
             const busyTab=document.querySelector(".editorResultsTab");
-            const busyCollapsedTabOk=prefBeforeBusy.resultPanelOpen===false&&!!busyTab&&busyTab.classList.contains("busy")&&busyTab.textContent.replace(/\s+/g," ").trim().includes("Resultados 3/34")&&!busyTab.textContent.includes("CDM-1")&&busyTab.getAttribute("aria-label")==="Reabrir resultados · análise em andamento";
+            const busyCollapsedTabOk=prefBeforeBusy.resultPanelOpen===false&&!!busyTab&&busyTab.classList.contains("busy")&&busyTab.querySelector("span")?.textContent.trim()==="Resultados"&&busyTab.querySelector("strong")?.textContent.trim()==="3/34"&&!busyTab.textContent.includes("CDM-1")&&busyTab.getAttribute("aria-label")==="Reabrir resultados · análise em andamento"&&!!busyTab.querySelector("i>b");
             setBusy(false);
             setRunProgress(null);
             setAnalysisRes(fakeResult);

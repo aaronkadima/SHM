@@ -11,7 +11,7 @@ const fakeResult={
   results:[{
     engine_id:"cdm_1",name:"CDM-1",status:"ok",latency_ms:12,detections:[],
     overlay_png_base64:transparentPng,
-    metrics:{overlay_semantics:"transparent_layers",layers:[{id:"cracks",name:"Fissuras",color:"#e64b4b",count:1,overlay_png_base64:transparentPng}],summary:{total_objects:1,crack_count:1,crack_length_total_px:12,spalling_area_px2:0},runtime:"browser-smoke"}
+    metrics:{overlay_semantics:"transparent_layers",layers:[{id:"cracks",name:"Fissuras",color:"#e64b4b",count:1,overlay_png_base64:transparentPng},{id:"corrosion_rust",name:"Corrosão",color:"#b66a2a",count:1,overlay_png_base64:transparentPng}],summary:{total_objects:2,crack_count:1,crack_length_total_px:12,spalling_area_px2:0},runtime:"browser-smoke"}
   }]
 };
 
@@ -40,7 +40,13 @@ function App(){
             const layerHidden=document.querySelectorAll(".pathologyOverlay").length===0;
             showAll?.click();
             await sleep(40);
-            const layerRestored=document.querySelectorAll(".pathologyOverlay").length===1;
+            const layerRestored=document.querySelectorAll(".pathologyOverlay").length===2;
+            const solo=[...document.querySelectorAll(".pathologyLayer .layerSolo")][0];
+            solo?.click();
+            await sleep(40);
+            const layerSoloOk=document.querySelectorAll(".pathologyOverlay").length===1;
+            showAll?.click();
+            await sleep(40);
             const zoomPlus=[...document.querySelectorAll("button")].find(b=>b.getAttribute("aria-label")==="Ampliar zoom");
             zoomPlus?.click();
             await sleep(40);
@@ -66,8 +72,8 @@ function App(){
             const originalImages=document.querySelectorAll(".editorBaseImage").length;
             const originalStacks=document.querySelectorAll(".editorOverlayStack").length;
             const zoomAfterOriginal=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            if(overlayGeometryOk&&layerBefore===1&&layerHidden&&layerRestored&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 layers=toggle fit=100%");
+            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 layers=toggle+solo fit=100%");
               return;
             }
           }

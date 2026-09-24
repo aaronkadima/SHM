@@ -3,6 +3,7 @@ export const VIEWER_PREFS_KEY="shm.viewer.preferences.v1";
 export const DEFAULT_VIEWER_PREFERENCES={
   opacity:0.75,
   layersOpen:true,
+  layersWidth:360,
   comparison:"overlay",
   wipePosition:50,
   pathologyOrder:[],
@@ -18,6 +19,7 @@ const VALID_COMPARISONS=new Set(["original","overlay","wipe","side"]);
 export function normalizeViewerPreferences(value={}){
   const opacity=Number(value?.opacity);
   const wipePosition=Number(value?.wipePosition);
+  const layersWidth=Number(value?.layersWidth);
   const rawLayerOpacity=value?.pathologyOpacity&&typeof value.pathologyOpacity==="object"&&!Array.isArray(value.pathologyOpacity)?value.pathologyOpacity:{};
   const rawPanelPosition=value?.resultPanelPosition&&typeof value.resultPanelPosition==="object"?value.resultPanelPosition:{};
   const rawPanelSize=value?.resultPanelSize&&typeof value.resultPanelSize==="object"?value.resultPanelSize:{};
@@ -31,6 +33,7 @@ export function normalizeViewerPreferences(value={}){
   return {
     opacity:Number.isFinite(opacity)?Math.min(1,Math.max(0,opacity)):DEFAULT_VIEWER_PREFERENCES.opacity,
     layersOpen:typeof value?.layersOpen==="boolean"?value.layersOpen:DEFAULT_VIEWER_PREFERENCES.layersOpen,
+    layersWidth:Number.isFinite(layersWidth)?Math.min(600,Math.max(340,layersWidth)):DEFAULT_VIEWER_PREFERENCES.layersWidth,
     comparison:VALID_COMPARISONS.has(value?.comparison)?value.comparison:DEFAULT_VIEWER_PREFERENCES.comparison,
     wipePosition:Number.isFinite(wipePosition)?Math.min(95,Math.max(5,wipePosition)):DEFAULT_VIEWER_PREFERENCES.wipePosition,
     pathologyOrder:Array.isArray(value?.pathologyOrder)?[...new Set(value.pathologyOrder.filter(x=>typeof x==="string"&&x.trim()))]:[],

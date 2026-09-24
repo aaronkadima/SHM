@@ -14,7 +14,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
   const [openInfo,setOpenInfo]=useState(null);
   const [syncState,setSyncState]=useState({});
   const selectedStatus="Motores selecionados: "+selected.length;
-  const repositoryRef=appInfo?.channel==="development"?"feat/cdm-1":"main";
+  const repositoryRef=appInfo?.channel==="development"?"dev":"main";
   function exportEngineCode(engine){
     const pkg=engineCodePackage(engine);
     if(!pkg)return;

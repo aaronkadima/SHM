@@ -387,9 +387,6 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     ||(busy?((progress?.current_engine||"Processando análise")+" · "+(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length))):"")
     ||statusNotice
     ||(kind==="3d"?"Arquivo 3D reconhecido · análise 2D indisponível":"Pronto");
-  const selectedEnginesStatus=selectedEngineLabels.length
-    ?"Motores selecionados: "+selectedEngineLabels.map(engine=>engine.name).join(", ")
-    :"Nenhum motor selecionado";
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><span className="editorMenus"><span>Arquivo</span><span>Editar</span><span>Visualizar</span><span>Análise</span></span></div>
@@ -404,7 +401,19 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
       </div>
     </div>
     <div className="editorBody">
-      <div className="editorTools" aria-label="Ferramentas"><button title="Mostrar ou ocultar camadas" onClick={()=>setLayersOpen(v=>{const next=!v;showStatusNotice(next?"Camadas abertas":"Camadas recolhidas",900);return next})}><Layers3/></button><button title="Ampliar" onClick={()=>changeZoom(.25)}><Plus/></button><button title="Reduzir" onClick={()=>changeZoom(-.25)}><Minus/></button><button title="Ajustar à tela" aria-label="Ajustar à tela" onClick={fitView}><Maximize2/></button><button title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button></div>
+      <div className="editorTools" aria-label="Ferramentas">
+        <div className="editorToolButtons">
+          <button title="Mostrar ou ocultar camadas" onClick={()=>setLayersOpen(v=>{const next=!v;showStatusNotice(next?"Camadas abertas":"Camadas recolhidas",900);return next})}><Layers3/></button>
+          <button title="Ampliar" onClick={()=>changeZoom(.25)}><Plus/></button>
+          <button title="Reduzir" onClick={()=>changeZoom(-.25)}><Minus/></button>
+          <button title="Ajustar à tela" aria-label="Ajustar à tela" onClick={fitView}><Maximize2/></button>
+          <button title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button>
+        </div>
+        <div className="editorToolEngines" aria-label="Motores ativos" title={selectedEngineLabels.map(engine=>engine.name).join(", ")||"Nenhum motor selecionado"}>
+          <small>MOTORES</small>
+          {selectedEngineLabels.length?selectedEngineLabels.map(engine=><span key={engine.id}>{engine.name}</span>):<span>—</span>}
+        </div>
+      </div>
       {layersOpen&&<><aside className="editorLayers" style={{width:layersWidth}}><div className="editorPanelTitle"><b>Camadas</b><button title="Recolher camadas" onClick={()=>setLayersOpen(false)}><ChevronLeft size={17}/></button></div>
         <div className="layerRow"><span>◉</span> Arquivo atual · t1</div>
         {referenceFile&&<div className="layerRow referenceLayer"><span>○</span><span>Referência · t0 <small>{referenceFile.name}</small>{linkedReferenceCompatibility&&<em className={"referenceCompatibility "+linkedReferenceCompatibility.status} title={linkedReferenceCompatibility.refLabel}>{linkedReferenceCompatibility.text}</em>}</span><button className="layerClear" disabled={busy} title="Remover referência t0" onClick={()=>onReferenceFile(null)}><X size={13}/></button></div>}
@@ -475,7 +484,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         {!resultOpen&&results.length>0&&<button className="editorResultsTab" onClick={()=>setResultOpen(true)}>Resultados · {results.length}</button>}
       </div>
     </div>
-    <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?"transient":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusEngines" title={selectedEnginesStatus}>{selectedEnginesStatus}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}</span></div>
+    <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?"transient":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}</span></div>
     {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera"><header><b>Modo câmera</b><button title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={()=>setCameraReady(true)}/><footer><span>{cameraError?"Verifique a permissão da câmera":cameraReady?"Prévia ao vivo · capture um quadro para análise 2D":"Aguardando câmera…"}</span><button onClick={capture} disabled={!!cameraError||!cameraReady}><Camera size={16}/> Capturar imagem</button></footer></div></div>}
   </section>
 }

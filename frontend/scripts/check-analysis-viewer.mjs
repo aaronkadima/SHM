@@ -25,6 +25,10 @@ check(workspace.includes('function setSelectedPathologyOpacity(value)'),"viewer 
 check(workspace.includes('opacity:opacity*Number(pathologyOpacity[layer.id]??1)'),"pathology layer opacity must multiply the global opacity");
 check(workspace.includes('className="layerInspector"'),"viewer must expose a compact selected-layer inspector");
 check(workspace.includes('Opacidade da camada'),"selected-layer inspector must expose layer opacity");
+check(workspace.includes('function toggleSelectedPathologyLock()'),"viewer must support persistent pathology locks");
+check(workspace.includes('if(pathologyLocked.has(id))return'),"locked layers must reject direct z-order changes");
+check(workspace.includes('disabled={selectedPathologyLocked}'),"locked layers must disable opacity editing");
+check(workspace.includes('Desbloquear'),"layer inspector must expose lock state");
 check(workspace.includes('function resetViewerPreferences()'),"viewer must expose a safe visualization reset");
 check(workspace.includes('Restaurar visualização'),"viewer must surface the visualization reset action");
 check(workspace.includes('[...orderedPathologyLayers].reverse()'),"top layer in the panel must render on top of the overlay stack");

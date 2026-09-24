@@ -5,6 +5,14 @@ import{detectAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./
 const IMAGE_ACCEPT=SUPPORTED_IMAGE_EXTENSIONS.map(ext=>"."+ext).join(",");
 const ASSET_ACCEPT=[...SUPPORTED_IMAGE_EXTENSIONS,...SUPPORTED_MODEL_EXTENSIONS].map(ext=>"."+ext).join(",");
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
+function formatFileSize(bytes){
+  const value=Number(bytes);
+  if(!Number.isFinite(value)||value<0)return"—";
+  if(value<1024)return value.toFixed(0)+" B";
+  if(value<1024**2)return (value/1024).toFixed(1)+" KB";
+  if(value<1024**3)return (value/1024**2).toFixed(1)+" MB";
+  return (value/1024**3).toFixed(2)+" GB";
+}
 
 const TEMPORAL_ISSUE_LABELS={
   registration_unreliable:"registro geométrico não confiável",
@@ -35,6 +43,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState(""),[statusNotice,setStatusNotice]=useState(""),[statusNoticeTone,setStatusNoticeTone]=useState("info"),[fileDragActive,setFileDragActive]=useState(false);
   const [imageSize,setImageSize]=useState({width:1,height:1});
   const imageDecoded=imageSize.width>1&&imageSize.height>1;
+  const imageMegapixels=imageDecoded?(imageSize.width*imageSize.height/1e6):null;
   const [viewportSize,setViewportSize]=useState({width:0,height:0});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0);
   const compactLayout=useRef(initialCompactLayout),desktopLayersPreference=useRef(initialViewerPrefs.layersOpen);
@@ -970,6 +979,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         {temporalLayers.length>0&&<details className={"temporalLayerGroup "+(temporalQuality?.status||"")}><summary><span>Mudança t0→t1</span><small>{temporalQuality?.status==="fail"?"não validada":temporalQuality?.status==="warning"?"ressalvas":temporalQuality?.status==="pass"?temporalVisibleCount+"/"+temporalLayers.length+" visíveis":temporalLayers.length+" camadas"}</small></summary><div className="layerGroupActions"><button type="button" onClick={()=>setTemporalGroupVisible(true)}>Mostrar todas</button><button type="button" onClick={()=>setTemporalGroupVisible(false)}>Ocultar todas</button></div>{temporalLayers.map(layer=><label className="layerRow pathologyLayer temporalLayer" key={"temporal-"+layer.id}><input type="checkbox" checked={temporalLayerIsVisible(layer.id)} onChange={e=>setVisible(v=>({...v,["cdm_1:temporal:"+layer.id]:e.target.checked}))}/><span className="pathologySwatch" style={{background:layer.color}}/>{layer.name} <small>({layer.count})</small></label>)}</details>}
         <div className="editorPanelTitle"><b>Propriedades</b></div>
         <p>Tipo reconhecido: <b>{kind==="2d"?"Imagem 2D":kind==="3d"?"Modelo 3D":kind==="unknown"?"Não suportado":"Indefinido"}</b></p>
+        {file&&<div className="editorAssetMeta" aria-label="Metadados do arquivo importado"><div><span>Arquivo</span><b title={file.name}>{file.name}</b></div><div><span>Tamanho</span><b>{formatFileSize(file.size)}</b></div>{kind==="2d"&&imageDecoded&&<><div><span>Resolução</span><b>{imageSize.width} × {imageSize.height} px</b></div><div><span>Imagem</span><b>{imageMegapixels.toFixed(2)} MP</b></div></>}</div>}
         {kind==="unknown"&&<p className="editorUnsupportedProperty">Selecione outro arquivo usando um formato 2D ou 3D suportado.</p>}
         {pathologyGroupOpen&&selectedPathology&&<div className={"layerInspector "+(selectedPathologyLocked?"locked":"")}><div className="layerInspectorHeader"><span className="pathologySwatch" style={{background:selectedPathology.color}}/><b>{selectedPathology.name}</b><small>{selectedPathology.count} achado(s) · {selectedPathologyIndex===0?"topo":selectedPathologyIndex===orderedPathologyLayers.length-1?"fundo":"posição "+(selectedPathologyIndex+1)}</small></div><label><span>Opacidade da camada</span><b>{Math.round(selectedPathologyOpacity*100)}%</b><input aria-label={"Opacidade de "+selectedPathology.name} type="range" min="0" max="1" step=".05" value={selectedPathologyOpacity} disabled={selectedPathologyLocked} onChange={e=>setSelectedPathologyOpacity(e.target.value)}/></label><div className="layerInspectorActions"><button type="button" className="layerOpacityReset" disabled={selectedPathologyLocked} onClick={()=>setSelectedPathologyOpacity(1)}>Restaurar 100%</button><button type="button" className="layerLockToggle" title={selectedPathologyLocked?"Desbloquear camada":"Bloquear camada"} onClick={toggleSelectedPathologyLock}>{selectedPathologyLocked?<><Unlock size={10}/> Desbloquear</>:<><Lock size={10}/> Bloquear</>}</button></div></div>}
         <p>Sobreposição global: {Math.round(opacity*100)}%</p><input aria-label="Opacidade da sobreposição" type="range" min="0" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/><button className="viewerReset" type="button" onClick={resetViewerPreferences}>Restaurar visualização</button>

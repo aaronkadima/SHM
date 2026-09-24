@@ -615,6 +615,7 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     metrics:{
       implementation:"CDM 2.8.5 browser parity",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,
       performance_ms:{decode:decodeMs,core:coreMs,render:renderMs,total:totalMs},
+      overlay_semantics:"transparent_layers",
       geometry_units:"processed_pixels",processed_width:w,processed_height:h,mm_per_px:cfg.mmPerPx||null,
       layers,summary:core.summary,records,temporal,protocol:core.protocol
     },

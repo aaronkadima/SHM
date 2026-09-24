@@ -115,6 +115,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const temporalQuality=temporal?.quality||null;
   const temporalAlignedPreview=temporal?.aligned_reference_png_base64?"data:image/png;base64,"+temporal.aligned_reference_png_base64:null;
   const temporalLayers=temporal?.enabled?temporal.layers||[]:[];
+  const temporalLayerIsVisible=id=>temporalQuality?.status==="fail"?visible["cdm_1:temporal:"+id]===true:visible["cdm_1:temporal:"+id]!==false;
   const pathologyVisibleCount=orderedPathologyLayers.filter(layer=>visible["cdm_1:"+layer.id]!==false).length;
   const temporalVisibleCount=temporalLayers.filter(layer=>temporalLayerIsVisible(layer.id)).length;
   const temporalStats=temporal?.stats||{};
@@ -129,7 +130,6 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     ...(temporalQuality?.issues||[]).map(x=>TEMPORAL_ISSUE_LABELS[x]||x),
     ...(temporalQuality?.warnings||[]).map(x=>TEMPORAL_WARNING_LABELS[x]||x)
   ];
-  const temporalLayerIsVisible=id=>temporalQuality?.status==="fail"?visible["cdm_1:temporal:"+id]===true:visible["cdm_1:temporal:"+id]!==false;
   const temporalQualityLabel=temporalQuality?.status==="fail"
     ?"NÃO VALIDADA para quantificação temporal"
     :temporalQuality?.status==="warning"

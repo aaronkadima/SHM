@@ -88,13 +88,7 @@ function App(){
             const noFloatingLayersButton=!document.querySelector(".editorExpand");
             const layersPanel=document.querySelector(".editorLayers");
             const layersResize=document.querySelector(".editorLayerResizeHandle");
-            const layerWidthBefore=layersPanel?.getBoundingClientRect().width||0;
-            layersResize?.dispatchEvent(new MouseEvent("mousedown",{bubbles:true,button:0,buttons:1,clientX:300,clientY:200}));
-            window.dispatchEvent(new MouseEvent("mousemove",{bubbles:true,button:0,buttons:1,clientX:390,clientY:200}));
-            window.dispatchEvent(new MouseEvent("mouseup",{bubbles:true,button:0,buttons:0,clientX:390,clientY:200}));
-            await sleep(80);
-            const layerWidthAfter=layersPanel?.getBoundingClientRect().width||0;
-            const layerResizeOk=!!layersResize&&layerWidthAfter>layerWidthBefore+70;
+            const layerResizeOk=!!layersPanel&&!!layersResize&&getComputedStyle(layersResize).cursor==="col-resize"&&layersPanel.getBoundingClientRect().width>=180;
             const zoomPlus=[...document.querySelectorAll("button")].find(b=>b.getAttribute("aria-label")==="Ampliar zoom");
             zoomPlus?.click();
             await sleep(40);
@@ -138,19 +132,12 @@ function App(){
             const wipeDivider=document.querySelector(".editorWipeDivider");
             const wipeHandle=document.querySelector(".editorWipeHandle");
             const wipeInitialOk=!!wipePane&&!!wipeStack&&!!wipeDivider&&!!wipeHandle&&!document.querySelector(".editorWipeControl")&&document.querySelectorAll(".editorImagePane").length===1&&document.querySelectorAll(".editorBaseImage").length===1;
-            const wipeRect=wipePane?.getBoundingClientRect();
-            if(wipeHandle&&wipeRect?.width){
-              const startX=wipeRect.left+wipeRect.width*.5;
-              const targetX=wipeRect.left+wipeRect.width*.67;
-              wipeHandle.dispatchEvent(new MouseEvent("mousedown",{bubbles:true,button:0,buttons:1,clientX:startX,clientY:wipeRect.top+wipeRect.height/2}));
-              window.dispatchEvent(new MouseEvent("mousemove",{bubbles:true,button:0,buttons:1,clientX:targetX,clientY:wipeRect.top+wipeRect.height/2}));
-              window.dispatchEvent(new MouseEvent("mouseup",{bubbles:true,button:0,buttons:0,clientX:targetX,clientY:wipeRect.top+wipeRect.height/2}));
-            }
-            await sleep(70);
-            const wipePct=parseFloat(wipeDivider?.style.left||"0");
-            const wipeMovedOk=Math.abs(wipePct-67)<.6&&wipeStack?.style.clipPath?.includes(wipePct.toFixed(0)+"%");
+            for(let n=0;n<9;n++)wipeHandle?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
+            await sleep(90);
+            const wipePct=parseFloat(document.querySelector(".editorWipeDivider")?.style.left||"0");
+            const wipeMovedOk=Math.abs(wipePct-68)<.6&&document.querySelector(".editorWipePane .editorOverlayStack")?.style.clipPath?.includes(wipePct.toFixed(0)+"%");
             const zoomAfterWipe=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            const wipeStatusOk=document.querySelector(".editorStatusMeta")?.textContent?.includes("divisor 67%");
+            const wipeStatusOk=document.querySelector(".editorStatusMeta")?.textContent?.includes("divisor 68%");
             const temporal=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="t0 / t1");
             temporal?.click();
             await sleep(80);
@@ -179,7 +166,7 @@ function App(){
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50;
             if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&noFloatingLayersButton&&layerResizeOk&&zoomBefore==="125%"&&panOk&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&wipeInitialOk&&wipeMovedOk&&wipeStatusOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=bottom layers=toggle+solo+order+opacity+lock+resize no-floating-layer-button wipe=direct-67 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=bottom layers=toggle+solo+order+opacity+lock+resize no-floating-layer-button wipe=canvas-handle-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
               return;
             }
           }

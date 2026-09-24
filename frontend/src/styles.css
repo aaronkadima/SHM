@@ -294,6 +294,7 @@ button.dangerAction,.historyActions button.dangerAction{border-color:rgba(255,10
 .editorShell .appMain{padding:0!important;max-width:none!important;margin:0}
 .appShell.settingsShell{height:100vh;min-height:0;overflow:hidden}
 .settingsShell .appMain{height:100%;min-height:0;overflow:hidden}
+body:has(.settingsShell){overflow:hidden}.settingsShell,.settingsShell .appMain{overscroll-behavior:none}
 .appMain:has(.analysisEditor){padding:0!important;max-width:none!important}
 .appMain:has(.analysisEditor)>.topbar{display:none}
 .analysisEditor{height:calc(100vh - 2px);min-height:680px;display:flex;flex-direction:column;background:#e5ebee;color:#263e4b;font:13px Inter,system-ui,sans-serif}

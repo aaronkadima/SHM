@@ -240,7 +240,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     applyCanvasZoom(next);
     showStatusNotice("Zoom · "+Math.round(next*100)+"%",1000);
   }
-  function canvasPanGeometry(zoomValue=zoom){
+  function canvasPanGeometry(zoomValue=zoomRef.current){
     return{
       viewportWidth:surface.current?.clientWidth||viewportSize.width,
       viewportHeight:surface.current?.clientHeight||viewportSize.height,
@@ -250,7 +250,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
       minVisible:56
     };
   }
-  function clampCanvasPosition(next,zoomValue=zoom){
+  function clampCanvasPosition(next,zoomValue=zoomRef.current){
     return clampCanvasPan(next,canvasPanGeometry(zoomValue));
   }
   function clampResultPosition(next){

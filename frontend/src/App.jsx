@@ -340,7 +340,8 @@ export default function App(){
   function pick(f){
     historyOpenSeq.current++;
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
-    if(prev)URL.revokeObjectURL(prev);setPrev(f?URL.createObjectURL(f):null);
+    if(prev)URL.revokeObjectURL(prev);
+    setPrev(f&&detectAsset(f)==="2d"?URL.createObjectURL(f):null);
   }
   async function pickReference(f){
     historyOpenSeq.current++;

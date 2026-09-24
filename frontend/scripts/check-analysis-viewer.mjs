@@ -14,6 +14,8 @@ check(!workspace.includes('className="editorExpand"'),"canvas must not duplicate
 check(!workspace.includes('editorCanvasStatus'),"image load status must not float over the canvas");
 check(workspace.includes('className="editorStatusMessage"'),"image and event status must be rendered in the bottom status bar");
 check(workspace.includes('Imagem carregada · ${file.name}'),"bottom status bar must report the loaded image and dimensions");
+check(workspace.includes('showStatusNotice(`Imagem carregada · ${file.name}')&&workspace.includes('},2800);'),"loaded-image status must be transient instead of permanently occupying the bar");
+check(workspace.includes('Motores selecionados: ')&&workspace.includes('className="editorStatusEngines"'),"bottom status bar must persist the selected-engine information");
 check(workspace.includes('loadViewerPreferences'),"viewer must load safe visual preferences");
 check(workspace.includes('saveViewerPreferences'),"viewer must persist safe visual preferences");
 check(workspace.includes('const basePreview=localPreview||prev'),"viewer must prefer a fresh File-derived preview over parent preview URLs");
@@ -25,7 +27,7 @@ check(workspace.includes('aria-label="Ajustar à tela"'),"fit-to-screen control 
 check(workspace.includes('function canvasPanStart(e)')&&workspace.includes('e.button!==1')&&workspace.includes('setCanvasPan({x:e.clientX-canvasDrag.current.x,y:e.clientY-canvasDrag.current.y})'),"viewer must support middle-mouse canvas panning");
 check(workspace.includes('translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})'),"canvas transform must compose pan and zoom");
 check(workspace.includes('setCanvasPan({x:0,y:0});'),"fit/reset flows must be able to recenter the canvas");
-check(workspace.includes('function changeComparison(mode){setComparison(mode);if(mode!=="temporal")setPreferredComparison(mode);fitView()}'),"comparison mode changes must refit while keeping temporal mode non-persistent");
+check(workspace.includes('function changeComparison(mode){')&&workspace.includes('if(mode!=="temporal")setPreferredComparison(mode);')&&workspace.includes('showStatusNotice("Visualização · "'),"comparison mode changes must refit, preserve the non-temporal preference and surface transient status");
 check(workspace.includes('function beginLayersResize(e)')&&workspace.includes('setLayersWidth(Math.max(180,Math.min(520'),"layer panel must support horizontal width resizing");
 check(workspace.includes('className="editorLayerResizeHandle"'),"layer panel must expose a resize separator");
 check(workspace.includes('function setPathologyGroupVisible(next)'),"viewer must support group pathology visibility");
@@ -42,13 +44,17 @@ check(workspace.includes('Desbloquear'),"layer inspector must expose lock state"
 check(workspace.includes('function resetViewerPreferences()'),"viewer must expose a safe visualization reset");
 check(workspace.includes('Restaurar visualização'),"viewer must surface the visualization reset action");
 check(workspace.includes('[...orderedPathologyLayers].reverse()'),"top layer in the panel must render on top of the overlay stack");
-check(workspace.includes('>Original</button>'),"viewer must expose a dedicated Original comparison mode");
-check(workspace.includes('>Deslizar</button>'),"viewer must expose a swipe comparison mode");
+check(workspace.includes('aria-label="Original"')&&workspace.includes('<ImageIcon size={15}/>'),"viewer must expose Original as an icon control with hover label");
+check(workspace.includes('aria-label="Deslizar"')&&workspace.includes('<MoveHorizontal size={15}/>'),"viewer must expose swipe as an icon control with hover label");
 check(workspace.includes('function renderWipePane(src)'),"viewer must render the swipe comparison in a dedicated pane");
 check(workspace.includes('clipPath:`inset(0 0 0 ${wipePosition}%)`'),"swipe mode must clip only the overlay stack");
 check(workspace.includes('className="editorWipeHandle"')&&workspace.includes('aria-label="Arrastar divisor original e detecção"'),"swipe mode must expose a draggable on-canvas direction handle");
-check(workspace.includes('function beginWipeDrag(e)')&&workspace.includes('setWipePosition(Math.max(5,Math.min(95'),"swipe handle must update the divider directly from canvas drag");
+check(workspace.includes('wipeArrow left')&&workspace.includes('wipeArrow right')&&workspace.includes('markWipeDirection'),"swipe handle must expose independent directional-arrow states");
+check(workspace.includes('function beginWipeDrag(e)')&&workspace.includes('const startX=e.clientX;')&&workspace.includes('const startPosition=wipePosition;')&&workspace.includes('startPosition+deltaPx/rect.width*100')&&workspace.includes('setWipePosition(next)'),"swipe handle must stay anchored on press and move by relative drag delta");
 check(!workspace.includes('className="editorWipeControl"'),"swipe mode must not render a lower range control over the zoom control");
+check(workspace.includes('className="editorExportMenu editorExportUnified"')&&workspace.includes('aria-label="Exportar"'),"results must expose one icon-based unified export menu");
+check(workspace.includes('<button onClick={onExport}>JSON</button>')&&workspace.includes('<button onClick={onExportCsv}>CSV</button>')&&workspace.includes('SVG camadas')&&workspace.includes('CSV técnico')&&workspace.includes('COCO')&&workspace.includes('BIM JSON'),"unified export menu must combine comparison and CDM formats");
+check(!workspace.includes('className="editorCompare editorCdmExports"'),"legacy separate CDM export row must be removed");
 check(workspace.includes('const safeViewport={width:Math.max(480'),"viewer must protect against zero-size viewport collapse");
 check(workspace.includes('Math.max(160,safeImage.width*fit*panes)'),"viewer must keep a visible minimum display width");
 check(workspace.includes('Imagem carregada'),"viewer must expose decoded image dimensions");
@@ -65,9 +71,11 @@ check(styles.includes(".editorImage.editorSide>.editorImagePane{position:relativ
 check(styles.includes(".editorBaseImage{position:absolute;inset:0"),"base image must share overlay coordinates");
 check(styles.includes(".editorWipeDivider{position:absolute"),"swipe divider must be positioned inside the canvas");
 check(styles.includes(".editorWipeHandle{position:absolute")&&styles.includes("cursor:ew-resize"),"swipe divider handle must be directly draggable on the canvas");
+check(styles.includes(".wipeArrow.left.active")&&styles.includes(".wipeArrow.right.active"),"active swipe direction must have its own visual color state");
+check(styles.includes(".editorExportUnified{width:auto")&&styles.includes(".editorViewActions .editorIconButton"),"result view/export actions must use compact icon styling");
 check(!styles.includes(".editorWipeControl{"),"obsolete lower swipe control styling must be removed");
 check(styles.includes(".editorLayerResizeHandle{width:6px")&&styles.includes("cursor:col-resize"),"layer panel resize handle must have a horizontal-resize affordance");
-check(styles.includes(".editorStatusMessage{")&&styles.includes(".editorStatusMeta{"),"bottom bar must dedicate separate status and view metadata regions");
+check(styles.includes(".editorStatusMessage{")&&styles.includes(".editorStatusEngines{")&&styles.includes(".editorStatusMeta{"),"bottom bar must dedicate separate transient-status, selected-engine and view-metadata regions");
 check(styles.includes(".editorSide .compositePane{border-left:2px solid white}"),"side-by-side composite pane must remain visually separated");
 
 if(failures.length){

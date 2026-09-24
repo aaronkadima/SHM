@@ -12,9 +12,9 @@ check(workspace.includes('overlay_semantics')||workspace.includes('overlaySemant
 check(workspace.includes('className="editorBaseImage"'),"viewer panes must include an original base image");
 check(!workspace.includes('className="editorExpand"'),"canvas must not duplicate the layer-panel show control");
 check(!workspace.includes('editorCanvasStatus'),"image load status must not float over the canvas");
-check(workspace.includes('className="editorStatusMessage"'),"image and event status must be rendered in the bottom status bar");
+check(workspace.includes('editorStatusMessage')&&workspace.includes('title={statusMessage}>{statusMessage}</span>'),"image and event status must be rendered in the bottom status bar");
 check(workspace.includes('Imagem carregada · ${file.name}'),"bottom status bar must report the loaded image and dimensions");
-check(workspace.includes('showStatusNotice(`Imagem carregada · ${file.name}')&&workspace.includes('},2800);'),"loaded-image status must be transient instead of permanently occupying the bar");
+check(workspace.includes('showStatusNotice(`Imagem carregada · ${file.name}')&&workspace.includes('px`,2800);'),"loaded-image status must be transient instead of permanently occupying the bar");
 check(workspace.includes('Motores selecionados: ')&&workspace.includes('className="editorStatusEngines"'),"bottom status bar must persist the selected-engine information");
 check(workspace.includes('loadViewerPreferences'),"viewer must load safe visual preferences");
 check(workspace.includes('saveViewerPreferences'),"viewer must persist safe visual preferences");

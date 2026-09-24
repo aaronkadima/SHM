@@ -18,6 +18,9 @@ check(workspace.includes('reader.readAsDataURL(file)'),"viewer must use a persis
 check(workspace.includes('setComparison(preferredComparison)'),"new files must restore the persisted non-temporal comparison mode");
 check(workspace.includes('function fitView(){')&&workspace.includes('surface.current?.getBoundingClientRect()')&&workspace.includes('setViewportSize({width:rect.width,height:rect.height})')&&workspace.includes('setZoom(1);'),"viewer fit-to-screen must recalculate the real viewport and reset relative zoom");
 check(workspace.includes('aria-label="Ajustar à tela"'),"fit-to-screen control must be accessible and targetable by browser smoke");
+check(workspace.includes('function canvasPanStart(e)')&&workspace.includes('e.button!==1')&&workspace.includes('setCanvasPan({x:e.clientX-canvasDrag.current.x,y:e.clientY-canvasDrag.current.y})'),"viewer must support middle-mouse canvas panning");
+check(workspace.includes('translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})'),"canvas transform must compose pan and zoom");
+check(workspace.includes('setCanvasPan({x:0,y:0});'),"fit/reset flows must be able to recenter the canvas");
 check(workspace.includes('function changeComparison(mode){setComparison(mode);if(mode!=="temporal")setPreferredComparison(mode);fitView()}'),"comparison mode changes must refit while keeping temporal mode non-persistent");
 check(workspace.includes('function setPathologyGroupVisible(next)'),"viewer must support group pathology visibility");
 check(workspace.includes('function isolatePathologyLayer(id)'),"viewer must support single-pathology isolation");

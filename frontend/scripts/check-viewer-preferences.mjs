@@ -34,6 +34,9 @@ check(afterResize.x===0&&afterResize.y===10,"floating panel clamp must pull a re
 const normalized=normalizeViewerPreferences({opacity:1.5,layersOpen:false,comparison:"temporal",wipePosition:140,pathologyOrder:["cracks","corrosion_rust","cracks",42,""],pathologyOpacity:{cracks:1.4,corrosion_rust:.45,bad:"x","":.3},pathologyLocked:["cracks","cracks",42,""]});
 check(normalized.opacity===1,"opacity must clamp to 1");
 check(normalized.layersOpen===false,"layersOpen false must persist");
+check(normalized.layersWidth===360,"missing Layers width must use 360px default");
+check(normalizeViewerPreferences({layersWidth:120}).layersWidth===340,"Layers width must clamp to 340px minimum");
+check(normalizeViewerPreferences({layersWidth:900}).layersWidth===600,"Layers width must clamp to 600px maximum");
 check(normalized.comparison==="overlay","temporal mode must not persist as global preference");
 check(normalized.wipePosition===95,"wipe position must clamp to 95");
 check(normalized.pathologyOrder.join(",")==="cracks,corrosion_rust","pathology order must keep unique non-empty string ids");
@@ -61,10 +64,11 @@ const storage={
   setItem(key,value){if(key===VIEWER_PREFS_KEY)this.value=value}
 };
 
-check(saveViewerPreferences({opacity:0.55,layersOpen:false,comparison:"wipe",wipePosition:62,pathologyOrder:["corrosion_rust","cracks"],pathologyOpacity:{corrosion_rust:.35,cracks:.8},pathologyLocked:["cracks"],resultPanelOpen:false,resultPanelPosition:{x:-48,y:73},resultPanelSize:{width:512,height:420}},storage)===true,"saveViewerPreferences must succeed with valid storage");
+check(saveViewerPreferences({opacity:0.55,layersOpen:false,layersWidth:468,comparison:"wipe",wipePosition:62,pathologyOrder:["corrosion_rust","cracks"],pathologyOpacity:{corrosion_rust:.35,cracks:.8},pathologyLocked:["cracks"],resultPanelOpen:false,resultPanelPosition:{x:-48,y:73},resultPanelSize:{width:512,height:420}},storage)===true,"saveViewerPreferences must succeed with valid storage");
 const loaded=loadViewerPreferences(storage);
 check(loaded.opacity===0.55,"saved opacity must reload");
 check(loaded.layersOpen===false,"saved layers state must reload");
+check(loaded.layersWidth===468,"saved Layers width must reload");
 check(loaded.comparison==="wipe","saved comparison mode must reload");
 check(loaded.wipePosition===62,"saved wipe position must reload");
 check(loaded.pathologyOrder.join(",")==="corrosion_rust,cracks","saved pathology order must reload");

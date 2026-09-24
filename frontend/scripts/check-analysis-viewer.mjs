@@ -33,6 +33,10 @@ check(workspace.includes('function resetViewerPreferences()'),"viewer must expos
 check(workspace.includes('Restaurar visualização'),"viewer must surface the visualization reset action");
 check(workspace.includes('[...orderedPathologyLayers].reverse()'),"top layer in the panel must render on top of the overlay stack");
 check(workspace.includes('>Original</button>'),"viewer must expose a dedicated Original comparison mode");
+check(workspace.includes('>Deslizar</button>'),"viewer must expose a swipe comparison mode");
+check(workspace.includes('function renderWipePane(src)'),"viewer must render the swipe comparison in a dedicated pane");
+check(workspace.includes('clipPath:`inset(0 0 0 ${wipePosition}%)`'),"swipe mode must clip only the overlay stack");
+check(workspace.includes('aria-label="Divisor original e detecção"'),"swipe mode must expose an accessible divider control");
 check(workspace.includes('const safeViewport={width:Math.max(480'),"viewer must protect against zero-size viewport collapse");
 check(workspace.includes('Math.max(160,safeImage.width*fit*panes)'),"viewer must keep a visible minimum display width");
 check(workspace.includes('Imagem carregada'),"viewer must expose decoded image dimensions");
@@ -47,6 +51,8 @@ check(!styles.includes(".editorImagePane{position:relative}"),"global relative p
 check(styles.includes(".editorImage>.editorImagePane{position:absolute;inset:0;width:100%;height:100%}"),"overlay pane must fill the entire viewer");
 check(styles.includes(".editorImage.editorSide>.editorImagePane{position:relative;inset:auto;width:50%;height:100%}"),"side-by-side panes must split the viewer without affecting overlay mode");
 check(styles.includes(".editorBaseImage{position:absolute;inset:0"),"base image must share overlay coordinates");
+check(styles.includes(".editorWipeDivider{position:absolute"),"swipe divider must be positioned inside the canvas");
+check(styles.includes(".editorWipeControl{position:absolute"),"swipe position control must remain attached to the canvas");
 check(styles.includes(".editorSide .compositePane{border-left:2px solid white}"),"side-by-side composite pane must remain visually separated");
 
 if(failures.length){

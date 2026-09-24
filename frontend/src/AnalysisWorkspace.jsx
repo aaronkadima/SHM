@@ -354,6 +354,8 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         gesture.startZoom=zoom;
         gesture.startMidpoint={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
         gesture.startPan={...canvasPan};
+        gesture.lastZoom=zoom;
+        gesture.lastPan={...canvasPan};
         for(const id of gesture.points.keys())try{e.currentTarget.setPointerCapture?.(id)}catch{}
       }
       return;
@@ -374,11 +376,14 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         const distance=Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y)||1;
         const midpoint={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
         const nextZoom=Math.max(1,Math.min(4,gesture.startZoom*distance/gesture.startDistance));
-        setZoom(nextZoom);
-        setCanvasPan({
+        const nextPan={
           x:gesture.startPan.x+midpoint.x-gesture.startMidpoint.x,
           y:gesture.startPan.y+midpoint.y-gesture.startMidpoint.y
-        });
+        };
+        gesture.lastZoom=nextZoom;
+        gesture.lastPan=nextPan;
+        setZoom(nextZoom);
+        setCanvasPan(nextPan);
       }else if(gesture.mode==="pan"&&gesture.points.size===1&&zoom>1){
         e.preventDefault();
         setCanvasPan({
@@ -397,10 +402,30 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     if(e.pointerType==="touch"){
       const gesture=canvasTouch.current;
       if(!gesture.points.has(e.pointerId))return;
+      if(e.type==="pointercancel"){
+        const ids=[...gesture.points.keys()];
+        gesture.points.clear();
+        gesture.mode=null;
+        gesture.startPoint=null;
+        gesture.startPan=null;
+        for(const id of ids)try{e?.currentTarget?.releasePointerCapture?.(id)}catch{}
+        return;
+      }
       gesture.points.delete(e.pointerId);
       try{e?.currentTarget?.releasePointerCapture?.(e.pointerId)}catch{}
-      if(gesture.points.size===0)gesture.mode=null;
-      else if(gesture.mode==="pinch")gesture.mode="wait";
+      if(gesture.points.size===0){
+        gesture.mode=null;
+        gesture.startPoint=null;
+        gesture.startPan=null;
+      }else if(gesture.mode==="pinch"){
+        const [remainingId,remainingPoint]=gesture.points.entries().next().value;
+        if((gesture.lastZoom??zoom)>1){
+          gesture.mode="pan";
+          gesture.startPoint={...remainingPoint};
+          gesture.startPan={...(gesture.lastPan||canvasPan)};
+          try{e?.currentTarget?.setPointerCapture?.(remainingId)}catch{}
+        }else gesture.mode="idle";
+      }
       return;
     }
     const dragState=canvasDrag.current;

@@ -115,6 +115,7 @@ export default function App(){
   const[historyBusy,setHistoryBusy]=useState(false);
   const[historyErr,setHistoryErr]=useState("");
   const[storageStatus,setStorageStatus]=useState(null);
+  const[deploymentCheck,setDeploymentCheck]=useState(()=>APP_CHANNEL==="development"?{status:BUILD_SHA==="local"?"local":"checking",manifest:null}:{status:"production",manifest:null});
   const activeRun=useRef(null),runSeq=useRef(0);
   const[activeView,setActiveView]=useState(()=>{
     const v=window.location.hash.replace(/^#\//,"");
@@ -128,6 +129,23 @@ export default function App(){
   useEffect(()=>{localStorage.setItem("shmInspectionMetaDraft",JSON.stringify(inspectionMeta))},[inspectionMeta]);
   useEffect(()=>{localStorage.setItem("shmCdm1Options",JSON.stringify(cdmOptions))},[cdmOptions]);
   useEffect(()=>{refreshHistory()},[]);
+  useEffect(()=>{
+    if(APP_CHANNEL!=="development"||BUILD_SHA==="local")return;
+    let cancelled=false;
+    const base=import.meta.env.BASE_URL||"/";
+    fetch(base+"build.json",{cache:"no-store",headers:{Accept:"application/json"}})
+      .then(response=>{if(!response.ok)throw new Error("HTTP "+response.status);return response.json()})
+      .then(manifest=>{
+        if(cancelled)return;
+        const shaOk=String(manifest?.sha||"")===String(BUILD_SHA||"");
+        const channelOk=manifest?.channel==="development";
+        const branchOk=manifest?.branch==="feat/cdm-1";
+        const catalogOk=String(manifest?.catalogVersion||"")===String(CATALOG_VERSION||"");
+        setDeploymentCheck({status:shaOk&&channelOk&&branchOk&&catalogOk?"synced":"divergent",manifest});
+      })
+      .catch(error=>{if(!cancelled)setDeploymentCheck({status:"unavailable",manifest:null,error:String(error)})});
+    return()=>{cancelled=true};
+  },[]);
   useEffect(()=>{
     const sync=()=>{
       const v=window.location.hash.replace(/^#\//,"");
@@ -429,7 +447,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace appInfo={APP_INFO} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
+    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
     {activeView==="engines"&&<EnginesView appInfo={APP_INFO} engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 

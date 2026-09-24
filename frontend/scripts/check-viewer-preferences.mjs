@@ -3,6 +3,7 @@ import {
   VIEWER_PREFS_KEY,
   clampFloatingPanelPosition,
   clampLayersPanelWidth,
+  clampResultPanelSize,
   loadViewerPreferences,
   normalizeViewerPreferences,
   saveViewerPreferences
@@ -41,6 +42,14 @@ check(normalizeViewerPreferences({layersWidth:900}).layersWidth===600,"Layers wi
 check(clampLayersPanelWidth(359.6)===360,"Layers width helper must round finite values");
 check(clampLayersPanelWidth(120)===340&&clampLayersPanelWidth(900)===600,"Layers width helper must enforce 340–600px");
 check(clampLayersPanelWidth("bad")===360,"Layers width helper must fall back to default for invalid input");
+const resultSize=clampResultPanelSize({width:520,height:410},{minWidth:340,minHeight:65,maxWidth:600,maxHeight:500});
+check(resultSize.width===520&&resultSize.height===410,"Results size helper must preserve values within bounds");
+const resultSizeMin=clampResultPanelSize({width:100,height:20},{minWidth:340,minHeight:65,maxWidth:600,maxHeight:500});
+check(resultSizeMin.width===340&&resultSizeMin.height===65,"Results size helper must enforce minimum dimensions");
+const resultSizeMax=clampResultPanelSize({width:900,height:900},{minWidth:340,minHeight:65,maxWidth:560,maxHeight:430});
+check(resultSizeMax.width===560&&resultSizeMax.height===430,"Results size helper must enforce viewport maximum dimensions");
+const resultSizeNarrow=clampResultPanelSize({width:900,height:900},{minWidth:340,minHeight:65,maxWidth:300,maxHeight:50});
+check(resultSizeNarrow.width===300&&resultSizeNarrow.height===50,"Results size helper must degrade safely when available space is below the preferred minimum");
 check(normalized.comparison==="overlay","temporal mode must not persist as global preference");
 check(normalized.wipePosition===95,"wipe position must clamp to 95");
 check(normalized.pathologyOrder.join(",")==="cracks,corrosion_rust","pathology order must keep unique non-empty string ids");

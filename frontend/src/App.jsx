@@ -386,11 +386,14 @@ export default function App(){
     activeRun.current?.controller?.abort();
     activeRun.current={id:runId,controller,mode};
     setBusy(true);setErr("");setRes(null);setProgress({state:"starting",completed:0,total:mode==="individual"?100:engineIds.length,current_engine:"Preparando análise"});
+    const analysisStarted=performance.now();
     try{
-      const result=mode==="individual"
+      const rawResult=mode==="individual"
         ?await runIndividual(runId,controller.signal,sourceFile,sourceReference,engineIds)
         :await runComparison(runId,controller.signal,sourceFile,engineIds);
-      if(!result||controller.signal.aborted||activeRun.current?.id!==runId)return;
+      if(!rawResult||controller.signal.aborted||activeRun.current?.id!==runId)return;
+      const clientElapsedMs=Math.max(0,performance.now()-analysisStarted);
+      const result={...rawResult,metadata:{...(rawResult.metadata||{}),client_elapsed_ms:clientElapsedMs}};
       setRes(result);
       try{
         await requestPersistentStorage();

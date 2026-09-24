@@ -72,6 +72,11 @@ function formatStorageBytes(value){
   if(n<1024**3)return (n/1024**2).toFixed(1)+" MB";
   return (n/1024**3).toFixed(2)+" GB";
 }
+function formatRuntimeMs(value){
+  const n=Number(value);
+  if(!Number.isFinite(n)||n<0)return"—";
+  return (n/1000).toFixed(2)+" s";
+}
 
 function campaignConditionSeries(group){
   return (group.items||[]).map(item=>{
@@ -314,7 +319,7 @@ export function DashboardView({engines,res,selected,prev,comparatorOnline,indivi
       <article className="surface liveSurface">
         <div className="surfaceHead"><div><b>INSPEÇÃO DA SESSÃO</b><span>{res?"Último resultado disponível":"Nenhum resultado processado"}</span></div><span className={"statusPill "+(res?"success":"neutral")}>{res?"RESULTADO":"AGUARDANDO"}</span></div>
         <div className="dashboardPreview">{preview?<img src={preview} alt="Inspeção atual"/>:<EmptyView icon={ImageIcon} title="Nenhuma imagem carregada">Carregue uma imagem na tela de Análise para iniciar a sessão.</EmptyView>}</div>
-        <div className="previewFoot"><span>{res?res.image_width+" × "+res.image_height+" px":"Entrada visual não definida"} · {inspection?.oae_id||"OAE não identificada"} · {inspection?.element_id||"elemento não identificado"}</span><span>{res?.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleString("pt-BR"):"—"}</span></div>
+        <div className="previewFoot"><span>{res?res.image_width+" × "+res.image_height+" px":"Entrada visual não definida"} · {inspection?.oae_id||"OAE não identificada"} · {inspection?.element_id||"elemento não identificado"}</span><span>{res?.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleString("pt-BR"):"—"}{Number.isFinite(Number(res?.metadata?.client_elapsed_ms))?" · "+formatRuntimeMs(res.metadata.client_elapsed_ms):""}</span></div>
       </article>
       <div className="dashboardSide">
         <article className="surface runtimeSummary">
@@ -444,7 +449,7 @@ export function AlertsView({res,history,historyBusy,historyErr,storageStatus,onO
           <span>{h.created_at?new Date(h.created_at).toLocaleString("pt-BR"):"—"}</span>
           <span><b>{h.inspection?.oae_id||"OAE não identificada"}</b><small>{h.inspection?.element_id||"elemento não identificado"}{h.inspection?.inspection_label?" · "+h.inspection.inspection_label:""}</small></span>
           <span>{h.inspection?.source_id||h.file_meta?.name||"—"}{h.summary?.has_reference_image?<small>t0: {h.reference_file_meta?.name||"referência salva"}{h.reference_inspection_id?" · vinculada "+String(h.reference_inspection_id).slice(0,10):h.summary?.reference_storage==="materialized_history"?" · histórica materializada "+String(h.reference_origin_inspection_id||h.summary?.reference_origin_inspection_id||"").slice(0,10):h.summary?.reference_storage==="missing_reference"?" · referência ausente":" · manual/externa"}{h.summary?.reference_compatibility?.same_source===false?" · fonte diferente":""}</small>:null}</span>
-          <span>{h.summary?.mode||"—"} · {h.summary?.engines_total||0} motor(es){h.summary?.temporal_comparison?<small>t0→t1{h.summary?.temporal_alignment?.accepted?` · Δx ${h.summary.temporal_alignment.dx_px}px · Δy ${h.summary.temporal_alignment.dy_px}px`:" · sem translação"} · {h.summary?.temporal_quality?.status==="pass"?"qualidade aprovada":h.summary?.temporal_quality?.status==="warning"?"com ressalvas":h.summary?.temporal_quality?.status==="fail"?"não validada":"qualidade não informada"}</small>:null}</span>
+          <span>{h.summary?.mode||"—"} · {h.summary?.engines_total||0} motor(es){Number.isFinite(Number(h.summary?.analysis_elapsed_ms))?<small>tempo {formatRuntimeMs(h.summary.analysis_elapsed_ms)}</small>:null}{h.summary?.temporal_comparison?<small>t0→t1{h.summary?.temporal_alignment?.accepted?` · Δx ${h.summary.temporal_alignment.dx_px}px · Δy ${h.summary.temporal_alignment.dy_px}px`:" · sem translação"} · {h.summary?.temporal_quality?.status==="pass"?"qualidade aprovada":h.summary?.temporal_quality?.status==="warning"?"com ressalvas":h.summary?.temporal_quality?.status==="fail"?"não validada":"qualidade não informada"}</small>:null}</span>
           <span>{h.summary?.detections||0}</span>
           <span className="historyActions"><button onClick={()=>onOpenHistory(h.id,"reports")}>Abrir</button><button className="dangerAction" onClick={()=>onDeleteHistory(h.id)}>Excluir</button></span>
         </div>)}
@@ -465,7 +470,7 @@ export function ReportsView({res,inspection,onJson,onCsv,onMap,onNavigate}){
     <SectionHead eyebrow="RELATÓRIO DA SESSÃO" title="Relatórios & exportação" description="Exportação rastreável dos resultados existentes, sem preenchimento de dados ausentes." actions={<button onClick={()=>onNavigate("analysis")}>Abrir análise <Activity size={14}/></button>}/>
     {!res?<EmptyView icon={FileText} title="Nenhum relatório disponível">Uma execução precisa ser concluída antes de gerar arquivos de relatório.</EmptyView>:<>
       <div className="reportHero surface">
-        <div><span>ANÁLISE</span><h3>{String(res.metadata?.analysis_id||"sessão atual").slice(0,24)}</h3><p>{res.image_width} × {res.image_height}px · {res.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleString("pt-BR"):"data não informada"}</p></div>
+        <div><span>ANÁLISE</span><h3>{String(res.metadata?.analysis_id||"sessão atual").slice(0,24)}</h3><p>{res.image_width} × {res.image_height}px · {res.metadata?.generated_at?new Date(res.metadata.generated_at).toLocaleString("pt-BR"):"data não informada"}{Number.isFinite(Number(res.metadata?.client_elapsed_ms))?" · "+formatRuntimeMs(res.metadata.client_elapsed_ms):""}</p></div>
         <div className="reportStats"><div><b>{(res.results||[]).length}</b><span>motores</span></div><div><b>{ok}</b><span>concluídos</span></div><div><b>{det.length}</b><span>achados</span></div><div><b>{Object.keys(res.consensus||{}).length}</b><span>classes em consenso</span></div></div>
       </div>
       <div className="reportGrid">

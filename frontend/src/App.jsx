@@ -408,7 +408,7 @@ export default function App(){
     }
   }
 
-  return <div className={"appShell "+(["analysis","settings"].includes(activeView)?"editorShell":"")}>
+  return <div className={"appShell "+(["analysis","settings"].includes(activeView)?"editorShell ":"")+(activeView==="settings"?"settingsShell":"")}>
     {! ["analysis","settings"].includes(activeView)&&<NavRail active={activeView} onSelect={navigate}/>}
     <main className="appMain">
     {! ["analysis","settings"].includes(activeView)&&<header className="topbar">

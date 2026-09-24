@@ -284,9 +284,52 @@ function App(){
             const floatingVerticalOk=!!viewportRect&&!!floatingRect&&floatingRect.top>=viewportRect.top+7&&floatingRect.bottom<=viewportRect.bottom-7;
             const floatingMaxWidthOk=!!floatingPanel&&getComputedStyle(floatingPanel).maxWidth!=="none";
             const floatingHandleOk=!!floatingHead&&floatingHead.tagName==="BUTTON"&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
-            const floatingResizeModeOk=!!floatingPanel&&getComputedStyle(floatingPanel).resize===(phoneSidebar?"none":"both");
+            const floatingResizeHandle=floatingPanel?.querySelector(".editorFloatResizeHandle");
+            const floatingResizeModeOk=!!floatingPanel&&getComputedStyle(floatingPanel).resize==="none"&&!!floatingResizeHandle&&(phoneSidebar?getComputedStyle(floatingResizeHandle).display==="none":getComputedStyle(floatingResizeHandle).cursor==="nwse-resize");
             const floatingPreferenceGeometryOk=!!floatingPanel&&floatingPanel.dataset.panelWidth==="360"&&floatingPanel.dataset.panelHeight===""&&(!phoneSidebar?getComputedStyle(floatingPanel).width==="360px":true);
-            const floatingClampOk=floatingHorizontalOk&&floatingVerticalOk&&floatingMaxWidthOk&&floatingHandleOk&&floatingResizeModeOk;
+            let floatingResizeInteractionOk=true;
+            if(!phoneSidebar&&floatingPanel&&floatingResizeHandle){
+              const beforeResizeWidth=Math.round(floatingPanel.offsetWidth);
+              const beforeResizeHeight=Math.round(floatingPanel.offsetHeight);
+              const handleRect=floatingResizeHandle.getBoundingClientRect();
+              const hx=handleRect.left+Math.max(1,handleRect.width/2),hy=handleRect.top+Math.max(1,handleRect.height/2);
+              floatingResizeHandle.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:81,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:hx,clientY:hy}));
+              window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:82,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:hx+90,clientY:hy+90}));
+              await sleep(20);
+              const foreignResizeIgnored=Math.round(floatingPanel.offsetWidth)===beforeResizeWidth;
+              window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:81,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:hx+40,clientY:hy+20}));
+              window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:81,pointerType:"pen",isPrimary:true,button:0,buttons:0,clientX:hx+40,clientY:hy+20}));
+              await sleep(80);
+              const pointerWidth=Math.round(floatingPanel.offsetWidth);
+              const pointerPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
+              const pointerResizePersisted=foreignResizeIgnored&&pointerWidth>=beforeResizeWidth&&pointerPrefs.resultPanelSize?.width===Number(floatingPanel.dataset.panelWidth)&&Number(floatingPanel.dataset.panelHeight)>=65;
+
+              const cancelRect=floatingResizeHandle.getBoundingClientRect();
+              const cx=cancelRect.left+Math.max(1,cancelRect.width/2),cy=cancelRect.top+Math.max(1,cancelRect.height/2);
+              const cancelWidth=Math.round(floatingPanel.offsetWidth);
+              floatingResizeHandle.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:83,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:cx,clientY:cy}));
+              window.dispatchEvent(new PointerEvent("pointercancel",{bubbles:true,pointerId:83,pointerType:"pen",isPrimary:true,button:0,buttons:0,clientX:cx,clientY:cy}));
+              window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:83,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:cx+100,clientY:cy+100}));
+              await sleep(30);
+              const resizeCancelReleased=Math.round(floatingPanel.offsetWidth)===cancelWidth;
+
+              floatingResizeHandle.focus();
+              floatingResizeHandle.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"Home"}));
+              await sleep(60);
+              const resizeHomeOk=floatingPanel.dataset.panelWidth==="360"&&floatingPanel.dataset.panelHeight==="";
+              floatingResizeHandle.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
+              await sleep(50);
+              const resizeArrowOk=floatingPanel.dataset.panelWidth==="380";
+              floatingResizeHandle.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"End"}));
+              await sleep(60);
+              const endWidth=Number(floatingPanel.dataset.panelWidth),endHeight=Number(floatingPanel.dataset.panelHeight);
+              const resizeEndOk=Number.isFinite(endWidth)&&Number.isFinite(endHeight)&&endWidth>=380&&endHeight>=65;
+              floatingResizeHandle.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"Home"}));
+              await sleep(60);
+              const resizeRestored= floatingPanel.dataset.panelWidth==="360"&&floatingPanel.dataset.panelHeight==="";
+              floatingResizeInteractionOk=pointerResizePersisted&&resizeCancelReleased&&resizeHomeOk&&resizeArrowOk&&resizeEndOk&&resizeRestored&&floatingResizeHandle.getAttribute("aria-label")==="Redimensionar painel de resultados";
+            }
+            const floatingClampOk=floatingHorizontalOk&&floatingVerticalOk&&floatingMaxWidthOk&&floatingHandleOk&&floatingResizeModeOk&&floatingResizeInteractionOk;
             const collapseResults=[...document.querySelectorAll(".editorFloatHead button")].find(button=>button.title==="Recolher resultados");
             collapseResults?.click();
             await sleep(60);
@@ -319,7 +362,7 @@ function App(){
             const afterBusyPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const busyPreferenceRestored=afterBusyPrefs.resultPanelOpen===false&&!document.querySelector(".editorFloating")&&!!document.querySelector(".editorResultsTab");
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
@@ -328,7 +371,7 @@ function App(){
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=compact-single-panel results=viewport-clamped+resize-aware+persistent+collapse-state+busy-tab sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard+pointer no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=compact-single-panel results=viewport-clamped+custom-resize+persistent+collapse-state+busy-tab sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard+pointer no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
               setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+" ["+responsiveDiag+"]"+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }

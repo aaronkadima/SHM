@@ -16,6 +16,11 @@ function setNativeValue(input,value){
   input.dispatchEvent(new Event("input",{bubbles:true}));
   input.dispatchEvent(new Event("change",{bubbles:true}));
 }
+function canvasTransformValues(element){
+  const text=element?.style.transform||"";
+  const match=text.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)\s*scale\(([\d.]+)\)/);
+  return match?{x:Number(match[1]),y:Number(match[2]),zoom:Number(match[3])}:null;
+}
 
 const fakeResult={
   image_width:320,image_height:180,
@@ -240,22 +245,26 @@ function App(){
               canvasClampOk=clampHeld&&clampReset;
             }
             let canvasWheelOk=true;
-            if(!phoneSidebar&&canvas){
+            if(!phoneSidebar&&canvas&&viewportRect){
               const fitBeforeWheel=canvas.style.transform||"";
               canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,deltaX:0,deltaY:40}));
               await sleep(20);
               const wheelAtFitIgnored=(canvas.style.transform||"")===fitBeforeWheel;
-              canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,ctrlKey:true,deltaX:0,deltaY:-100}));
+              const wheelAnchorX=(viewportRect.left+viewportRect.right)/2+80;
+              const wheelAnchorY=(viewportRect.top+viewportRect.bottom)/2+40;
+              canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,ctrlKey:true,deltaX:0,deltaY:-100,clientX:wheelAnchorX,clientY:wheelAnchorY}));
               await sleep(30);
-              const ctrlWheelZoomOk=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="125%";
+              const wheelZoomTransform=canvasTransformValues(canvas);
+              const ctrlWheelZoomOk=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="125%"&&!!wheelZoomTransform&&Math.abs(wheelZoomTransform.x+20)<=1&&Math.abs(wheelZoomTransform.y+10)<=1&&Math.abs(wheelZoomTransform.zoom-1.25)<.001;
               canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,deltaX:12,deltaY:18}));
               await sleep(30);
-              const wheelPanTransform=canvas.style.transform||"";
-              const wheelPanOk=wheelPanTransform.includes("translate(-12px, -18px)")&&wheelPanTransform.includes("scale(1.25)");
+              const wheelPanTransform=canvasTransformValues(canvas);
+              const wheelPanOk=!!wheelPanTransform&&Math.abs(wheelPanTransform.x+32)<=1&&Math.abs(wheelPanTransform.y+28)<=1&&Math.abs(wheelPanTransform.zoom-1.25)<.001;
               canvas.focus();
               canvas.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"0"}));
               await sleep(30);
-              const wheelResetOk=(canvas.style.transform||"").includes("translate(0px, 0px)")&&([...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="100%");
+              const wheelReset=canvasTransformValues(canvas);
+              const wheelResetOk=!!wheelReset&&wheelReset.x===0&&wheelReset.y===0&&wheelReset.zoom===1&&([...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="100%");
               canvasWheelOk=wheelAtFitIgnored&&ctrlWheelZoomOk&&wheelPanOk&&wheelResetOk;
             }
             let canvasTouchOk=true;
@@ -265,13 +274,19 @@ function App(){
               canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:112,pointerType:"touch",isPrimary:false,button:0,buttons:1,clientX:200,clientY:100}));
               canvas.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:112,pointerType:"touch",isPrimary:false,button:0,buttons:1,clientX:250,clientY:100}));
               await sleep(50);
-              const pinchTransform=canvas.style.transform||"";
-              const pinchZoomOk=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="150%"&&canvas.dataset.touchMode==="pan-pinch"&&pinchTransform.includes("translate(25px, 0px)")&&pinchTransform.includes("scale(1.5)");
+              const pinchTransform=canvasTransformValues(canvas);
+              const touchViewportRect=canvas.closest(".editorViewport")?.getBoundingClientRect();
+              const touchCenterX=touchViewportRect?(touchViewportRect.left+touchViewportRect.right)/2:0;
+              const touchCenterY=touchViewportRect?(touchViewportRect.top+touchViewportRect.bottom)/2:0;
+              const startMid={x:150-touchCenterX,y:100-touchCenterY};
+              const endMid={x:175-touchCenterX,y:100-touchCenterY};
+              const expectedPinchPan={x:Math.round(endMid.x-1.5*startMid.x),y:Math.round(endMid.y-1.5*startMid.y)};
+              const pinchZoomOk=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="150%"&&canvas.dataset.touchMode==="pan-pinch"&&!!pinchTransform&&Math.abs(pinchTransform.x-expectedPinchPan.x)<=1&&Math.abs(pinchTransform.y-expectedPinchPan.y)<=1&&Math.abs(pinchTransform.zoom-1.5)<.001;
               canvas.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:112,pointerType:"touch",isPrimary:false,button:0,buttons:0,clientX:250,clientY:100}));
               canvas.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:111,pointerType:"touch",isPrimary:true,button:0,buttons:1,clientX:130,clientY:125}));
               await sleep(40);
-              const touchPanTransform=canvas.style.transform||"";
-              const touchPanOk=touchPanTransform.includes("translate(55px, 25px)")&&touchPanTransform.includes("scale(1.5)");
+              const touchPanTransform=canvasTransformValues(canvas);
+              const touchPanOk=!!touchPanTransform&&Math.abs(touchPanTransform.x-(expectedPinchPan.x+30))<=1&&Math.abs(touchPanTransform.y-(expectedPinchPan.y+25))<=1&&Math.abs(touchPanTransform.zoom-1.5)<.001;
               canvas.dispatchEvent(new PointerEvent("pointercancel",{bubbles:true,pointerId:111,pointerType:"touch",isPrimary:true,button:0,buttons:0,clientX:130,clientY:125}));
               const cancelledTransform=canvas.style.transform||"";
               canvas.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:111,pointerType:"touch",isPrimary:true,button:0,buttons:1,clientX:180,clientY:170}));

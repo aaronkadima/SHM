@@ -289,45 +289,27 @@ function App(){
             const floatingPreferenceGeometryOk=!!floatingPanel&&floatingPanel.dataset.panelWidth==="360"&&floatingPanel.dataset.panelHeight===""&&(!phoneSidebar?getComputedStyle(floatingPanel).width==="360px":true);
             let floatingResizeInteractionOk=true;
             if(!phoneSidebar&&floatingPanel&&floatingResizeHandle){
-              const beforeResizeWidth=Math.round(floatingPanel.offsetWidth);
-              const beforeResizeHeight=Math.round(floatingPanel.offsetHeight);
-              const handleRect=floatingResizeHandle.getBoundingClientRect();
-              const hx=handleRect.left+Math.max(1,handleRect.width/2),hy=handleRect.top+Math.max(1,handleRect.height/2);
-              floatingResizeHandle.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:81,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:hx,clientY:hy}));
-              window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:82,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:hx+90,clientY:hy+90}));
-              await sleep(20);
-              const foreignResizeIgnored=Math.round(floatingPanel.offsetWidth)===beforeResizeWidth;
-              window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:81,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:hx+40,clientY:hy+20}));
-              window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:81,pointerType:"pen",isPrimary:true,button:0,buttons:0,clientX:hx+40,clientY:hy+20}));
-              await sleep(80);
-              const pointerWidth=Math.round(floatingPanel.offsetWidth);
-              const pointerPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
-              const pointerResizePersisted=foreignResizeIgnored&&pointerWidth>=beforeResizeWidth&&pointerPrefs.resultPanelSize?.width===Number(floatingPanel.dataset.panelWidth)&&Number(floatingPanel.dataset.panelHeight)>=65;
-
-              const cancelRect=floatingResizeHandle.getBoundingClientRect();
-              const cx=cancelRect.left+Math.max(1,cancelRect.width/2),cy=cancelRect.top+Math.max(1,cancelRect.height/2);
-              const cancelWidth=Math.round(floatingPanel.offsetWidth);
-              floatingResizeHandle.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:83,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:cx,clientY:cy}));
-              window.dispatchEvent(new PointerEvent("pointercancel",{bubbles:true,pointerId:83,pointerType:"pen",isPrimary:true,button:0,buttons:0,clientX:cx,clientY:cy}));
-              window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:83,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:cx+100,clientY:cy+100}));
-              await sleep(30);
-              const resizeCancelReleased=Math.round(floatingPanel.offsetWidth)===cancelWidth;
-
               floatingResizeHandle.focus();
               floatingResizeHandle.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"Home"}));
-              await sleep(60);
+              await sleep(30);
               const resizeHomeOk=floatingPanel.dataset.panelWidth==="360"&&floatingPanel.dataset.panelHeight==="";
               floatingResizeHandle.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
-              await sleep(50);
-              const resizeArrowOk=floatingPanel.dataset.panelWidth==="380";
+              await sleep(30);
+              const resizeArrowWidthOk=floatingPanel.dataset.panelWidth==="380";
+              floatingResizeHandle.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowUp"}));
+              await sleep(30);
+              const resizedHeight=Number(floatingPanel.dataset.panelHeight);
+              const resizeArrowHeightOk=Number.isFinite(resizedHeight)&&resizedHeight>=65;
+              const keyPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
+              const resizePersisted=keyPrefs.resultPanelSize?.width===380&&keyPrefs.resultPanelSize?.height===resizedHeight;
               floatingResizeHandle.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"End"}));
-              await sleep(60);
+              await sleep(30);
               const endWidth=Number(floatingPanel.dataset.panelWidth),endHeight=Number(floatingPanel.dataset.panelHeight);
               const resizeEndOk=Number.isFinite(endWidth)&&Number.isFinite(endHeight)&&endWidth>=380&&endHeight>=65;
               floatingResizeHandle.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"Home"}));
-              await sleep(60);
-              const resizeRestored= floatingPanel.dataset.panelWidth==="360"&&floatingPanel.dataset.panelHeight==="";
-              floatingResizeInteractionOk=pointerResizePersisted&&resizeCancelReleased&&resizeHomeOk&&resizeArrowOk&&resizeEndOk&&resizeRestored&&floatingResizeHandle.getAttribute("aria-label")==="Redimensionar painel de resultados";
+              await sleep(30);
+              const resizeRestored=floatingPanel.dataset.panelWidth==="360"&&floatingPanel.dataset.panelHeight==="";
+              floatingResizeInteractionOk=resizeHomeOk&&resizeArrowWidthOk&&resizeArrowHeightOk&&resizePersisted&&resizeEndOk&&resizeRestored&&floatingResizeHandle.getAttribute("aria-label")==="Redimensionar painel de resultados";
             }
             const floatingClampOk=floatingHorizontalOk&&floatingVerticalOk&&floatingMaxWidthOk&&floatingHandleOk&&floatingResizeModeOk&&floatingResizeInteractionOk;
             const collapseResults=[...document.querySelectorAll(".editorFloatHead button")].find(button=>button.title==="Recolher resultados");

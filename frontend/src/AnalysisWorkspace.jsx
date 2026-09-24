@@ -331,16 +331,22 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     setPosition(current=>clampResultPosition({x:current.x+delta[0],y:current.y+delta[1]}));
   }
   function canvasPanStart(e){
-    if(e.button!==1)return;
+    if(e.button!==1||e.isPrimary===false)return;
     e.preventDefault();
-    canvasDrag.current={x:e.clientX-canvasPan.x,y:e.clientY-canvasPan.y};
+    canvasDrag.current={pointerId:e.pointerId,x:e.clientX-canvasPan.x,y:e.clientY-canvasPan.y};
+    try{e.currentTarget.setPointerCapture?.(e.pointerId)}catch{}
   }
   function canvasPanMove(e){
-    if(!canvasDrag.current)return;
-    setCanvasPan({x:e.clientX-canvasDrag.current.x,y:e.clientY-canvasDrag.current.y});
+    const dragState=canvasDrag.current;
+    if(!dragState||e.pointerId!==dragState.pointerId)return;
+    e.preventDefault();
+    setCanvasPan({x:e.clientX-dragState.x,y:e.clientY-dragState.y});
   }
-  function canvasPanEnd(){
+  function canvasPanEnd(e){
+    const dragState=canvasDrag.current;
+    if(!dragState||e?.pointerId!==dragState.pointerId)return;
     canvasDrag.current=null;
+    try{e?.currentTarget?.releasePointerCapture?.(e.pointerId)}catch{}
   }
   function beginLayersResize(e){
     if(e.button!==0||e.isPrimary===false)return;
@@ -598,7 +604,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
-        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} aria-label="Canvas de análise; arraste com o botão do meio para deslocar" onMouseDown={canvasPanStart} onMouseMove={canvasPanMove} onMouseUp={canvasPanEnd} onMouseLeave={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
+        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} aria-label="Canvas de análise; arraste com o botão do meio para deslocar" onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
           {comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}
           {comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)}
           {comparison==="wipe"&&renderWipePane(basePreview)}

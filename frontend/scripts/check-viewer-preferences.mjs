@@ -1,6 +1,7 @@
 import {
   DEFAULT_VIEWER_PREFERENCES,
   VIEWER_PREFS_KEY,
+  clampFloatingPanelPosition,
   loadViewerPreferences,
   normalizeViewerPreferences,
   saveViewerPreferences
@@ -8,6 +9,21 @@ import {
 
 const failures=[];
 const check=(ok,msg)=>{if(!ok)failures.push(msg)};
+
+const clampDesktopGeometry={viewportWidth:386,viewportHeight:680,panelLeft:8,panelTop:82,panelWidth:360,panelHeight:510,margin:8};
+const desktopTopLeft=clampFloatingPanelPosition({x:-1e6,y:-1e6},clampDesktopGeometry);
+const desktopBottomRight=clampFloatingPanelPosition({x:1e6,y:1e6},clampDesktopGeometry);
+check(desktopTopLeft.x===0&&desktopTopLeft.y===-74,"floating panel desktop top-left clamp must respect 8px margins");
+check(desktopBottomRight.x===10&&desktopBottomRight.y===80,"floating panel desktop bottom-right clamp must respect viewport bounds");
+
+const clampMobileGeometry={viewportWidth:356,viewportHeight:680,panelLeft:8,panelTop:82,panelWidth:340,panelHeight:510,margin:8};
+const mobileTopLeft=clampFloatingPanelPosition({x:-999,y:-999},clampMobileGeometry);
+const mobileBottomRight=clampFloatingPanelPosition({x:999,y:999},clampMobileGeometry);
+check(mobileTopLeft.x===0&&mobileTopLeft.y===-74,"floating panel mobile top-left clamp must retain full panel width");
+check(mobileBottomRight.x===0&&mobileBottomRight.y===80,"floating panel mobile bottom-right clamp must keep the 340px panel inside 356px viewport");
+
+const oversized=clampFloatingPanelPosition({x:999,y:999},{viewportWidth:300,viewportHeight:300,panelLeft:0,panelTop:0,panelWidth:320,panelHeight:340,margin:8});
+check(Number.isFinite(oversized.x)&&Number.isFinite(oversized.y),"floating panel clamp must stay finite even when the panel is larger than the viewport");
 
 const normalized=normalizeViewerPreferences({opacity:1.5,layersOpen:false,comparison:"temporal",wipePosition:140,pathologyOrder:["cracks","corrosion_rust","cracks",42,""],pathologyOpacity:{cracks:1.4,corrosion_rust:.45,bad:"x","":.3},pathologyLocked:["cracks","cracks",42,""]});
 check(normalized.opacity===1,"opacity must clamp to 1");

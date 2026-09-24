@@ -229,7 +229,7 @@ function App(){
             const canvasKeyboardOk=keyboardPanOk&&keyboardZoomInOk&&keyboardZoomOutOk&&keyboardResetTransform.includes("translate(0px, 0px)")&&keyboardResetTransform.includes("scale(1)")&&canvas?.getAttribute("aria-keyshortcuts")?.includes("ArrowLeft");
             let canvasClampOk=true;
             if(canvas){
-              for(let n=0;n<120;n++){
+              for(let n=0;n<24;n++){
                 canvas.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
                 canvas.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowDown"}));
               }

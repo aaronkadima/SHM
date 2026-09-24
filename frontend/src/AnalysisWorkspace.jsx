@@ -1,5 +1,5 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
-import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Download,ImagePlus,Layers3,Lock,Maximize2,Minus,Play,Plus,Settings2,Unlock,X} from "lucide-react";
+import {Camera,ChevronDown,ChevronLeft,ChevronUp,Download,ImagePlus,Layers3,Lock,Maximize2,Minus,Play,Plus,Settings2,Unlock,X} from "lucide-react";
 import{DEFAULT_VIEWER_PREFERENCES,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
@@ -30,7 +30,7 @@ export function detectAsset(file){
 
 export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
-  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[resultOpen,setResultOpen]=useState(true);
+  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(206),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
@@ -186,6 +186,44 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   function canvasPanEnd(){
     canvasDrag.current=null;
   }
+  function beginLayersResize(e){
+    if(e.button!==0)return;
+    e.preventDefault();
+    const startX=e.clientX;
+    const startWidth=layersWidth;
+    const move=ev=>setLayersWidth(Math.max(180,Math.min(520,startWidth+ev.clientX-startX)));
+    const up=()=>{
+      window.removeEventListener("mousemove",move);
+      window.removeEventListener("mouseup",up);
+    };
+    window.addEventListener("mousemove",move);
+    window.addEventListener("mouseup",up);
+  }
+  function beginWipeDrag(e){
+    if(e.button!==0)return;
+    e.preventDefault();
+    e.stopPropagation();
+    const pane=e.currentTarget.closest(".editorWipePane");
+    const rect=pane?.getBoundingClientRect();
+    if(!rect?.width)return;
+    const update=clientX=>setWipePosition(Math.max(5,Math.min(95,(clientX-rect.left)/rect.width*100)));
+    const move=ev=>{ev.preventDefault();update(ev.clientX)};
+    const up=ev=>{
+      update(ev.clientX);
+      window.removeEventListener("mousemove",move);
+      window.removeEventListener("mouseup",up);
+    };
+    update(e.clientX);
+    window.addEventListener("mousemove",move);
+    window.addEventListener("mouseup",up);
+  }
+  function wipeHandleKey(e){
+    if(e.key==="ArrowLeft"||e.key==="ArrowRight"){
+      e.preventDefault();
+      setWipePosition(v=>Math.max(5,Math.min(95,v+(e.key==="ArrowLeft"?-2:2))));
+    }else if(e.key==="Home"){e.preventDefault();setWipePosition(5)}
+    else if(e.key==="End"){e.preventDefault();setWipePosition(95)}
+  }
   function fitView(){
     const rect=surface.current?.getBoundingClientRect();
     if(rect&&rect.width>0&&rect.height>0)setViewportSize({width:rect.width,height:rect.height});
@@ -283,10 +321,18 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         onLoad={e=>{setPreviewError("");setImageSize({width:e.currentTarget.naturalWidth||1,height:e.currentTarget.naturalHeight||1})}}
         onError={()=>setPreviewError("Não foi possível decodificar a imagem importada.")}/>
       {renderOverlayStack({clipPath:`inset(0 0 0 ${wipePosition}%)`})}
-      <div className="editorWipeDivider" style={{left:wipePosition+"%"}} aria-hidden="true"><span/></div>
+      <div className="editorWipeDivider" style={{left:wipePosition+"%"}}>
+        <button className="editorWipeHandle" type="button" aria-label="Arrastar divisor original e detecção" title="Arraste para comparar original e detecção" onMouseDown={beginWipeDrag} onKeyDown={wipeHandleKey}/>
+      </div>
       <span className="editorPaneBadge">original ↔ detecção</span>
     </div>;
   }
+  const statusMessage=error
+    ||(progress?.state==="cancelled"?"Análise cancelada":"")
+    ||(busy?((progress?.current_engine||"Processando análise")+" · "+(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length))):"")
+    ||(file&&kind==="2d"?(previewError||(imageDecoded?`Imagem carregada · ${file.name} · ${imageSize.width}×${imageSize.height} px`:localPreview?"Decodificando imagem…":"Lendo imagem…")):"")
+    ||(kind==="3d"?"Arquivo 3D reconhecido · análise 2D indisponível":"")
+    ||(selected.length?selected.length+" motor(es) configurado(s)":"Configure os motores antes de analisar");
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><span className="editorMenus"><span>Arquivo</span><span>Editar</span><span>Visualizar</span><span>Análise</span></span></div>
@@ -302,7 +348,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     </div>
     <div className="editorBody">
       <div className="editorTools" aria-label="Ferramentas"><button title="Mostrar ou ocultar camadas" onClick={()=>setLayersOpen(v=>!v)}><Layers3/></button><button title="Ampliar" onClick={()=>setZoom(z=>Math.min(4,z+.25))}><Plus/></button><button title="Reduzir" onClick={()=>setZoom(z=>Math.max(.25,z-.25))}><Minus/></button><button title="Ajustar à tela" aria-label="Ajustar à tela" onClick={fitView}><Maximize2/></button><button title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button></div>
-      {layersOpen&&<aside className="editorLayers"><div className="editorPanelTitle"><b>Camadas</b><button title="Recolher camadas" onClick={()=>setLayersOpen(false)}><ChevronLeft size={17}/></button></div>
+      {layersOpen&&<><aside className="editorLayers" style={{width:layersWidth}}><div className="editorPanelTitle"><b>Camadas</b><button title="Recolher camadas" onClick={()=>setLayersOpen(false)}><ChevronLeft size={17}/></button></div>
         <div className="layerRow"><span>◉</span> Arquivo atual · t1</div>
         {referenceFile&&<div className="layerRow referenceLayer"><span>○</span><span>Referência · t0 <small>{referenceFile.name}</small>{linkedReferenceCompatibility&&<em className={"referenceCompatibility "+linkedReferenceCompatibility.status} title={linkedReferenceCompatibility.refLabel}>{linkedReferenceCompatibility.text}</em>}</span><button className="layerClear" disabled={busy} title="Remover referência t0" onClick={()=>onReferenceFile(null)}><X size={13}/></button></div>}
         {results.map(r=><label className="layerRow" key={r.engine_id}><input type="checkbox" checked={visible[r.engine_id]!==false} onChange={e=>setVisible(v=>({...v,[r.engine_id]:e.target.checked}))}/>{r.name}</label>)}
@@ -313,12 +359,9 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         {kind==="unknown"&&<div className="editorTypeChoice"><button onClick={()=>setKind("2d")}>Tratar como 2D</button><button onClick={()=>setKind("3d")}>Tratar como 3D</button></div>}
         {selectedPathology&&<div className={"layerInspector "+(selectedPathologyLocked?"locked":"")}><div><span className="pathologySwatch" style={{background:selectedPathology.color}}/><b>{selectedPathology.name}</b><small>{selectedPathology.count} achado(s) · {selectedPathologyIndex===0?"topo":selectedPathologyIndex===orderedPathologyLayers.length-1?"fundo":"posição "+(selectedPathologyIndex+1)}</small></div><label><span>Opacidade da camada</span><b>{Math.round(selectedPathologyOpacity*100)}%</b><input aria-label={"Opacidade de "+selectedPathology.name} type="range" min="0" max="1" step=".05" value={selectedPathologyOpacity} disabled={selectedPathologyLocked} onChange={e=>setSelectedPathologyOpacity(e.target.value)}/></label><div className="layerInspectorActions"><button type="button" disabled={selectedPathologyLocked} onClick={()=>setSelectedPathologyOpacity(1)}>Restaurar 100%</button><button type="button" className="layerLockToggle" onClick={toggleSelectedPathologyLock}>{selectedPathologyLocked?<><Unlock size={11}/> Desbloquear</>:<><Lock size={11}/> Bloquear</>}</button></div></div>}
         <p>Sobreposição global: {Math.round(opacity*100)}%</p><input aria-label="Opacidade da sobreposição" type="range" min="0" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/><button className="viewerReset" type="button" onClick={resetViewerPreferences}>Restaurar visualização</button>
-      </aside>}
+      </aside><div className="editorLayerResizeHandle" role="separator" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" title="Arraste para ampliar ou reduzir o painel de camadas" onMouseDown={beginLayersResize}/></>}
       <div className="editorViewport" ref={surface}>
-        {!layersOpen&&<button className="editorExpand" onClick={()=>setLayersOpen(true)} title="Mostrar camadas"><ChevronRight size={18}/></button>}
         <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
-        {previewError&&<div className="editorPreviewError">{previewError}</div>}
-        {file&&kind==="2d"&&<div className={"editorCanvasStatus "+(imageDecoded?"ready":"loading")}>{imageDecoded?`Imagem carregada · ${imageSize.width}×${imageSize.height}`:localPreview?"Decodificando imagem…":"Lendo imagem…"}</div>}
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
@@ -336,7 +379,6 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
           </>}
         </div>}
         {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>setZoom(z=>Math.max(.25,z-.25))}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>setZoom(z=>Math.min(4,z+.25))}><Plus size={15}/></button></div>}
-        {file&&kind==="2d"&&comparison==="wipe"&&<div className="editorWipeControl"><span>Original</span><input aria-label="Divisor original e detecção" type="range" min="5" max="95" step="1" value={wipePosition} onChange={e=>setWipePosition(Number(e.target.value))}/><span>Detecção</span><b>{Math.round(wipePosition)}%</b></div>}
         {resultOpen&&(busy||results.length>0)&&<div className="editorFloating" style={{transform:`translate(${position.x}px,${position.y}px)`}}>
           <div className="editorFloatHead" onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd}><b>Resultados</b><button title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel} disabled={progress?.state==="cancel_requested"}>{progress?.state==="cancel_requested"?"Cancelando…":"Cancelar"}</button>}</div>}
@@ -350,7 +392,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         {!resultOpen&&results.length>0&&<button className="editorResultsTab" onClick={()=>setResultOpen(true)}>Resultados · {results.length}</button>}
       </div>
     </div>
-    <div className="editorStatus"><span>{error|| (progress?.state==="cancelled"?"Análise cancelada":kind==="3d"?"Arquivo 3D reconhecido; análise 2D indisponível":selected.length?selected.length+" motor(es) configurado(s)":"Configure os motores antes de analisar")}</span><span>Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}</span></div>
+    <div className="editorStatus"><span className="editorStatusMessage" title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}</span></div>
     {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera"><header><b>Modo câmera</b><button title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={()=>setCameraReady(true)}/><footer><span>{cameraError?"Verifique a permissão da câmera":cameraReady?"Prévia ao vivo · capture um quadro para análise 2D":"Aguardando câmera…"}</span><button onClick={capture} disabled={!!cameraError||!cameraReady}><Camera size={16}/> Capturar imagem</button></footer></div></div>}
   </section>
 }

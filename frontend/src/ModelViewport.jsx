@@ -6,6 +6,7 @@ import {OBJLoader} from "three/addons/loaders/OBJLoader.js";
 import {PLYLoader} from "three/addons/loaders/PLYLoader.js";
 import {STLLoader} from "three/addons/loaders/STLLoader.js";
 import {SVGRenderer} from "three/addons/renderers/SVGRenderer.js";
+import {standaloneGltfIssue} from "./modelAssetValidation.js";
 
 export default function ModelViewport({file}){
   const mount=useRef(null),view=useRef(null),[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null);
@@ -41,8 +42,21 @@ export default function ModelViewport({file}){
     };
     const fail=e=>{releaseUrl();if(!disposed){setLoading(false);setLoadProgress(null);setError("Não foi possível abrir o modelo: "+(e?.message||String(e)))} };
     const onProgress=event=>{if(disposed)return;const total=Number(event?.total)||0,loaded=Number(event?.loaded)||0;setLoadProgress(total>0?Math.max(0,Math.min(99,Math.round(loaded/total*100))):null)};
+    const loadGltf=async()=>{
+      if(ext==="gltf"){
+        let text;
+        try{text=await file.text()}catch(e){fail(new Error("Não foi possível ler o arquivo GLTF: "+(e?.message||String(e))));return}
+        if(disposed){releaseUrl();return}
+        try{
+          const issue=standaloneGltfIssue(text);
+          if(issue){fail(new Error(issue));return}
+        }catch(e){fail(new Error("GLTF inválido: "+(e?.message||String(e))));return}
+      }
+      if(disposed){releaseUrl();return}
+      new GLTFLoader().load(url,g=>fit(g.scene),onProgress,fail);
+    };
     try{
-      if(ext==="glb"||ext==="gltf")new GLTFLoader().load(url,g=>fit(g.scene),onProgress,fail);
+      if(ext==="glb"||ext==="gltf")loadGltf().catch(fail);
       else if(ext==="obj")new OBJLoader().load(url,fit,onProgress,fail);
       else if(ext==="stl"||ext==="ply"){
         const loader=ext==="stl"?new STLLoader():new PLYLoader();

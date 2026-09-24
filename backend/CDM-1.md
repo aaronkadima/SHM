@@ -536,3 +536,33 @@ executes a viewer smoke harness. The browser-level regression verifies:
 
 This browser test complements the static viewer assertions and prevents CSS-only
 regressions from passing CI unnoticed.
+
+
+## Browser-tested layer workspace
+
+The new analysis layout now treats CDM-1 pathology outputs as an editable visual layer stack while preserving the original inspection image as the immutable base.
+
+The pathology layer panel supports:
+
+- group visibility: show all / hide all;
+- single-layer isolation (Só);
+- persistent z-order reordering;
+- per-layer opacity, multiplied by the global overlay opacity;
+- persistent layer locks that block direct z-order and opacity changes while preserving visibility control;
+- top/bottom/position indicators;
+- a compact selected-layer inspector;
+- a safe Restaurar visualização action that resets visibility, order, opacity, locks, zoom, floating-panel position and comparison preferences.
+
+Viewer preferences are stored locally and normalized before reuse. Temporal mode is not persisted as the default comparison mode because it requires a valid t0 reference.
+
+The viewer comparison modes are:
+
+- Original: base t1 only;
+- Sobrepor: base t1 plus the active detection stack;
+- Deslizar: one base image with a movable original-to-detection divider;
+- Lado a lado: original on the left, original+detections on the right;
+- t0 / t1: temporal reference on the left and current t1+detections on the right.
+
+The swipe divider position is persisted between sessions and constrained to 5-95%. All comparison-mode changes refit the canvas to the viewport.
+
+The frontend CI contains both static composition checks and a real Chromium smoke test. The smoke test verifies image decoding, nonzero pane geometry, overlay/base alignment, group visibility, isolation, z-order, per-layer opacity, lock semantics, reset behavior, Original/Overlay/Swipe/Side/Temporal modes and fit-to-screen transitions.

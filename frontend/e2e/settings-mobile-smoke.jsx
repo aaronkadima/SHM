@@ -72,8 +72,8 @@ function check(){
   const topRect=top.getBoundingClientRect();
 
   const documentNoScroll=html.scrollHeight<=viewportH+2&&body.scrollHeight<=viewportH+2;
-  const generalNoScroll=content.scrollHeight<=content.clientHeight+2&&getComputedStyle(content).overflowY!=="auto"&&getComputedStyle(content).overflowY!=="scroll";
-  const motorsOnlyScroll=getComputedStyle(motors).overflowY==="auto"&&motors.scrollHeight>motors.clientHeight+10;
+  const pageScrollEnabled=getComputedStyle(content).overflowY==="auto"&&content.scrollHeight>content.clientHeight+10;
+  const motorsScrollEnabled=getComputedStyle(motors).overflowY==="auto"&&motors.scrollHeight>motors.clientHeight+10;
   const motorsVisible=motorsRect.height>=175&&firstRect.height>=55&&firstRect.bottom>motorsRect.top&&firstRect.top<motorsRect.bottom;
   const cardRects=motorCards.slice(0,6).map(card=>card.getBoundingClientRect());
   const cardsSeparated=cardRects.length>=4&&cardRects.every((rect,index)=>index===0||rect.top>=cardRects[index-1].bottom-1)&&cardRects.every(rect=>rect.height>=55);
@@ -81,13 +81,13 @@ function check(){
   const noHorizontalOverflow=html.scrollWidth<=viewportW+2&&body.scrollWidth<=viewportW+2;
   const candidates=[html,body,content,motorsCard,motors];
   const verticalScrollers=candidates.filter(el=>el.scrollHeight>el.clientHeight+3&&["auto","scroll"].includes(getComputedStyle(el).overflowY));
-  const singleScroller=verticalScrollers.length===1&&verticalScrollers[0]===motors;
+  const intendedScrollers=verticalScrollers.length===2&&verticalScrollers.includes(content)&&verticalScrollers.includes(motors);
 
-  const checks={documentNoScroll,generalNoScroll,motorsOnlyScroll,motorsVisible,cardsSeparated,barsVisible,noHorizontalOverflow,singleScroller};
+  const checks={documentNoScroll,pageScrollEnabled,motorsScrollEnabled,motorsVisible,cardsSeparated,barsVisible,noHorizontalOverflow,intendedScrollers};
   const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
   result.textContent=failed.length
     ?"SETTINGS_SMOKE_FAIL "+failed.join(",")+" motorsHeight="+Math.round(motorsRect.height)+" viewport="+viewportW+"x"+viewportH+" html="+html.scrollHeight+"/"+html.clientHeight+" body="+body.scrollHeight+"/"+body.clientHeight+" footer="+Math.round(footerRect.top)+"-"+Math.round(footerRect.bottom)+" visualBottom="+Math.round(visualBottom)
-    :"SETTINGS_SMOKE_PASS viewport="+viewportW+"x"+viewportH+" motorsHeight="+Math.round(motorsRect.height)+" cards=separated single-scroll=motors footer=visual-viewport";
+    :"SETTINGS_SMOKE_PASS viewport="+viewportW+"x"+viewportH+" motorsHeight="+Math.round(motorsRect.height)+" cards=separated scroll=page+motors footer=visual-viewport";
   return true;
 }
 

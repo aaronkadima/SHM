@@ -245,13 +245,14 @@ function App(){
               canvasClampOk=clampHeld&&clampReset;
             }
             let canvasWheelOk=true;
-            if(!phoneSidebar&&canvas&&viewportRect){
+            if(!phoneSidebar&&canvas){
+              const wheelViewportRect=canvas.closest(".editorViewport")?.getBoundingClientRect();
               const fitBeforeWheel=canvas.style.transform||"";
               canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,deltaX:0,deltaY:40}));
               await sleep(20);
               const wheelAtFitIgnored=(canvas.style.transform||"")===fitBeforeWheel;
-              const wheelAnchorX=(viewportRect.left+viewportRect.right)/2+80;
-              const wheelAnchorY=(viewportRect.top+viewportRect.bottom)/2+40;
+              const wheelAnchorX=wheelViewportRect?(wheelViewportRect.left+wheelViewportRect.right)/2+80:80;
+              const wheelAnchorY=wheelViewportRect?(wheelViewportRect.top+wheelViewportRect.bottom)/2+40:40;
               canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,ctrlKey:true,deltaX:0,deltaY:-100,clientX:wheelAnchorX,clientY:wheelAnchorY}));
               await sleep(30);
               const wheelZoomTransform=canvasTransformValues(canvas);

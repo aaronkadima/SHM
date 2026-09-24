@@ -1,5 +1,6 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Download,ImagePlus,Layers3,Maximize2,Minus,Play,Plus,Settings2,X} from "lucide-react";
+import{loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
 const MODEL_EXT=/\.(glb|gltf|obj|ply|stl)$/i;
@@ -28,9 +29,10 @@ export function detectAsset(file){
 }
 
 export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
-  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(true),[resultOpen,setResultOpen]=useState(true);
+  const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
+  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
-  const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(.75),[comparison,setComparison]=useState("overlay"),[showRawT0,setShowRawT0]=useState(false);
+  const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
   const [pathologyOrder,setPathologyOrder]=useState([]);
   const [selectedDetection,setSelectedDetection]=useState(null);
@@ -62,8 +64,9 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     reader.readAsDataURL(file);
     return()=>{cancelled=true;try{reader.abort()}catch{}};
   },[file]);
-  useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setComparison("overlay");setShowRawT0(false)},[file,referenceFile]);
+  useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
+  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison})},[opacity,layersOpen,preferredComparison]);
   useEffect(()=>{if(busy)setResultOpen(true)},[busy]);
   useEffect(()=>{if(busy){const now=performance.now();runStarted.current=now;setStartAt(now);setElapsed(0);setDurationMs(null)}
     else{if(runStarted.current!=null){setDurationMs(performance.now()-runStarted.current);runStarted.current=null}setStartAt(null)}},[busy]);
@@ -164,7 +167,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   function dragMove(e){if(drag.current)setPosition({x:e.clientX-drag.current.x,y:e.clientY-drag.current.y})}
   function dragEnd(){drag.current=null}
   function fitView(){setZoom(1)}
-  function changeComparison(mode){setComparison(mode);fitView()}
+  function changeComparison(mode){setComparison(mode);if(mode!=="temporal")setPreferredComparison(mode);fitView()}
   function setPathologyGroupVisible(next){
     setVisible(current=>{
       const updated={...current};

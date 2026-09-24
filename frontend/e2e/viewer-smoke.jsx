@@ -195,10 +195,21 @@ function App(){
             const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50;
-            if(initialImageNoticeOk&&imageNoticeCleared&&engineStatusPersistent&&overlayGeometryOk&&engineStatusOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&noFloatingLayersButton&&layerResizeOk&&layerNoWrapOk&&zoomBefore==="125%"&&panOk&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&iconActionsOk&&unifiedExportOk&&wipeInitialOk&&wipeAnchorOk&&wipeMovedOk&&wipeDirectionOk&&wipeStatusOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
+            const checks={
+              initialImageNoticeOk,imageNoticeCleared,engineStatusPersistent,overlayGeometryOk,engineStatusOk,
+              layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerNoWrapOk,
+              zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
+              overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
+              wipeInitialOk,wipeAnchorOk,wipeMovedOk,wipeDirectionOk,wipeStatusOk,zoomAfterWipe:zoomAfterWipe==="100%",
+              temporalOk,zoomAfterTemporal:zoomAfterTemporal==="100%",originalPanes:originalPanes===1,originalImages:originalImages===1,originalStacks:originalStacks===0,zoomAfterOriginal:zoomAfterOriginal==="100%",resetOk
+            };
+            const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
+            if(!failed.length){
               setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+persistent-engines layers=min340+nowrap+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+anchored-press+direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
-              return;
+            }else{
+              setResult("VIEWER_SMOKE_FAIL "+failed.join(","));
             }
+            return;
           }
         }
         await sleep(100);

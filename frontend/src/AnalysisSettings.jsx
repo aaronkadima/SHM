@@ -1,5 +1,5 @@
 import React,{useState} from "react";
-import {ArrowLeft,Check,Code2,Download,ExternalLink,Settings2,X} from "lucide-react";
+import {ArrowLeft,Check,Code2,Download,ExternalLink,Info,RefreshCw,Settings2,X} from "lucide-react";
 import {engineCodePackage} from "./engineCodeCatalog.js";
 import "./analysis-settings.css";
 
@@ -11,8 +11,10 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
   const needsIndividual=selected.length===1&&!localBrowser;
   const needsComparator=selected.length>=2;
   const [openCode,setOpenCode]=useState(null);
-  const selectedNames=selected.map(id=>engines.find(e=>e.id===id)?.name||id);
-  const selectedStatus=selectedNames.length?"Motores selecionados: "+selectedNames.join(", "):"Nenhum motor selecionado";
+  const [openInfo,setOpenInfo]=useState(null);
+  const [syncState,setSyncState]=useState({});
+  const selectedStatus="Motores selecionados: "+selected.length;
+  const repositoryRef=appInfo?.channel==="development"?"feat/cdm-1":"main";
   function exportEngineCode(engine){
     const pkg=engineCodePackage(engine);
     if(!pkg)return;
@@ -21,8 +23,34 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
     a.href=url;a.download=pkg.fileName;a.click();
     setTimeout(()=>URL.revokeObjectURL(url),500);
   }
+  function normalizeSource(value){return String(value||"").replace(/\r\n/g,"\n")}
+  async function checkBrowserUpdate(engine){
+    const pkg=engineCodePackage(engine);
+    if(!pkg?.repositoryPath||pkg.repositorySource==null){
+      setSyncState(v=>({...v,[engine.id]:{status:"unavailable",message:"Sem código browser local para comparar."}}));
+      return;
+    }
+    setSyncState(v=>({...v,[engine.id]:{status:"checking",message:"Verificando repositório…"}}));
+    try{
+      const url="https://api.github.com/repos/aaronkadima/SHM/contents/"+pkg.repositoryPath+"?ref="+encodeURIComponent(repositoryRef);
+      const response=await fetch(url,{headers:{Accept:"application/vnd.github+json"}});
+      if(!response.ok)throw new Error("GitHub "+response.status);
+      const payload=await response.json();
+      const encoded=String(payload.content||"").replace(/\n/g,"");
+      const bytes=Uint8Array.from(atob(encoded),char=>char.charCodeAt(0));
+      const remoteSource=new TextDecoder().decode(bytes);
+      const same=normalizeSource(remoteSource)===normalizeSource(pkg.repositorySource);
+      setSyncState(v=>({...v,[engine.id]:same
+        ?{status:"current",message:"Atualizado · código browser igual ao repositório."}
+        :{status:"different",message:"Diferente · o build browser não coincide com o repositório."}
+      }));
+    }catch(err){
+      setSyncState(v=>({...v,[engine.id]:{status:"error",message:"Falha ao verificar · "+(err?.message||"erro de rede")}}));
+    }
+  }
   function EngineCard({engine,owned=false}){
-    const pkg=engineCodePackage(engine),opened=openCode===engine.id;
+    const pkg=engineCodePackage(engine),opened=openCode===engine.id,infoOpen=openInfo===engine.id,sync=syncState[engine.id];
+    const browserComparable=!!pkg?.repositoryPath&&pkg?.repositorySource!=null;
     return <div className={"settingsEngineCard "+(owned?"settingsEngineCardOwned":"")}>
       <label className={"settingsEngine "+(owned?"settingsEnginePinned settingsOwnedEngine":"")}>
         <span><b>{engine.name}{owned&&<em className="settingsOwnBadge">PRÓPRIO · BROWSER</em>}</b><small>{engine.family} · {engine.task.replaceAll("_"," ")}</small>{owned&&<small className="settingsEngineDescription">{engine.description}</small>}</span>
@@ -31,7 +59,21 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
       <div className="settingsEngineCodeActions">
         <button type="button" className={opened?"active":""} onClick={()=>setOpenCode(opened?null:engine.id)}><Code2 size={13}/>{opened?"Ocultar código":"Ver código"}</button>
         <button type="button" onClick={()=>exportEngineCode(engine)}><Download size={13}/>Exportar código</button>
+        <button type="button" className={infoOpen?"active":""} onClick={()=>setOpenInfo(infoOpen?null:engine.id)}><Info size={13}/>Informações</button>
+        <button type="button" className={"settingsSyncButton "+(sync?.status||"")} disabled={!browserComparable||sync?.status==="checking"} title={browserComparable?"Comparar código browser com o repositório":"Disponível para motores com código browser local"} onClick={()=>checkBrowserUpdate(engine)}><RefreshCw size={13} className={sync?.status==="checking"?"spin":""}/>Atualização</button>
       </div>
+      {sync&&<div className={"settingsSyncState "+sync.status} role="status">{sync.message}</div>}
+      {infoOpen&&<div className="settingsEngineInfo">
+        <div><span>ID</span><b>{engine.id}</b></div>
+        <div><span>Família</span><b>{engine.family||"—"}</b></div>
+        <div><span>Tarefa</span><b>{String(engine.task||"—").replaceAll("_"," ")}</b></div>
+        <div><span>Runtime</span><b>{engine.browser_ready?"Browser local":"Backend / modelo externo"}</b></div>
+        <div><span>Implementação</span><b>{pkg?.kind||"—"}</b></div>
+        <div><span>Licença</span><b>{engine.license||"Não informada"}</b></div>
+        {pkg?.repositoryPath&&<div><span>Arquivo no repositório</span><b>{pkg.repositoryPath}</b></div>}
+        {engine.description&&<p>{engine.description}</p>}
+        {engine.source_url&&<a href={engine.source_url} target="_blank" rel="noreferrer"><ExternalLink size={12}/> Abrir origem do motor</a>}
+      </div>}
       {opened&&pkg&&<div className="settingsCodePanel">
         <div className="settingsCodeHead"><div><b>{pkg.kind}</b><small>{pkg.fileName} · {pkg.language}</small></div><div>{engine.source_url&&<a href={engine.source_url} target="_blank" rel="noreferrer" title="Abrir origem do modelo"><ExternalLink size={13}/>Origem</a>}<button type="button" title="Fechar código" onClick={()=>setOpenCode(null)}><X size={13}/></button></div></div>
         <p>Os comentários no início do arquivo descrevem as etapas de entrada, inferência, pós-processamento e serialização para facilitar implementação isolada ou migração para outra plataforma.</p>
@@ -65,6 +107,6 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
       <details className="analysisSettingsCard"><summary>Identificação da inspeção</summary><div className="settingsMeta">{[["oae_id","OAE / estrutura"],["element_id","Elemento"],["source_id","Fonte / câmera"],["inspection_label","Campanha / inspeção"]].map(([key,label])=><label className="settingsField" key={key}>{label}<input value={inspectionMeta[key]} onChange={e=>updateInspectionMeta(key,e.target.value)}/></label>)}</div></details>
       {error&&<p className="settingsError" role="alert">{error}</p>}
     </main>
-    <footer className="settingsBottom" aria-label="Barra de status das configurações"><span className="settingsStatusMessage">Configurações da análise</span><span className="settingsStatusEngines" title={selectedStatus}>{selectedStatus}</span><span className="settingsStatusMeta">{selected.length} selecionado(s)</span><button className="settingsApply" onClick={onBack}><Check size={14}/> Aplicar</button></footer>
+    <footer className="settingsBottom" aria-label="Barra de status das configurações"><span className="settingsStatusMessage">Configurações da análise</span><span className="settingsStatusEngines" title={selectedStatus}>{selectedStatus}</span><button className="settingsApply" onClick={onBack}><Check size={14}/> Aplicar</button></footer>
   </section>
 }

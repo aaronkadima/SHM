@@ -52,6 +52,21 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     return()=>window.removeEventListener("resize",syncCompactLayout);
   },[]);
   useEffect(()=>{
+    const onPaste=e=>{
+      const target=e.target;
+      if(target instanceof HTMLInputElement||target instanceof HTMLTextAreaElement||target?.isContentEditable)return;
+      const files=[...(e.clipboardData?.files||[])].filter(item=>detectAsset(item)==="2d");
+      if(!files.length)return;
+      e.preventDefault();
+      if(busy){showStatusNotice("Aguarde a análise atual terminar para colar outra imagem.",1800);return}
+      if(files.length!==1){showStatusNotice("Cole apenas uma imagem por vez.",1800);return}
+      onFile(files[0]);
+      showStatusNotice("Imagem colada da área de transferência",1500);
+    };
+    window.addEventListener("paste",onPaste);
+    return()=>window.removeEventListener("paste",onPaste);
+  },[busy,onFile]);
+  useEffect(()=>{
     const onEscape=e=>{
       if(e.key!=="Escape")return;
       let handled=false;
@@ -867,7 +882,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
         {fileDragActive&&<div className="editorDropOverlay" aria-hidden="true"><ImagePlus size={30}/><b>Solte para importar</b><span>Imagem 2D ou modelo 3D suportado</span></div>}
         {file&&<div className={"editorTypeBadge "+(kind==="unknown"?"unsupported":"")}>{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Formato não suportado"}</div>}
-        {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
+        {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente. Você também pode arrastar o arquivo ou colar uma imagem.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
         kind==="unknown"?<div className="editorEmpty editorUnsupported"><ImageIcon size={34}/><h2>Formato não suportado</h2><p>Use imagem {SUPPORTED_IMAGE_EXTENSIONS.map(ext=>"."+ext).join(", ")} ou modelo 3D {SUPPORTED_MODEL_EXTENSIONS.map(ext=>"."+ext).join(", ")}.</p><button onClick={()=>picker.current?.click()}>Escolher outro arquivo</button></div>:
         <div ref={canvasElement} className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio, Espaço mais arraste, setas, roda/trackpad ou toque para deslocar; Ctrl ou Command com roda, pinça, mais e menos para zoom; zero para ajustar à tela" aria-keyshortcuts="Space ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" data-touch-mode={zoom>1?"pan-pinch":"pinch-scroll"} data-pan-mode={canvasPointerPanning?"grabbing":spacePanHeld?"ready":"idle"} onKeyDown={canvasKeyDown} onKeyUp={canvasKeyUp} onBlur={canvasBlur} onWheel={canvasWheel} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>

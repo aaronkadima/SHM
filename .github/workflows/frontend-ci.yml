@@ -57,6 +57,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-execution-config.mjs
 
+      - name: Result export
+        working-directory: frontend
+        run: node scripts/check-result-export.mjs
+
       - name: Browser viewer smoke
         working-directory: frontend
         shell: bash

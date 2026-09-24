@@ -79,7 +79,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const results=res?.results||[];
   const shown=results.filter(r=>visible[r.engine_id]!==false);
   const chosen=shown.find(r=>r.engine_id===active)||shown[0];
-  const basePreview=prev||localPreview;
+  const basePreview=localPreview||prev;
   const pathologyLayers=chosen?.engine_id==="cdm_1"?chosen.metrics?.layers||[]:[];
   const temporal=chosen?.engine_id==="cdm_1"?chosen.metrics?.temporal:null;
   const temporalAlignment=temporal?.alignment||null;

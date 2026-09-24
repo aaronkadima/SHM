@@ -385,6 +385,7 @@ export default function App(){
       const clientElapsedMs=Math.max(0,performance.now()-analysisStarted);
       const result={...rawResult,metadata:{...(rawResult.metadata||{}),client_elapsed_ms:clientElapsedMs}};
       setRes(result);
+      setProgress({state:"persisting",completed:100,total:100,current_engine:"Salvando histórico local"});
       try{
         await requestPersistentStorage();
         if(controller.signal.aborted||activeRun.current?.id!==runId)return;

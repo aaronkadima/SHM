@@ -214,7 +214,6 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     return{x:Math.round(clampAxis(Number(next.x)||0,minX,maxX)),y:Math.round(clampAxis(Number(next.y)||0,minY,maxY))};
   }
   function dragStart(e){
-    if(e.target.closest("button"))return;
     drag.current={clientX:e.clientX,clientY:e.clientY,startX:position.x,startY:position.y};
     try{e.currentTarget.setPointerCapture?.(e.pointerId)}catch{}
   }
@@ -491,7 +490,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         </div>}
         {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>changeZoom(-.25)}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>changeZoom(.25)}><Plus size={15}/></button></div>}
         {resultOpen&&(busy||results.length>0)&&<div ref={resultPanel} className="editorFloating" data-position-x={position.x} data-position-y={position.y} style={{transform:`translate(${position.x}px,${position.y}px)`}}>
-          <div className="editorFloatHead" tabIndex="0" role="toolbar" aria-label="Mover painel de resultados" title="Arraste ou use setas, Home e End para mover" onKeyDown={moveResultPanelKey} onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}><b>Resultados</b><button title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
+          <div className="editorFloatHead"><button type="button" className="editorFloatMoveHandle" aria-label="Mover painel de resultados" title="Arraste ou use setas, Home e End para mover" onKeyDown={moveResultPanelKey} onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}><b>Resultados</b></button><button type="button" title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel} disabled={progress?.state==="cancel_requested"}>{progress?.state==="cancel_requested"?"Cancelando…":"Cancelar"}</button>}</div>}
           {!busy&&res&&durationMs!=null&&<div className="editorRunTime editorMetricRow"><span className="editorMetricLabel">Tempo medido</span><b className="editorMetricValue">{(durationMs/1000).toFixed(2)} s</b></div>}
           {results.map(r=><button key={r.engine_id} className={"editorResultRow "+(chosen?.engine_id===r.engine_id?"active":"")} onClick={()=>{setActive(r.engine_id);setVisible(v=>({...v,[r.engine_id]:true}))}}><span className="editorResultEngine">{r.name}</span><span className="editorResultMetric"><small>Achados</small><b>{r.detections?.length||0}</b></span><span className="editorResultMetric"><small>Latência</small><b>{Number(r.latency_ms||0).toFixed(0)} ms</b></span></button>)}

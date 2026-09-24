@@ -2,7 +2,7 @@ name: Deploy SHM production + development preview to GitHub Pages
 
 on:
   push:
-    branches: ["main","feat/cdm-1"]
+    branches: ["main","dev"]
     paths:
       - "frontend/**"
       - ".github/workflows/pages.yml"
@@ -30,7 +30,7 @@ jobs:
       - name: Checkout development source
         uses: actions/checkout@v6
         with:
-          ref: feat/cdm-1
+          ref: dev
           path: dev-src
 
       - name: Setup Node
@@ -79,7 +79,7 @@ jobs:
           PROD_CATALOG="$(node -p "require('./prod-src/frontend/src/engines.json').version")"
           DEV_CATALOG="$(node -p "require('./dev-src/frontend/src/engines.json').version")"
           printf '%s\n' 'SHM production: main' > site/DEPLOYMENT.txt
-          printf '%s\n' 'SHM development: feat/cdm-1' > site/dev/DEPLOYMENT.txt
+          printf '%s\n' 'SHM development: dev' > site/dev/DEPLOYMENT.txt
           printf '{"channel":"production","branch":"main","sha":"%s","catalogVersion":"%s"}\n' "$PROD_SHA" "$PROD_CATALOG" > site/build.json
           printf '{"channel":"development","branch":"feat/cdm-1","sha":"%s","catalogVersion":"%s"}\n' "$DEV_SHA" "$DEV_CATALOG" > site/dev/build.json
           node -e "const fs=require('fs');for(const p of ['site/build.json','site/dev/build.json']){const x=JSON.parse(fs.readFileSync(p,'utf8'));if(!x.sha||!x.catalogVersion)throw new Error('Invalid build manifest: '+p)}"

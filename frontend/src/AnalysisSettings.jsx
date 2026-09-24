@@ -32,13 +32,11 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
     }
     setSyncState(v=>({...v,[engine.id]:{status:"checking",message:"Verificando repositório…"}}));
     try{
-      const url="https://api.github.com/repos/aaronkadima/SHM/contents/"+pkg.repositoryPath+"?ref="+encodeURIComponent(repositoryRef);
-      const response=await fetch(url+"&ts="+Date.now(),{cache:"no-store",headers:{Accept:"application/vnd.github+json","Cache-Control":"no-cache"}});
-      if(!response.ok)throw new Error("GitHub "+response.status);
-      const payload=await response.json();
-      const encoded=String(payload.content||"").replace(/\n/g,"");
-      const bytes=Uint8Array.from(atob(encoded),char=>char.charCodeAt(0));
-      const remoteSource=new TextDecoder().decode(bytes);
+      const path=pkg.repositoryPath.split("/").map(encodeURIComponent).join("/");
+      const url="https://raw.githubusercontent.com/aaronkadima/SHM/"+encodeURIComponent(repositoryRef)+"/"+path+"?ts="+Date.now();
+      const response=await fetch(url,{cache:"no-store",headers:{"Cache-Control":"no-cache"}});
+      if(!response.ok)throw new Error("GitHub raw "+response.status);
+      const remoteSource=await response.text();
       const same=normalizeSource(remoteSource)===normalizeSource(pkg.repositorySource);
       setSyncState(v=>({...v,[engine.id]:same
         ?{status:"current",message:"Atualizado · código browser igual ao repositório."}

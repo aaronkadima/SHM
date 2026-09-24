@@ -28,8 +28,11 @@ check(workspace.includes('function canvasPanStart(e)')&&workspace.includes('e.bu
 check(workspace.includes('translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})'),"canvas transform must compose pan and zoom");
 check(workspace.includes('setCanvasPan({x:0,y:0});'),"fit/reset flows must be able to recenter the canvas");
 check(workspace.includes('function changeComparison(mode){')&&workspace.includes('if(mode!=="temporal")setPreferredComparison(mode);')&&workspace.includes('showStatusNotice("Visualização · "'),"comparison mode changes must refit, preserve the non-temporal preference and surface transient status");
-check(workspace.includes('function beginLayersResize(e)')&&workspace.includes('currentWidth=Math.max(180,Math.min(520')&&workspace.includes('setLayersWidth(currentWidth)'),"layer panel must support horizontal width resizing");
+check(workspace.includes('function beginLayersResize(e)')&&workspace.includes('currentWidth=Math.max(340,Math.min(600')&&workspace.includes('setLayersWidth(currentWidth)'),"layer panel must support horizontal width resizing");
 check(workspace.includes('className="editorLayerResizeHandle"'),"layer panel must expose a resize separator");
+check(workspace.includes('[layersWidth,setLayersWidth]=useState(360)'),"layer panel must open at a wider default width");
+check(styles.includes(".editorLayers{width:360px;min-width:340px"),"layer panel must enforce a no-collapse minimum width");
+check(styles.includes(".layerRow{")&&styles.includes("white-space:nowrap")&&styles.includes(".pathologyName{min-width:0;white-space:nowrap"),"primary layer rows and pathology names must remain on one line");
 check(workspace.includes('function setPathologyGroupVisible(next)'),"viewer must support group pathology visibility");
 check(workspace.includes('function isolatePathologyLayer(id)'),"viewer must support single-pathology isolation");
 check(workspace.includes('function movePathologyLayer(id,delta)'),"viewer must support pathology z-order changes");
@@ -72,6 +75,8 @@ check(styles.includes(".editorImage.editorSide>.editorImagePane{position:relativ
 check(styles.includes(".editorBaseImage{position:absolute;inset:0"),"base image must share overlay coordinates");
 check(styles.includes(".editorWipeDivider{position:absolute"),"swipe divider must be positioned inside the canvas");
 check(styles.includes(".editorWipeHandle{position:absolute")&&styles.includes("cursor:ew-resize"),"swipe divider handle must be directly draggable on the canvas");
+check(styles.includes("width:24px;height:34px")&&styles.includes("border-top:3px solid transparent")&&styles.includes("border-right:4px solid #4f6872"),"swipe handle and direction arrows must remain compact");
+check(styles.includes(".editorWipeHandle:active,.editorWipeHandle.dragging")&&styles.includes("transform:translate(-50%,-50%)"),"swipe handle active/dragging state must override the global button press translation and stay vertically anchored");
 check(styles.includes(".wipeArrow.left.active")&&styles.includes(".wipeArrow.right.active"),"active swipe direction must have its own visual color state");
 check(styles.includes(".editorExportUnified{width:auto")&&styles.includes(".editorViewActions .editorIconButton"),"result view/export actions must use compact icon styling");
 check(styles.includes(".editorViewActions [data-tooltip]:after")&&styles.includes("[data-tooltip]:hover:after"),"icon hover labels must render without waiting for the browser title tooltip");

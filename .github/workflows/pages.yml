@@ -74,8 +74,15 @@ jobs:
           mkdir -p site/dev
           cp -a prod-src/frontend/dist/. site/
           cp -a dev-src/frontend/dist/. site/dev/
+          PROD_SHA="$(git -C prod-src rev-parse --short HEAD)"
+          DEV_SHA="$(git -C dev-src rev-parse --short HEAD)"
+          PROD_CATALOG="$(node -p "require('./prod-src/frontend/src/engines.json').version")"
+          DEV_CATALOG="$(node -p "require('./dev-src/frontend/src/engines.json').version")"
           printf '%s\n' 'SHM production: main' > site/DEPLOYMENT.txt
           printf '%s\n' 'SHM development: feat/cdm-1' > site/dev/DEPLOYMENT.txt
+          printf '{"channel":"production","branch":"main","sha":"%s","catalogVersion":"%s"}\n' "$PROD_SHA" "$PROD_CATALOG" > site/build.json
+          printf '{"channel":"development","branch":"feat/cdm-1","sha":"%s","catalogVersion":"%s"}\n' "$DEV_SHA" "$DEV_CATALOG" > site/dev/build.json
+          node -e "const fs=require('fs');for(const p of ['site/build.json','site/dev/build.json']){const x=JSON.parse(fs.readFileSync(p,'utf8'));if(!x.sha||!x.catalogVersion)throw new Error('Invalid build manifest: '+p)}"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

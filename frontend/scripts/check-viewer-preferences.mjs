@@ -2,6 +2,7 @@ import {
   DEFAULT_VIEWER_PREFERENCES,
   VIEWER_PREFS_KEY,
   clampFloatingPanelPosition,
+  clampLayersPanelWidth,
   loadViewerPreferences,
   normalizeViewerPreferences,
   saveViewerPreferences
@@ -37,6 +38,9 @@ check(normalized.layersOpen===false,"layersOpen false must persist");
 check(normalized.layersWidth===360,"missing Layers width must use 360px default");
 check(normalizeViewerPreferences({layersWidth:120}).layersWidth===340,"Layers width must clamp to 340px minimum");
 check(normalizeViewerPreferences({layersWidth:900}).layersWidth===600,"Layers width must clamp to 600px maximum");
+check(clampLayersPanelWidth(359.6)===360,"Layers width helper must round finite values");
+check(clampLayersPanelWidth(120)===340&&clampLayersPanelWidth(900)===600,"Layers width helper must enforce 340–600px");
+check(clampLayersPanelWidth("bad")===360,"Layers width helper must fall back to default for invalid input");
 check(normalized.comparison==="overlay","temporal mode must not persist as global preference");
 check(normalized.wipePosition===95,"wipe position must clamp to 95");
 check(normalized.pathologyOrder.join(",")==="cracks,corrosion_rust","pathology order must keep unique non-empty string ids");

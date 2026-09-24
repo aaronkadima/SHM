@@ -2,17 +2,17 @@ import React from "react";
 import {ArrowLeft,Check,Settings2} from "lucide-react";
 import "./analysis-settings.css";
 
-export default function AnalysisSettings({engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,cdmOptions,setCdmOptions,error}){
+export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,cdmOptions,setCdmOptions,error}){
   const selectedEngine=selected.length===1?engines.find(e=>e.id===selected[0]):null;
   const localBrowser=!!selectedEngine?.browser_ready;
   const needsIndividual=selected.length===1&&!localBrowser;
   const needsComparator=selected.length>=2;
   return <section className="analysisSettings" aria-label="Configurações da análise">
-    <header className="settingsTop"><div><span className="editorMark">S</span><b>SHM Studio</b></div><button onClick={onBack}><ArrowLeft size={16}/> Voltar ao canvas</button></header>
+    <header className="settingsTop"><div><span className="editorMark">S</span><b>SHM Studio</b><em className={"settingsEnvBadge "+(appInfo?.channel||"production")}>{appInfo?.channel==="development"?"DEV":"PROD"} · v{appInfo?.catalogVersion||"—"} · {appInfo?.buildSha||"—"}</em></div><button onClick={onBack}><ArrowLeft size={16}/> Voltar ao canvas</button></header>
     <main className="settingsContent">
       <div className="settingsHeading"><Settings2 size={22}/><div><h1>Configurações da análise</h1><p>Defina os motores antes de executar a inspeção.</p></div></div>
       <div className="analysisSettingsCard"><h2>Motores disponíveis</h2><p>Um motor executa uma análise individual. Dois ou mais ativam a comparação.</p>
-        <div className="settingsEngines">{engines.map(e=><label key={e.id} className="settingsEngine"><span><b>{e.name}</b><small>{e.family} · {e.task.replaceAll("_"," ")}</small></span><input type="checkbox" checked={selected.includes(e.id)} onChange={()=>toggle(e.id)}/><span className="settingsSwitch" aria-hidden="true"/></label>)}</div>
+        <div className="settingsEngines">{engines.map(e=><label key={e.id} className={"settingsEngine "+(e.id==="cdm_1"?"settingsEnginePinned":"")}><span><b>{e.name}{e.id==="cdm_1"&&<em className="settingsOwnBadge">PRÓPRIO · BROWSER</em>}</b><small>{e.family} · {e.task.replaceAll("_"," ")}</small></span><input type="checkbox" checked={selected.includes(e.id)} onChange={()=>toggle(e.id)}/><span className="settingsSwitch" aria-hidden="true"/></label>)}</div>
       </div>
       {selected.includes("cdm_1")&&<details className="analysisSettingsCard"><summary>CDM-1 · Parâmetros morfológicos</summary><p>Valores iniciais da extensão CDM 2.8.5. Na análise individual, o CDM-1 executa localmente no navegador; na comparação com outros motores, o comparador usa os valores iniciais.</p><div className="settingsMeta">
         {[["cdm_threshold","Limiar T",1,255,1],["cdm_kernel_size","Kernel black-hat",3,99,1],["cdm_min_area","Área mínima (px²)",1,1000000,1],["cdm_min_aspect_ratio","Alongamento mínimo",1,50,.1],["cdm_mm_per_px","Calibração (mm/px; 0 = sem escala)",0,1000,.001]].map(([key,label,min,max,step])=><label key={key} className="settingsField">{label}<input type="number" min={min} max={max} step={step} value={cdmOptions[key]} onChange={e=>setCdmOptions(v=>({...v,[key]:Number(e.target.value)}))}/></label>)}

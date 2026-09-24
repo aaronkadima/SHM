@@ -231,8 +231,31 @@ function App(){
               const floatingAfterLayersClose=document.querySelector(".editorFloating");
               phoneOverlayArbitrationToggle=!document.querySelector(".editorLayers")&&!!floatingAfterLayersClose&&getComputedStyle(floatingAfterLayersClose).visibility==="visible"&&getComputedStyle(floatingAfterLayersClose).pointerEvents!=="none";
             }
+            const floatingPanel=document.querySelector(".editorFloating");
+            const floatingHead=floatingPanel?.querySelector(".editorFloatHead");
+            const viewportRect=document.querySelector(".editorViewport")?.getBoundingClientRect();
+            let floatingClampOk=!!floatingPanel&&!!floatingHead&&!!viewportRect&&parseFloat(getComputedStyle(floatingPanel).maxWidth)>0;
+            if(floatingClampOk){
+              const start=floatingHead.getBoundingClientRect();
+              const sx=start.left+20,sy=start.top+16;
+              floatingHead.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:41,clientX:sx,clientY:sy,button:0}));
+              floatingHead.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:41,clientX:-1200,clientY:-1200,button:0}));
+              floatingHead.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:41,clientX:-1200,clientY:-1200,button:0}));
+              await sleep(80);
+              const topLeft=floatingPanel.getBoundingClientRect();
+              const topLeftOk=topLeft.left>=viewportRect.left+7&&topLeft.top>=viewportRect.top+7;
+              const head2=floatingHead.getBoundingClientRect();
+              const sx2=head2.left+20,sy2=head2.top+16;
+              floatingHead.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:42,clientX:sx2,clientY:sy2,button:0}));
+              floatingHead.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:42,clientX:5000,clientY:5000,button:0}));
+              floatingHead.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:42,clientX:5000,clientY:5000,button:0}));
+              await sleep(80);
+              const bottomRight=floatingPanel.getBoundingClientRect();
+              const bottomRightOk=bottomRight.right<=viewportRect.right-7&&bottomRight.bottom<=viewportRect.bottom-7;
+              floatingClampOk=topLeftOk&&bottomRightOk&&Number.isFinite(Number(floatingPanel.dataset.positionX))&&Number.isFinite(Number(floatingPanel.dataset.positionY));
+            }
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneOverlayArbitrationInitial,phoneOverlayArbitrationToggle,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneOverlayArbitrationInitial,phoneOverlayArbitrationToggle,floatingClampOk,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
@@ -241,7 +264,7 @@ function App(){
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=phone-single-panel sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=phone-single-panel results=viewport-clamped sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
               setResult("VIEWER_SMOKE_FAIL "+failed.join(","));
             }

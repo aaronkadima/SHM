@@ -219,6 +219,16 @@ def run(image):
 \`;
 }
 
+function openCvStandaloneSource(){
+  // O arquivo browserEngines.js contém o OpenCV e o despachante compartilhado.
+  // Para exportação isolada removemos apenas a dependência do CDM e o despachante final,
+  // preservando literalmente os helpers e runOpenCVBaseline usados pela plataforma.
+  const withoutCdmImport=browserEnginesSource.replace(/^import\{runCdmBrowser\}from"\.\/cdmBrowser\.js";\s*/,"");
+  const dispatcher=withoutCdmImport.indexOf("export function browserEngineSupported");
+  const implementation=dispatcher>=0?withoutCdmImport.slice(0,dispatcher):withoutCdmImport;
+  return implementation+"\nexport {runOpenCVBaseline};\n";
+}
+
 export function engineCodePackage(engine){
   if(!engine)return null;
   if(engine.id==="cdm_1"){
@@ -246,7 +256,7 @@ export function engineCodePackage(engine){
         "Aplicar suavização, limiar de Otsu e abertura morfológica.",
         "Extrair componentes conectados e filtrar por área.",
         "Serializar detecções, métricas e overlay."
-      ])+browserEnginesSource
+      ])+openCvStandaloneSource()
     };
   }
   const source=pythonTemplate(engine);

@@ -26,7 +26,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [initialCompactLayout]=useState(()=>typeof window!=="undefined"&&window.innerWidth<900);
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialCompactLayout?false:initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
-  const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
+  const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false),[cameraFacing,setCameraFacing]=useState("environment"),[cameraCapturing,setCameraCapturing]=useState(false),[cameraResolution,setCameraResolution]=useState("");
   const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[spacePanHeld,setSpacePanHeld]=useState(false),[canvasPointerPanning,setCanvasPointerPanning]=useState(false),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[wipeDirection,setWipeDirection]=useState(null),[wipeDragging,setWipeDragging]=useState(false),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState(initialViewerPrefs.resultPanelPosition||DEFAULT_VIEWER_PREFERENCES.resultPanelPosition),[resultPanelSize,setResultPanelSize]=useState(initialViewerPrefs.resultPanelSize||DEFAULT_VIEWER_PREFERENCES.resultPanelSize);
   const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder),[pathologyOpacity,setPathologyOpacity]=useState(initialViewerPrefs.pathologyOpacity||{}),[pathologyLocked,setPathologyLocked]=useState(new Set(initialViewerPrefs.pathologyLocked||[])),[selectedPathologyId,setSelectedPathologyId]=useState(null);
@@ -40,7 +40,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const compactLayout=useRef(initialCompactLayout),desktopLayersPreference=useRef(initialViewerPrefs.layersOpen);
   const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null),fileDragDepth=useRef(0);
   useEffect(()=>setKind(detectAsset(file)),[file]);
-  useEffect(()=>{if(busy){fileDragDepth.current=0;setFileDragActive(false)}},[busy]);
+  useEffect(()=>{if(busy){fileDragDepth.current=0;setFileDragActive(false);setCameraOpen(false)}},[busy]);
   useEffect(()=>{
     const syncCompactLayout=()=>{
       const next=window.innerWidth<900;
@@ -170,14 +170,22 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     setStartAt(null);
   },[busy,res,hasMeasuredDuration,measuredDurationMs]);
   useEffect(()=>{if(startAt==null)return;const tick=()=>setElapsed(Math.floor((performance.now()-startAt)/1000));tick();const id=setInterval(tick,250);return()=>clearInterval(id)},[startAt]);
-  useEffect(()=>{if(!cameraOpen)return;let cancelled=false;setCameraError("");setCameraReady(false);
+  useEffect(()=>{if(!cameraOpen)return;let cancelled=false;setCameraError("");setCameraReady(false);setCameraCapturing(false);setCameraResolution("");
     if(!navigator.mediaDevices?.getUserMedia){setCameraError("Câmera indisponível neste navegador ou fora de uma conexão segura.");return}
-    navigator.mediaDevices.getUserMedia({video:true,audio:false}).then(s=>{
+    const constraints={video:{facingMode:{ideal:cameraFacing},width:{ideal:1920},height:{ideal:1080}},audio:false};
+    navigator.mediaDevices.getUserMedia(constraints).then(s=>{
       if(cancelled){s.getTracks().forEach(t=>t.stop());return}
-      stream.current=s;if(video.current){video.current.srcObject=s;video.current.play().catch(e=>setCameraError("Não foi possível iniciar a prévia: "+e.message))}
-    }).catch(e=>setCameraError("Não foi possível acessar a câmera: "+e.message));
-    return()=>{cancelled=true;stream.current?.getTracks().forEach(t=>t.stop());stream.current=null}
-  },[cameraOpen]);
+      stream.current=s;
+      const track=s.getVideoTracks()[0];
+      track?.addEventListener?.("ended",()=>{if(!cancelled){setCameraReady(false);setCameraError("A câmera foi desconectada ou interrompida.")}},{once:true});
+      if(video.current){video.current.srcObject=s;video.current.play().catch(e=>setCameraError("Não foi possível iniciar a prévia: "+e.message))}
+    }).catch(e=>{
+      const name=String(e?.name||"");
+      const message=name==="NotAllowedError"?"Permissão de câmera negada. Autorize o acesso nas configurações do navegador.":name==="NotFoundError"?"Nenhuma câmera compatível foi encontrada.":"Não foi possível acessar a câmera: "+(e?.message||String(e));
+      setCameraError(message);
+    });
+    return()=>{cancelled=true;setCameraCapturing(false);setCameraReady(false);stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;if(video.current)video.current.srcObject=null}
+  },[cameraOpen,cameraFacing]);
   useEffect(()=>{if(!cameraOpen)return;const onKey=e=>{if(e.key==="Escape")setCameraOpen(false)};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[cameraOpen]);
   const linkedReferenceCompatibility=referenceInspectionId&&referenceInspectionMeta?(()=>{
     const norm=v=>String(v||"").trim();
@@ -270,7 +278,22 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const displaySize={width:Math.max(96,safeImage.width*fit*panes),height:Math.max(72,safeImage.height*fit)};
   useEffect(()=>{setCanvasPan(current=>{const next=clampCanvasPan(current,{viewportWidth:surface.current?.clientWidth||viewportSize.width,viewportHeight:surface.current?.clientHeight||viewportSize.height,canvasWidth:displaySize.width,canvasHeight:displaySize.height,zoom,minVisible:56});return next.x===current.x&&next.y===current.y?current:next})},[zoom,viewportSize.width,viewportSize.height,displaySize.width,displaySize.height]);
   const pct=progress?.total?Math.min(100,Math.round(progress.completed/progress.total*100)):0;
-  function capture(){const v=video.current;if(!v?.videoWidth)return;const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);c.toBlob(blob=>{if(blob){onFile(new File([blob],"captura-"+Date.now()+".png",{type:"image/png"}));setCameraOpen(false)}else setCameraError("Falha ao converter o quadro capturado.")},"image/png")}
+  function capture(){
+    const v=video.current;
+    if(cameraCapturing)return;
+    if(!v?.videoWidth||!v?.videoHeight){setCameraError("A prévia ainda não possui resolução válida para captura.");return}
+    const canvas=document.createElement("canvas");canvas.width=v.videoWidth;canvas.height=v.videoHeight;
+    const context=canvas.getContext("2d");
+    if(!context){setCameraError("O navegador não conseguiu preparar a captura.");return}
+    setCameraCapturing(true);
+    context.drawImage(v,0,0);
+    canvas.toBlob(blob=>{
+      if(blob){
+        onFile(new File([blob],"captura-"+new Date().toISOString().replace(/[:.]/g,"-")+".png",{type:"image/png",lastModified:Date.now()}));
+        setCameraOpen(false);
+      }else{setCameraCapturing(false);setCameraError("Falha ao converter o quadro capturado.")}
+    },"image/png");
+  }
   function fileDragHasFiles(e){
     const types=[...(e?.dataTransfer?.types||[])];
     return types.includes("Files");
@@ -945,6 +968,6 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       </div>
     </div>
     <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?(statusNoticeTone==="warning"?"warning ":"transient "):"")+(!statusNotice&&analysisBlockedReason&&!busy&&!error&&!previewError?"blocked":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}{appInfo?.deployment?.status==="divergent"&&<button className="editorUpdateAvailable" type="button" title="Há uma versão publicada mais recente. Recarregar sem usar o HTML em cache." onClick={()=>{const url=new URL(window.location.href);url.searchParams.set("build",String(appInfo?.deployment?.manifest?.sha||Date.now()));window.location.replace(url.toString())}}><RefreshCw size={11}/> Atualizar</button>}{appInfo?.channel==="development"&&<span className={"editorDevStamp "+(appInfo?.deployment?.status||"")} title={"Build de desenvolvimento · "+(appInfo?.buildSha||"—")+" · catálogo v"+(appInfo?.catalogVersion||"—")+" · deploy "+(appInfo?.deployment?.status||"não verificado")+(appInfo?.deployment?.manifest?.sha?" · publicado "+appInfo.deployment.manifest.sha:"")}>DEV · {String(appInfo?.buildSha||"—").slice(0,8)}{" "}<i className="editorDeployState" aria-label={"Deploy "+(appInfo?.deployment?.status||"não verificado")}>{appInfo?.deployment?.status==="synced"?"✓":appInfo?.deployment?.status==="divergent"?"!":appInfo?.deployment?.status==="unavailable"?"?":appInfo?.deployment?.status==="checking"?"…":""}</i></span>}</span></div>
-    {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera" role="dialog" aria-modal="true" aria-label="Modo câmera"><header><b>Modo câmera</b><button aria-label="Fechar modo câmera" title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={()=>setCameraReady(true)}/><footer><span>{cameraError?"Verifique a permissão da câmera":cameraReady?"Prévia ao vivo · capture um quadro para análise 2D":"Aguardando câmera…"}</span><button onClick={capture} disabled={!!cameraError||!cameraReady}><Camera size={16}/> Capturar imagem</button></footer></div></div>}
+    {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera" role="dialog" aria-modal="true" aria-label="Modo câmera"><header><b>Modo câmera</b><button aria-label="Fechar modo câmera" title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={e=>{const v=e.currentTarget;setCameraResolution(v.videoWidth+"×"+v.videoHeight);setCameraReady(v.videoWidth>0&&v.videoHeight>0)}}/><footer><span>{cameraError?cameraError:cameraReady?"Prévia ao vivo"+(cameraResolution?" · "+cameraResolution:""):"Aguardando câmera…"}</span><div className="editorCameraActions"><button type="button" disabled={cameraCapturing} onClick={()=>setCameraFacing(value=>value==="environment"?"user":"environment")}>{cameraFacing==="environment"?"Frontal":"Traseira"}</button><button onClick={capture} disabled={!!cameraError||!cameraReady||cameraCapturing}><Camera size={16}/> {cameraCapturing?"Capturando…":"Capturar imagem"}</button></div></footer></div></div>}
   </section>
 }

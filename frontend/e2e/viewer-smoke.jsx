@@ -77,8 +77,13 @@ function App(){
           const brandRect=brand?.getBoundingClientRect();
           const topButtons=[...document.querySelectorAll(".editorTopActions button")];
           const topActionsFit=!!topRect&&!!actionsRect&&!!brandRect&&actionsRect.right<=topRect.right+1&&brandRect.left>=topRect.left-1&&topButtons.every(button=>{const r=button.getBoundingClientRect();return r.left>=topRect.left-1&&r.right<=topRect.right+1})&&topBar.scrollWidth<=topBar.clientWidth+1;
-          const phoneTopCompactOk=!phoneSidebar||(getComputedStyle(document.querySelector(".editorBrand strong")).display==="none"&&topButtons.every(button=>Math.abs(button.getBoundingClientRect().width-32)<1));
-          const responsiveDiag=`iw=${window.innerWidth},narrow=${narrowSidebar},phone=${phoneSidebar},compact=${compactOverlay},sidebar=${sidebarRect?Math.round(sidebarRect.left)+"/"+Math.round(sidebarRect.width):"none"},resize=${sidebarResizeStyle.display},brand=${getComputedStyle(document.querySelector(".editorBrand strong")).display},buttons=${topButtons.map(button=>Math.round(button.getBoundingClientRect().width)).join("/")}`;
+          const brandTitle=document.querySelector(".editorBrand strong");
+          const brandTitleStyle=brandTitle?getComputedStyle(brandTitle):null;
+          const phoneTopCompactOk=!phoneSidebar||(brandTitleStyle?.display!=="none"&&brandTitle?.textContent.trim()==="SHM Studio"&&topButtons.every(button=>Math.abs(button.getBoundingClientRect().width-32)<1));
+          const zoomControl=document.querySelector(".editorZoom");
+          const zoomRect=zoomControl?.getBoundingClientRect();
+          const phoneZoomCompactOk=!phoneSidebar||(!!zoomRect&&zoomRect.height<=42&&zoomRect.width<=140&&getComputedStyle(zoomControl).top==="auto");
+          const responsiveDiag=`iw=${window.innerWidth},narrow=${narrowSidebar},phone=${phoneSidebar},compact=${compactOverlay},sidebar=${sidebarRect?Math.round(sidebarRect.left)+"/"+Math.round(sidebarRect.width):"none"},resize=${sidebarResizeStyle.display},brand=${brandTitleStyle?.display||"missing"},brandText=${brandTitle?.textContent.trim()||"missing"},zoom=${zoomRect?Math.round(zoomRect.width)+"x"+Math.round(zoomRect.height):"missing"},buttons=${topButtons.map(button=>Math.round(button.getBoundingClientRect().width)).join("/")}`;
           const resultsPanel=document.querySelector(".editorFloating");
           const compactOverlayArbitrationInitial=!compactOverlay||getComputedStyle(resultsPanel).visibility==="hidden";
           const rect=pane.getBoundingClientRect();
@@ -538,7 +543,7 @@ function App(){
               alwaysPresentControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`))&&
               (!sidebarCurrentlyOpen||sidebarControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`)));
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,exportEscapeOk,
@@ -563,7 +568,7 @@ function App(){
   return <>
     <div style={{height:"760px"}}>
       <AnalysisWorkspace
-        appInfo={{channel:"development",buildSha:"abc123456789",catalogVersion:"1.2.0",deployment:{status:"synced",manifest:{sha:"abc123456789",channel:"development",branch:"feat/cdm-1",catalogVersion:"1.2.0"}}}}
+        appInfo={{channel:"development",buildSha:"abc123456789",catalogVersion:"1.2.0",deployment:{status:"synced",manifest:{sha:"abc123456789",channel:"development",branch:"dev",catalogVersion:"1.2.0"}}}}
         selectedEngineLabels={selectedEngineLabels}
         file={file} prev={null} referenceFile={referenceFile} referencePrev={referencePrev}
         referenceInspectionId={null} referenceInspectionMeta={null}

@@ -428,6 +428,18 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
       fitView();
     }
   }
+  function canvasWheel(e){
+    if(e.target!==e.currentTarget&&canvasTouchExcluded(e.target))return;
+    if(e.ctrlKey||e.metaKey){
+      e.preventDefault();
+      changeZoom(e.deltaY<0?.25:-.25);
+      return;
+    }
+    if(zoom>1&&(Math.abs(e.deltaX)>.1||Math.abs(e.deltaY)>.1)){
+      e.preventDefault();
+      setCanvasPan(current=>({x:current.x-e.deltaX,y:current.y-e.deltaY}));
+    }
+  }
   function beginLayersResize(e){
     if(e.button!==0||e.isPrimary===false)return;
     e.preventDefault();
@@ -684,7 +696,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
-        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio, setas ou toque para deslocar; gesto de pinça para zoom; zero para ajustar à tela" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" data-touch-mode={zoom>1?"pan-pinch":"pinch-scroll"} onKeyDown={canvasKeyDown} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
+        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio, setas, roda/trackpad ou toque para deslocar; Ctrl ou Command com roda, pinça, mais e menos para zoom; zero para ajustar à tela" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" data-touch-mode={zoom>1?"pan-pinch":"pinch-scroll"} onKeyDown={canvasKeyDown} onWheel={canvasWheel} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
           {comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}
           {comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)}
           {comparison==="wipe"&&renderWipePane(basePreview)}

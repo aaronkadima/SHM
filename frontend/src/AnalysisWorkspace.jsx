@@ -1,6 +1,6 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Settings2,Unlock,X} from "lucide-react";
-import{DEFAULT_VIEWER_PREFERENCES,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
+import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
 const MODEL_EXT=/\.(glb|gltf|obj|ply|stl)$/i;
@@ -226,6 +226,19 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
       return next;
     });
   }
+  function canvasPanGeometry(zoomValue=zoom){
+    return{
+      viewportWidth:surface.current?.clientWidth||viewportSize.width,
+      viewportHeight:surface.current?.clientHeight||viewportSize.height,
+      canvasWidth:displaySize.width,
+      canvasHeight:displaySize.height,
+      zoom:zoomValue,
+      minVisible:56
+    };
+  }
+  function clampCanvasPosition(next,zoomValue=zoom){
+    return clampCanvasPan(next,canvasPanGeometry(zoomValue));
+  }
   function clampResultPosition(next){
     const panel=resultPanel.current,viewport=surface.current;
     if(!panel||!viewport)return next;
@@ -376,27 +389,27 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         const distance=Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y)||1;
         const midpoint={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
         const nextZoom=Math.max(1,Math.min(4,gesture.startZoom*distance/gesture.startDistance));
-        const nextPan={
+        const nextPan=clampCanvasPosition({
           x:gesture.startPan.x+midpoint.x-gesture.startMidpoint.x,
           y:gesture.startPan.y+midpoint.y-gesture.startMidpoint.y
-        };
+        },nextZoom);
         gesture.lastZoom=nextZoom;
         gesture.lastPan=nextPan;
         setZoom(nextZoom);
         setCanvasPan(nextPan);
       }else if(gesture.mode==="pan"&&gesture.points.size===1&&zoom>1){
         e.preventDefault();
-        setCanvasPan({
+        setCanvasPan(clampCanvasPosition({
           x:gesture.startPan.x+e.clientX-gesture.startPoint.x,
           y:gesture.startPan.y+e.clientY-gesture.startPoint.y
-        });
+        }));
       }
       return;
     }
     const dragState=canvasDrag.current;
     if(!dragState||e.pointerId!==dragState.pointerId)return;
     e.preventDefault();
-    setCanvasPan({x:e.clientX-dragState.x,y:e.clientY-dragState.y});
+    setCanvasPan(clampCanvasPosition({x:e.clientX-dragState.x,y:e.clientY-dragState.y}));
   }
   function canvasPanEnd(e){
     if(e.pointerType==="touch"){
@@ -438,7 +451,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     const panDelta={ArrowLeft:[-32,0],ArrowRight:[32,0],ArrowUp:[0,-32],ArrowDown:[0,32]}[e.key];
     if(panDelta){
       e.preventDefault();
-      setCanvasPan(current=>({x:current.x+panDelta[0],y:current.y+panDelta[1]}));
+      setCanvasPan(current=>clampCanvasPosition({x:current.x+panDelta[0],y:current.y+panDelta[1]}));
       showStatusNotice("Canvas · "+(panDelta[0]?"X ":"Y ")+(panDelta[0]||panDelta[1])+" px",600);
       return;
     }
@@ -462,7 +475,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     }
     if(zoom>1&&(Math.abs(e.deltaX)>.1||Math.abs(e.deltaY)>.1)){
       e.preventDefault();
-      setCanvasPan(current=>({x:current.x-e.deltaX,y:current.y-e.deltaY}));
+      setCanvasPan(current=>clampCanvasPosition({x:current.x-e.deltaX,y:current.y-e.deltaY}));
     }
   }
   function beginLayersResize(e){

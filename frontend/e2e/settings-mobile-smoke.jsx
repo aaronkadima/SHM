@@ -1,0 +1,94 @@
+import React,{useState,useEffect} from "react";
+import {createRoot} from "react-dom/client";
+import AnalysisSettings from "../src/AnalysisSettings.jsx";
+import "../src/styles.css";
+
+const engines=[
+  {
+    id:"cdm_1",name:"CDM-1",family:"Concrete Damage Morphology",task:"classical",
+    description:"CDM 2.8.5: fissuras, desplacamento, armadura exposta, corrosão e eflorescência em camadas independentes; execução no navegador.",
+    browser_ready:true,license:"SHM project"
+  },
+  ...Array.from({length:33},(_,i)=>({
+    id:"engine_"+(i+1),
+    name:["OpenCV Crack Baseline","GlassEye Infrastructure Defect Detector","SegFormer-B0 Crack Segmentation","U-Net Concrete Crack","YOLO Crack Detector","YOLOv8 Corrosion Segmentation"][i%6]+" "+(i+1),
+    family:i%2?"Ultralytics / Hugging Face":"PyTorch / Hugging Face",
+    task:i%3===0?"detection":"semantic_segmentation",
+    description:"Motor público para validação responsiva do catálogo.",
+    browser_ready:false,
+    source_url:"https://github.com/"
+  }))
+];
+
+function App(){
+  const [selected,setSelected]=useState(["cdm_1"]);
+  const [cdmOptions,setCdmOptions]=useState({
+    cdm_threshold:17,cdm_kernel_size:21,cdm_min_area:20,cdm_min_aspect_ratio:2,
+    cdm_mm_per_px:0,cdm_element_family:"barreiras_guarda_corpo_pista",cdm_alignment_method:"translation_auto"
+  });
+  const [inspectionMeta,setInspectionMeta]=useState({oae_id:"",element_id:"",source_id:"",inspection_label:""});
+  const toggle=id=>setSelected(v=>v.includes(id)?v.filter(x=>x!==id):[...v,id]);
+  const updateInspectionMeta=(key,value)=>setInspectionMeta(v=>({...v,[key]:value}));
+  return <div className="appShell editorShell settingsShell">
+    <main className="appMain">
+      <AnalysisSettings
+        appInfo={{channel:"development",catalogVersion:"smoke",buildSha:"mobile"}}
+        engines={engines}
+        selected={selected}
+        toggle={toggle}
+        onBack={()=>{}}
+        individualDraft="" setIndividualDraft={()=>{}}
+        comparatorDraft="" setComparatorDraft={()=>{}}
+        saveIndividual={()=>{}} saveComparator={()=>{}}
+        testIndividual={()=>{}} testComparator={()=>{}}
+        individualOnline={null} comparatorOnline={null}
+        inspectionMeta={inspectionMeta} updateInspectionMeta={updateInspectionMeta}
+        cdmOptions={cdmOptions} setCdmOptions={setCdmOptions}
+        error=""
+      />
+    </main>
+  </div>;
+}
+
+createRoot(document.getElementById("root")).render(<App/>);
+
+function check(){
+  const result=document.getElementById("settings-smoke-result");
+  const content=document.querySelector(".settingsContent");
+  const motors=document.querySelector(".settingsEngines");
+  const motorsCard=document.querySelector(".settingsMotorsCard");
+  const footer=document.querySelector(".settingsBottom");
+  const top=document.querySelector(".settingsTop");
+  const firstOther=motors?.querySelector(".settingsEngineCard");
+  if(!content||!motors||!motorsCard||!footer||!top||!firstOther)return false;
+
+  const html=document.documentElement,body=document.body;
+  const viewportH=window.innerHeight,viewportW=window.innerWidth;
+  const motorsRect=motors.getBoundingClientRect();
+  const firstRect=firstOther.getBoundingClientRect();
+  const footerRect=footer.getBoundingClientRect();
+  const topRect=top.getBoundingClientRect();
+
+  const documentNoScroll=html.scrollHeight<=viewportH+2&&body.scrollHeight<=viewportH+2;
+  const generalNoScroll=content.scrollHeight<=content.clientHeight+2&&getComputedStyle(content).overflowY!=="auto"&&getComputedStyle(content).overflowY!=="scroll";
+  const motorsOnlyScroll=getComputedStyle(motors).overflowY==="auto"&&motors.scrollHeight>motors.clientHeight+10;
+  const motorsVisible=motorsRect.height>=145&&firstRect.height>=55&&firstRect.bottom>motorsRect.top&&firstRect.top<motorsRect.bottom;
+  const barsVisible=topRect.top>=-1&&topRect.bottom<=viewportH+1&&footerRect.top>=0&&footerRect.bottom<=viewportH+1;
+  const noHorizontalOverflow=html.scrollWidth<=viewportW+2&&body.scrollWidth<=viewportW+2;
+  const candidates=[html,body,content,motorsCard,motors];
+  const verticalScrollers=candidates.filter(el=>el.scrollHeight>el.clientHeight+3&&["auto","scroll"].includes(getComputedStyle(el).overflowY));
+  const singleScroller=verticalScrollers.length===1&&verticalScrollers[0]===motors;
+
+  const checks={documentNoScroll,generalNoScroll,motorsOnlyScroll,motorsVisible,barsVisible,noHorizontalOverflow,singleScroller};
+  const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
+  result.textContent=failed.length
+    ?"SETTINGS_SMOKE_FAIL "+failed.join(",")+" motorsHeight="+Math.round(motorsRect.height)+" viewport="+viewportW+"x"+viewportH
+    :"SETTINGS_SMOKE_PASS viewport="+viewportW+"x"+viewportH+" motorsHeight="+Math.round(motorsRect.height)+" single-scroll=motors footer=fixed";
+  return true;
+}
+
+let attempts=0;
+const timer=setInterval(()=>{
+  attempts++;
+  if(check()||attempts>40)clearInterval(timer);
+},100);

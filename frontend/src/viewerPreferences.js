@@ -3,7 +3,8 @@ export const VIEWER_PREFS_KEY="shm.viewer.preferences.v1";
 export const DEFAULT_VIEWER_PREFERENCES={
   opacity:0.75,
   layersOpen:true,
-  comparison:"overlay"
+  comparison:"overlay",
+  pathologyOrder:[]
 };
 
 const VALID_COMPARISONS=new Set(["original","overlay","side"]);
@@ -13,7 +14,8 @@ export function normalizeViewerPreferences(value={}){
   return {
     opacity:Number.isFinite(opacity)?Math.min(1,Math.max(0,opacity)):DEFAULT_VIEWER_PREFERENCES.opacity,
     layersOpen:typeof value?.layersOpen==="boolean"?value.layersOpen:DEFAULT_VIEWER_PREFERENCES.layersOpen,
-    comparison:VALID_COMPARISONS.has(value?.comparison)?value.comparison:DEFAULT_VIEWER_PREFERENCES.comparison
+    comparison:VALID_COMPARISONS.has(value?.comparison)?value.comparison:DEFAULT_VIEWER_PREFERENCES.comparison,
+    pathologyOrder:Array.isArray(value?.pathologyOrder)?[...new Set(value.pathologyOrder.filter(x=>typeof x==="string"&&x.trim()))]:[]
   };
 }
 

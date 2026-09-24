@@ -22,7 +22,7 @@ const TEMPORAL_WARNING_LABELS={
   exposure_warning:"exposição próxima do limite",
   low_texture:"baixa textura para registro"
 };
-export default function AnalysisWorkspace({appInfo=null,executionIssue="",selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
+export default function AnalysisWorkspace({appInfo=null,executionIssue="",referenceValidating=false,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [initialCompactLayout]=useState(()=>typeof window!=="undefined"&&window.innerWidth<900);
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialCompactLayout?false:initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
@@ -775,7 +775,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",select
       ?"Formato de arquivo não suportado"
       :kind==="2d"&&!imageDecoded
         ?previewError||"Aguardando decodificação da imagem"
-        :executionIssue;
+        :referenceValidating
+          ?"Validando referência t0…"
+          :executionIssue;
   const statusMessage=error
     ||previewError
     ||(progress?.state==="cancelled"?"Análise cancelada":"")
@@ -792,9 +794,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",select
         <input ref={picker} hidden type="file" accept={ASSET_ACCEPT} onChange={e=>onFile(e.target.files?.[0]||null)}/>
         <input ref={referencePicker} hidden type="file" accept={IMAGE_ACCEPT} onChange={e=>onReferenceFile(e.target.files?.[0]||null)}/>
         <button disabled={busy} onClick={()=>picker.current?.click()}><ImagePlus size={16}/> Importar</button>
-        {selected.length===1&&selected[0]==="cdm_1"&&<button disabled={busy} title="Carregar imagem anterior para comparação temporal" onClick={()=>referencePicker.current?.click()}><ImagePlus size={16}/> {referenceFile?"t0: "+referenceFile.name:"Referência t0"}</button>}
+        {selected.length===1&&selected[0]==="cdm_1"&&<button disabled={busy||referenceValidating} title={referenceValidating?"Validando referência t0…":"Carregar imagem anterior para comparação temporal"} onClick={()=>referencePicker.current?.click()}><ImagePlus size={16}/> {referenceValidating?"Validando t0…":referenceFile?"t0: "+referenceFile.name:"Referência t0"}</button>}
         <button disabled={busy} onClick={onSettings}><Settings2 size={16}/> Configurar</button>
-        <button className="editorPrimary" disabled={!file||kind!=="2d"||!imageDecoded||!!previewError||!selected.length||busy||!!executionIssue} title={analysisBlockedReason||"Executar análise"} onClick={onRun}><Play size={16}/> Analisar</button>
+        <button className="editorPrimary" disabled={!file||kind!=="2d"||!imageDecoded||!!previewError||!selected.length||busy||referenceValidating||!!executionIssue} title={analysisBlockedReason||"Executar análise"} onClick={onRun}><Play size={16}/> Analisar</button>
       </div>
     </div>
     <div className="editorBody">

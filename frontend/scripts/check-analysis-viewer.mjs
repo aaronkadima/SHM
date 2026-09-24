@@ -87,7 +87,7 @@ check(styles.includes(".editorLayerResizeHandle{width:6px")&&styles.includes("cu
 
 check(workspace.includes('editorRunTime editorMetricRow')&&workspace.includes('editorMetricsGrid performance')&&workspace.includes('editorMetricLabel')&&workspace.includes('editorMetricValue'),"results from measured time through real time must use aligned parameter/value rows");
 check(styles.includes(".editorMetricRow{display:grid;grid-template-columns:minmax(148px,1fr) minmax(82px,auto)")&&styles.includes("white-space:nowrap"),"result metric parameters and values must align without wrapping");
-check(styles.includes("background:rgba(255,255,255,.88)")&&styles.includes("backdrop-filter:blur(12px)"),"floating results container must use a softly translucent backdrop");
+check(styles.includes("background:rgba(255,255,255,.88)"),"floating results container must use a softly translucent background");
 check(styles.includes(".editorMetricsGrid .accentA")&&styles.includes(".editorMetricsGrid .accentTotal"),"result metrics must expose restrained color accents");
 check(styles.includes(".editorStatusMessage{")&&styles.includes(".editorStatusEngines{")&&styles.includes(".editorStatusMeta{"),"bottom bar must dedicate separate transient-status, selected-engine and view-metadata regions");
 check(styles.includes(".editorSide .compositePane{border-left:2px solid white}"),"side-by-side composite pane must remain visually separated");

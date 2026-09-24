@@ -43,6 +43,8 @@ check(!("bad" in normalized.pathologyOpacity)&&!("" in normalized.pathologyOpaci
 check(normalized.pathologyLocked.join(",")==="cracks","locked layers must keep unique non-empty string ids");
 check(normalized.resultPanelPosition.x===0&&normalized.resultPanelPosition.y===0,"missing Results panel position must use defaults");
 check(normalized.resultPanelSize.width===360&&normalized.resultPanelSize.height===null,"missing Results panel size must use defaults");
+check(normalized.resultPanelOpen===true,"missing Results panel visibility must default to open");
+check(normalizeViewerPreferences({resultPanelOpen:false}).resultPanelOpen===false,"collapsed Results preference must remain false");
 const panelNormalized=normalizeViewerPreferences({resultPanelPosition:{x:9000,y:-9000},resultPanelSize:{width:1200,height:42}});
 check(panelNormalized.resultPanelPosition.x===5000&&panelNormalized.resultPanelPosition.y===-5000,"Results panel position must be bounded before viewport clamping");
 check(panelNormalized.resultPanelSize.width===900&&panelNormalized.resultPanelSize.height===null,"Results panel size must bound width and reject undersized height");
@@ -59,7 +61,7 @@ const storage={
   setItem(key,value){if(key===VIEWER_PREFS_KEY)this.value=value}
 };
 
-check(saveViewerPreferences({opacity:0.55,layersOpen:false,comparison:"wipe",wipePosition:62,pathologyOrder:["corrosion_rust","cracks"],pathologyOpacity:{corrosion_rust:.35,cracks:.8},pathologyLocked:["cracks"],resultPanelPosition:{x:-48,y:73},resultPanelSize:{width:512,height:420}},storage)===true,"saveViewerPreferences must succeed with valid storage");
+check(saveViewerPreferences({opacity:0.55,layersOpen:false,comparison:"wipe",wipePosition:62,pathologyOrder:["corrosion_rust","cracks"],pathologyOpacity:{corrosion_rust:.35,cracks:.8},pathologyLocked:["cracks"],resultPanelOpen:false,resultPanelPosition:{x:-48,y:73},resultPanelSize:{width:512,height:420}},storage)===true,"saveViewerPreferences must succeed with valid storage");
 const loaded=loadViewerPreferences(storage);
 check(loaded.opacity===0.55,"saved opacity must reload");
 check(loaded.layersOpen===false,"saved layers state must reload");
@@ -70,6 +72,7 @@ check(loaded.pathologyOpacity.corrosion_rust===0.35&&loaded.pathologyOpacity.cra
 check(loaded.pathologyLocked.join(",")==="cracks","saved locked pathology layers must reload");
 check(loaded.resultPanelPosition.x===-48&&loaded.resultPanelPosition.y===73,"saved Results panel position must reload");
 check(loaded.resultPanelSize.width===512&&loaded.resultPanelSize.height===420,"saved Results panel size must reload");
+check(loaded.resultPanelOpen===false,"saved collapsed Results state must reload");
 
 storage.value="{bad json";
 const fallback=loadViewerPreferences(storage);

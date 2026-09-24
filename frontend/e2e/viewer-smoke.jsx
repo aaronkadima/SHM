@@ -231,11 +231,11 @@ function App(){
             const wipeStack=document.querySelector(".editorWipePane .editorOverlayStack");
             const wipeDivider=document.querySelector(".editorWipeDivider");
             const wipeHandle=document.querySelector(".editorWipeHandle");
-            const wipeInitialOk=!!wipePane&&!!wipeStack&&!!wipeDivider&&!!wipeHandle&&!document.querySelector(".editorWipeControl")&&document.querySelectorAll(".editorImagePane").length===1&&document.querySelectorAll(".editorBaseImage").length===1;
+            const wipeInitialOk=!!wipePane&&!!wipeStack&&!!wipeDivider&&!!wipeHandle&&wipeHandle.getAttribute("role")==="slider"&&wipeHandle.getAttribute("aria-valuemin")==="5"&&wipeHandle.getAttribute("aria-valuemax")==="95"&&wipeHandle.getAttribute("aria-valuenow")==="50"&&!document.querySelector(".editorWipeControl")&&document.querySelectorAll(".editorImagePane").length===1&&document.querySelectorAll(".editorBaseImage").length===1;
             for(let n=0;n<9;n++)wipeHandle?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
             await sleep(90);
             const wipePct=parseFloat(document.querySelector(".editorWipeDivider")?.style.left||"0");
-            const wipeMovedOk=Math.abs(wipePct-68)<.6&&document.querySelector(".editorWipePane .editorOverlayStack")?.style.clipPath?.includes(wipePct.toFixed(0)+"%");
+            const wipeMovedOk=Math.abs(wipePct-68)<.6&&wipeHandle?.getAttribute("aria-valuenow")==="68"&&wipeHandle?.getAttribute("aria-valuetext")==="68%"&&document.querySelector(".editorWipePane .editorOverlayStack")?.style.clipPath?.includes(wipePct.toFixed(0)+"%");
             const wipeDirectionOk=!!document.querySelector(".editorWipeHandle .wipeArrowIcon.right.active")&&!document.querySelector(".editorWipeHandle .wipeArrowIcon.left.active");
             const zoomAfterWipe=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const wipeStatusOk=document.querySelector(".editorStatusMeta")?.textContent?.includes("divisor 68%");

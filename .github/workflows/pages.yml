@@ -60,6 +60,11 @@ jobs:
           VITE_BASE_PATH: /SHM/dev/
         run: npm run build
 
+      - name: Validate development catalog
+        run: |
+          grep -R -q "CDM-1" dev-src/frontend/dist/assets
+          grep -R -q "browser-js-cdm-v285" dev-src/frontend/dist/assets
+
       - name: Assemble Pages artifact
         run: |
           mkdir -p site/dev

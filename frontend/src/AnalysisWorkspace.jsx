@@ -774,8 +774,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",select
     ||(progress?.state==="cancelled"?"Análise cancelada":"")
     ||(busy?("Processando análise · "+(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length))):"")
     ||statusNotice
-    ||executionIssue
-    ||(kind==="3d"?"Arquivo 3D reconhecido · análise 2D indisponível":"Pronto");
+    ||(kind==="3d"?"Arquivo 3D reconhecido · análise 2D indisponível":executionIssue||"Pronto");
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><span className="editorMenus"><span>Arquivo</span><span>Editar</span><span>Visualizar</span><span>Análise</span></span></div>

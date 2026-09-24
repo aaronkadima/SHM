@@ -1,6 +1,7 @@
 import {
   DEFAULT_VIEWER_PREFERENCES,
   VIEWER_PREFS_KEY,
+  clampCanvasPan,
   clampFloatingPanelPosition,
   clampLayersPanelWidth,
   clampResultPanelSize,
@@ -26,6 +27,14 @@ check(mobileBottomRight.x===0&&mobileBottomRight.y===80,"floating panel mobile b
 
 const oversized=clampFloatingPanelPosition({x:999,y:999},{viewportWidth:300,viewportHeight:300,panelLeft:0,panelTop:0,panelWidth:320,panelHeight:340,margin:8});
 check(Number.isFinite(oversized.x)&&Number.isFinite(oversized.y),"floating panel clamp must stay finite even when the panel is larger than the viewport");
+
+const canvasPanMax=clampCanvasPan({x:5000,y:5000},{viewportWidth:800,viewportHeight:600,canvasWidth:640,canvasHeight:400,zoom:2,minVisible:56});
+check(canvasPanMax.x===984&&canvasPanMax.y===644,"canvas pan clamp must retain at least the configured visible strip at 200% zoom");
+const canvasPanMin=clampCanvasPan({x:-5000,y:-5000},{viewportWidth:800,viewportHeight:600,canvasWidth:640,canvasHeight:400,zoom:2,minVisible:56});
+check(canvasPanMin.x===-984&&canvasPanMin.y===-644,"canvas pan clamp must be symmetric on negative axes");
+const canvasPanFit=clampCanvasPan({x:5000,y:5000},{viewportWidth:800,viewportHeight:600,canvasWidth:640,canvasHeight:400,zoom:1,minVisible:56});
+check(canvasPanFit.x===664&&canvasPanFit.y===444,"canvas pan clamp must also keep a visible strip at fit zoom");
+
 
 const beforeResizeGeometry={viewportWidth:600,viewportHeight:600,panelLeft:222,panelTop:82,panelWidth:360,panelHeight:300,margin:8};
 const beforeResize=clampFloatingPanelPosition({x:0,y:999},beforeResizeGeometry);

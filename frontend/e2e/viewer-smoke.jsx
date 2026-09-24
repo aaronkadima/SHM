@@ -40,13 +40,16 @@ function App(){
           const initialImageNoticeOk=status.textContent.includes("viewer-smoke.svg")&&status.textContent.includes("320×180");
           await sleep(1900);
           const imageNoticeCleared=!document.querySelector(".editorStatusMessage")?.textContent?.includes("Imagem carregada");
-          const engineStatusPersistent=document.querySelector(".editorStatusEngines")?.textContent?.includes("Motores selecionados: CDM-1");
+          const sidebarEngines=document.querySelector(".editorToolEngines");
+          const engineStatusPersistent=!!sidebarEngines&&sidebarEngines.textContent.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
+          const sidebarStyle=getComputedStyle(document.querySelector(".editorTools"));
+          const sidebarFixedOk=sidebarStyle.position==="sticky"&&sidebarStyle.overflow==="hidden";
           const rect=pane.getBoundingClientRect();
           if(rect.width>100&&rect.height>80){
             const stack=document.querySelector(".editorOverlayStack");
             const stackRect=stack?.getBoundingClientRect();
             const overlayGeometryOk=!!stackRect&&Math.abs(stackRect.width-rect.width)<1&&Math.abs(stackRect.height-rect.height)<1;
-            const engineStatusOk=document.querySelector(".editorStatusEngines")?.textContent?.includes("Motores selecionados: CDM-1");
+            const engineStatusOk=!!document.querySelector(".editorToolEngines")?.textContent?.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
             const hideAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Ocultar todas");
             const showAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Mostrar todas");
             const layerBefore=document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)").length;
@@ -185,7 +188,7 @@ function App(){
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50;
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,engineStatusPersistent,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,engineStatusPersistent,sidebarFixedOk,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerNoWrapOk,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
@@ -194,7 +197,7 @@ function App(){
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+persistent-engines layers=min340+nowrap+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image sidebar=engines+fixed layers=min340+nowrap+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
               setResult("VIEWER_SMOKE_FAIL "+failed.join(","));
             }

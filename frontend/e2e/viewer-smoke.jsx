@@ -237,7 +237,7 @@ function App(){
             const viewportRect=viewport?.getBoundingClientRect();
             const floatingRect=floatingPanel?.getBoundingClientRect();
             const floatingClampDiag=viewportRect&&floatingRect?`vp=${Math.round(viewportRect.left)}/${Math.round(viewportRect.top)}/${Math.round(viewportRect.right)}/${Math.round(viewportRect.bottom)} panel=${Math.round(floatingRect.left)}/${Math.round(floatingRect.top)}/${Math.round(floatingRect.right)}/${Math.round(floatingRect.bottom)}`:"no-rect";
-            const floatingHorizontalOk=!!viewportRect&&!!floatingRect&&floatingRect.left>=viewportRect.left+7&&floatingRect.right<=viewportRect.right-7;
+            const floatingHorizontalOk=!!viewportRect&&!!floatingRect&&floatingRect.left>=viewportRect.left-1&&floatingRect.right<=viewportRect.right+1&&floatingRect.width<=viewportRect.width+1;
             const floatingVerticalOk=!!viewportRect&&!!floatingRect&&floatingRect.top>=viewportRect.top+7&&floatingRect.bottom<=viewportRect.bottom-7;
             const floatingMaxWidthOk=!!floatingPanel&&getComputedStyle(floatingPanel).maxWidth!=="none";
             const floatingHandleOk=!!floatingHead&&floatingHead.tagName==="BUTTON"&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";

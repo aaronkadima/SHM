@@ -47,7 +47,8 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_BASE_PATH: /SHM/
-        run: npm run build
+          VITE_APP_CHANNEL: production
+        run: VITE_BUILD_SHA=$(git rev-parse --short HEAD) npm run build
 
       - name: Install development dependencies
         working-directory: dev-src/frontend
@@ -58,12 +59,15 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_BASE_PATH: /SHM/dev/
-        run: npm run build
+          VITE_APP_CHANNEL: development
+        run: VITE_BUILD_SHA=$(git rev-parse --short HEAD) npm run build
 
       - name: Validate development catalog
         run: |
           grep -R -q "CDM-1" dev-src/frontend/dist/assets
           grep -R -q "browser-js-cdm-v285" dev-src/frontend/dist/assets
+          grep -R -q "development" dev-src/frontend/dist/assets
+          grep -R -q "1.2.0" dev-src/frontend/dist/assets
 
       - name: Assemble Pages artifact
         run: |

@@ -107,6 +107,11 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         exportMenu.current.open=false;
         handled=true;
       }
+      const openEditorMenus=[...document.querySelectorAll(".editorMenu[open]")];
+      if(openEditorMenus.length){
+        openEditorMenus.forEach(menu=>menu.removeAttribute("open"));
+        handled=true;
+      }
       if(compactLayout.current&&layersOpen){
         setLayersOpen(false);
         handled=true;
@@ -128,6 +133,14 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     window.addEventListener("keydown",onEscape);
     return()=>window.removeEventListener("keydown",onEscape);
   },[cameraOpen,layersOpen]);
+  useEffect(()=>{
+    const closeMenus=e=>{
+      if(e.target?.closest?.(".editorMenus"))return;
+      document.querySelectorAll(".editorMenu[open]").forEach(menu=>menu.removeAttribute("open"));
+    };
+    window.addEventListener("pointerdown",closeMenus);
+    return()=>window.removeEventListener("pointerdown",closeMenus);
+  },[]);
 
   useEffect(()=>{
     let cancelled=false;
@@ -747,6 +760,10 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     }else if(e.key==="Home"){e.preventDefault();markWipeDirection("left");setWipePosition(5)}
     else if(e.key==="End"){e.preventDefault();markWipeDirection("right");setWipePosition(95)}
   }
+  function runEditorMenuAction(e,action){
+    e.currentTarget.closest(".editorMenu")?.removeAttribute("open");
+    action?.();
+  }
   function fitView(){
     const rect=surface.current?.getBoundingClientRect();
     if(rect&&rect.width>0&&rect.height>0)setViewportSize({width:rect.width,height:rect.height});
@@ -900,7 +917,30 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     ||"Pronto";
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
-      <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><span className="editorMenus"><span>Arquivo</span><span>Editar</span><span>Visualizar</span><span>Análise</span></span></div>
+      <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><nav className="editorMenus" aria-label="Menu do editor">
+        <details className="editorMenu" name="shm-editor-menu"><summary>Arquivo</summary><div className="editorMenuPanel" role="menu">
+          <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>picker.current?.click())}><span>Importar…</span><small>Ctrl/Cmd+O</small></button>
+          <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>setCameraOpen(true))}><span>Câmera</span></button>
+          {selected.length===1&&selected[0]==="cdm_1"&&<button type="button" role="menuitem" disabled={busy||referenceValidating} onClick={e=>runEditorMenuAction(e,()=>referencePicker.current?.click())}><span>Referência t0…</span></button>}
+        </div></details>
+        <details className="editorMenu" name="shm-editor-menu"><summary>Editar</summary><div className="editorMenuPanel" role="menu">
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,resetViewerPreferences)}><span>Restaurar visualização</span></button>
+          {referenceFile&&<button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>onReferenceFile(null))}><span>Remover referência t0</span></button>}
+        </div></details>
+        <details className="editorMenu" name="shm-editor-menu"><summary>Visualizar</summary><div className="editorMenuPanel" role="menu">
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setLayersPanelOpen(v=>!v))}><span>{layersOpen?"Recolher camadas":"Mostrar camadas"}</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,fitView)}><span>Ajustar à tela</span><small>0</small></button>
+          <hr/>
+          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("original"))}><span>Original</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("overlay"))}><span>Sobrepor</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("wipe"))}><span>Deslizar</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("side"))}><span>Lado a lado</span></button>
+        </div></details>
+        <details className="editorMenu" name="shm-editor-menu"><summary>Análise</summary><div className="editorMenuPanel editorMenuPanelRight" role="menu">
+          <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onSettings)}><span>Configurações</span><small>Ctrl/Cmd+,</small></button>
+          <button type="button" role="menuitem" disabled={!!analyzeButton.current?.disabled} onClick={e=>runEditorMenuAction(e,()=>analyzeButton.current?.click())}><span>Executar análise</span><small>Ctrl/Cmd+Enter</small></button>
+        </div></details>
+      </nav></div>
       <div className="editorFileTitle">{file?.name||"Nova inspeção"} {kind&&"· "+(kind==="unknown"?"NÃO SUPORTADO":kind.toUpperCase())}<span className="editorEngineState">{selectedEngineLabels.length===0?"Nenhum motor":selectedEngineLabels.length===1?selectedEngineLabels[0].name+(selectedEngineLabels[0].browser_ready?" · browser local":""):selectedEngineLabels.length+" motores · comparação"}</span></div>
       <div className="editorTopActions">
         <input ref={picker} hidden type="file" accept={ASSET_ACCEPT} onChange={e=>{const next=e.target.files?.[0]||null;e.target.value="";onFile(next)}}/>

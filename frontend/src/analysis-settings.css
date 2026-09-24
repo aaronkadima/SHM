@@ -1,4 +1,4 @@
-.analysisSettings{height:100vh;min-height:0;background:#f5f8f9;color:#293f4b;font:13px Inter,system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+.analysisSettings{height:100%;min-height:0;background:#f5f8f9;color:#293f4b;font:13px Inter,system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden}
 .settingsTop{height:58px;flex:0 0 58px;background:#fff;border-bottom:1px solid #dce6e9;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:relative;z-index:70}
 .settingsTop>div{display:flex;align-items:center;gap:12px;font-size:15px}
 .settingsTop button{display:flex;align-items:center;gap:7px;border:1px solid #d6e3e5;background:#fff;color:#3c5b67;border-radius:7px;padding:8px 12px;min-height:36px;cursor:pointer}
@@ -7,7 +7,7 @@
 .settingsHeading h1{font-size:23px;margin:0 0 5px}.settingsHeading p,.analysisSettingsCard p{margin:0;color:#758793;font-size:12px;line-height:1.5}
 .analysisSettingsCard{display:block;background:#fff;border:1px solid #e0e9ec;border-radius:10px;padding:22px;margin:15px 0}
 .analysisSettingsCard h2{font-size:15px;margin:0 0 6px}.analysisSettingsCard summary{cursor:pointer;font-weight:650;font-size:14px}.analysisSettingsCard summary+p{margin:13px 0}
-.settingsEngines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:19px;max-height:520px;overflow:auto;align-items:start}
+.settingsEngines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:19px;align-items:start;overflow:visible}
 .settingsEngine{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e2eaed;border-radius:8px;padding:13px 15px;min-height:70px;cursor:pointer}
 .settingsEngine>span:first-child{display:grid;gap:6px;min-width:0}.settingsEngine b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.settingsEngine small{color:#7b8d97;font-size:10px}
 .settingsEngine input{position:absolute;opacity:0}.settingsSwitch{width:40px;height:24px;flex:none;background:#d5e0e3;border-radius:20px;position:relative}

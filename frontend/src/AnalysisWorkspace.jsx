@@ -348,6 +348,26 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     canvasDrag.current=null;
     try{e?.currentTarget?.releasePointerCapture?.(e.pointerId)}catch{}
   }
+  function canvasKeyDown(e){
+    if(e.target!==e.currentTarget||e.ctrlKey||e.metaKey||e.altKey)return;
+    const panDelta={ArrowLeft:[-32,0],ArrowRight:[32,0],ArrowUp:[0,-32],ArrowDown:[0,32]}[e.key];
+    if(panDelta){
+      e.preventDefault();
+      setCanvasPan(current=>({x:current.x+panDelta[0],y:current.y+panDelta[1]}));
+      showStatusNotice("Canvas · "+(panDelta[0]?"X ":"Y ")+(panDelta[0]||panDelta[1])+" px",600);
+      return;
+    }
+    if(e.key==="+"||e.key==="="){
+      e.preventDefault();
+      changeZoom(.25);
+    }else if(e.key==="-"||e.key==="_"){
+      e.preventDefault();
+      changeZoom(-.25);
+    }else if(e.key==="0"){
+      e.preventDefault();
+      fitView();
+    }
+  }
   function beginLayersResize(e){
     if(e.button!==0||e.isPrimary===false)return;
     e.preventDefault();
@@ -604,7 +624,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
-        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} aria-label="Canvas de análise; arraste com o botão do meio para deslocar" onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
+        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio ou setas para deslocar; mais e menos para zoom; zero para ajustar à tela" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" onKeyDown={canvasKeyDown} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
           {comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}
           {comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)}
           {comparison==="wipe"&&renderWipePane(basePreview)}

@@ -33,7 +33,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
     setSyncState(v=>({...v,[engine.id]:{status:"checking",message:"Verificando repositório…"}}));
     try{
       const url="https://api.github.com/repos/aaronkadima/SHM/contents/"+pkg.repositoryPath+"?ref="+encodeURIComponent(repositoryRef);
-      const response=await fetch(url,{headers:{Accept:"application/vnd.github+json"}});
+      const response=await fetch(url+"&ts="+Date.now(),{cache:"no-store",headers:{Accept:"application/vnd.github+json","Cache-Control":"no-cache"}});
       if(!response.ok)throw new Error("GitHub "+response.status);
       const payload=await response.json();
       const encoded=String(payload.content||"").replace(/\n/g,"");

@@ -1,8 +1,8 @@
-name: Deploy SHM frontend to GitHub Pages
+name: Deploy SHM production + development preview to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main","feat/cdm-1"]
     paths:
       - "frontend/**"
       - ".github/workflows/pages.yml"
@@ -21,25 +21,52 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout production source
         uses: actions/checkout@v6
+        with:
+          ref: main
+          path: prod-src
+
+      - name: Checkout development source
+        uses: actions/checkout@v6
+        with:
+          ref: feat/cdm-1
+          path: dev-src
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package.json
 
-      - name: Install
-        working-directory: frontend
+      - name: Install production dependencies
+        working-directory: prod-src/frontend
         run: npm install
 
-      - name: Build
-        working-directory: frontend
+      - name: Build production
+        working-directory: prod-src/frontend
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_BASE_PATH: /SHM/
         run: npm run build
+
+      - name: Install development dependencies
+        working-directory: dev-src/frontend
+        run: npm install
+
+      - name: Build development preview
+        working-directory: dev-src/frontend
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_BASE_PATH: /SHM/dev/
+        run: npm run build
+
+      - name: Assemble Pages artifact
+        run: |
+          mkdir -p site/dev
+          cp -a prod-src/frontend/dist/. site/
+          cp -a dev-src/frontend/dist/. site/dev/
+          printf '%s\n' 'SHM production: main' > site/DEPLOYMENT.txt
+          printf '%s\n' 'SHM development: feat/cdm-1' > site/dev/DEPLOYMENT.txt
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -47,7 +74,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: frontend/dist
+          path: site
 
   deploy:
     environment:

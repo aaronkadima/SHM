@@ -222,6 +222,25 @@ function App(){
             await sleep(40);
             const keyboardResetTransform=canvas?.style.transform||"";
             const canvasKeyboardOk=keyboardPanOk&&keyboardZoomInOk&&keyboardZoomOutOk&&keyboardResetTransform.includes("translate(0px, 0px)")&&keyboardResetTransform.includes("scale(1)")&&canvas?.getAttribute("aria-keyshortcuts")?.includes("ArrowLeft");
+            let canvasWheelOk=true;
+            if(!phoneSidebar&&canvas){
+              const fitBeforeWheel=canvas.style.transform||"";
+              canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,deltaX:0,deltaY:40}));
+              await sleep(20);
+              const wheelAtFitIgnored=(canvas.style.transform||"")===fitBeforeWheel;
+              canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,ctrlKey:true,deltaX:0,deltaY:-100}));
+              await sleep(30);
+              const ctrlWheelZoomOk=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="125%";
+              canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,deltaX:12,deltaY:18}));
+              await sleep(30);
+              const wheelPanTransform=canvas.style.transform||"";
+              const wheelPanOk=wheelPanTransform.includes("translate(-12px, -18px)")&&wheelPanTransform.includes("scale(1.25)");
+              canvas.focus();
+              canvas.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"0"}));
+              await sleep(30);
+              const wheelResetOk=(canvas.style.transform||"").includes("translate(0px, 0px)")&&([...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="100%");
+              canvasWheelOk=wheelAtFitIgnored&&ctrlWheelZoomOk&&wheelPanOk&&wheelResetOk;
+            }
             let canvasTouchOk=true;
             if(phoneSidebar&&canvas){
               const touchModeFit=canvas.dataset.touchMode==="pinch-scroll";
@@ -425,7 +444,7 @@ function App(){
             const checks={
               initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
-              zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,canvasKeyboardOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
+              zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,canvasKeyboardOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
               wipeInitialOk,wipeMovedOk,wipeDirectionOk,wipeStatusOk,zoomAfterWipe:zoomAfterWipe==="100%",
               temporalOk,zoomAfterTemporal:zoomAfterTemporal==="100%",originalPanes:originalPanes===1,originalImages:originalImages===1,originalStacks:originalStacks===0,zoomAfterOriginal:zoomAfterOriginal==="100%",resetOk

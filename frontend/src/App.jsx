@@ -408,12 +408,16 @@ export default function App(){
     if(referenceValidating){setErr("Aguarde a validação da referência t0 antes de iniciar a análise.");return}
     if(executionIssue){setErr(executionIssue);return}
     const mode=runMode,engineIds=[...selected],inspection={...inspectionMeta};
-    const sourceFile=file,sourceReference=referenceFile,sourceReferenceInspectionId=referenceInspectionId,sourceReferenceInspectionMeta=referenceInspectionMeta?{...referenceInspectionMeta}:null;
-    if(mode==="individual"&&engineIds[0]==="cdm_1"&&sourceReference){
+    const usesTemporalReference=mode==="individual"&&engineIds[0]==="cdm_1";
+    const sourceFile=file;
+    const sourceReference=usesTemporalReference?referenceFile:null;
+    const sourceReferenceInspectionId=usesTemporalReference?referenceInspectionId:null;
+    const sourceReferenceInspectionMeta=usesTemporalReference&&referenceInspectionMeta?{...referenceInspectionMeta}:null;
+    if(usesTemporalReference&&sourceReference){
       try{await validateReferenceImage(sourceReference)}
       catch(e){setErr("Referência t0 inválida: "+(e?.message||String(e)));return}
     }
-    if(mode==="individual"&&engineIds[0]==="cdm_1"&&sourceReferenceInspectionId&&sourceReferenceInspectionMeta){
+    if(usesTemporalReference&&sourceReferenceInspectionId&&sourceReferenceInspectionMeta){
       const same=(a,b)=>String(a||"").trim()===String(b||"").trim();
       const refOae=String(sourceReferenceInspectionMeta.oae_id||"").trim(),refElement=String(sourceReferenceInspectionMeta.element_id||"").trim();
       const curOae=String(inspection.oae_id||"").trim(),curElement=String(inspection.element_id||"").trim();

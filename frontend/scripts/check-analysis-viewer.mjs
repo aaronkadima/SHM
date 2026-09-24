@@ -10,12 +10,14 @@ check(workspace.includes('className="editorOverlayStack"'),"viewer must use an e
 check(workspace.includes('const useCombinedEngineOverlay=!!engineOverlay&&pathologyLayers.length===0'),"CDM combined overlay must be suppressed when individual pathology layers exist");
 check(workspace.includes('overlay_semantics')||workspace.includes('overlaySemantics'),"viewer must distinguish overlay semantics");
 check(workspace.includes('className="editorBaseImage"'),"viewer panes must include an original base image");
+check(workspace.includes('loadViewerPreferences'),"viewer must load safe visual preferences");
+check(workspace.includes('saveViewerPreferences'),"viewer must persist safe visual preferences");
 check(workspace.includes('const basePreview=localPreview||prev'),"viewer must prefer a fresh File-derived preview over parent preview URLs");
 check(workspace.includes('new FileReader()'),"viewer must read the imported image independently");
 check(workspace.includes('reader.readAsDataURL(file)'),"viewer must use a persistent data URL preview");
-check(workspace.includes('setComparison("overlay")'),"new files must reset comparison mode to overlay");
+check(workspace.includes('setComparison(preferredComparison)'),"new files must restore the persisted non-temporal comparison mode");
 check(workspace.includes('function fitView(){setZoom(1)}'),"viewer must expose fit-to-screen behavior");
-check(workspace.includes('function changeComparison(mode){setComparison(mode);fitView()}'),"comparison mode changes must refit the canvas");
+check(workspace.includes('function changeComparison(mode){setComparison(mode);if(mode!=="temporal")setPreferredComparison(mode);fitView()}'),"comparison mode changes must refit while keeping temporal mode non-persistent");
 check(workspace.includes('function setPathologyGroupVisible(next)'),"viewer must support group pathology visibility");
 check(workspace.includes('function isolatePathologyLayer(id)'),"viewer must support single-pathology isolation");
 check(workspace.includes('function movePathologyLayer(id,delta)'),"viewer must support pathology z-order changes");

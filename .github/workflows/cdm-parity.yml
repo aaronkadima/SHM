@@ -11,7 +11,7 @@ on:
       - "frontend/scripts/check-cdm-parity.mjs"
       - ".github/workflows/cdm-parity.yml"
   push:
-    branches: ["main"]
+    branches: ["main","dev"]
     paths:
       - "backend/app/cdm_v285.py"
       - "backend/app/adapters/cdm_adapter.py"

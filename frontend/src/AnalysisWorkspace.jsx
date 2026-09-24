@@ -32,7 +32,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
-  const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[showRawT0,setShowRawT0]=useState(false);
+  const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
   const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder),[pathologyOpacity,setPathologyOpacity]=useState(initialViewerPrefs.pathologyOpacity||{}),[pathologyLocked,setPathologyLocked]=useState(new Set(initialViewerPrefs.pathologyLocked||[])),[selectedPathologyId,setSelectedPathologyId]=useState(null);
   const [selectedDetection,setSelectedDetection]=useState(null);
@@ -42,7 +42,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),drag=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),drag=useRef(null),canvasDrag=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{
     let cancelled=false;
@@ -64,7 +64,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     reader.readAsDataURL(file);
     return()=>{cancelled=true;try{reader.abort()}catch{}};
   },[file]);
-  useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
+  useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setCanvasPan({x:0,y:0});setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
   useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked]})},[opacity,layersOpen,preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked]);
   useEffect(()=>{if(busy)setResultOpen(true)},[busy]);
@@ -174,10 +174,26 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   function dragStart(e){if(e.target.closest("button"))return;drag.current={x:e.clientX-position.x,y:e.clientY-position.y};e.currentTarget.setPointerCapture(e.pointerId)}
   function dragMove(e){if(drag.current)setPosition({x:e.clientX-drag.current.x,y:e.clientY-drag.current.y})}
   function dragEnd(){drag.current=null}
+  function canvasPanStart(e){
+    if(e.button!==1)return;
+    e.preventDefault();
+    canvasDrag.current={x:e.clientX-canvasPan.x,y:e.clientY-canvasPan.y};
+    try{e.currentTarget.setPointerCapture(e.pointerId)}catch{}
+  }
+  function canvasPanMove(e){
+    if(!canvasDrag.current)return;
+    setCanvasPan({x:e.clientX-canvasDrag.current.x,y:e.clientY-canvasDrag.current.y});
+  }
+  function canvasPanEnd(e){
+    if(!canvasDrag.current)return;
+    canvasDrag.current=null;
+    try{e.currentTarget.releasePointerCapture(e.pointerId)}catch{}
+  }
   function fitView(){
     const rect=surface.current?.getBoundingClientRect();
     if(rect&&rect.width>0&&rect.height>0)setViewportSize({width:rect.width,height:rect.height});
     setZoom(1);
+    setCanvasPan({x:0,y:0});
   }
   function changeComparison(mode){setComparison(mode);if(mode!=="temporal")setPreferredComparison(mode);fitView()}
   function setPathologyGroupVisible(next){
@@ -237,6 +253,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     setSelectedPathologyId(pathologyLayers[0]?.id||null);
     setVisible({});
     setZoom(1);
+    setCanvasPan({x:0,y:0});
     setShowRawT0(false);
     setPosition({x:0,y:0});
   }
@@ -308,7 +325,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
-        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} style={{transform:`scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
+        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} aria-label="Canvas de análise; arraste com o botão do meio para deslocar" onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
           {comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}
           {comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)}
           {comparison==="wipe"&&renderWipePane(basePreview)}

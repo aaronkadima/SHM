@@ -10,6 +10,11 @@ check(workspace.includes('className="editorOverlayStack"'),"viewer must use an e
 check(workspace.includes('const useCombinedEngineOverlay=!!engineOverlay&&pathologyLayers.length===0'),"CDM combined overlay must be suppressed when individual pathology layers exist");
 check(workspace.includes('overlay_semantics')||workspace.includes('overlaySemantics'),"viewer must distinguish overlay semantics");
 check(workspace.includes('className="editorBaseImage"'),"viewer panes must include an original base image");
+check(workspace.includes('const basePreview=localPreview||prev'),"viewer must prefer a fresh File-derived preview over parent preview URLs");
+check(workspace.includes('URL.createObjectURL(file)'),"viewer must be able to create its own 2D preview URL");
+check(workspace.includes('setComparison("overlay")'),"new files must reset comparison mode to overlay");
+check(workspace.includes('const safeViewport={width:Math.max(480'),"viewer must protect against zero-size viewport collapse");
+check(workspace.includes('Math.max(160,safeImage.width*fit*panes)'),"viewer must keep a visible minimum display width");
 check(workspace.includes('comparison==="overlay"&&renderBasePane(prev,"Imagem original da inspeção","original + camadas",true,true)'),"overlay mode must render original + overlays in the same pane");
 check(workspace.includes('comparison==="side"&&<>'),"side-by-side mode must have explicit two-pane composition");
 check(workspace.includes('renderBasePane(prev,"Imagem original da inspeção","original",true,false)'),"side-by-side left pane must be the original image");

@@ -38,7 +38,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const [viewportSize,setViewportSize]=useState({width:0,height:0});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0);
   const compactLayout=useRef(initialCompactLayout),desktopLayersPreference=useRef(initialViewerPrefs.layersOpen);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null),fileDragDepth=useRef(0),cameraCaptureSeq=useRef(0);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),analyzeButton=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null),fileDragDepth=useRef(0),cameraCaptureSeq=useRef(0);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{if(busy){fileDragDepth.current=0;setFileDragActive(false);setCameraOpen(false)}},[busy]);
   useEffect(()=>{
@@ -83,6 +83,13 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         e.preventDefault();
         if(busy){showStatusNotice("Configurações indisponíveis durante a análise.",1600,"warning");return}
         onSettings?.();
+        return;
+      }
+      if(e.key==="Enter"&&!e.shiftKey){
+        e.preventDefault();
+        const button=analyzeButton.current;
+        if(!button||button.disabled){showStatusNotice("Análise indisponível com a configuração atual.",1600,"warning");return}
+        button.click();
       }
     };
     window.addEventListener("keydown",onShortcut);
@@ -901,7 +908,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         <button disabled={busy} aria-keyshortcuts="Control+O Meta+O" title="Importar arquivo · Ctrl/Cmd+O" onClick={()=>picker.current?.click()}><ImagePlus size={16}/> Importar</button>
         {selected.length===1&&selected[0]==="cdm_1"&&<button disabled={busy||referenceValidating} title={referenceValidating?"Validando referência t0…":"Carregar imagem anterior para comparação temporal"} onClick={()=>referencePicker.current?.click()}><ImagePlus size={16}/> {referenceValidating?"Validando t0…":referenceFile?"t0: "+referenceFile.name:"Referência t0"}</button>}
         <button disabled={busy} aria-keyshortcuts="Control+, Meta+," title="Configurações · Ctrl/Cmd+," onClick={onSettings}><Settings2 size={16}/> Configurar</button>
-        <button className="editorPrimary" disabled={!file||kind!=="2d"||!imageDecoded||!!previewError||!selected.length||busy||referenceValidating||!!executionIssue} title={analysisBlockedReason||"Executar análise"} onClick={onRun}><Play size={16}/> Analisar</button>
+        <button ref={analyzeButton} className="editorPrimary" aria-keyshortcuts="Control+Enter Meta+Enter" disabled={!file||kind!=="2d"||!imageDecoded||!!previewError||!selected.length||busy||referenceValidating||!!executionIssue} title={(analysisBlockedReason||"Executar análise")+" · Ctrl/Cmd+Enter"} onClick={onRun}><Play size={16}/> Analisar</button>
       </div>
     </div>
     <div className="editorBody">

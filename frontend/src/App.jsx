@@ -48,12 +48,14 @@ function downloadBlob(name,type,text){
 function csvCell(v){const s=v==null?"":String(v);return '"'+s.replaceAll('"','""')+'"'}
 function exportJson(res){downloadBlob("shm-comparison.json","application/json",JSON.stringify(res,null,2))}
 function exportCsv(res){
-  const rows=[["engine","status","latency_ms","detections","label","canonical_label","score","x1","y1","x2","y2","area_px"]];
+  const analysisElapsedMs=Number(res?.metadata?.client_elapsed_ms);
+  const measured=Number.isFinite(analysisElapsedMs)?analysisElapsedMs:"";
+  const rows=[["engine","status","latency_ms","analysis_elapsed_ms","detections","label","canonical_label","score","x1","y1","x2","y2","area_px"]];
   for(const r of res.results||[]){
-    if(!r.detections?.length)rows.push([r.name,r.status,r.latency_ms,0,"","","","","","","",""]);
+    if(!r.detections?.length)rows.push([r.name,r.status,r.latency_ms,measured,0,"","","","","","","",""]);
     else for(const d of r.detections){
       const b=d.box||[];
-      rows.push([r.name,r.status,r.latency_ms,r.detections.length,d.label,d.canonical_label||"",d.score,b[0],b[1],b[2],b[3],d.area_px]);
+      rows.push([r.name,r.status,r.latency_ms,measured,r.detections.length,d.label,d.canonical_label||"",d.score,b[0],b[1],b[2],b[3],d.area_px]);
     }
   }
   downloadBlob("shm-comparison.csv","text/csv;charset=utf-8","\uFEFF"+rows.map(x=>x.map(csvCell).join(",")).join("\n"));

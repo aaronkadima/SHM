@@ -234,7 +234,13 @@ function App(){
               canvas.dispatchEvent(new KeyboardEvent("keyup",{bubbles:true,key:" "}));
               await sleep(10);
               const spaceReleased=canvas.dataset.panMode==="idle";
-              spaceDragPanOk=primaryWithoutSpaceIgnored&&spaceReady&&grabbing&&spaceReleased&&!!spacePanTransform&&spacePanTransform.x===36&&spacePanTransform.y===24&&spacePanTransform.zoom===1;
+              canvas.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:" "}));
+              await sleep(10);
+              const escapeReady=canvas.dataset.panMode==="ready";
+              window.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"Escape"}));
+              await sleep(20);
+              const escapeCancelledSpace=canvas.dataset.panMode==="idle";
+              spaceDragPanOk=primaryWithoutSpaceIgnored&&spaceReady&&grabbing&&spaceReleased&&escapeReady&&escapeCancelledSpace&&!!spacePanTransform&&spacePanTransform.x===36&&spacePanTransform.y===24&&spacePanTransform.zoom===1;
 
               canvas.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"0"}));
               await sleep(30);
@@ -352,8 +358,12 @@ function App(){
             exportSummary?.click();
             await sleep(40);
             const exportLabels=[...document.querySelectorAll(".editorExportUnified>div button")].map(b=>b.textContent.trim());
+            const exportDetails=document.querySelector(".editorExportUnified");
+            const exportOpenBeforeEscape=!!exportDetails?.open;
+            window.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"Escape"}));
+            await sleep(20);
+            const exportEscapeOk=exportOpenBeforeEscape&&!exportDetails?.open;
             const unifiedExportOk=!!exportSummary&&exportSummary.getAttribute("data-tooltip")==="Exportar"&&!!exportSummary.querySelector("svg")&&exportLabels.includes("JSON")&&exportLabels.includes("CSV")&&exportLabels.includes("SVG camadas")&&exportLabels.includes("CSV técnico")&&exportLabels.includes("COCO")&&exportLabels.includes("DXF")&&exportLabels.includes("BIM JSON")&&exportLabels.includes("IFC")&&exportLabels.includes("HTML")&&!document.querySelector(".editorCdmExports");
-            exportSummary?.click();
             const wipe=document.querySelector('button[aria-label="Deslizar"]');
             wipe?.click();
             await sleep(80);
@@ -531,7 +541,7 @@ function App(){
               initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
-              overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
+              overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,exportEscapeOk,
               wipeInitialOk,wipeMovedOk,wipeDirectionOk,wipeStatusOk,zoomAfterWipe:zoomAfterWipe==="100%",
               temporalOk,zoomAfterTemporal:zoomAfterTemporal==="100%",originalPanes:originalPanes===1,originalImages:originalImages===1,originalStacks:originalStacks===0,zoomAfterOriginal:zoomAfterOriginal==="100%",resetOk
             };

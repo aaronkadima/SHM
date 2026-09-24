@@ -791,8 +791,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><span className="editorMenus"><span>Arquivo</span><span>Editar</span><span>Visualizar</span><span>Análise</span></span></div>
       <div className="editorFileTitle">{file?.name||"Nova inspeção"} {kind&&"· "+(kind==="unknown"?"NÃO SUPORTADO":kind.toUpperCase())}<span className="editorEngineState">{selectedEngineLabels.length===0?"Nenhum motor":selectedEngineLabels.length===1?selectedEngineLabels[0].name+(selectedEngineLabels[0].browser_ready?" · browser local":""):selectedEngineLabels.length+" motores · comparação"}</span></div>
       <div className="editorTopActions">
-        <input ref={picker} hidden type="file" accept={ASSET_ACCEPT} onChange={e=>onFile(e.target.files?.[0]||null)}/>
-        <input ref={referencePicker} hidden type="file" accept={IMAGE_ACCEPT} onChange={e=>onReferenceFile(e.target.files?.[0]||null)}/>
+        <input ref={picker} hidden type="file" accept={ASSET_ACCEPT} onChange={e=>{const next=e.target.files?.[0]||null;e.target.value="";onFile(next)}}/>
+        <input ref={referencePicker} hidden type="file" accept={IMAGE_ACCEPT} onChange={e=>{const next=e.target.files?.[0]||null;e.target.value="";onReferenceFile(next)}}/>
         <button disabled={busy} onClick={()=>picker.current?.click()}><ImagePlus size={16}/> Importar</button>
         {selected.length===1&&selected[0]==="cdm_1"&&<button disabled={busy||referenceValidating} title={referenceValidating?"Validando referência t0…":"Carregar imagem anterior para comparação temporal"} onClick={()=>referencePicker.current?.click()}><ImagePlus size={16}/> {referenceValidating?"Validando t0…":referenceFile?"t0: "+referenceFile.name:"Referência t0"}</button>}
         <button disabled={busy} onClick={onSettings}><Settings2 size={16}/> Configurar</button>

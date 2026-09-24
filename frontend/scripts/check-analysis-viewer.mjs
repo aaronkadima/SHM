@@ -19,7 +19,10 @@ check(!workspace.includes('editorCanvasStatus'),"image load status must not floa
 check(workspace.includes('editorStatusMessage')&&workspace.includes('title={statusMessage}>{statusMessage}</span>'),"image and event status must be rendered in the bottom status bar");
 check(workspace.includes('Imagem carregada · ${file.name}'),"bottom status bar must report the loaded image and dimensions");
 check(workspace.includes('showStatusNotice(`Imagem carregada · ${file.name}')&&workspace.includes('px`,1800);'),"loaded-image status must be transient instead of permanently occupying the bar");
-check(workspace.includes('Motores selecionados: ')&&workspace.includes('className="editorStatusEngines"'),"bottom status bar must persist the selected-engine information");
+check(!workspace.includes('className="editorStatusEngines"')&&!styles.includes(".editorStatusEngines{"),"analysis bottom bar must not display selected-engine names");
+check(workspace.includes('className="editorToolEngines"')&&workspace.includes('aria-label="Motores ativos"')&&workspace.includes('selectedEngineLabels.map(engine=><span key={engine.id}>{engine.name}</span>)'),"selected engines must be rendered as a compact vertical block at the bottom of the sidebar");
+check(styles.includes(".editorTools{width:56px;flex:none;align-self:stretch;position:sticky;left:0;top:0;z-index:12")&&styles.includes("overflow:hidden"),"analysis sidebar must remain fixed and non-scrollable");
+check(styles.includes(".editorToolEngines{margin-top:auto")&&styles.includes("flex-direction:column")&&styles.includes("font-size:6px"),"sidebar engine block must stay vertically aligned and compact");
 check(workspace.includes('loadViewerPreferences'),"viewer must load safe visual preferences");
 check(workspace.includes('saveViewerPreferences'),"viewer must persist safe visual preferences");
 check(workspace.includes('const basePreview=localPreview||prev'),"viewer must prefer a fresh File-derived preview over parent preview URLs");
@@ -97,7 +100,7 @@ check(styles.includes(".editorMetricRow{display:grid;grid-template-columns:minma
 check(styles.includes("background:rgba(255,255,255,.88)"),"floating results container must use a softly translucent background");
 check(styles.includes(".editorFloating{")&&styles.includes("width:360px")&&styles.includes("min-width:340px"),"floating results container must be narrowed without moving the metric value column");
 check(styles.includes(".editorMetricsGrid .accentA")&&styles.includes(".editorMetricsGrid .accentTotal"),"result metrics must expose restrained color accents");
-check(styles.includes(".editorStatusMessage{")&&styles.includes(".editorStatusEngines{")&&styles.includes(".editorStatusMeta{"),"bottom bar must dedicate separate transient-status, selected-engine and view-metadata regions");
+check(styles.includes(".editorStatusMessage{")&&styles.includes(".editorStatusMeta{")&&!styles.includes(".editorStatusEngines{"),"bottom bar must contain transient status and view metadata without selected-engine names");
 check(styles.includes(".editorSide .compositePane{border-left:2px solid white}"),"side-by-side composite pane must remain visually separated");
 check(styles.includes(".editorTop{")&&styles.includes("position:sticky;top:0;z-index:40"),"analysis top bar must stay fixed while the workspace scrolls");
 check(styles.includes(".editorStatus{")&&styles.includes("position:sticky;bottom:0;z-index:40"),"analysis bottom status bar must stay fixed while the workspace scrolls");

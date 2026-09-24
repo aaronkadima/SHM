@@ -49,6 +49,47 @@ jobs:
         working-directory: frontend
         run: node scripts/check-analysis-viewer.mjs
 
+      - name: Browser viewer smoke
+        working-directory: frontend
+        shell: bash
+        run: |
+          VITE_BASE_PATH=/ npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/shm-vite.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
+
+          READY=0
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/e2e/viewer-smoke.html >/dev/null; then
+              READY=1
+              break
+            fi
+            sleep 0.5
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/shm-vite.log
+            exit 1
+          fi
+
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chromium-compatible browser found on runner."
+            exit 1
+          fi
+
+          "$CHROME" --headless=new --no-sandbox --disable-gpu             --user-data-dir="/tmp/shm-chrome-$RANDOM"             --virtual-time-budget=5000             --dump-dom http://127.0.0.1:4173/e2e/viewer-smoke.html             > /tmp/shm-viewer-dom.html 2>/tmp/shm-chrome.log || {
+              cat /tmp/shm-chrome.log
+              exit 1
+            }
+
+          if ! grep -q "VIEWER_SMOKE_PASS" /tmp/shm-viewer-dom.html; then
+            cat /tmp/shm-vite.log
+            cat /tmp/shm-chrome.log
+            cat /tmp/shm-viewer-dom.html
+            exit 1
+          fi
+
+          grep "VIEWER_SMOKE_PASS" /tmp/shm-viewer-dom.html
+
       - name: Build
         working-directory: frontend
         run: npm run build

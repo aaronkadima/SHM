@@ -27,7 +27,7 @@ export function detectAsset(file){
   return "unknown";
 }
 
-export default function AnalysisWorkspace({file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
+export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(true),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(.75),[comparison,setComparison]=useState("overlay"),[showRawT0,setShowRawT0]=useState(false);
@@ -122,7 +122,7 @@ export default function AnalysisWorkspace({file,prev,referenceFile,referencePrev
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><span className="editorMenus"><span>Arquivo</span><span>Editar</span><span>Visualizar</span><span>Análise</span></span></div>
-      <div className="editorFileTitle">{file?.name||"Nova inspeção"} {kind&&"· "+kind.toUpperCase()}</div>
+      <div className="editorFileTitle">{file?.name||"Nova inspeção"} {kind&&"· "+kind.toUpperCase()}<span className="editorEngineState">{selectedEngineLabels.length===0?"Nenhum motor":selectedEngineLabels.length===1?selectedEngineLabels[0].name+(selectedEngineLabels[0].browser_ready?" · browser local":""):selectedEngineLabels.length+" motores · comparação"}</span></div>
       <div className="editorTopActions">
         <input ref={picker} hidden type="file" accept="image/*,.glb,.gltf,.obj,.ply,.stl" onChange={e=>onFile(e.target.files?.[0]||null)}/>
         <input ref={referencePicker} hidden type="file" accept="image/*" onChange={e=>onReferenceFile(e.target.files?.[0]||null)}/>

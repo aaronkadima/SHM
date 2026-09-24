@@ -1,5 +1,5 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
-import {Camera,ChevronDown,ChevronLeft,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Settings2,Unlock,X} from "lucide-react";
+import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Settings2,Unlock,X} from "lucide-react";
 import{DEFAULT_VIEWER_PREFERENCES,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
@@ -374,8 +374,8 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
       {renderOverlayStack({clipPath:`inset(0 0 0 ${wipePosition}%)`})}
       <div className="editorWipeDivider" style={{left:wipePosition+"%"}}>
         <button className={"editorWipeHandle "+(wipeDragging?"dragging":"")} type="button" aria-label="Arrastar divisor original e detecção" title="Arraste para comparar original e detecção" onMouseDown={beginWipeDrag} onKeyDown={wipeHandleKey}>
-          <span className={"wipeArrow left "+(wipeDirection==="left"?"active":"")} aria-hidden="true"/>
-          <span className={"wipeArrow right "+(wipeDirection==="right"?"active":"")} aria-hidden="true"/>
+          <ChevronLeft className={"wipeArrowIcon left "+(wipeDirection==="left"?"active":"")} size={7} strokeWidth={2.4} aria-hidden="true"/>
+          <ChevronRight className={"wipeArrowIcon right "+(wipeDirection==="right"?"active":"")} size={7} strokeWidth={2.4} aria-hidden="true"/>
         </button>
       </div>
       <span className="editorPaneBadge">original ↔ detecção</span>

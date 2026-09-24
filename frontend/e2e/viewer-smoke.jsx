@@ -42,6 +42,7 @@ function App(){
             const stack=document.querySelector(".editorOverlayStack");
             const stackRect=stack?.getBoundingClientRect();
             const overlayGeometryOk=!!stackRect&&Math.abs(stackRect.width-rect.width)<1&&Math.abs(stackRect.height-rect.height)<1;
+            const engineStatusOk=document.querySelector(".editorStatusEngines")?.textContent?.includes("Motores selecionados: CDM-1");
             const hideAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Ocultar todas");
             const showAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Mostrar todas");
             const layerBefore=document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)").length;
@@ -110,21 +111,31 @@ function App(){
             zoomPlus?.click();
             await sleep(40);
             const zoomBeforeSide=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            const side=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="Lado a lado");
+            const side=document.querySelector('button[aria-label="Lado a lado"]');
             side?.click();
             await sleep(80);
             const panes=[...document.querySelectorAll(".editorImagePane")];
             const images=[...document.querySelectorAll(".editorBaseImage")];
             const sideOk=panes.length===2&&images.length===2&&panes.every(p=>{const r=p.getBoundingClientRect();return r.width>80&&r.height>80});
             const zoomAfterSide=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            const overlay=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="Sobrepor");
+            const overlay=document.querySelector('button[aria-label="Sobrepor"]');
             overlay?.click();
             await sleep(80);
             const overlayPanes=document.querySelectorAll(".editorImagePane").length;
             const overlayImages=document.querySelectorAll(".editorBaseImage").length;
             const overlayStacks=document.querySelectorAll(".editorOverlayStack").length;
             const zoomAfterOverlay=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            const wipe=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="Deslizar");
+            const iconActionsOk=["Original","Sobrepor","Deslizar","Lado a lado"].every(label=>{
+              const button=document.querySelector('button[aria-label="'+label+'"]');
+              return !!button&&!!button.querySelector("svg")&&button.getAttribute("title")===label;
+            });
+            const exportSummary=document.querySelector('.editorExportUnified summary[aria-label="Exportar"]');
+            exportSummary?.click();
+            await sleep(40);
+            const exportLabels=[...document.querySelectorAll(".editorExportUnified>div button")].map(b=>b.textContent.trim());
+            const unifiedExportOk=!!exportSummary&&!!exportSummary.querySelector("svg")&&exportLabels.includes("JSON")&&exportLabels.includes("CSV")&&exportLabels.includes("SVG camadas")&&exportLabels.includes("CSV técnico")&&exportLabels.includes("COCO")&&exportLabels.includes("DXF")&&exportLabels.includes("BIM JSON")&&exportLabels.includes("IFC")&&exportLabels.includes("HTML")&&!document.querySelector(".editorCdmExports");
+            exportSummary?.click();
+            const wipe=document.querySelector('button[aria-label="Deslizar"]');
             wipe?.click();
             await sleep(80);
             const wipePane=document.querySelector(".editorWipePane");
@@ -136,6 +147,7 @@ function App(){
             await sleep(90);
             const wipePct=parseFloat(document.querySelector(".editorWipeDivider")?.style.left||"0");
             const wipeMovedOk=Math.abs(wipePct-68)<.6&&document.querySelector(".editorWipePane .editorOverlayStack")?.style.clipPath?.includes(wipePct.toFixed(0)+"%");
+            const wipeDirectionOk=!!document.querySelector(".editorWipeHandle .wipeArrow.right.active")&&!document.querySelector(".editorWipeHandle .wipeArrow.left.active");
             const zoomAfterWipe=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const wipeStatusOk=document.querySelector(".editorStatusMeta")?.textContent?.includes("divisor 68%");
             const temporal=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="t0 / t1");
@@ -146,7 +158,7 @@ function App(){
             const temporalStacks=document.querySelectorAll(".editorOverlayStack").length;
             const temporalOk=temporalPanes.length===2&&temporalPanes.every(p=>{const r=p.getBoundingClientRect();return r.width>80&&r.height>80})&&temporalBadges.some(x=>x.startsWith("t0"))&&temporalBadges.some(x=>x.startsWith("t1"))&&temporalStacks===1;
             const zoomAfterTemporal=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            const original=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="Original");
+            const original=document.querySelector('button[aria-label="Original"]');
             original?.click();
             await sleep(80);
             const originalPanes=document.querySelectorAll(".editorImagePane").length;
@@ -156,7 +168,7 @@ function App(){
             const reset=document.querySelector(".viewerReset");
             reset?.click();
             await sleep(80);
-            const resetMode=[...document.querySelectorAll(".editorCompare button")].find(b=>b.classList.contains("active"))?.textContent?.trim();
+            const resetMode=document.querySelector(".editorViewActions button.active")?.getAttribute("aria-label")||document.querySelector(".editorViewActions button.active")?.textContent?.trim();
             const resetLayers=document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)").length;
             const resetOrder=[...document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)")].map(img=>img.alt).join(">");
             const resetZoom=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
@@ -165,8 +177,8 @@ function App(){
             const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50;
-            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&noFloatingLayersButton&&layerResizeOk&&zoomBefore==="125%"&&panOk&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&wipeInitialOk&&wipeMovedOk&&wipeStatusOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=bottom layers=toggle+solo+order+opacity+lock+resize no-floating-layer-button wipe=canvas-handle-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+            if(overlayGeometryOk&&engineStatusOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&noFloatingLayersButton&&layerResizeOk&&zoomBefore==="125%"&&panOk&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&iconActionsOk&&unifiedExportOk&&wipeInitialOk&&wipeMovedOk&&wipeDirectionOk&&wipeStatusOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=dynamic+engines layers=toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified wipe=anchored+direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
               return;
             }
           }

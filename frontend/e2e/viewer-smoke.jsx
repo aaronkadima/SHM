@@ -592,7 +592,7 @@ function App(){
     return()=>{cancelled=true};
   },[]);
   return <>
-    <div style={{height:"760px"}}>
+    <div style={{height:"100dvh"}}>
       <AnalysisWorkspace
         appInfo={{channel:"development",buildSha:"abc123456789",catalogVersion:"1.2.0",deployment:{status:"divergent",manifest:{sha:"feedface987654",channel:"development",branch:"dev",catalogVersion:"1.2.0"}}}}
         selectedEngineLabels={selectedEngineLabels}

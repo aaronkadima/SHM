@@ -47,6 +47,12 @@ function App(){
             const layerSoloOk=document.querySelectorAll(".pathologyOverlay").length===1;
             showAll?.click();
             await sleep(40);
+            const orderBefore=[...document.querySelectorAll(".pathologyOverlay")].map(img=>img.alt).join(">");
+            const moveDown=[...document.querySelectorAll(".layerOrderControls button")].find(b=>b.title==="Descer Fissuras");
+            moveDown?.click();
+            await sleep(40);
+            const orderAfter=[...document.querySelectorAll(".pathologyOverlay")].map(img=>img.alt).join(">");
+            const layerOrderOk=orderBefore==="Corrosão>Fissuras"&&orderAfter==="Fissuras>Corrosão";
             const zoomPlus=[...document.querySelectorAll("button")].find(b=>b.getAttribute("aria-label")==="Ampliar zoom");
             zoomPlus?.click();
             await sleep(40);
@@ -72,8 +78,8 @@ function App(){
             const originalImages=document.querySelectorAll(".editorBaseImage").length;
             const originalStacks=document.querySelectorAll(".editorOverlayStack").length;
             const zoomAfterOriginal=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 layers=toggle+solo fit=100%");
+            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 layers=toggle+solo+order fit=100%");
               return;
             }
           }

@@ -41,8 +41,38 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
+  useEffect(()=>{
+    const onEscape=e=>{
+      if(e.key!=="Escape")return;
+      let handled=false;
+      if(cameraOpen){
+        setCameraOpen(false);
+        handled=true;
+      }
+      if(exportMenu.current?.open){
+        exportMenu.current.open=false;
+        handled=true;
+      }
+      if(spacePan.current||canvasDrag.current?.source==="space"){
+        const pointerId=canvasDrag.current?.pointerId;
+        if(pointerId!=null)try{canvasElement.current?.releasePointerCapture?.(pointerId)}catch{}
+        canvasDrag.current=null;
+        spacePan.current=false;
+        setSpacePanHeld(false);
+        setCanvasPointerPanning(false);
+        handled=true;
+      }
+      if(handled){
+        e.preventDefault();
+        showStatusNotice("Ação cancelada",700);
+      }
+    };
+    window.addEventListener("keydown",onEscape);
+    return()=>window.removeEventListener("keydown",onEscape);
+  },[cameraOpen]);
+
   useEffect(()=>{
     let cancelled=false;
     setPreviewError("");
@@ -769,7 +799,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
-        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio, Espaço mais arraste, setas, roda/trackpad ou toque para deslocar; Ctrl ou Command com roda, pinça, mais e menos para zoom; zero para ajustar à tela" aria-keyshortcuts="Space ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" data-touch-mode={zoom>1?"pan-pinch":"pinch-scroll"} data-pan-mode={canvasPointerPanning?"grabbing":spacePanHeld?"ready":"idle"} onKeyDown={canvasKeyDown} onKeyUp={canvasKeyUp} onBlur={canvasBlur} onWheel={canvasWheel} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
+        <div ref={canvasElement} className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio, Espaço mais arraste, setas, roda/trackpad ou toque para deslocar; Ctrl ou Command com roda, pinça, mais e menos para zoom; zero para ajustar à tela" aria-keyshortcuts="Space ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" data-touch-mode={zoom>1?"pan-pinch":"pinch-scroll"} data-pan-mode={canvasPointerPanning?"grabbing":spacePanHeld?"ready":"idle"} onKeyDown={canvasKeyDown} onKeyUp={canvasKeyUp} onBlur={canvasBlur} onWheel={canvasWheel} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
           {comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}
           {comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)}
           {comparison==="wipe"&&renderWipePane(basePreview)}
@@ -797,7 +827,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
             <button className={"editorIconButton "+(comparison==="side"?"active":"")} aria-label="Lado a lado" title="Lado a lado" data-tooltip="Lado a lado" onClick={()=>changeComparison("side")}><Columns2 size={15}/></button>
             {temporal?.enabled&&referencePrev&&<button className={comparison==="temporal"?"active temporalModeButton":"temporalModeButton"} title="Comparação temporal t0 / t1" onClick={()=>changeComparison("temporal")}>t0 / t1</button>}
             {comparison==="temporal"&&temporalAlignedPreview&&<button title={showRawT0?"Usar t0 alinhado":"Ver t0 bruto"} onClick={()=>setShowRawT0(v=>!v)}>{showRawT0?"Alinhado":"Bruto"}</button>}
-            <details className="editorExportMenu editorExportUnified">
+            <details ref={exportMenu} className="editorExportMenu editorExportUnified">
               <summary className="editorIconButton" aria-label="Exportar" title="Exportar" data-tooltip="Exportar"><Download size={15}/></summary>
               <div>
                 <span className="editorExportSection">Comparação</span>
@@ -827,6 +857,6 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
       </div>
     </div>
     <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?"transient":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}{appInfo?.channel==="development"&&<span className={"editorDevStamp "+(appInfo?.deployment?.status||"")} title={"Build de desenvolvimento · "+(appInfo?.buildSha||"—")+" · catálogo v"+(appInfo?.catalogVersion||"—")+" · deploy "+(appInfo?.deployment?.status||"não verificado")+(appInfo?.deployment?.manifest?.sha?" · publicado "+appInfo.deployment.manifest.sha:"")}>DEV · {String(appInfo?.buildSha||"—").slice(0,8)}{" "}<i className="editorDeployState" aria-label={"Deploy "+(appInfo?.deployment?.status||"não verificado")}>{appInfo?.deployment?.status==="synced"?"✓":appInfo?.deployment?.status==="divergent"?"!":appInfo?.deployment?.status==="unavailable"?"?":appInfo?.deployment?.status==="checking"?"…":""}</i></span>}</span></div>
-    {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera"><header><b>Modo câmera</b><button aria-label="Fechar modo câmera" title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={()=>setCameraReady(true)}/><footer><span>{cameraError?"Verifique a permissão da câmera":cameraReady?"Prévia ao vivo · capture um quadro para análise 2D":"Aguardando câmera…"}</span><button onClick={capture} disabled={!!cameraError||!cameraReady}><Camera size={16}/> Capturar imagem</button></footer></div></div>}
+    {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera" role="dialog" aria-modal="true" aria-label="Modo câmera"><header><b>Modo câmera</b><button aria-label="Fechar modo câmera" title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={()=>setCameraReady(true)}/><footer><span>{cameraError?"Verifique a permissão da câmera":cameraReady?"Prévia ao vivo · capture um quadro para análise 2D":"Aguardando câmera…"}</span><button onClick={capture} disabled={!!cameraError||!cameraReady}><Camera size={16}/> Capturar imagem</button></footer></div></div>}
   </section>
 }

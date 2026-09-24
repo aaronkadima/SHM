@@ -228,8 +228,8 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   function changeZoom(delta,anchor=null){
     const next=Math.max(.25,Math.min(4,zoom+delta));
     if(next===zoom)return;
-    if(anchor)setCanvasPan(current=>clampCanvasPosition(zoomCanvasPanAroundPoint(current,zoom,next,anchor),next));
-    else setCanvasPan(current=>clampCanvasPosition(current,next));
+    const focus=anchor||{x:0,y:0};
+    setCanvasPan(current=>clampCanvasPosition(zoomCanvasPanAroundPoint(current,zoom,next,focus),next));
     setZoom(next);
     showStatusNotice("Zoom · "+Math.round(next*100)+"%",1000);
   }

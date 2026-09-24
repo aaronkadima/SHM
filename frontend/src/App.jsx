@@ -183,7 +183,7 @@ export default function App(){
   async function openHistory(id,target="reports"){
     setHistoryErr("");
     const historyToken=++historyOpenSeq.current;
-    let restoredPreview=null,restoredReferencePreview=null;
+    let restoredPreview=null,restoredReferencePreview=null,historyCommitted=false;
     try{
       const record=await getInspection(id);
       if(historyToken!==historyOpenSeq.current)return;
@@ -216,11 +216,7 @@ export default function App(){
           referenceRestoreWarning="Referência t0 armazenada ignorada: "+(e?.message||String(e));
         }
       }
-      if(historyToken!==historyOpenSeq.current){
-        if(restoredPreview)URL.revokeObjectURL(restoredPreview);
-        if(restoredReferencePreview)URL.revokeObjectURL(restoredReferencePreview);
-        return;
-      }
+      if(historyToken!==historyOpenSeq.current)return;
       if(prev)URL.revokeObjectURL(prev);
       if(referencePrev)URL.revokeObjectURL(referencePrev);
       setFile(restoredFile);
@@ -235,7 +231,14 @@ export default function App(){
       setSel(new Set(record.summary?.engine_ids||record.result?.metadata?.engine_ids||[]));
       setProgress(null);setJobId(null);setErr(referenceRestoreWarning);
       navigate(target);
+      historyCommitted=true;
     }catch(e){if(historyToken===historyOpenSeq.current)setHistoryErr("Falha ao abrir inspeção: "+String(e))}
+    finally{
+      if(!historyCommitted){
+        if(restoredPreview)URL.revokeObjectURL(restoredPreview);
+        if(restoredReferencePreview)URL.revokeObjectURL(restoredReferencePreview);
+      }
+    }
   }
   async function useHistoryAsReference(id){
     historyOpenSeq.current++;

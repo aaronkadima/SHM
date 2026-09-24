@@ -232,9 +232,9 @@ function App(){
               phoneOverlayArbitrationToggle=!document.querySelector(".editorLayers")&&!!floatingAfterLayersClose&&getComputedStyle(floatingAfterLayersClose).visibility==="visible"&&getComputedStyle(floatingAfterLayersClose).pointerEvents!=="none";
             }
             const floatingPanel=document.querySelector(".editorFloating");
-            const floatingHead=floatingPanel?.querySelector(".editorFloatHead");
+            const floatingHead=floatingPanel?.querySelector(".editorFloatMoveHandle");
             const viewportRect=document.querySelector(".editorViewport")?.getBoundingClientRect();
-            let floatingClampOk=!!floatingPanel&&!!floatingHead&&!!viewportRect&&parseFloat(getComputedStyle(floatingPanel).maxWidth)>0&&floatingHead.tabIndex===0&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
+            let floatingClampOk=!!floatingPanel&&!!floatingHead&&!!viewportRect&&parseFloat(getComputedStyle(floatingPanel).maxWidth)>0&&floatingHead.tagName==="BUTTON"&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
             if(floatingClampOk){
               floatingHead.focus();
               floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowUp"}));

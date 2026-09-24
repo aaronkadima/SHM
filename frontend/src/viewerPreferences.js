@@ -33,7 +33,7 @@ export function normalizeViewerPreferences(value={}){
   return {
     opacity:Number.isFinite(opacity)?Math.min(1,Math.max(0,opacity)):DEFAULT_VIEWER_PREFERENCES.opacity,
     layersOpen:typeof value?.layersOpen==="boolean"?value.layersOpen:DEFAULT_VIEWER_PREFERENCES.layersOpen,
-    layersWidth:Number.isFinite(layersWidth)?Math.min(600,Math.max(340,layersWidth)):DEFAULT_VIEWER_PREFERENCES.layersWidth,
+    layersWidth:clampLayersPanelWidth(layersWidth),
     comparison:VALID_COMPARISONS.has(value?.comparison)?value.comparison:DEFAULT_VIEWER_PREFERENCES.comparison,
     wipePosition:Number.isFinite(wipePosition)?Math.min(95,Math.max(5,wipePosition)):DEFAULT_VIEWER_PREFERENCES.wipePosition,
     pathologyOrder:Array.isArray(value?.pathologyOrder)?[...new Set(value.pathologyOrder.filter(x=>typeof x==="string"&&x.trim()))]:[],
@@ -71,6 +71,11 @@ export function saveViewerPreferences(value,storage=globalThis?.localStorage){
   }
 }
 
+
+export function clampLayersPanelWidth(value){
+  const width=Number(value);
+  return Number.isFinite(width)?Math.min(600,Math.max(340,Math.round(width))):DEFAULT_VIEWER_PREFERENCES.layersWidth;
+}
 
 export function clampFloatingPanelPosition(next,geometry={}){
   const margin=Number.isFinite(Number(geometry.margin))?Number(geometry.margin):8;

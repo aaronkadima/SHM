@@ -7,7 +7,9 @@ export const DEFAULT_VIEWER_PREFERENCES={
   wipePosition:50,
   pathologyOrder:[],
   pathologyOpacity:{},
-  pathologyLocked:[]
+  pathologyLocked:[],
+  resultPanelPosition:{x:0,y:0},
+  resultPanelSize:{width:360,height:null}
 };
 
 const VALID_COMPARISONS=new Set(["original","overlay","wipe","side"]);
@@ -16,6 +18,9 @@ export function normalizeViewerPreferences(value={}){
   const opacity=Number(value?.opacity);
   const wipePosition=Number(value?.wipePosition);
   const rawLayerOpacity=value?.pathologyOpacity&&typeof value.pathologyOpacity==="object"&&!Array.isArray(value.pathologyOpacity)?value.pathologyOpacity:{};
+  const rawPanelPosition=value?.resultPanelPosition&&typeof value.resultPanelPosition==="object"?value.resultPanelPosition:{};
+  const rawPanelSize=value?.resultPanelSize&&typeof value.resultPanelSize==="object"?value.resultPanelSize:{};
+  const panelX=Number(rawPanelPosition.x),panelY=Number(rawPanelPosition.y),panelWidth=Number(rawPanelSize.width),panelHeight=Number(rawPanelSize.height);
   const pathologyOpacity={};
   for(const [id,raw] of Object.entries(rawLayerOpacity)){
     if(typeof id!=="string"||!id.trim())continue;
@@ -29,7 +34,15 @@ export function normalizeViewerPreferences(value={}){
     wipePosition:Number.isFinite(wipePosition)?Math.min(95,Math.max(5,wipePosition)):DEFAULT_VIEWER_PREFERENCES.wipePosition,
     pathologyOrder:Array.isArray(value?.pathologyOrder)?[...new Set(value.pathologyOrder.filter(x=>typeof x==="string"&&x.trim()))]:[],
     pathologyOpacity,
-    pathologyLocked:Array.isArray(value?.pathologyLocked)?[...new Set(value.pathologyLocked.filter(x=>typeof x==="string"&&x.trim()))]:[]
+    pathologyLocked:Array.isArray(value?.pathologyLocked)?[...new Set(value.pathologyLocked.filter(x=>typeof x==="string"&&x.trim()))]:[],
+    resultPanelPosition:{
+      x:Number.isFinite(panelX)?Math.min(5000,Math.max(-5000,panelX)):DEFAULT_VIEWER_PREFERENCES.resultPanelPosition.x,
+      y:Number.isFinite(panelY)?Math.min(5000,Math.max(-5000,panelY)):DEFAULT_VIEWER_PREFERENCES.resultPanelPosition.y
+    },
+    resultPanelSize:{
+      width:Number.isFinite(panelWidth)?Math.min(900,Math.max(340,panelWidth)):DEFAULT_VIEWER_PREFERENCES.resultPanelSize.width,
+      height:Number.isFinite(panelHeight)&&panelHeight>=65?Math.min(900,panelHeight):DEFAULT_VIEWER_PREFERENCES.resultPanelSize.height
+    }
   };
 }
 

@@ -103,7 +103,7 @@ function App(){
             const layersResize=document.querySelector(".editorLayerResizeHandle");
             const pathologyName=document.querySelector(".pathologyName");
             const referenceText=document.querySelector(".referenceLayer>span:nth-child(2)");
-            const layerResizeOk=!!layersPanel&&!!layersResize&&getComputedStyle(layersResize).cursor==="col-resize"&&layersPanel.getBoundingClientRect().width>=340;
+            const layerResizeOk=!!layersPanel&&!!layersResize&&(narrowSidebar?getComputedStyle(layersResize).display==="none":getComputedStyle(layersResize).cursor==="col-resize"&&layersPanel.getBoundingClientRect().width>=340);
             const layerNoWrapOk=getComputedStyle(pathologyName).whiteSpace==="nowrap"&&getComputedStyle(referenceText).whiteSpace==="nowrap";
             const zoomPlus=[...document.querySelectorAll("button")].find(b=>b.getAttribute("aria-label")==="Ampliar zoom");
             zoomPlus?.click();

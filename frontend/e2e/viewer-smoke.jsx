@@ -130,6 +130,23 @@ function App(){
             const pathologyName=document.querySelector(".pathologyName");
             const referenceText=document.querySelector(".referenceLayer>span:nth-child(2)");
             const layerResizeOk=!!layersPanel&&!!layersResize&&(narrowSidebar?getComputedStyle(layersResize).display==="none":getComputedStyle(layersResize).cursor==="col-resize"&&layersPanel.getBoundingClientRect().width>=340);
+            let layerWidthPersistenceOk=true;
+            if(!narrowSidebar&&layersPanel&&layersResize){
+              const beforeWidth=Math.round(layersPanel.getBoundingClientRect().width);
+              const handleRect=layersResize.getBoundingClientRect();
+              const startX=handleRect.left+Math.max(1,handleRect.width/2);
+              layersResize.dispatchEvent(new MouseEvent("mousedown",{bubbles:true,button:0,buttons:1,clientX:startX,clientY:handleRect.top+10}));
+              window.dispatchEvent(new MouseEvent("mousemove",{bubbles:true,button:0,buttons:1,clientX:startX+40,clientY:handleRect.top+10}));
+              window.dispatchEvent(new MouseEvent("mouseup",{bubbles:true,button:0,buttons:0,clientX:startX+40,clientY:handleRect.top+10}));
+              await sleep(80);
+              const afterWidth=Math.round(layersPanel.getBoundingClientRect().width);
+              const layerPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
+              layerWidthPersistenceOk=afterWidth===Math.min(600,Math.max(340,beforeWidth+40))&&layerPrefs.layersWidth===afterWidth&&layersPanel.dataset.layerWidth===String(afterWidth);
+            }else if(narrowSidebar&&layersPanel){
+              const responsiveWidth=layersPanel.getBoundingClientRect().width;
+              const stored=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}").layersWidth;
+              layerWidthPersistenceOk=responsiveWidth<=300&&stored===360;
+            }
             const layerNoWrapOk=getComputedStyle(pathologyName).whiteSpace==="nowrap"&&getComputedStyle(referenceText).whiteSpace==="nowrap";
             const selectedLayerRow=document.querySelector(".pathologyLayer.selected");
             const selectedSolo=selectedLayerRow?.querySelector(".layerSolo");
@@ -224,7 +241,7 @@ function App(){
             const resetLock=document.querySelector(".layerLockState");
             const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
-            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50&&savedPrefs.resultPanelOpen===true&&savedPrefs.resultPanelPosition?.x===0&&savedPrefs.resultPanelPosition?.y===0&&savedPrefs.resultPanelSize?.width===360&&savedPrefs.resultPanelSize?.height===null;
+            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50&&savedPrefs.layersWidth===360&&savedPrefs.resultPanelOpen===true&&savedPrefs.resultPanelPosition?.x===0&&savedPrefs.resultPanelPosition?.y===0&&savedPrefs.resultPanelSize?.width===360&&savedPrefs.resultPanelSize?.height===null;
             let compactOverlayArbitrationToggle=true;
             if(compactOverlay){
               const layersToggle=[...document.querySelectorAll(".editorTools button")].find(button=>button.title==="Mostrar ou ocultar camadas");
@@ -279,7 +296,7 @@ function App(){
             const busyPreferenceRestored=afterBusyPrefs.resultPanelOpen===false&&!document.querySelector(".editorFloating")&&!!document.querySelector(".editorResultsTab");
             const checks={
               initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
-              layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
+              layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
               wipeInitialOk,wipeMovedOk,wipeDirectionOk,wipeStatusOk,zoomAfterWipe:zoomAfterWipe==="100%",
@@ -287,7 +304,7 @@ function App(){
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=compact-single-panel results=viewport-clamped+resize-aware+persistent+collapse-state+busy-tab sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=compact-single-panel results=viewport-clamped+resize-aware+persistent+collapse-state+busy-tab sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
               setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }

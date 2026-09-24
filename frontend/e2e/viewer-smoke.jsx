@@ -222,6 +222,34 @@ function App(){
             await sleep(40);
             const keyboardResetTransform=canvas?.style.transform||"";
             const canvasKeyboardOk=keyboardPanOk&&keyboardZoomInOk&&keyboardZoomOutOk&&keyboardResetTransform.includes("translate(0px, 0px)")&&keyboardResetTransform.includes("scale(1)")&&canvas?.getAttribute("aria-keyshortcuts")?.includes("ArrowLeft");
+            let canvasTouchOk=true;
+            if(phoneSidebar&&canvas){
+              const touchModeFit=canvas.dataset.touchMode==="pinch-scroll";
+              canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:111,pointerType:"touch",isPrimary:true,button:0,buttons:1,clientX:100,clientY:100}));
+              canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:112,pointerType:"touch",isPrimary:false,button:0,buttons:1,clientX:200,clientY:100}));
+              canvas.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:112,pointerType:"touch",isPrimary:false,button:0,buttons:1,clientX:250,clientY:100}));
+              await sleep(50);
+              const pinchTransform=canvas.style.transform||"";
+              const pinchZoomOk=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="150%"&&canvas.dataset.touchMode==="pan-pinch"&&pinchTransform.includes("translate(25px, 0px)")&&pinchTransform.includes("scale(1.5)");
+              canvas.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:112,pointerType:"touch",isPrimary:false,button:0,buttons:0,clientX:250,clientY:100}));
+              canvas.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:111,pointerType:"touch",isPrimary:true,button:0,buttons:0,clientX:100,clientY:100}));
+              await sleep(20);
+              canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:113,pointerType:"touch",isPrimary:true,button:0,buttons:1,clientX:150,clientY:150}));
+              canvas.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:113,pointerType:"touch",isPrimary:true,button:0,buttons:1,clientX:180,clientY:175}));
+              await sleep(40);
+              const touchPanTransform=canvas.style.transform||"";
+              const touchPanOk=touchPanTransform.includes("translate(55px, 25px)")&&touchPanTransform.includes("scale(1.5)");
+              canvas.dispatchEvent(new PointerEvent("pointercancel",{bubbles:true,pointerId:113,pointerType:"touch",isPrimary:true,button:0,buttons:0,clientX:180,clientY:175}));
+              const cancelledTransform=canvas.style.transform||"";
+              canvas.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:113,pointerType:"touch",isPrimary:true,button:0,buttons:1,clientX:230,clientY:220}));
+              await sleep(20);
+              const touchCancelOk=(canvas.style.transform||"")===cancelledTransform;
+              canvas.focus();
+              canvas.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"0"}));
+              await sleep(40);
+              const touchResetOk=canvas.dataset.touchMode==="pinch-scroll"&&(canvas.style.transform||"").includes("translate(0px, 0px)")&&([...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="100%");
+              canvasTouchOk=touchModeFit&&pinchZoomOk&&touchPanOk&&touchCancelOk&&touchResetOk;
+            }
             zoomPlus?.click();
             await sleep(40);
             const zoomBeforeSide=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
@@ -397,7 +425,7 @@ function App(){
             const checks={
               initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
-              zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,canvasKeyboardOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
+              zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,canvasKeyboardOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
               wipeInitialOk,wipeMovedOk,wipeDirectionOk,wipeStatusOk,zoomAfterWipe:zoomAfterWipe==="100%",
               temporalOk,zoomAfterTemporal:zoomAfterTemporal==="100%",originalPanes:originalPanes===1,originalImages:originalImages===1,originalStacks:originalStacks===0,zoomAfterOriginal:zoomAfterOriginal==="100%",resetOk

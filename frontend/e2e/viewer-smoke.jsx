@@ -237,9 +237,9 @@ function App(){
             let floatingClampOk=!!floatingPanel&&!!floatingHead&&!!viewportRect&&parseFloat(getComputedStyle(floatingPanel).maxWidth)>0&&floatingHead.tabIndex===0&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
             if(floatingClampOk){
               floatingHead.focus();
-              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowLeft"}));
+              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowUp"}));
               await sleep(50);
-              const keyboardMoveStarted=Number(floatingPanel.dataset.positionX)<0;
+              const keyboardMoveStarted=Number(floatingPanel.dataset.positionY)<0;
               for(let n=0;n<60;n++){
                 floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowLeft"}));
                 floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowUp"}));

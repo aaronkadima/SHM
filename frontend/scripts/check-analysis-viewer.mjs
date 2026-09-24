@@ -16,9 +16,11 @@ check(workspace.includes('reader.readAsDataURL(file)'),"viewer must use a persis
 check(workspace.includes('setComparison("overlay")'),"new files must reset comparison mode to overlay");
 check(workspace.includes('function fitView(){setZoom(1)}'),"viewer must expose fit-to-screen behavior");
 check(workspace.includes('function changeComparison(mode){setComparison(mode);fitView()}'),"comparison mode changes must refit the canvas");
+check(workspace.includes('>Original</button>'),"viewer must expose a dedicated Original comparison mode");
 check(workspace.includes('const safeViewport={width:Math.max(480'),"viewer must protect against zero-size viewport collapse");
 check(workspace.includes('Math.max(160,safeImage.width*fit*panes)'),"viewer must keep a visible minimum display width");
 check(workspace.includes('Imagem carregada'),"viewer must expose decoded image dimensions");
+check(workspace.includes('comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)'),"original mode must render the base image without overlays");
 check(workspace.includes('comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)'),"overlay mode must render original + overlays in the same pane");
 check(workspace.includes('comparison==="side"&&<>'),"side-by-side mode must have explicit two-pane composition");
 check(workspace.includes('renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)'),"side-by-side left pane must be the original image");

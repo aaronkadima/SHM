@@ -4,6 +4,7 @@ import catalog from"./engines.json";
 import AnalysisWorkspace from"./AnalysisWorkspace.jsx";
 import AnalysisSettings from"./AnalysisSettings.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
+import{analysisExecutionIssue,executionEndpointIssue}from"./executionConfig.js";
 import{sortEngines,engineMatchesFilter,engineMatchesQuery}from"./engineCatalog.js";
 import{buildCdmSvg,buildCdmCsv,buildCdmCoco,buildCdmDxf,buildCdmBimJson,buildCdmIfc,buildCdmHtml}from"./cdmExports.js";
 import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
@@ -249,26 +250,27 @@ export default function App(){
   const selected=[...sel];
   const selectedEngineLabels=selected.map(id=>engines.find(e=>e.id===id)).filter(Boolean).map(e=>({id:e.id,name:e.name,browser_ready:!!e.browser_ready}));
   const runMode=selected.length===1?"individual":selected.length>=2?"comparison":"none";
+  const executionIssue=analysisExecutionIssue({selected,engines,individualApi,comparatorApi,browserSupported:browserEngineSupported,hostname:window.location.hostname});
   const recommended=engines.filter(e=>e.recommended).length;
   const cloudVerified=engines.filter(e=>e.cloud_verified).length;
   const browserReady=engines.filter(e=>e.browser_ready).length;
   const visibleEng=useMemo(()=>engines.filter(e=>engineMatchesFilter(e,engineFilter)&&engineMatchesQuery(e,engineQuery)),[engines,engineQuery,engineFilter]);
 
   function saveIndividual(){
-    const v=individualDraft.trim().replace(/\/$/,"");localStorage.setItem("shmIndividualApiUrl",v);setIndividualApi(v);setIndividualOnline(null);
+    const v=individualDraft.trim().replace(/\/$/,"");localStorage.setItem("shmIndividualApiUrl",v);setIndividualApi(v);setIndividualOnline(null);setErr("");
   }
   function individualEndpoint(){
-    if(!individualApi)throw new Error("Configure o endereço HTTPS de um backend standalone em Configurações → Conexões dos motores. Este motor não executa no navegador.");
-    let url;
-    try{url=new URL(individualApi)}catch{throw new Error("O endereço do backend individual não é uma URL válida.")}
-    if((url.protocol!=="https:" || ["localhost","127.0.0.1"].includes(url.hostname)) && !(location.hostname==="localhost"||location.hostname==="127.0.0.1")){
-      throw new Error("O site público exige um backend individual acessível por HTTPS; o endereço local não funciona para outros usuários.");
-    }
-    if(!["https:","http:"].includes(url.protocol))throw new Error("O backend deve usar HTTP ou HTTPS.");
+    const issue=executionEndpointIssue(individualApi,{label:"backend individual",hostname:window.location.hostname});
+    if(issue)throw new Error(issue);
     return individualApi;
   }
+  function comparatorEndpoint(){
+    const issue=executionEndpointIssue(comparatorApi,{label:"comparador cloud",hostname:window.location.hostname});
+    if(issue)throw new Error(issue);
+    return comparatorApi;
+  }
   function saveComparator(){
-    const v=comparatorDraft.trim().replace(/\/$/,"");localStorage.setItem("shmComparatorApiUrl",v);setComparatorApi(v);setComparatorOnline(null);
+    const v=comparatorDraft.trim().replace(/\/$/,"");localStorage.setItem("shmComparatorApiUrl",v);setComparatorApi(v);setComparatorOnline(null);setErr("");
   }
   async function testIndividual(){
     setErr("");setIndividualOnline(null);
@@ -283,7 +285,7 @@ export default function App(){
     }catch(e){setIndividualOnline(false);setErr("Backend individual indisponível: "+(e instanceof TypeError?"Não foi possível acessar o endereço. Confira HTTPS, disponibilidade do serviço e CORS.":e.message||String(e)))}
   }
   async function ensureComparator(signal=null){
-    const r=await fetch(comparatorApi+"/health",{signal:combinedSignal(signal,12000)});
+    const r=await fetch(comparatorEndpoint()+"/health",{signal:combinedSignal(signal,12000)});
     if(!r.ok)throw new Error("Comparador respondeu HTTP "+r.status);
     const j=await r.json();
     if(j.role&&j.role!=="comparator")throw new Error("O backend informado não está em modo comparator.");
@@ -304,7 +306,7 @@ export default function App(){
     if(referencePrev)URL.revokeObjectURL(referencePrev);
     setReferencePrev(f?URL.createObjectURL(f):null);
   }
-  function toggle(id){setSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n})}
+  function toggle(id){setErr("");setSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n})}
   function selectRecommended(){setSel(new Set(engines.filter(e=>e.recommended).map(e=>e.id)))}
   function selectVerified(){setSel(new Set(engines.filter(e=>e.cloud_verified).map(e=>e.id)))}
   function clearSelection(){setSel(new Set())}
@@ -339,9 +341,10 @@ export default function App(){
   }
 
   async function runComparison(runId,signal,sourceFile,engineIds){
+    const endpoint=comparatorEndpoint();
     await ensureComparator(signal);
     const fd=new FormData();fd.append("file",sourceFile);fd.append("engines",engineIds.join(","));
-    const start=await fetch(comparatorApi+"/jobs/compare",{method:"POST",body:fd,signal});
+    const start=await fetch(endpoint+"/jobs/compare",{method:"POST",body:fd,signal});
     if(!start.ok)throw new Error(await start.text());
     const j=await start.json();
     if(activeRun.current?.id===runId&&!signal.aborted)setJobId(j.job_id);
@@ -349,7 +352,7 @@ export default function App(){
     while(attempts<1200){
       await abortableDelay(750,signal);
       attempts++;
-      const poll=await fetch(comparatorApi+"/jobs/"+j.job_id,{signal:combinedSignal(signal,12000)});
+      const poll=await fetch(endpoint+"/jobs/"+j.job_id,{signal:combinedSignal(signal,12000)});
       if(!poll.ok)throw new Error(await poll.text());
       const st=await poll.json();
       if(activeRun.current?.id===runId&&!signal.aborted)setProgress({state:st.state,completed:st.completed,total:st.total,current_engine:st.current_engine});
@@ -363,6 +366,7 @@ export default function App(){
 
   async function run(){
     if(!file||!selected.length||busy)return;
+    if(executionIssue){setErr(executionIssue);return}
     const mode=runMode,engineIds=[...selected],inspection={...inspectionMeta};
     const sourceFile=file,sourceReference=referenceFile,sourceReferenceInspectionId=referenceInspectionId,sourceReferenceInspectionMeta=referenceInspectionMeta?{...referenceInspectionMeta}:null;
     if(mode==="individual"&&engineIds[0]==="cdm_1"&&sourceReferenceInspectionId&&sourceReferenceInspectionMeta){
@@ -448,7 +452,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
+    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
     {activeView==="engines"&&<EnginesView appInfo={APP_INFO} engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 

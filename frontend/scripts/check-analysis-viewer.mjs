@@ -1,6 +1,7 @@
 import fs from "node:fs";
 
 const workspace=fs.readFileSync(new URL("../src/AnalysisWorkspace.jsx",import.meta.url),"utf8");
+const app=fs.readFileSync(new URL("../src/App.jsx",import.meta.url),"utf8");
 const styles=fs.readFileSync(new URL("../src/styles.css",import.meta.url),"utf8");
 const settings=fs.readFileSync(new URL("../src/AnalysisSettings.jsx",import.meta.url),"utf8");
 const settingsStyles=fs.readFileSync(new URL("../src/analysis-settings.css",import.meta.url),"utf8");
@@ -98,7 +99,8 @@ check(styles.includes(".editorSide .compositePane{border-left:2px solid white}")
 check(styles.includes(".editorTop{")&&styles.includes("position:sticky;top:0;z-index:40"),"analysis top bar must stay fixed while the workspace scrolls");
 check(styles.includes(".editorStatus{")&&styles.includes("position:sticky;bottom:0;z-index:40"),"analysis bottom status bar must stay fixed while the workspace scrolls");
 check(settings.includes('className="settingsBottom"')&&settings.includes('settingsStatusEngines')&&settings.includes('settingsApply'),"settings page must expose the shared bottom status-bar pattern");
-check(styles.includes(".appShell.editorShell{display:block;background:#e5ebee;height:100vh;min-height:0;overflow:hidden}")&&styles.includes(".editorShell .appMain{padding:0!important;max-width:none!important;margin:0;height:100%;min-height:0;overflow:hidden}"),"editor shell and main must lock to the viewport and prevent document-level scrolling");
+check(app.includes('activeView==="settings"?"settingsShell":"")'),"settings route must receive a dedicated shell class");
+check(styles.includes(".appShell.settingsShell{height:100vh;min-height:0;overflow:hidden}")&&styles.includes(".settingsShell .appMain{height:100%;min-height:0;overflow:hidden}"),"settings shell and main must lock to the viewport and prevent document-level scrolling without altering analysis");
 check(settingsStyles.includes(".analysisSettings{height:100%;min-height:0")&&settingsStyles.includes("display:flex;flex-direction:column;overflow:hidden"),"settings page must fill the locked shell without creating a second page scroll");
 check(settingsStyles.includes(".settingsTop{height:58px;flex:0 0 58px")&&settingsStyles.includes("position:relative;z-index:70"),"settings top bar must remain visible as the fixed flex header");
 check(settingsStyles.includes(".settingsContent{width:100%;max-width:none;flex:1;min-height:0;margin:0;overflow:auto"),"settings content must be the single vertical scrolling region between the fixed top and bottom bars");

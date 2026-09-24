@@ -40,7 +40,7 @@ jobs:
 
       - name: Install production dependencies
         working-directory: prod-src/frontend
-        run: npm install
+        run: npm ci
 
       - name: Build production
         working-directory: prod-src/frontend
@@ -52,7 +52,7 @@ jobs:
 
       - name: Install development dependencies
         working-directory: dev-src/frontend
-        run: npm install
+        run: npm ci
 
       - name: Build development preview
         working-directory: dev-src/frontend
@@ -84,6 +84,19 @@ jobs:
           printf '{"channel":"development","branch":"dev","sha":"%s","catalogVersion":"%s"}\n' "$DEV_SHA" "$DEV_CATALOG" > site/dev/build.json
           node -e "const fs=require('fs');for(const p of ['site/build.json','site/dev/build.json']){const x=JSON.parse(fs.readFileSync(p,'utf8'));if(!x.sha||!x.catalogVersion)throw new Error('Invalid build manifest: '+p)}"
 
+      - name: Validate production and development routes
+        run: |
+          test -f site/index.html
+          test -f site/dev/index.html
+          PROD_SHA="$(node -p "require('./site/build.json').sha")"
+          DEV_SHA="$(node -p "require('./site/dev/build.json').sha")"
+          grep -R -q "$PROD_SHA" prod-src/frontend/dist/assets
+          grep -R -q "$DEV_SHA" dev-src/frontend/dist/assets
+          grep -q "/SHM/assets/" site/index.html
+          grep -q "/SHM/dev/assets/" site/dev/index.html
+          test "$(node -p "require('./site/build.json').branch")" = "main"
+          test "$(node -p "require('./site/dev/build.json').branch")" = "dev"
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
@@ -94,7 +107,7 @@ jobs:
 
   deploy:
     environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'github-pages' || 'github-pages-dev' }}
+      name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build

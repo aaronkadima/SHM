@@ -88,6 +88,9 @@ check(styles.includes(".editorExportUnified{width:auto")&&styles.includes(".edit
 check(styles.includes(".editorViewActions [data-tooltip]:after")&&styles.includes("[data-tooltip]:hover:after"),"icon hover labels must render without waiting for the browser title tooltip");
 check(!styles.includes(".editorWipeControl{"),"obsolete lower swipe control styling must be removed");
 check(styles.includes(".editorLayerResizeHandle{width:6px")&&styles.includes("cursor:col-resize"),"layer panel resize handle must have a horizontal-resize affordance");
+check(styles.includes(".editorViewport{")&&styles.includes("container-type:inline-size"),"canvas viewport must expose its own inline-size container for proportional empty-state scaling");
+check(styles.includes(".editorEmpty{width:min(390px,72cqw);max-width:72%")&&styles.includes("padding:clamp(18px,5cqw,34px)"),"empty import card must scale proportionally with the canvas instead of remaining desktop-sized on mobile");
+check(styles.includes(".editorEmpty>svg{width:clamp(24px,5.8cqw,38px)")&&styles.includes(".editorEmpty h2{font-size:clamp(13px,2.7cqw,18px)")&&styles.includes(".editorEmpty button{min-height:clamp(30px,5.2cqw,36px)"),"empty import card icon typography and button must scale with the container");
 
 check(workspace.includes('editorRunTime editorMetricRow')&&workspace.includes('editorMetricsGrid performance')&&workspace.includes('editorMetricLabel')&&workspace.includes('editorMetricValue'),"results from measured time through real time must use aligned parameter/value rows");
 check(styles.includes(".editorMetricRow{display:grid;grid-template-columns:minmax(148px,1fr) minmax(82px,auto)")&&styles.includes("column-gap:14px")&&styles.includes("white-space:nowrap"),"result metric values must preserve their right-column alignment without wrapping");

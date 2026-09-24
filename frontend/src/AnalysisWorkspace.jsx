@@ -41,7 +41,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{
     let cancelled=false;
@@ -69,7 +69,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     showStatusNotice(`Imagem carregada · ${file.name} · ${imageSize.width}×${imageSize.height} px`,1800);
   },[file,kind,imageDecoded,imageSize.width,imageSize.height,previewError]);
   useEffect(()=>()=>{if(statusTimer.current)clearTimeout(statusTimer.current);if(wipeDirectionTimer.current)clearTimeout(wipeDirectionTimer.current)},[]);
-  useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setCanvasPan({x:0,y:0});setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
+  useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});applyCanvasZoom(1);setCanvasPan({x:0,y:0});setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
   useEffect(()=>{
     if(!resultOpen)return;
@@ -225,12 +225,19 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     if(!rect)return{x:0,y:0};
     return{x:clientX-(rect.left+rect.width/2),y:clientY-(rect.top+rect.height/2)};
   }
+  function applyCanvasZoom(next){
+    const value=Math.max(.25,Math.min(4,Number(next)||1));
+    zoomRef.current=value;
+    setZoom(value);
+    return value;
+  }
   function changeZoom(delta,anchor=null){
-    const next=Math.max(.25,Math.min(4,zoom+delta));
-    if(next===zoom)return;
+    const current=zoomRef.current;
+    const next=Math.max(.25,Math.min(4,current+delta));
+    if(next===current)return;
     const focus=anchor||{x:0,y:0};
-    setCanvasPan(current=>clampCanvasPosition(zoomCanvasPanAroundPoint(current,zoom,next,focus),next));
-    setZoom(next);
+    setCanvasPan(currentPan=>clampCanvasPosition(zoomCanvasPanAroundPoint(currentPan,current,next,focus),next));
+    applyCanvasZoom(next);
     showStatusNotice("Zoom · "+Math.round(next*100)+"%",1000);
   }
   function canvasPanGeometry(zoomValue=zoom){
@@ -359,7 +366,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
       const gesture=canvasTouch.current;
       gesture.points.set(e.pointerId,{x:e.clientX,y:e.clientY});
       if(gesture.points.size===1){
-        if(zoom>1){
+        if(zoomRef.current>1){
           e.preventDefault();
           gesture.mode="pan";
           gesture.startPoint={x:e.clientX,y:e.clientY};
@@ -371,10 +378,10 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         const points=[...gesture.points.values()];
         gesture.mode="pinch";
         gesture.startDistance=Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y)||1;
-        gesture.startZoom=zoom;
+        gesture.startZoom=zoomRef.current;
         gesture.startMidpoint=canvasViewportPoint((points[0].x+points[1].x)/2,(points[0].y+points[1].y)/2);
         gesture.startPan={...canvasPan};
-        gesture.lastZoom=zoom;
+        gesture.lastZoom=zoomRef.current;
         gesture.lastPan={...canvasPan};
         for(const id of gesture.points.keys())try{e.currentTarget.setPointerCapture?.(id)}catch{}
       }
@@ -402,9 +409,9 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         );
         gesture.lastZoom=nextZoom;
         gesture.lastPan=nextPan;
-        setZoom(nextZoom);
+        applyCanvasZoom(nextZoom);
         setCanvasPan(nextPan);
-      }else if(gesture.mode==="pan"&&gesture.points.size===1&&zoom>1){
+      }else if(gesture.mode==="pan"&&gesture.points.size===1&&zoomRef.current>1){
         e.preventDefault();
         setCanvasPan(clampCanvasPosition({
           x:gesture.startPan.x+e.clientX-gesture.startPoint.x,
@@ -439,7 +446,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         gesture.startPan=null;
       }else if(gesture.mode==="pinch"){
         const [remainingId,remainingPoint]=gesture.points.entries().next().value;
-        if((gesture.lastZoom??zoom)>1){
+        if((gesture.lastZoom??zoomRef.current)>1){
           gesture.mode="pan";
           gesture.startPoint={...remainingPoint};
           gesture.startPan={...(gesture.lastPan||canvasPan)};
@@ -480,7 +487,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
       changeZoom(e.deltaY<0?.25:-.25,canvasViewportPoint(e.clientX,e.clientY));
       return;
     }
-    if(zoom>1&&(Math.abs(e.deltaX)>.1||Math.abs(e.deltaY)>.1)){
+    if(zoomRef.current>1&&(Math.abs(e.deltaX)>.1||Math.abs(e.deltaY)>.1)){
       e.preventDefault();
       setCanvasPan(current=>clampCanvasPosition({x:current.x-e.deltaX,y:current.y-e.deltaY}));
     }
@@ -565,7 +572,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   function fitView(){
     const rect=surface.current?.getBoundingClientRect();
     if(rect&&rect.width>0&&rect.height>0)setViewportSize({width:rect.width,height:rect.height});
-    setZoom(1);
+    applyCanvasZoom(1);
     setCanvasPan({x:0,y:0});
     showStatusNotice("Ajustado à tela · 100%",1000);
   }
@@ -637,7 +644,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     setPathologyLocked(new Set());
     setSelectedPathologyId(pathologyLayers[0]?.id||null);
     setVisible({});
-    setZoom(1);
+    applyCanvasZoom(1);
     setCanvasPan({x:0,y:0});
     setShowRawT0(false);
     resultOpenPreference.current=DEFAULT_VIEWER_PREFERENCES.resultPanelOpen;

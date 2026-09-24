@@ -90,9 +90,9 @@ function App(){
             await sleep(40);
             const zoomBefore=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const canvas=document.querySelector(".editorImage");
-            canvas?.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,button:1,buttons:4,clientX:100,clientY:100,pointerId:7}));
-            canvas?.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,buttons:4,clientX:145,clientY:128,pointerId:7}));
-            canvas?.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,button:1,buttons:0,clientX:145,clientY:128,pointerId:7}));
+            canvas?.dispatchEvent(new MouseEvent("mousedown",{bubbles:true,button:1,buttons:4,clientX:100,clientY:100}));
+            canvas?.dispatchEvent(new MouseEvent("mousemove",{bubbles:true,button:0,buttons:4,clientX:145,clientY:128}));
+            canvas?.dispatchEvent(new MouseEvent("mouseup",{bubbles:true,button:1,buttons:0,clientX:145,clientY:128}));
             await sleep(60);
             const panTransform=canvas?.style.transform||"";
             const panOk=panTransform.includes("translate(45px, 28px)")&&panTransform.includes("scale(1.25)");

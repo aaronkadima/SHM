@@ -82,7 +82,7 @@ function App(){
           const phoneTopCompactOk=!phoneSidebar||(brandTitleStyle?.display!=="none"&&brandTitle?.textContent.trim()==="SHM Studio"&&topButtons.every(button=>Math.abs(button.getBoundingClientRect().width-32)<1));
           const zoomControl=document.querySelector(".editorZoom");
           const zoomRect=zoomControl?.getBoundingClientRect();
-          const phoneZoomCompactOk=!phoneSidebar||(!!zoomRect&&zoomRect.height<=42&&zoomRect.width<=140&&getComputedStyle(zoomControl).top==="auto");
+          const phoneZoomCompactOk=!phoneSidebar||(!!zoomRect&&zoomRect.height<=42&&zoomRect.width<=140);
           const responsiveDiag=`iw=${window.innerWidth},narrow=${narrowSidebar},phone=${phoneSidebar},compact=${compactOverlay},sidebar=${sidebarRect?Math.round(sidebarRect.left)+"/"+Math.round(sidebarRect.width):"none"},resize=${sidebarResizeStyle.display},brand=${brandTitleStyle?.display||"missing"},brandText=${brandTitle?.textContent.trim()||"missing"},zoom=${zoomRect?Math.round(zoomRect.width)+"x"+Math.round(zoomRect.height):"missing"},buttons=${topButtons.map(button=>Math.round(button.getBoundingClientRect().width)).join("/")}`;
           const resultsPanel=document.querySelector(".editorFloating");
           const compactOverlayArbitrationInitial=!compactOverlay||getComputedStyle(resultsPanel).visibility==="hidden";

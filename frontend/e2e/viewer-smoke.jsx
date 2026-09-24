@@ -253,14 +253,14 @@ function App(){
               const wheelAtFitIgnored=(canvas.style.transform||"")===fitBeforeWheel;
               const wheelAnchorX=wheelViewportRect?(wheelViewportRect.left+wheelViewportRect.right)/2+80:80;
               const wheelAnchorY=wheelViewportRect?(wheelViewportRect.top+wheelViewportRect.bottom)/2+40:40;
-              canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,ctrlKey:true,deltaX:0,deltaY:-100,clientX:wheelAnchorX,clientY:wheelAnchorY}));
-              await sleep(30);
+              for(let n=0;n<3;n++)canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,ctrlKey:true,deltaX:0,deltaY:-100,clientX:wheelAnchorX,clientY:wheelAnchorY}));
+              await sleep(40);
               const wheelZoomTransform=canvasTransformValues(canvas);
-              const ctrlWheelZoomOk=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="125%"&&!!wheelZoomTransform&&Math.abs(wheelZoomTransform.x+20)<=1&&Math.abs(wheelZoomTransform.y+10)<=1&&Math.abs(wheelZoomTransform.zoom-1.25)<.001;
+              const ctrlWheelZoomOk=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="175%"&&!!wheelZoomTransform&&Math.abs(wheelZoomTransform.x+60)<=1&&Math.abs(wheelZoomTransform.y+30)<=1&&Math.abs(wheelZoomTransform.zoom-1.75)<.001;
               canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,deltaX:12,deltaY:18}));
               await sleep(30);
               const wheelPanTransform=canvasTransformValues(canvas);
-              const wheelPanOk=!!wheelPanTransform&&Math.abs(wheelPanTransform.x+32)<=1&&Math.abs(wheelPanTransform.y+28)<=1&&Math.abs(wheelPanTransform.zoom-1.25)<.001;
+              const wheelPanOk=!!wheelPanTransform&&Math.abs(wheelPanTransform.x+72)<=1&&Math.abs(wheelPanTransform.y+48)<=1&&Math.abs(wheelPanTransform.zoom-1.75)<.001;
               canvas.focus();
               canvas.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"0"}));
               await sleep(30);

@@ -32,7 +32,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder),[pathologyOpacity,setPathologyOpacity]=useState(initialViewerPrefs.pathologyOpacity||{}),[pathologyLocked,setPathologyLocked]=useState(new Set(initialViewerPrefs.pathologyLocked||[])),[selectedPathologyId,setSelectedPathologyId]=useState(null);
   const [selectedDetection,setSelectedDetection]=useState(null);
   const [pathologyGroupOpen,setPathologyGroupOpen]=useState(()=>typeof window==="undefined"||window.innerHeight>=620);
-  const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState(""),[statusNotice,setStatusNotice]=useState(""),[fileDragActive,setFileDragActive]=useState(false);
+  const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState(""),[statusNotice,setStatusNotice]=useState(""),[statusNoticeTone,setStatusNoticeTone]=useState("info"),[fileDragActive,setFileDragActive]=useState(false);
   const [imageSize,setImageSize]=useState({width:1,height:1});
   const imageDecoded=imageSize.width>1&&imageSize.height>1;
   const [viewportSize,setViewportSize]=useState({width:0,height:0});
@@ -58,8 +58,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       const files=[...(e.clipboardData?.files||[])].filter(item=>detectAsset(item)==="2d");
       if(!files.length)return;
       e.preventDefault();
-      if(busy){showStatusNotice("Aguarde a análise atual terminar para colar outra imagem.",1800);return}
-      if(files.length!==1){showStatusNotice("Cole apenas uma imagem por vez.",1800);return}
+      if(busy){showStatusNotice("Aguarde a análise atual terminar para colar outra imagem.",1800,"warning");return}
+      if(files.length!==1){showStatusNotice("Cole apenas uma imagem por vez.",1800,"warning");return}
       onFile(files[0]);
       showStatusNotice("Imagem colada da área de transferência",1500);
     };
@@ -297,18 +297,19 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     e.preventDefault();
     fileDragDepth.current=0;
     setFileDragActive(false);
-    if(busy){showStatusNotice("Aguarde a análise atual terminar para importar outro arquivo.",1800);return}
+    if(busy){showStatusNotice("Aguarde a análise atual terminar para importar outro arquivo.",1800,"warning");return}
     const files=[...(e.dataTransfer.files||[])];
-    if(files.length!==1){showStatusNotice("Solte apenas um arquivo por vez.",1800);return}
+    if(files.length!==1){showStatusNotice("Solte apenas um arquivo por vez.",1800,"warning");return}
     const dropped=files[0];
-    if(detectAsset(dropped)==="unknown"){showStatusNotice("Formato não suportado · use um formato listado em Importar.",1800);return}
+    if(detectAsset(dropped)==="unknown"){showStatusNotice("Formato não suportado · use um formato listado em Importar.",1800,"warning");return}
     onFile(dropped);
     showStatusNotice("Arquivo importado por arrastar e soltar",1600);
   }
-  function showStatusNotice(message,ms=1800){
+  function showStatusNotice(message,ms=1800,tone="info"){
     if(statusTimer.current)clearTimeout(statusTimer.current);
+    setStatusNoticeTone(tone);
     setStatusNotice(message);
-    statusTimer.current=setTimeout(()=>{setStatusNotice("");statusTimer.current=null},ms);
+    statusTimer.current=setTimeout(()=>{setStatusNotice("");setStatusNoticeTone("info");statusTimer.current=null},ms);
   }
   function markWipeDirection(direction){
     if(wipeDirectionTimer.current)clearTimeout(wipeDirectionTimer.current);
@@ -943,7 +944,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         </button>}
       </div>
     </div>
-    <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?"transient ":"")+(analysisBlockedReason&&!busy&&!error&&!previewError?"blocked":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}{appInfo?.deployment?.status==="divergent"&&<button className="editorUpdateAvailable" type="button" title="Há uma versão publicada mais recente. Recarregar sem usar o HTML em cache." onClick={()=>{const url=new URL(window.location.href);url.searchParams.set("build",String(appInfo?.deployment?.manifest?.sha||Date.now()));window.location.replace(url.toString())}}><RefreshCw size={11}/> Atualizar</button>}{appInfo?.channel==="development"&&<span className={"editorDevStamp "+(appInfo?.deployment?.status||"")} title={"Build de desenvolvimento · "+(appInfo?.buildSha||"—")+" · catálogo v"+(appInfo?.catalogVersion||"—")+" · deploy "+(appInfo?.deployment?.status||"não verificado")+(appInfo?.deployment?.manifest?.sha?" · publicado "+appInfo.deployment.manifest.sha:"")}>DEV · {String(appInfo?.buildSha||"—").slice(0,8)}{" "}<i className="editorDeployState" aria-label={"Deploy "+(appInfo?.deployment?.status||"não verificado")}>{appInfo?.deployment?.status==="synced"?"✓":appInfo?.deployment?.status==="divergent"?"!":appInfo?.deployment?.status==="unavailable"?"?":appInfo?.deployment?.status==="checking"?"…":""}</i></span>}</span></div>
+    <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?(statusNoticeTone==="warning"?"warning ":"transient "):"")+(!statusNotice&&analysisBlockedReason&&!busy&&!error&&!previewError?"blocked":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}{appInfo?.deployment?.status==="divergent"&&<button className="editorUpdateAvailable" type="button" title="Há uma versão publicada mais recente. Recarregar sem usar o HTML em cache." onClick={()=>{const url=new URL(window.location.href);url.searchParams.set("build",String(appInfo?.deployment?.manifest?.sha||Date.now()));window.location.replace(url.toString())}}><RefreshCw size={11}/> Atualizar</button>}{appInfo?.channel==="development"&&<span className={"editorDevStamp "+(appInfo?.deployment?.status||"")} title={"Build de desenvolvimento · "+(appInfo?.buildSha||"—")+" · catálogo v"+(appInfo?.catalogVersion||"—")+" · deploy "+(appInfo?.deployment?.status||"não verificado")+(appInfo?.deployment?.manifest?.sha?" · publicado "+appInfo.deployment.manifest.sha:"")}>DEV · {String(appInfo?.buildSha||"—").slice(0,8)}{" "}<i className="editorDeployState" aria-label={"Deploy "+(appInfo?.deployment?.status||"não verificado")}>{appInfo?.deployment?.status==="synced"?"✓":appInfo?.deployment?.status==="divergent"?"!":appInfo?.deployment?.status==="unavailable"?"?":appInfo?.deployment?.status==="checking"?"…":""}</i></span>}</span></div>
     {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera" role="dialog" aria-modal="true" aria-label="Modo câmera"><header><b>Modo câmera</b><button aria-label="Fechar modo câmera" title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={()=>setCameraReady(true)}/><footer><span>{cameraError?"Verifique a permissão da câmera":cameraReady?"Prévia ao vivo · capture um quadro para análise 2D":"Aguardando câmera…"}</span><button onClick={capture} disabled={!!cameraError||!cameraReady}><Camera size={16}/> Capturar imagem</button></footer></div></div>}
   </section>
 }

@@ -4,18 +4,27 @@ export const DEFAULT_VIEWER_PREFERENCES={
   opacity:0.75,
   layersOpen:true,
   comparison:"overlay",
-  pathologyOrder:[]
+  pathologyOrder:[],
+  pathologyOpacity:{}
 };
 
 const VALID_COMPARISONS=new Set(["original","overlay","side"]);
 
 export function normalizeViewerPreferences(value={}){
   const opacity=Number(value?.opacity);
+  const rawLayerOpacity=value?.pathologyOpacity&&typeof value.pathologyOpacity==="object"&&!Array.isArray(value.pathologyOpacity)?value.pathologyOpacity:{};
+  const pathologyOpacity={};
+  for(const [id,raw] of Object.entries(rawLayerOpacity)){
+    if(typeof id!=="string"||!id.trim())continue;
+    const n=Number(raw);
+    if(Number.isFinite(n))pathologyOpacity[id]=Math.min(1,Math.max(0,n));
+  }
   return {
     opacity:Number.isFinite(opacity)?Math.min(1,Math.max(0,opacity)):DEFAULT_VIEWER_PREFERENCES.opacity,
     layersOpen:typeof value?.layersOpen==="boolean"?value.layersOpen:DEFAULT_VIEWER_PREFERENCES.layersOpen,
     comparison:VALID_COMPARISONS.has(value?.comparison)?value.comparison:DEFAULT_VIEWER_PREFERENCES.comparison,
-    pathologyOrder:Array.isArray(value?.pathologyOrder)?[...new Set(value.pathologyOrder.filter(x=>typeof x==="string"&&x.trim()))]:[]
+    pathologyOrder:Array.isArray(value?.pathologyOrder)?[...new Set(value.pathologyOrder.filter(x=>typeof x==="string"&&x.trim()))]:[],
+    pathologyOpacity
   };
 }
 

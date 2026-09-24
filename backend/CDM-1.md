@@ -425,3 +425,38 @@ temporal deltas.
 The calibrated snapshot series is included in campaign JSON and as
 \`snapshot_pathology_area\` rows in the campaign CSV, with an explicit note that
 it is not a validated temporal delta.
+
+
+## Temporal image content integrity
+
+Saved inspection images and temporal references now carry browser-generated
+SHA-256 digests. For each new history record SHM persists:
+
+- \`image_sha256\` for the current t1 image;
+- \`reference_image_sha256\` for the t0 image actually used by the analysis.
+
+For a linked historical t0, the campaign chain audit compares the dependent
+record's reference hash with the source inspection's saved image hash. The edge
+is classified as:
+
+- \`verified\`: the two SHA-256 digests match;
+- \`mismatch\`: the linked inspection id resolves, but image bytes differ;
+- \`unknown\`: one or both hashes are unavailable, normally for legacy records;
+- \`not_applicable\`: no resolvable linked historical image exists for direct
+  byte comparison.
+
+A hash mismatch is a hard campaign-integrity failure. Missing hashes remain an
+explicit legacy warning rather than being silently treated as verified.
+
+When a referenced historical t0 is materialized before deletion of its source
+record, its SHA-256 digest is preserved in both the raw record and summary used
+by the campaign view. This allows content provenance to survive IndexedDB
+maintenance.
+
+Campaign JSON exports include the complete image hashes and chain-edge integrity
+state. Campaign CSV exports include content-integrity status plus source/reference
+SHA-256 values for temporal records. The UI shows a compact SHA-256 state in each
+chain edge.
+
+The frontend CI validates both the chain-level hash logic and the SHA-256 helper
+against the known SHA-256 digest of the string \`abc\`.

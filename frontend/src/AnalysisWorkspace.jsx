@@ -29,7 +29,7 @@ export function detectAsset(file){
 }
 export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
-  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(360),[resultOpen,setResultOpen]=useState(true);
+  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(360),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[wipeDirection,setWipeDirection]=useState(null),[wipeDragging,setWipeDragging]=useState(false),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState(initialViewerPrefs.resultPanelPosition||DEFAULT_VIEWER_PREFERENCES.resultPanelPosition),[resultPanelSize,setResultPanelSize]=useState(initialViewerPrefs.resultPanelSize||DEFAULT_VIEWER_PREFERENCES.resultPanelSize);
@@ -41,7 +41,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeGesture=useRef(false),canvasDrag=useRef(null),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeGesture=useRef(false),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{
     let cancelled=false;
@@ -100,8 +100,16 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     reclamp();
     return()=>{observer.disconnect();if(frame)cancelAnimationFrame(frame)};
   },[resultOpen,busy,res]);
-  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked],resultPanelPosition:position,resultPanelSize})},[opacity,layersOpen,preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked,position,resultPanelSize]);
-  useEffect(()=>{if(busy)setResultOpen(true)},[busy]);
+  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked],resultPanelOpen:resultOpenPreference.current,resultPanelPosition:position,resultPanelSize})},[opacity,layersOpen,preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked,resultOpen,position,resultPanelSize]);
+  useEffect(()=>{
+    if(busy){
+      busyForcedResults.current=true;
+      setResultOpen(true);
+    }else if(busyForcedResults.current){
+      busyForcedResults.current=false;
+      setResultOpen(resultOpenPreference.current);
+    }
+  },[busy]);
   useEffect(()=>{if(busy){const now=performance.now();runStarted.current=now;setStartAt(now);setElapsed(0);setDurationMs(null)}
     else{if(runStarted.current!=null){setDurationMs(performance.now()-runStarted.current);runStarted.current=null}setStartAt(null)}},[busy]);
   useEffect(()=>{if(startAt==null)return;const tick=()=>setElapsed(Math.floor((performance.now()-startAt)/1000));tick();const id=setInterval(tick,250);return()=>clearInterval(id)},[startAt]);
@@ -395,6 +403,11 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
       return next;
     });
   }
+  function setResultOpenPreference(next){
+    const value=typeof next==="function"?!!next(resultOpenPreference.current):!!next;
+    resultOpenPreference.current=value;
+    setResultOpen(value);
+  }
   function resetViewerPreferences(){
     setOpacity(DEFAULT_VIEWER_PREFERENCES.opacity);
     setLayersOpen(DEFAULT_VIEWER_PREFERENCES.layersOpen);
@@ -409,6 +422,8 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     setZoom(1);
     setCanvasPan({x:0,y:0});
     setShowRawT0(false);
+    resultOpenPreference.current=DEFAULT_VIEWER_PREFERENCES.resultPanelOpen;
+    setResultOpen(DEFAULT_VIEWER_PREFERENCES.resultPanelOpen);
     setPosition({...DEFAULT_VIEWER_PREFERENCES.resultPanelPosition});
     setResultPanelSize({...DEFAULT_VIEWER_PREFERENCES.resultPanelSize});
   }
@@ -523,7 +538,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         </div>}
         {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>changeZoom(-.25)}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>changeZoom(.25)}><Plus size={15}/></button></div>}
         {resultOpen&&(busy||results.length>0)&&<div ref={resultPanel} className="editorFloating" data-position-x={position.x} data-position-y={position.y} data-panel-width={resultPanelSize.width} data-panel-height={resultPanelSize.height||""} onPointerDownCapture={detectResultResizeStart} style={{transform:`translate(${position.x}px,${position.y}px)`,"--result-panel-width":resultPanelSize.width+"px",...(resultPanelSize.height?{"--result-panel-height":resultPanelSize.height+"px"}:{})}}>
-          <div className="editorFloatHead"><button type="button" className="editorFloatMoveHandle" aria-label="Mover painel de resultados" title="Arraste ou use setas, Home e End para mover" onKeyDown={moveResultPanelKey} onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}><b>Resultados</b></button><button type="button" title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
+          <div className="editorFloatHead"><button type="button" className="editorFloatMoveHandle" aria-label="Mover painel de resultados" title="Arraste ou use setas, Home e End para mover" onKeyDown={moveResultPanelKey} onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}><b>Resultados</b></button><button type="button" title="Recolher resultados" onClick={()=>setResultOpenPreference(false)}><Minus size={16}/></button></div>
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel} disabled={progress?.state==="cancel_requested"}>{progress?.state==="cancel_requested"?"Cancelando…":"Cancelar"}</button>}</div>}
           {!busy&&res&&durationMs!=null&&<div className="editorRunTime editorMetricRow"><span className="editorMetricLabel">Tempo medido</span><b className="editorMetricValue">{(durationMs/1000).toFixed(2)} s</b></div>}
           {results.map(r=><button key={r.engine_id} className={"editorResultRow "+(chosen?.engine_id===r.engine_id?"active":"")} onClick={()=>{setActive(r.engine_id);setVisible(v=>({...v,[r.engine_id]:true}))}}><span className="editorResultEngine">{r.name}</span><span className="editorResultMetric"><small>Achados</small><b>{r.detections?.length||0}</b></span><span className="editorResultMetric"><small>Latência</small><b>{Number(r.latency_ms||0).toFixed(0)} ms</b></span></button>)}
@@ -558,7 +573,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
             </details>
           </div>}
         </div>}
-        {!resultOpen&&results.length>0&&<button className="editorResultsTab" onClick={()=>setResultOpen(true)}>Resultados · {results.length}</button>}
+        {!resultOpen&&results.length>0&&<button className="editorResultsTab" onClick={()=>setResultOpenPreference(true)}>Resultados · {results.length}</button>}
       </div>
     </div>
     <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?"transient":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}{appInfo?.channel==="development"&&<span className={"editorDevStamp "+(appInfo?.deployment?.status||"")} title={"Build de desenvolvimento · "+(appInfo?.buildSha||"—")+" · catálogo v"+(appInfo?.catalogVersion||"—")+" · deploy "+(appInfo?.deployment?.status||"não verificado")+(appInfo?.deployment?.manifest?.sha?" · publicado "+appInfo.deployment.manifest.sha:"")}>DEV · {String(appInfo?.buildSha||"—").slice(0,8)}{" "}<i className="editorDeployState" aria-label={"Deploy "+(appInfo?.deployment?.status||"não verificado")}>{appInfo?.deployment?.status==="synced"?"✓":appInfo?.deployment?.status==="divergent"?"!":appInfo?.deployment?.status==="unavailable"?"?":appInfo?.deployment?.status==="checking"?"…":""}</i></span>}</span></div>

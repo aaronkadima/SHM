@@ -199,6 +199,48 @@ jobs:
 
           grep "VIEWER_SMOKE_PASS" /tmp/shm-viewer-landscape-dom.html
 
+      - name: Responsive 3D viewer smoke
+        working-directory: frontend
+        shell: bash
+        run: |
+          VITE_BASE_PATH=/ npm run dev -- --host 127.0.0.1 --port 4176 > /tmp/shm-model-vite.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
+
+          READY=0
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4176/e2e/model-smoke.html >/dev/null; then
+              READY=1
+              break
+            fi
+            sleep 0.5
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/shm-model-vite.log
+            exit 1
+          fi
+
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chromium-compatible browser found on runner."
+            exit 1
+          fi
+
+          for SIZE in 1280,800 412,915 320,568; do
+            TAG="$(echo "$SIZE" | tr ',' 'x')"
+            timeout 30s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-background-networking --user-data-dir="/tmp/shm-model-$TAG-$RANDOM" --window-size="$SIZE" --virtual-time-budget=12000 --dump-dom http://127.0.0.1:4176/e2e/model-smoke.html > "/tmp/shm-model-$TAG-dom.html" 2>"/tmp/shm-model-$TAG-chrome.log" || {
+              cat "/tmp/shm-model-$TAG-chrome.log"
+              exit 1
+            }
+            if ! grep -q "MODEL_SMOKE_PASS" "/tmp/shm-model-$TAG-dom.html"; then
+              cat /tmp/shm-model-vite.log
+              cat "/tmp/shm-model-$TAG-chrome.log"
+              cat "/tmp/shm-model-$TAG-dom.html"
+              exit 1
+            fi
+            grep "MODEL_SMOKE_PASS" "/tmp/shm-model-$TAG-dom.html"
+          done
+
       - name: Mobile settings smoke
         working-directory: frontend
         shell: bash

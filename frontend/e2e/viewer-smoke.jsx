@@ -510,18 +510,23 @@ function App(){
             await sleep(100);
             const afterBusyPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const busyPreferenceRestored=afterBusyPrefs.resultPanelOpen===false&&!document.querySelector(".editorFloating")&&!!document.querySelector(".editorResultsTab");
-            const compactControlLabels=[
+            const alwaysPresentControlLabels=[
               "Mostrar ou ocultar painel de camadas",
               "Ampliar zoom",
               "Reduzir zoom",
               "Ajustar à tela",
-              "Abrir modo câmera",
+              "Abrir modo câmera"
+            ];
+            const sidebarControlLabels=[
               "Recolher painel de camadas",
               "Remover referência temporal t0",
               "Subir camada Corrosão",
               "Descer camada Fissuras"
             ];
-            const compactControlA11yOk=compactControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`));
+            const sidebarCurrentlyOpen=!!document.querySelector(".editorLayers");
+            const compactControlA11yOk=
+              alwaysPresentControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`))&&
+              (!sidebarCurrentlyOpen||sidebarControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`)));
             const checks={
               initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,

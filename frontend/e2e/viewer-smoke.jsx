@@ -225,6 +225,7 @@ function App(){
               await sleep(10);
               const spaceReady=canvas.dataset.panMode==="ready";
               canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:102,pointerType:"mouse",isPrimary:true,button:0,buttons:1,clientX:120,clientY:120}));
+              await sleep(10);
               const grabbing=canvas.dataset.panMode==="grabbing";
               canvas.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:102,pointerType:"mouse",isPrimary:true,button:0,buttons:1,clientX:156,clientY:144}));
               canvas.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:102,pointerType:"mouse",isPrimary:true,button:0,buttons:0,clientX:156,clientY:144}));

@@ -18,6 +18,8 @@ check(workspace.includes('function fitView(){setZoom(1)}'),"viewer must expose f
 check(workspace.includes('function changeComparison(mode){setComparison(mode);fitView()}'),"comparison mode changes must refit the canvas");
 check(workspace.includes('function setPathologyGroupVisible(next)'),"viewer must support group pathology visibility");
 check(workspace.includes('function isolatePathologyLayer(id)'),"viewer must support single-pathology isolation");
+check(workspace.includes('function movePathologyLayer(id,delta)'),"viewer must support pathology z-order changes");
+check(workspace.includes('[...orderedPathologyLayers].reverse()'),"top layer in the panel must render on top of the overlay stack");
 check(workspace.includes('>Original</button>'),"viewer must expose a dedicated Original comparison mode");
 check(workspace.includes('const safeViewport={width:Math.max(480'),"viewer must protect against zero-size viewport collapse");
 check(workspace.includes('Math.max(160,safeImage.width*fit*panes)'),"viewer must keep a visible minimum display width");

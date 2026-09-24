@@ -66,6 +66,10 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         exportMenu.current.open=false;
         handled=true;
       }
+      if(compactLayout.current&&layersOpen){
+        setLayersOpen(false);
+        handled=true;
+      }
       if(spacePan.current||canvasDrag.current?.source==="space"){
         const pointerId=canvasDrag.current?.pointerId;
         if(pointerId!=null)try{canvasElement.current?.releasePointerCapture?.(pointerId)}catch{}
@@ -82,7 +86,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     };
     window.addEventListener("keydown",onEscape);
     return()=>window.removeEventListener("keydown",onEscape);
-  },[cameraOpen]);
+  },[cameraOpen,layersOpen]);
 
   useEffect(()=>{
     let cancelled=false;
@@ -793,7 +797,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
           <button aria-label="Abrir modo câmera" title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button>
         </div>
       </div>
-      {layersOpen&&<><aside className={"editorLayers "+(selectedEngineLabels.length>=24?"engineDensityUltra":selectedEngineLabels.length>=12?"engineDensityDense":"")} data-engine-count={selectedEngineLabels.length} data-layer-width={layersWidth} style={{width:layersWidth,"--engine-count":Math.max(1,selectedEngineLabels.length)}}><div className="editorLayersContent"><div className="editorPanelTitle"><b>Camadas</b><button aria-label="Recolher painel de camadas" title="Recolher camadas" onClick={()=>setLayersPanelOpen(false)}><ChevronLeft size={17}/></button></div>
+      {layersOpen&&<><button type="button" className="editorLayersScrim" aria-label="Fechar painel de camadas" title="Fechar camadas" onClick={()=>setLayersPanelOpen(false)}/><aside className={"editorLayers "+(selectedEngineLabels.length>=24?"engineDensityUltra":selectedEngineLabels.length>=12?"engineDensityDense":"")} data-engine-count={selectedEngineLabels.length} data-layer-width={layersWidth} style={{width:layersWidth,"--engine-count":Math.max(1,selectedEngineLabels.length)}}><div className="editorLayersContent"><div className="editorPanelTitle"><b>Camadas</b><button aria-label="Recolher painel de camadas" title="Recolher camadas" onClick={()=>setLayersPanelOpen(false)}><ChevronLeft size={17}/></button></div>
         <div className="layerRow"><span>◉</span> Arquivo atual · t1</div>
         {referenceFile&&<div className="layerRow referenceLayer"><span>○</span><span>Referência · t0 <small>{referenceFile.name}</small>{linkedReferenceCompatibility&&<em className={"referenceCompatibility "+linkedReferenceCompatibility.status} title={linkedReferenceCompatibility.refLabel}>{linkedReferenceCompatibility.text}</em>}</span><button className="layerClear" aria-label="Remover referência temporal t0" disabled={busy} title="Remover referência t0" onClick={()=>onReferenceFile(null)}><X size={13}/></button></div>}
         {results.map(r=><label className="layerRow" key={r.engine_id}><input type="checkbox" checked={visible[r.engine_id]!==false} onChange={e=>setVisible(v=>({...v,[r.engine_id]:e.target.checked}))}/>{r.name}</label>)}

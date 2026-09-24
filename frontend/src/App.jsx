@@ -126,7 +126,7 @@ export default function App(){
   const[historyErr,setHistoryErr]=useState("");
   const[storageStatus,setStorageStatus]=useState(null);
   const[deploymentCheck,setDeploymentCheck]=useState(()=>({status:BUILD_SHA==="local"?"local":"checking",manifest:null}));
-  const activeRun=useRef(null),runSeq=useRef(0);
+  const activeRun=useRef(null),runSeq=useRef(0),referencePickSeq=useRef(0);
   const[activeView,setActiveView]=useState(()=>{
     const v=window.location.hash.replace(/^#\//,"");
     return ["dashboard","cameras","analysis","alerts","reports","engines","settings"].includes(v)?v:"analysis";
@@ -200,23 +200,31 @@ export default function App(){
         restoredFile=new File([blob],meta.name||"inspecao",{type:meta.type||blob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
         restoredPreview=URL.createObjectURL(blob);
       }
+      let referenceRestoreWarning="";
       if(referenceBlob){
         const meta=(record.reference_file_meta&&Object.keys(record.reference_file_meta).length?record.reference_file_meta:linkedReferenceRecord?.file_meta)||{};
-        restoredReferenceFile=new File([referenceBlob],meta.name||"referencia-t0",{type:meta.type||referenceBlob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
-        restoredReferencePreview=URL.createObjectURL(referenceBlob);
+        const candidateReferenceFile=new File([referenceBlob],meta.name||"referencia-t0",{type:meta.type||referenceBlob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
+        try{
+          await validateReferenceImage(candidateReferenceFile);
+          restoredReferenceFile=candidateReferenceFile;
+          restoredReferencePreview=URL.createObjectURL(referenceBlob);
+        }catch(e){
+          referenceRestoreWarning="Referência t0 armazenada ignorada: "+(e?.message||String(e));
+        }
       }
       if(prev)URL.revokeObjectURL(prev);
       if(referencePrev)URL.revokeObjectURL(referencePrev);
       setFile(restoredFile);
       setPrev(restoredPreview);
+      referencePickSeq.current++;
       setReferenceFile(restoredReferenceFile);
       setReferencePrev(restoredReferencePreview);
-      setReferenceInspectionId(record.reference_inspection_id||record.summary?.reference_inspection_id||null);
-      setReferenceInspectionMeta(record.reference_inspection_meta||linkedReferenceRecord?.inspection||null);
+      setReferenceInspectionId(restoredReferenceFile?(record.reference_inspection_id||record.summary?.reference_inspection_id||null):null);
+      setReferenceInspectionMeta(restoredReferenceFile?(record.reference_inspection_meta||linkedReferenceRecord?.inspection||null):null);
       setRes(record.result||null);
       setInspectionMeta({...EMPTY_INSPECTION,...(record.inspection||{})});
       setSel(new Set(record.summary?.engine_ids||record.result?.metadata?.engine_ids||[]));
-      setProgress(null);setJobId(null);setErr("");
+      setProgress(null);setJobId(null);setErr(referenceRestoreWarning);
       navigate(target);
     }catch(e){setHistoryErr("Falha ao abrir inspeção: "+String(e))}
   }
@@ -229,7 +237,9 @@ export default function App(){
       if(!blob)throw new Error("A imagem original desta inspeção não está disponível no histórico.");
       const meta=record.file_meta||{};
       const restoredReferenceFile=new File([blob],meta.name||"referencia-t0",{type:meta.type||blob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
+      const referenceToken=++referencePickSeq.current;
       await validateReferenceImage(restoredReferenceFile);
+      if(referenceToken!==referencePickSeq.current)return;
       if(referencePrev)URL.revokeObjectURL(referencePrev);
       if(prev)URL.revokeObjectURL(prev);
       setReferenceFile(restoredReferenceFile);
@@ -312,6 +322,7 @@ export default function App(){
     if(prev)URL.revokeObjectURL(prev);setPrev(f?URL.createObjectURL(f):null);
   }
   async function pickReference(f){
+    const referenceToken=++referencePickSeq.current;
     if(!f){
       setReferenceFile(null);setReferenceInspectionId(null);setReferenceInspectionMeta(null);setRes(null);setProgress(null);setJobId(null);setErr("");
       if(referencePrev)URL.revokeObjectURL(referencePrev);
@@ -321,10 +332,11 @@ export default function App(){
     setErr("");
     try{
       await validateReferenceImage(f);
+      if(referenceToken!==referencePickSeq.current)return;
       const nextPreview=URL.createObjectURL(f);
       if(referencePrev)URL.revokeObjectURL(referencePrev);
       setReferenceFile(f);setReferencePrev(nextPreview);setReferenceInspectionId(null);setReferenceInspectionMeta(null);setRes(null);setProgress(null);setJobId(null);
-    }catch(e){setErr("Referência t0 inválida: "+(e?.message||String(e)))}
+    }catch(e){if(referenceToken===referencePickSeq.current)setErr("Referência t0 inválida: "+(e?.message||String(e)))}
   }
   function toggle(id){setErr("");setSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n})}
   function selectRecommended(){setSel(new Set(engines.filter(e=>e.recommended).map(e=>e.id)))}

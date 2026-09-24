@@ -109,6 +109,8 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const cdmSummary=chosen?.engine_id==="cdm_1"?chosen.metrics?.summary:null;
   const cdmRating=cdmSummary?.condition_rating;
   const engineOverlay=chosen?.overlay_png_base64?"data:image/png;base64,"+chosen.overlay_png_base64:null;
+  const overlaySemantics=chosen?.metrics?.overlay_semantics||"composite_or_unknown";
+  const useCombinedEngineOverlay=!!engineOverlay&&pathologyLayers.length===0;
   const boxes=(chosen?.detections||[]).filter(d=>Array.isArray(d.box)&&d.box.length>=4&&(!pathologyLayers.length||visible["cdm_1:"+d.label]!==false));
   const detail=selectedDetection&&chosen&&selectedDetection.engineId===chosen.engine_id?boxes[selectedDetection.index]:null;
   const panes=comparison==="side"||comparison==="temporal"?2:1;
@@ -119,11 +121,11 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   function dragStart(e){if(e.target.closest("button"))return;drag.current={x:e.clientX-position.x,y:e.clientY-position.y};e.currentTarget.setPointerCapture(e.pointerId)}
   function dragMove(e){if(drag.current)setPosition({x:e.clientX-drag.current.x,y:e.clientY-drag.current.y})}
   function dragEnd(){drag.current=null}
-  const hasOverlayContent=!!engineOverlay||pathologyLayers.length>0||temporalLayers.length>0||boxes.length>0;
+  const hasOverlayContent=useCombinedEngineOverlay||pathologyLayers.length>0||temporalLayers.length>0||boxes.length>0;
   function renderOverlayStack(){
     if(!hasOverlayContent)return null;
     return <div className="editorOverlayStack" aria-label="Camadas de detecção sobre a imagem original">
-      {engineOverlay&&<img className="engineOverlayImage" src={engineOverlay} alt={"Sobreposição de "+(chosen?.name||"motor")} style={{opacity}}/>}
+      {useCombinedEngineOverlay&&<img className={"engineOverlayImage "+(overlaySemantics==="transparent_layers"?"transparentOverlay":"compositeOverlay")} src={engineOverlay} alt={"Sobreposição de "+(chosen?.name||"motor")} style={{opacity}}/>}
       {pathologyLayers.filter(layer=>visible["cdm_1:"+layer.id]!==false).map(layer=><img className="pathologyOverlay" key={layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
       {temporalLayers.filter(layer=>temporalLayerIsVisible(layer.id)).map(layer=><img className="pathologyOverlay temporalOverlay" key={"temporal-"+layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
       {boxes.map((d,i)=><button key={i} className={"editorDetection "+(selectedDetection?.engineId===chosen?.engine_id&&selectedDetection.index===i?"selected":"")} title={d.label||"Achado"} aria-label={`Achado ${i+1}: ${d.label||"sem classificação"}`} style={{left:(d.box[0]/res.image_width*100)+"%",top:(d.box[1]/res.image_height*100)+"%",width:((d.box[2]-d.box[0])/res.image_width*100)+"%",height:((d.box[3]-d.box[1])/res.image_height*100)+"%"}} onClick={()=>{setActive(chosen.engine_id);setSelectedDetection({engineId:chosen.engine_id,index:i})}}/>)}

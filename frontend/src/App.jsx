@@ -235,6 +235,7 @@ export default function App(){
   const visibleEng=useMemo(()=>{
     const q=engineQuery.trim().toLowerCase();
     return engines.filter(e=>{
+      if(engineFilter==="owned"&&e.id!=="cdm_1"&&e.catalog_group!=="CDM / determinístico")return false;
       if(engineFilter==="recommended"&&!e.recommended)return false;
       if(engineFilter==="verified"&&!e.cloud_verified)return false;
       if(engineFilter==="browser"&&!e.browser_ready)return false;

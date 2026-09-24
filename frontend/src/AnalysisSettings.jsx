@@ -81,8 +81,12 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
       </div>}
     </div>;
   }
+  const appBase=import.meta.env.BASE_URL||"/";
+  const rootBase=appBase.replace(/dev\/?$/,"");
+  const environmentHref=appInfo?.channel==="development"?rootBase+"#/settings":rootBase+"dev/#/settings";
+  const environmentLabel=appInfo?.channel==="development"?"Abrir PROD":"Abrir DEV";
   return <section className="analysisSettings" aria-label="Configurações da análise">
-    <header className="settingsTop"><div><span className="editorMark">S</span><b>SHM Studio</b><em className={"settingsEnvBadge "+(appInfo?.channel||"production")}>{appInfo?.channel==="development"?"DEV":"PROD"} · v{appInfo?.catalogVersion||"—"} · {appInfo?.buildSha||"—"}</em></div><button onClick={onBack}><ArrowLeft size={16}/> Voltar ao canvas</button></header>
+    <header className="settingsTop"><div><span className="editorMark">S</span><b>SHM Studio</b><em className={"settingsEnvBadge "+(appInfo?.channel||"production")}>{appInfo?.channel==="development"?"DEV":"PROD"} · v{appInfo?.catalogVersion||"—"} · {appInfo?.buildSha||"—"}</em><a className="settingsEnvSwitch" href={environmentHref} title={environmentLabel+" em outra rota"}><ExternalLink size={11}/>{environmentLabel}</a></div><button onClick={onBack}><ArrowLeft size={16}/> Voltar ao canvas</button></header>
     <main className="settingsContent">
       <div className="settingsHeading"><Settings2 size={22}/><div><h1>Configurações da análise</h1><p>Defina os motores antes de executar a inspeção.</p></div></div>
       <div className="analysisSettingsCard settingsMotorsCard"><h2>Motores disponíveis</h2><p>Um motor executa uma análise individual. Dois ou mais ativam a comparação.</p>

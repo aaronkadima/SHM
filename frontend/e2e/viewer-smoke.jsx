@@ -89,8 +89,16 @@ function App(){
             const originalImages=document.querySelectorAll(".editorBaseImage").length;
             const originalStacks=document.querySelectorAll(".editorOverlayStack").length;
             const zoomAfterOriginal=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 temporal=2 layers=toggle+solo+order fit=100%");
+            const reset=document.querySelector(".viewerReset");
+            reset?.click();
+            await sleep(80);
+            const resetMode=[...document.querySelectorAll(".editorCompare button")].find(b=>b.classList.contains("active"))?.textContent?.trim();
+            const resetLayers=document.querySelectorAll(".pathologyOverlay").length;
+            const resetOrder=[...document.querySelectorAll(".pathologyOverlay")].map(img=>img.alt).join(">");
+            const resetZoom=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
+            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%";
+            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 temporal=2 layers=toggle+solo+order reset=ok fit=100%");
               return;
             }
           }

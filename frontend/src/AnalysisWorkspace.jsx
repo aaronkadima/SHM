@@ -100,6 +100,8 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const temporalQuality=temporal?.quality||null;
   const temporalAlignedPreview=temporal?.aligned_reference_png_base64?"data:image/png;base64,"+temporal.aligned_reference_png_base64:null;
   const temporalLayers=temporal?.enabled?temporal.layers||[]:[];
+  const pathologyVisibleCount=pathologyLayers.filter(layer=>visible["cdm_1:"+layer.id]!==false).length;
+  const temporalVisibleCount=temporalLayers.filter(layer=>temporalLayerIsVisible(layer.id)).length;
   const temporalStats=temporal?.stats||{};
   const temporalCalibrated=Number(chosen?.metrics?.mm_per_px)>0;
   const temporalUnit=temporalCalibrated?"mm²":"px²";
@@ -148,6 +150,20 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   function dragEnd(){drag.current=null}
   function fitView(){setZoom(1)}
   function changeComparison(mode){setComparison(mode);fitView()}
+  function setPathologyGroupVisible(next){
+    setVisible(current=>{
+      const updated={...current};
+      for(const layer of pathologyLayers)updated["cdm_1:"+layer.id]=next;
+      return updated;
+    });
+  }
+  function setTemporalGroupVisible(next){
+    setVisible(current=>{
+      const updated={...current};
+      for(const layer of temporalLayers)updated["cdm_1:temporal:"+layer.id]=next;
+      return updated;
+    });
+  }
   const hasOverlayContent=useCombinedEngineOverlay||pathologyLayers.length>0||temporalLayers.length>0||boxes.length>0;
   function renderOverlayStack(){
     if(!hasOverlayContent)return null;
@@ -188,8 +204,8 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         <div className="layerRow"><span>◉</span> Arquivo atual · t1</div>
         {referenceFile&&<div className="layerRow referenceLayer"><span>○</span><span>Referência · t0 <small>{referenceFile.name}</small>{linkedReferenceCompatibility&&<em className={"referenceCompatibility "+linkedReferenceCompatibility.status} title={linkedReferenceCompatibility.refLabel}>{linkedReferenceCompatibility.text}</em>}</span><button className="layerClear" disabled={busy} title="Remover referência t0" onClick={()=>onReferenceFile(null)}><X size={13}/></button></div>}
         {results.map(r=><label className="layerRow" key={r.engine_id}><input type="checkbox" checked={visible[r.engine_id]!==false} onChange={e=>setVisible(v=>({...v,[r.engine_id]:e.target.checked}))}/>{r.name}</label>)}
-        {pathologyLayers.map(layer=><label className="layerRow pathologyLayer" key={layer.id}><input type="checkbox" checked={visible["cdm_1:"+layer.id]!==false} onChange={e=>setVisible(v=>({...v,["cdm_1:"+layer.id]:e.target.checked}))}/><span className="pathologySwatch" style={{background:layer.color}}/>{layer.name} <small>({layer.count})</small></label>)}
-        {temporalLayers.length>0&&<details className={"temporalLayerGroup "+(temporalQuality?.status||"")}><summary>Mudança t0→t1 <small>{temporalQuality?.status==="fail"?"não validada":temporalQuality?.status==="warning"?"ressalvas":temporalQuality?.status==="pass"?"aprovada":temporalLayers.length+" camadas"}</small></summary>{temporalLayers.map(layer=><label className="layerRow pathologyLayer temporalLayer" key={"temporal-"+layer.id}><input type="checkbox" checked={temporalLayerIsVisible(layer.id)} onChange={e=>setVisible(v=>({...v,["cdm_1:temporal:"+layer.id]:e.target.checked}))}/><span className="pathologySwatch" style={{background:layer.color}}/>{layer.name} <small>({layer.count})</small></label>)}</details>}
+        {pathologyLayers.length>0&&<details open className="pathologyLayerGroup"><summary><span>CDM-1 · Patologias</span><small>{pathologyVisibleCount}/{pathologyLayers.length} visíveis</small></summary><div className="layerGroupActions"><button type="button" onClick={()=>setPathologyGroupVisible(true)}>Mostrar todas</button><button type="button" onClick={()=>setPathologyGroupVisible(false)}>Ocultar todas</button></div>{pathologyLayers.map(layer=><label className="layerRow pathologyLayer" key={layer.id}><input type="checkbox" checked={visible["cdm_1:"+layer.id]!==false} onChange={e=>setVisible(v=>({...v,["cdm_1:"+layer.id]:e.target.checked}))}/><span className="pathologySwatch" style={{background:layer.color}}/>{layer.name} <small>({layer.count})</small></label>)}</details>}
+        {temporalLayers.length>0&&<details className={"temporalLayerGroup "+(temporalQuality?.status||"")}><summary><span>Mudança t0→t1</span><small>{temporalQuality?.status==="fail"?"não validada":temporalQuality?.status==="warning"?"ressalvas":temporalQuality?.status==="pass"?temporalVisibleCount+"/"+temporalLayers.length+" visíveis":temporalLayers.length+" camadas"}</small></summary><div className="layerGroupActions"><button type="button" onClick={()=>setTemporalGroupVisible(true)}>Mostrar todas</button><button type="button" onClick={()=>setTemporalGroupVisible(false)}>Ocultar todas</button></div>{temporalLayers.map(layer=><label className="layerRow pathologyLayer temporalLayer" key={"temporal-"+layer.id}><input type="checkbox" checked={temporalLayerIsVisible(layer.id)} onChange={e=>setVisible(v=>({...v,["cdm_1:temporal:"+layer.id]:e.target.checked}))}/><span className="pathologySwatch" style={{background:layer.color}}/>{layer.name} <small>({layer.count})</small></label>)}</details>}
         <div className="editorPanelTitle"><b>Propriedades</b></div>
         <p>Tipo reconhecido: <b>{kind==="2d"?"Imagem 2D":kind==="3d"?"Modelo 3D":"Indefinido"}</b></p>
         {kind==="unknown"&&<div className="editorTypeChoice"><button onClick={()=>setKind("2d")}>Tratar como 2D</button><button onClick={()=>setKind("3d")}>Tratar como 3D</button></div>}

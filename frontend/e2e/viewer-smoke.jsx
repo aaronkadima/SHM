@@ -312,6 +312,32 @@ function App(){
               floatingResizeInteractionOk=resizeHomeOk&&resizeArrowWidthOk&&resizeArrowHeightOk&&resizePersisted&&resizeEndOk&&resizeRestored&&floatingResizeHandle.getAttribute("aria-label")==="Redimensionar painel de resultados";
             }
             const floatingClampOk=floatingHorizontalOk&&floatingVerticalOk&&floatingMaxWidthOk&&floatingHandleOk&&floatingResizeModeOk&&floatingResizeInteractionOk;
+            let floatingMoveInteractionOk=true;
+            if(!phoneSidebar&&floatingPanel&&floatingHead&&viewportRect){
+              floatingHead.focus();
+              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"Home"}));
+              await sleep(30);
+              const homeRect=floatingPanel.getBoundingClientRect();
+              const moveHomeOk=homeRect.left>=viewportRect.left+7&&homeRect.top>=viewportRect.top+7;
+
+              const homeX=Number(floatingPanel.dataset.positionX),homeY=Number(floatingPanel.dataset.positionY);
+              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
+              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowDown"}));
+              await sleep(30);
+              const arrowX=Number(floatingPanel.dataset.positionX),arrowY=Number(floatingPanel.dataset.positionY);
+              const moveArrowOk=arrowX===homeX+24&&arrowY===homeY+24;
+              const movePrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
+              const movePersisted=movePrefs.resultPanelPosition?.x===arrowX&&movePrefs.resultPanelPosition?.y===arrowY;
+
+              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"End"}));
+              await sleep(30);
+              const endRect=floatingPanel.getBoundingClientRect();
+              const moveEndOk=endRect.right<=viewportRect.right-7&&endRect.bottom<=viewportRect.bottom-7;
+
+              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"Home"}));
+              await sleep(30);
+              floatingMoveInteractionOk=moveHomeOk&&moveArrowOk&&movePersisted&&moveEndOk&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
+            }
             const collapseResults=[...document.querySelectorAll(".editorFloatHead button")].find(button=>button.title==="Recolher resultados");
             collapseResults?.click();
             await sleep(60);
@@ -344,7 +370,7 @@ function App(){
             const afterBusyPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const busyPreferenceRestored=afterBusyPrefs.resultPanelOpen===false&&!document.querySelector(".editorFloating")&&!!document.querySelector(".editorResultsTab");
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
@@ -353,7 +379,7 @@ function App(){
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=compact-single-panel results=viewport-clamped+custom-resize+persistent+collapse-state+busy-tab sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard+pointer no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=compact-single-panel results=viewport-clamped+custom-resize+pointer-safe-move+persistent+collapse-state+busy-tab sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard+pointer no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
               setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+" ["+responsiveDiag+"]"+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }

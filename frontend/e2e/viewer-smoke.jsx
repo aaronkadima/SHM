@@ -47,7 +47,8 @@ function App(){
           await sleep(1900);
           const imageNoticeCleared=!document.querySelector(".editorStatusMessage")?.textContent?.includes("Imagem carregada");
           const devStamp=document.querySelector(".editorDevStamp");
-          const devStampOk=devStamp?.textContent.trim()==="DEV · abc12345"&&devStamp?.title.includes("catálogo v1.2.0")&&!document.querySelector(".editorStatus")?.textContent?.includes("CDM-1");
+          const deployState=document.querySelector(".editorDeployState");
+          const devStampOk=devStamp?.textContent.replace(/\s+/g," ").trim()==="DEV · abc12345 ✓"&&devStamp?.classList.contains("synced")&&devStamp?.title.includes("catálogo v1.2.0")&&devStamp?.title.includes("deploy synced")&&deployState?.getAttribute("aria-label")==="Deploy synced"&&!document.querySelector(".editorStatus")?.textContent?.includes("CDM-1");
           const sidebarEngines=document.querySelector(".editorSidebarEngines");
           const engineStatusPersistent=!!sidebarEngines&&sidebarEngines.textContent.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
           const engineNames=[...document.querySelectorAll(".editorSidebarEngineName")].map(node=>node.textContent.trim());
@@ -237,7 +238,7 @@ function App(){
   return <>
     <div style={{height:"760px"}}>
       <AnalysisWorkspace
-        appInfo={{channel:"development",buildSha:"abc123456789",catalogVersion:"1.2.0"}}
+        appInfo={{channel:"development",buildSha:"abc123456789",catalogVersion:"1.2.0",deployment:{status:"synced",manifest:{sha:"abc123456789",channel:"development",branch:"feat/cdm-1",catalogVersion:"1.2.0"}}}}
         selectedEngineLabels={selectedEngineLabels}
         file={file} prev={null} referenceFile={referenceFile} referencePrev={referencePrev}
         referenceInspectionId={null} referenceInspectionMeta={null}

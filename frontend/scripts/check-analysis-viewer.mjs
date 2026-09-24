@@ -4,6 +4,7 @@ const workspace=fs.readFileSync(new URL("../src/AnalysisWorkspace.jsx",import.me
 const styles=fs.readFileSync(new URL("../src/styles.css",import.meta.url),"utf8");
 const settings=fs.readFileSync(new URL("../src/AnalysisSettings.jsx",import.meta.url),"utf8");
 const settingsStyles=fs.readFileSync(new URL("../src/analysis-settings.css",import.meta.url),"utf8");
+const engineCodeCatalog=fs.readFileSync(new URL("../src/engineCodeCatalog.js",import.meta.url),"utf8");
 const failures=[];
 const check=(ok,msg)=>{if(!ok)failures.push(msg)};
 
@@ -97,8 +98,16 @@ check(styles.includes(".editorSide .compositePane{border-left:2px solid white}")
 check(styles.includes(".editorTop{")&&styles.includes("position:sticky;top:0;z-index:40"),"analysis top bar must stay fixed while the workspace scrolls");
 check(styles.includes(".editorStatus{")&&styles.includes("position:sticky;bottom:0;z-index:40"),"analysis bottom status bar must stay fixed while the workspace scrolls");
 check(settings.includes('className="settingsBottom"')&&settings.includes('settingsStatusEngines')&&settings.includes('settingsApply'),"settings page must expose the shared bottom status-bar pattern");
-check(settingsStyles.includes(".settingsTop{")&&settingsStyles.includes("position:fixed;top:0;left:0;right:0;z-index:70"),"settings top bar must be fixed");
-check(settingsStyles.includes(".settingsBottom{position:fixed;left:0;right:0;bottom:0;z-index:70"),"settings bottom bar must be fixed");
+check(settingsStyles.includes(".analysisSettings{height:100vh;min-height:0")&&settingsStyles.includes("display:flex;flex-direction:column;overflow:hidden"),"settings page must occupy the viewport without a compensating top spacer");
+check(settingsStyles.includes(".settingsTop{height:58px;flex:0 0 58px")&&settingsStyles.includes("position:relative;z-index:70"),"settings top bar must remain visible as the fixed flex header");
+check(settingsStyles.includes(".settingsContent{width:100%;max-width:none;flex:1;min-height:0;margin:0;overflow:auto"),"settings content must scroll between the fixed top and bottom bars without extra empty space");
+check(settingsStyles.includes(".settingsBottom{height:42px;flex:0 0 42px"),"settings bottom bar must remain visible as the fixed flex footer");
+check(settings.includes('function EngineCard({engine,owned=false})')&&settings.includes('Ver código')&&settings.includes('Exportar código'),"every engine settings card must expose code inspection and export actions");
+check(settings.includes('engineCodePackage(engine)')&&settings.includes('new Blob([pkg.source]'),"engine code export must download the same source displayed by the card");
+check(engineCodeCatalog.includes('import cdmBrowserSource from "./cdmBrowser.js?raw"')&&engineCodeCatalog.includes('import browserEnginesSource from "./browserEngines.js?raw"'),"browser-ready engine code views must be backed by the real repository source");
+check(engineCodeCatalog.includes('function openCvStandaloneSource()')&&engineCodeCatalog.includes('export {runOpenCVBaseline};'),"OpenCV export must strip the shared dispatcher and remain independently reusable");
+check(engineCodeCatalog.includes('template de portabilidade Python')&&engineCodeCatalog.includes('Etapas da implementação'),"non-browser engines must expose clearly identified commented portability templates");
+check(settingsStyles.includes(".settingsCodePanel pre{")&&settingsStyles.includes("max-height:360px;overflow:auto"),"engine source viewer must remain bounded and scrollable inside the card");
 
 if(failures.length){
   console.error("Analysis viewer composition failures:");

@@ -73,6 +73,7 @@ function App(){
           const topButtons=[...document.querySelectorAll(".editorTopActions button")];
           const topActionsFit=!!topRect&&!!actionsRect&&!!brandRect&&actionsRect.right<=topRect.right+1&&brandRect.left>=topRect.left-1&&topButtons.every(button=>{const r=button.getBoundingClientRect();return r.left>=topRect.left-1&&r.right<=topRect.right+1})&&topBar.scrollWidth<=topBar.clientWidth+1;
           const phoneTopCompactOk=!phoneSidebar||(getComputedStyle(document.querySelector(".editorBrand strong")).display==="none"&&topButtons.every(button=>Math.abs(button.getBoundingClientRect().width-32)<1));
+          const responsiveDiag=`iw=${window.innerWidth},narrow=${narrowSidebar},phone=${phoneSidebar},compact=${compactOverlay},sidebar=${sidebarRect?Math.round(sidebarRect.left)+"/"+Math.round(sidebarRect.width):"none"},resize=${sidebarResizeStyle.display},brand=${getComputedStyle(document.querySelector(".editorBrand strong")).display},buttons=${topButtons.map(button=>Math.round(button.getBoundingClientRect().width)).join("/")}`;
           const resultsPanel=document.querySelector(".editorFloating");
           const compactOverlayArbitrationInitial=!compactOverlay||getComputedStyle(resultsPanel).visibility==="hidden";
           const rect=pane.getBoundingClientRect();
@@ -306,7 +307,7 @@ function App(){
             if(!failed.length){
               setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=compact-single-panel results=viewport-clamped+resize-aware+persistent+collapse-state+busy-tab sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
-              setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
+              setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+" ["+responsiveDiag+"]"+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }
             return;
           }

@@ -49,6 +49,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-analysis-viewer.mjs
 
+      - name: Viewer preferences
+        working-directory: frontend
+        run: node scripts/check-viewer-preferences.mjs
+
       - name: Browser viewer smoke
         working-directory: frontend
         shell: bash

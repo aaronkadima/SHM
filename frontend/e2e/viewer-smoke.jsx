@@ -54,7 +54,12 @@ function App(){
           const imageNoticeCleared=!document.querySelector(".editorStatusMessage")?.textContent?.includes("Imagem carregada");
           const devStamp=document.querySelector(".editorDevStamp");
           const deployState=document.querySelector(".editorDeployState");
-          const devStampOk=devStamp?.textContent.replace(/\s+/g," ").trim()==="DEV · abc12345 ✓"&&devStamp?.classList.contains("synced")&&devStamp?.title.includes("catálogo v1.2.0")&&devStamp?.title.includes("deploy synced")&&deployState?.getAttribute("aria-label")==="Deploy synced"&&!document.querySelector(".editorStatus")?.textContent?.includes("CDM-1");
+          const updateButton=document.querySelector(".editorUpdateAvailable");
+          const statusBar=document.querySelector(".editorStatus");
+          const statusMeta=document.querySelector(".editorStatusMeta");
+          const devStampOk=devStamp?.textContent.replace(/\s+/g," ").trim()==="DEV · abc12345 !"&&devStamp?.classList.contains("divergent")&&devStamp?.title.includes("catálogo v1.2.0")&&devStamp?.title.includes("deploy divergent")&&deployState?.getAttribute("aria-label")==="Deploy divergent"&&!statusBar?.textContent?.includes("CDM-1");
+          const staleUpdateVisible=!!updateButton&&updateButton.textContent.includes("Atualizar");
+          const statusBarFit=!!statusBar&&!!statusMeta&&statusBar.scrollWidth<=statusBar.clientWidth+1&&statusMeta.scrollWidth<=statusMeta.clientWidth+1;
           const sidebarEngines=document.querySelector(".editorSidebarEngines");
           const engineStatusPersistent=!!sidebarEngines&&sidebarEngines.textContent.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
           const engineNames=[...document.querySelectorAll(".editorSidebarEngineName")].map(node=>node.textContent.trim());
@@ -564,7 +569,7 @@ function App(){
               alwaysPresentControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`))&&
               (!sidebarCurrentlyOpen||sidebarControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`)));
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,staleUpdateVisible,statusBarFit,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,phoneFitWithinViewportOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,sideWithinViewportOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,exportEscapeOk,
@@ -589,7 +594,7 @@ function App(){
   return <>
     <div style={{height:"760px"}}>
       <AnalysisWorkspace
-        appInfo={{channel:"development",buildSha:"abc123456789",catalogVersion:"1.2.0",deployment:{status:"synced",manifest:{sha:"abc123456789",channel:"development",branch:"dev",catalogVersion:"1.2.0"}}}}
+        appInfo={{channel:"development",buildSha:"abc123456789",catalogVersion:"1.2.0",deployment:{status:"divergent",manifest:{sha:"feedface987654",channel:"development",branch:"dev",catalogVersion:"1.2.0"}}}}
         selectedEngineLabels={selectedEngineLabels}
         file={file} prev={null} referenceFile={referenceFile} referencePrev={referencePrev}
         referenceInspectionId={null} referenceInspectionMeta={null}

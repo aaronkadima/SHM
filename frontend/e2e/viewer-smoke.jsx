@@ -82,8 +82,17 @@ function App(){
           const phoneTopCompactOk=!phoneSidebar||(brandTitleStyle?.display!=="none"&&brandTitle?.textContent.trim()==="SHM Studio"&&topButtons.every(button=>Math.abs(button.getBoundingClientRect().width-32)<1));
           const zoomControl=document.querySelector(".editorZoom");
           const zoomRect=zoomControl?.getBoundingClientRect();
+          const cameraRect=document.querySelector(".editorCameraEntry")?.getBoundingClientRect();
+          const typeRect=document.querySelector(".editorTypeBadge")?.getBoundingClientRect();
+          const editorViewportRect=document.querySelector(".editorViewport")?.getBoundingClientRect();
           const phoneZoomCompactOk=!phoneSidebar||(!!zoomRect&&zoomRect.height<=42&&zoomRect.width<=140);
-          const responsiveDiag=`iw=${window.innerWidth},narrow=${narrowSidebar},phone=${phoneSidebar},compact=${compactOverlay},sidebar=${sidebarRect?Math.round(sidebarRect.left)+"/"+Math.round(sidebarRect.width):"none"},resize=${sidebarResizeStyle.display},brand=${brandTitleStyle?.display||"missing"},brandText=${brandTitle?.textContent.trim()||"missing"},zoom=${zoomRect?Math.round(zoomRect.width)+"x"+Math.round(zoomRect.height):"missing"},buttons=${topButtons.map(button=>Math.round(button.getBoundingClientRect().width)).join("/")}`;
+          const phoneFloatingControlsOk=!phoneSidebar||(
+            !!cameraRect&&!!typeRect&&!!zoomRect&&!!editorViewportRect&&
+            typeRect.right<=cameraRect.left-4&&
+            zoomRect.left>=editorViewportRect.left-1&&zoomRect.right<=editorViewportRect.right+1&&
+            zoomRect.bottom<=editorViewportRect.bottom+1
+          );
+          const responsiveDiag=`iw=${window.innerWidth},narrow=${narrowSidebar},phone=${phoneSidebar},compact=${compactOverlay},sidebar=${sidebarRect?Math.round(sidebarRect.left)+"/"+Math.round(sidebarRect.width):"none"},resize=${sidebarResizeStyle.display},brand=${brandTitleStyle?.display||"missing"},brandText=${brandTitle?.textContent.trim()||"missing"},zoom=${zoomRect?Math.round(zoomRect.width)+"x"+Math.round(zoomRect.height):"missing"},camera=${cameraRect?Math.round(cameraRect.left)+"/"+Math.round(cameraRect.right):"missing"},type=${typeRect?Math.round(typeRect.left)+"/"+Math.round(typeRect.right):"missing"},buttons=${topButtons.map(button=>Math.round(button.getBoundingClientRect().width)).join("/")}`;
           const editorRect=document.querySelector(".analysisEditor")?.getBoundingClientRect();
           const statusRect=document.querySelector(".editorStatus")?.getBoundingClientRect();
           const viewportLockOk=!!editorRect&&!!statusRect&&editorRect.top>=-1&&editorRect.bottom<=window.innerHeight+1&&statusRect.bottom<=window.innerHeight+1&&document.documentElement.scrollHeight<=window.innerHeight+1;
@@ -546,7 +555,7 @@ function App(){
               alwaysPresentControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`))&&
               (!sidebarCurrentlyOpen||sidebarControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`)));
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,viewportLockOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,exportEscapeOk,

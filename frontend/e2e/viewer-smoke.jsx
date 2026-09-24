@@ -206,6 +206,22 @@ function App(){
             const fitPaneRect=document.querySelector(".editorImagePane")?.getBoundingClientRect();
             const fitTransform=document.querySelector(".editorImage")?.style.transform||"";
             const fitButtonOk=zoomAfterFit==="100%"&&fitTransform.includes("translate(0px, 0px)")&&fitTransform.includes("scale(1)")&&!!fitPaneRect&&fitPaneRect.width>100&&fitPaneRect.height>80;
+            canvas?.focus();
+            canvas?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
+            canvas?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowDown"}));
+            await sleep(30);
+            const keyboardPanTransform=canvas?.style.transform||"";
+            const keyboardPanOk=keyboardPanTransform.includes("translate(32px, 32px)")&&canvas?.tabIndex===0&&canvas?.getAttribute("role")==="region";
+            canvas?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"+"}));
+            await sleep(30);
+            const keyboardZoomInOk=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="125%";
+            canvas?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"-"}));
+            await sleep(30);
+            const keyboardZoomOutOk=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="100%";
+            canvas?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"0"}));
+            await sleep(40);
+            const keyboardResetTransform=canvas?.style.transform||"";
+            const canvasKeyboardOk=keyboardPanOk&&keyboardZoomInOk&&keyboardZoomOutOk&&keyboardResetTransform.includes("translate(0px, 0px)")&&keyboardResetTransform.includes("scale(1)")&&canvas?.getAttribute("aria-keyshortcuts")?.includes("ArrowLeft");
             zoomPlus?.click();
             await sleep(40);
             const zoomBeforeSide=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
@@ -381,7 +397,7 @@ function App(){
             const checks={
               initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
-              zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
+              zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,canvasKeyboardOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
               wipeInitialOk,wipeMovedOk,wipeDirectionOk,wipeStatusOk,zoomAfterWipe:zoomAfterWipe==="100%",
               temporalOk,zoomAfterTemporal:zoomAfterTemporal==="100%",originalPanes:originalPanes===1,originalImages:originalImages===1,originalStacks:originalStacks===0,zoomAfterOriginal:zoomAfterOriginal==="100%",resetOk

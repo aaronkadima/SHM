@@ -103,6 +103,18 @@ function App(){
             const overlayImages=document.querySelectorAll(".editorBaseImage").length;
             const overlayStacks=document.querySelectorAll(".editorOverlayStack").length;
             const zoomAfterOverlay=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
+            const wipe=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="Deslizar");
+            wipe?.click();
+            await sleep(80);
+            const wipePane=document.querySelector(".editorWipePane");
+            const wipeStack=document.querySelector(".editorWipePane .editorOverlayStack");
+            const wipeDivider=document.querySelector(".editorWipeDivider");
+            const wipeControl=document.querySelector('input[aria-label="Divisor original e detecção"]');
+            const wipeInitialOk=!!wipePane&&!!wipeStack&&!!wipeDivider&&!!wipeControl&&document.querySelectorAll(".editorImagePane").length===1&&document.querySelectorAll(".editorBaseImage").length===1;
+            setNativeValue(wipeControl,67);
+            await sleep(50);
+            const wipeMovedOk=wipeStack?.style.clipPath?.includes("67%")&&wipeDivider?.style.left==="67%"&&String(wipeControl?.value)==="67";
+            const zoomAfterWipe=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const temporal=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="t0 / t1");
             temporal?.click();
             await sleep(80);
@@ -128,9 +140,10 @@ function App(){
             const resetOpacity=document.querySelector('.pathologyOverlay[data-layer-id="cracks"]')?.style.opacity;
             const resetLock=document.querySelector(".layerLockState");
             const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
-            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton;
-            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 temporal=2 layers=toggle+solo+order+opacity+lock reset=ok fit=100%");
+            const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
+            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50;
+            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&wipeInitialOk&&wipeMovedOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 wipe=67 side=2 temporal=2 layers=toggle+solo+order+opacity+lock reset=ok fit=100%");
               return;
             }
           }

@@ -6,6 +6,7 @@ import AnalysisSettings from"./AnalysisSettings.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
 import{analysisExecutionIssue,executionEndpointIssue}from"./executionConfig.js";
 import{buildComparisonCsv}from"./resultExport.js";
+import{detectAsset}from"./assetDetection.js";
 import{sortEngines,engineMatchesFilter,engineMatchesQuery}from"./engineCatalog.js";
 import{buildCdmSvg,buildCdmCsv,buildCdmCoco,buildCdmDxf,buildCdmBimJson,buildCdmIfc,buildCdmHtml}from"./cdmExports.js";
 import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
@@ -49,6 +50,24 @@ function downloadBlob(name,type,text){
 function exportJson(res){downloadBlob("shm-comparison.json","application/json",JSON.stringify(res,null,2))}
 function exportCsv(res){downloadBlob("shm-comparison.csv","text/csv;charset=utf-8",buildComparisonCsv(res))}
 function downloadConsensus(res){if(res.consensus_overlay_png_base64)saveBase64("shm-consensus.png",res.consensus_overlay_png_base64)}
+async function validateReferenceImage(file){
+  if(!file)return;
+  if(detectAsset(file)!=="2d")throw new Error("A referência t0 deve ser uma imagem 2D em formato suportado.");
+  const url=URL.createObjectURL(file);
+  try{
+    await new Promise((resolve,reject)=>{
+      const image=new Image();
+      const timer=setTimeout(()=>{image.src="";reject(new Error("Tempo excedido ao decodificar a referência t0."))},12000);
+      image.onload=()=>{
+        clearTimeout(timer);
+        if((image.naturalWidth||0)<2||(image.naturalHeight||0)<2)reject(new Error("A referência t0 não possui dimensões de imagem válidas."));
+        else resolve();
+      };
+      image.onerror=()=>{clearTimeout(timer);reject(new Error("O navegador não conseguiu decodificar a referência t0."))};
+      image.src=url;
+    });
+  }finally{URL.revokeObjectURL(url)}
+}
 function combinedSignal(signal,timeoutMs){
   const timeout=typeof AbortSignal!=="undefined"&&AbortSignal.timeout?AbortSignal.timeout(timeoutMs):null;
   if(signal&&timeout&&AbortSignal.any)return AbortSignal.any([signal,timeout]);
@@ -210,6 +229,7 @@ export default function App(){
       if(!blob)throw new Error("A imagem original desta inspeção não está disponível no histórico.");
       const meta=record.file_meta||{};
       const restoredReferenceFile=new File([blob],meta.name||"referencia-t0",{type:meta.type||blob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
+      await validateReferenceImage(restoredReferenceFile);
       if(referencePrev)URL.revokeObjectURL(referencePrev);
       if(prev)URL.revokeObjectURL(prev);
       setReferenceFile(restoredReferenceFile);
@@ -291,10 +311,20 @@ export default function App(){
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
     if(prev)URL.revokeObjectURL(prev);setPrev(f?URL.createObjectURL(f):null);
   }
-  function pickReference(f){
-    setReferenceFile(f);setReferenceInspectionId(null);setReferenceInspectionMeta(null);setRes(null);setProgress(null);setJobId(null);setErr("");
-    if(referencePrev)URL.revokeObjectURL(referencePrev);
-    setReferencePrev(f?URL.createObjectURL(f):null);
+  async function pickReference(f){
+    if(!f){
+      setReferenceFile(null);setReferenceInspectionId(null);setReferenceInspectionMeta(null);setRes(null);setProgress(null);setJobId(null);setErr("");
+      if(referencePrev)URL.revokeObjectURL(referencePrev);
+      setReferencePrev(null);
+      return;
+    }
+    setErr("");
+    try{
+      await validateReferenceImage(f);
+      const nextPreview=URL.createObjectURL(f);
+      if(referencePrev)URL.revokeObjectURL(referencePrev);
+      setReferenceFile(f);setReferencePrev(nextPreview);setReferenceInspectionId(null);setReferenceInspectionMeta(null);setRes(null);setProgress(null);setJobId(null);
+    }catch(e){setErr("Referência t0 inválida: "+(e?.message||String(e)))}
   }
   function toggle(id){setErr("");setSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n})}
   function selectRecommended(){setSel(new Set(engines.filter(e=>e.recommended).map(e=>e.id)))}
@@ -359,6 +389,10 @@ export default function App(){
     if(executionIssue){setErr(executionIssue);return}
     const mode=runMode,engineIds=[...selected],inspection={...inspectionMeta};
     const sourceFile=file,sourceReference=referenceFile,sourceReferenceInspectionId=referenceInspectionId,sourceReferenceInspectionMeta=referenceInspectionMeta?{...referenceInspectionMeta}:null;
+    if(mode==="individual"&&engineIds[0]==="cdm_1"&&sourceReference){
+      try{await validateReferenceImage(sourceReference)}
+      catch(e){setErr("Referência t0 inválida: "+(e?.message||String(e)));return}
+    }
     if(mode==="individual"&&engineIds[0]==="cdm_1"&&sourceReferenceInspectionId&&sourceReferenceInspectionMeta){
       const same=(a,b)=>String(a||"").trim()===String(b||"").trim();
       const refOae=String(sourceReferenceInspectionMeta.oae_id||"").trim(),refElement=String(sourceReferenceInspectionMeta.element_id||"").trim();

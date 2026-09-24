@@ -187,6 +187,13 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     return()=>{cancelled=true;cameraCaptureSeq.current++;setCameraCapturing(false);setCameraReady(false);stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;if(video.current)video.current.srcObject=null}
   },[cameraOpen,cameraFacing]);
   useEffect(()=>{if(!cameraOpen)return;const onKey=e=>{if(e.key==="Escape")setCameraOpen(false)};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[cameraOpen]);
+  useEffect(()=>{if(!cameraOpen)return;
+    const closeHidden=()=>{if(document.visibilityState==="hidden")setCameraOpen(false)};
+    const closePage=()=>setCameraOpen(false);
+    document.addEventListener("visibilitychange",closeHidden);
+    window.addEventListener("pagehide",closePage);
+    return()=>{document.removeEventListener("visibilitychange",closeHidden);window.removeEventListener("pagehide",closePage)}
+  },[cameraOpen]);
   const linkedReferenceCompatibility=referenceInspectionId&&referenceInspectionMeta?(()=>{
     const norm=v=>String(v||"").trim();
     const refOae=norm(referenceInspectionMeta.oae_id),refElement=norm(referenceInspectionMeta.element_id),refSource=norm(referenceInspectionMeta.source_id);

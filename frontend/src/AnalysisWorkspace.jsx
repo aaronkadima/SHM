@@ -1,6 +1,6 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Settings2,Unlock,X} from "lucide-react";
-import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
+import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint}from"./viewerPreferences.js";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
 const MODEL_EXT=/\.(glb|gltf|obj|ply|stl)$/i;
@@ -220,12 +220,18 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     setWipeDirection(direction);
     wipeDirectionTimer.current=setTimeout(()=>{if(!wipeDragging)setWipeDirection(null);wipeDirectionTimer.current=null},260);
   }
-  function changeZoom(delta){
-    setZoom(current=>{
-      const next=Math.max(.25,Math.min(4,current+delta));
-      showStatusNotice("Zoom · "+Math.round(next*100)+"%",1000);
-      return next;
-    });
+  function canvasViewportPoint(clientX,clientY){
+    const rect=surface.current?.getBoundingClientRect();
+    if(!rect)return{x:0,y:0};
+    return{x:clientX-(rect.left+rect.width/2),y:clientY-(rect.top+rect.height/2)};
+  }
+  function changeZoom(delta,anchor=null){
+    const next=Math.max(.25,Math.min(4,zoom+delta));
+    if(next===zoom)return;
+    if(anchor)setCanvasPan(current=>clampCanvasPosition(zoomCanvasPanAroundPoint(current,zoom,next,anchor),next));
+    else setCanvasPan(current=>clampCanvasPosition(current,next));
+    setZoom(next);
+    showStatusNotice("Zoom · "+Math.round(next*100)+"%",1000);
   }
   function canvasPanGeometry(zoomValue=zoom){
     return{
@@ -366,7 +372,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         gesture.mode="pinch";
         gesture.startDistance=Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y)||1;
         gesture.startZoom=zoom;
-        gesture.startMidpoint={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
+        gesture.startMidpoint=canvasViewportPoint((points[0].x+points[1].x)/2,(points[0].y+points[1].y)/2);
         gesture.startPan={...canvasPan};
         gesture.lastZoom=zoom;
         gesture.lastPan={...canvasPan};
@@ -388,12 +394,12 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         e.preventDefault();
         const points=[...gesture.points.values()].slice(0,2);
         const distance=Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y)||1;
-        const midpoint={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
+        const midpoint=canvasViewportPoint((points[0].x+points[1].x)/2,(points[0].y+points[1].y)/2);
         const nextZoom=Math.max(1,Math.min(4,gesture.startZoom*distance/gesture.startDistance));
-        const nextPan=clampCanvasPosition({
-          x:gesture.startPan.x+midpoint.x-gesture.startMidpoint.x,
-          y:gesture.startPan.y+midpoint.y-gesture.startMidpoint.y
-        },nextZoom);
+        const nextPan=clampCanvasPosition(
+          zoomCanvasPanAroundPoint(gesture.startPan,gesture.startZoom,nextZoom,gesture.startMidpoint,midpoint),
+          nextZoom
+        );
         gesture.lastZoom=nextZoom;
         gesture.lastPan=nextPan;
         setZoom(nextZoom);
@@ -471,7 +477,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     if(e.target!==e.currentTarget&&canvasTouchExcluded(e.target))return;
     if(e.ctrlKey||e.metaKey){
       e.preventDefault();
-      changeZoom(e.deltaY<0?.25:-.25);
+      changeZoom(e.deltaY<0?.25:-.25,canvasViewportPoint(e.clientX,e.clientY));
       return;
     }
     if(zoom>1&&(Math.abs(e.deltaX)>.1||Math.abs(e.deltaY)>.1)){

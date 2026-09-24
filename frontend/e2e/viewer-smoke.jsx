@@ -9,6 +9,13 @@ const t0Svg='<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><r
 const referenceFile=new File([t0Svg],"viewer-smoke-t0.svg",{type:"image/svg+xml"});
 const referencePrev="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(t0Svg);
 const transparentPng="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL9WQAAAABJRU5ErkJggg==";
+function setNativeValue(input,value){
+  const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")?.set;
+  setter?.call(input,String(value));
+  input.dispatchEvent(new Event("input",{bubbles:true}));
+  input.dispatchEvent(new Event("change",{bubbles:true}));
+}
+
 const fakeResult={
   image_width:320,image_height:180,
   results:[{
@@ -56,6 +63,11 @@ function App(){
             await sleep(40);
             const orderAfter=[...document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)")].map(img=>img.alt).join(">");
             const layerOrderOk=orderBefore==="Corrosão>Fissuras"&&orderAfter==="Fissuras>Corrosão";
+            const layerOpacityInput=[...document.querySelectorAll('.layerInspector input[type="range"]')][0];
+            setNativeValue(layerOpacityInput,.4);
+            await sleep(60);
+            const selectedLayer=document.querySelector('.pathologyOverlay[data-layer-id="cracks"]');
+            const layerOpacityOk=!!selectedLayer&&Math.abs(Number(selectedLayer.style.opacity)-0.3)<0.01;
             const zoomPlus=[...document.querySelectorAll("button")].find(b=>b.getAttribute("aria-label")==="Ampliar zoom");
             zoomPlus?.click();
             await sleep(40);
@@ -96,9 +108,10 @@ function App(){
             const resetLayers=document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)").length;
             const resetOrder=[...document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)")].map(img=>img.alt).join(">");
             const resetZoom=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%";
-            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 temporal=2 layers=toggle+solo+order reset=ok fit=100%");
+            const resetOpacity=document.querySelector('.pathologyOverlay[data-layer-id="cracks"]')?.style.opacity;
+            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01;
+            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 temporal=2 layers=toggle+solo+order+opacity reset=ok fit=100%");
               return;
             }
           }

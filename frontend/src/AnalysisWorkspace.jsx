@@ -178,16 +178,13 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     if(e.button!==1)return;
     e.preventDefault();
     canvasDrag.current={x:e.clientX-canvasPan.x,y:e.clientY-canvasPan.y};
-    try{e.currentTarget.setPointerCapture(e.pointerId)}catch{}
   }
   function canvasPanMove(e){
     if(!canvasDrag.current)return;
     setCanvasPan({x:e.clientX-canvasDrag.current.x,y:e.clientY-canvasDrag.current.y});
   }
-  function canvasPanEnd(e){
-    if(!canvasDrag.current)return;
+  function canvasPanEnd(){
     canvasDrag.current=null;
-    try{e.currentTarget.releasePointerCapture(e.pointerId)}catch{}
   }
   function fitView(){
     const rect=surface.current?.getBoundingClientRect();

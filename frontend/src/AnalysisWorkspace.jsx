@@ -34,7 +34,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
-  const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder);
+  const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder),[pathologyOpacity,setPathologyOpacity]=useState(initialViewerPrefs.pathologyOpacity||{}),[selectedPathologyId,setSelectedPathologyId]=useState(null);
   const [selectedDetection,setSelectedDetection]=useState(null);
   const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState("");
   const [imageSize,setImageSize]=useState({width:1,height:1});
@@ -66,7 +66,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   },[file]);
   useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
-  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,pathologyOrder})},[opacity,layersOpen,preferredComparison,pathologyOrder]);
+  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,pathologyOrder,pathologyOpacity})},[opacity,layersOpen,preferredComparison,pathologyOrder,pathologyOpacity]);
   useEffect(()=>{if(busy)setResultOpen(true)},[busy]);
   useEffect(()=>{if(busy){const now=performance.now();runStarted.current=now;setStartAt(now);setElapsed(0);setDurationMs(null)}
     else{if(runStarted.current!=null){setDurationMs(performance.now()-runStarted.current);runStarted.current=null}setStartAt(null)}},[busy]);
@@ -110,9 +110,16 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
       return next.length===current.length&&next.every((id,i)=>id===current[i])?current:next;
     });
   },[chosen?.engine_id,pathologyIdsKey]);
+  useEffect(()=>{
+    const incoming=pathologyLayers.map(layer=>layer.id);
+    setSelectedPathologyId(current=>current&&incoming.includes(current)?current:(incoming[0]||null));
+  },[chosen?.engine_id,pathologyIdsKey]);
   const orderedPathologyLayers=pathologyOrder.length
     ? pathologyOrder.map(id=>pathologyLayers.find(layer=>layer.id===id)).filter(Boolean)
     : pathologyLayers;
+  const selectedPathology=orderedPathologyLayers.find(layer=>layer.id===selectedPathologyId)||null;
+  const selectedPathologyIndex=selectedPathology?orderedPathologyLayers.findIndex(layer=>layer.id===selectedPathology.id):-1;
+  const selectedPathologyOpacity=selectedPathology?Number(pathologyOpacity[selectedPathology.id]??1):1;
   const temporal=chosen?.engine_id==="cdm_1"?chosen.metrics?.temporal:null;
   const temporalAlignment=temporal?.alignment||null;
   const temporalQuality=temporal?.quality||null;
@@ -199,12 +206,19 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
       return next;
     });
   }
+  function setSelectedPathologyOpacity(value){
+    if(!selectedPathologyId)return;
+    const next=Math.min(1,Math.max(0,Number(value)));
+    setPathologyOpacity(current=>({...current,[selectedPathologyId]:Number.isFinite(next)?next:1}));
+  }
   function resetViewerPreferences(){
     setOpacity(DEFAULT_VIEWER_PREFERENCES.opacity);
     setLayersOpen(DEFAULT_VIEWER_PREFERENCES.layersOpen);
     setPreferredComparison(DEFAULT_VIEWER_PREFERENCES.comparison);
     setComparison(DEFAULT_VIEWER_PREFERENCES.comparison);
     setPathologyOrder(pathologyLayers.map(layer=>layer.id));
+    setPathologyOpacity({});
+    setSelectedPathologyId(pathologyLayers[0]?.id||null);
     setVisible({});
     setZoom(1);
     setShowRawT0(false);
@@ -215,7 +229,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     if(!hasOverlayContent)return null;
     return <div className="editorOverlayStack" aria-label="Camadas de detecção sobre a imagem original">
       {useCombinedEngineOverlay&&<img className={"engineOverlayImage "+(overlaySemantics==="transparent_layers"?"transparentOverlay":"compositeOverlay")} src={engineOverlay} alt={"Sobreposição de "+(chosen?.name||"motor")} style={{opacity}}/>}
-      {[...orderedPathologyLayers].reverse().filter(layer=>visible["cdm_1:"+layer.id]!==false).map(layer=><img className="pathologyOverlay" key={layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
+      {[...orderedPathologyLayers].reverse().filter(layer=>visible["cdm_1:"+layer.id]!==false).map(layer=><img className="pathologyOverlay" key={layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} data-layer-id={layer.id} style={{opacity:opacity*Number(pathologyOpacity[layer.id]??1)}}/>)}
       {temporalLayers.filter(layer=>temporalLayerIsVisible(layer.id)).map(layer=><img className="pathologyOverlay temporalOverlay" key={"temporal-"+layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
       {boxes.map((d,i)=><button key={i} className={"editorDetection "+(selectedDetection?.engineId===chosen?.engine_id&&selectedDetection.index===i?"selected":"")} title={d.label||"Achado"} aria-label={`Achado ${i+1}: ${d.label||"sem classificação"}`} style={{left:(d.box[0]/res.image_width*100)+"%",top:(d.box[1]/res.image_height*100)+"%",width:((d.box[2]-d.box[0])/res.image_width*100)+"%",height:((d.box[3]-d.box[1])/res.image_height*100)+"%"}} onClick={()=>{setActive(chosen.engine_id);setSelectedDetection({engineId:chosen.engine_id,index:i})}}/>)}
     </div>;
@@ -250,12 +264,13 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         <div className="layerRow"><span>◉</span> Arquivo atual · t1</div>
         {referenceFile&&<div className="layerRow referenceLayer"><span>○</span><span>Referência · t0 <small>{referenceFile.name}</small>{linkedReferenceCompatibility&&<em className={"referenceCompatibility "+linkedReferenceCompatibility.status} title={linkedReferenceCompatibility.refLabel}>{linkedReferenceCompatibility.text}</em>}</span><button className="layerClear" disabled={busy} title="Remover referência t0" onClick={()=>onReferenceFile(null)}><X size={13}/></button></div>}
         {results.map(r=><label className="layerRow" key={r.engine_id}><input type="checkbox" checked={visible[r.engine_id]!==false} onChange={e=>setVisible(v=>({...v,[r.engine_id]:e.target.checked}))}/>{r.name}</label>)}
-        {pathologyLayers.length>0&&<details open className="pathologyLayerGroup"><summary><span>CDM-1 · Patologias</span><small>{pathologyVisibleCount}/{pathologyLayers.length} visíveis</small></summary><div className="layerGroupActions"><button type="button" onClick={()=>setPathologyGroupVisible(true)}>Mostrar todas</button><button type="button" onClick={()=>setPathologyGroupVisible(false)}>Ocultar todas</button></div>{orderedPathologyLayers.map((layer,index)=><div className="layerRow pathologyLayer" key={layer.id}><label className="pathologyToggle"><input type="checkbox" checked={visible["cdm_1:"+layer.id]!==false} onChange={e=>setVisible(v=>({...v,["cdm_1:"+layer.id]:e.target.checked}))}/><span className="pathologySwatch" style={{background:layer.color}}/><span className="pathologyName">{layer.name}</span><small>({layer.count})</small></label><span className="layerOrderControls"><button type="button" disabled={index===0} title={"Subir "+layer.name} onClick={()=>movePathologyLayer(layer.id,-1)}><ChevronUp size={11}/></button><button type="button" disabled={index===orderedPathologyLayers.length-1} title={"Descer "+layer.name} onClick={()=>movePathologyLayer(layer.id,1)}><ChevronDown size={11}/></button></span><button className="layerSolo" type="button" title={"Isolar "+layer.name} onClick={()=>isolatePathologyLayer(layer.id)}>Só</button></div>)}</details>}
+        {pathologyLayers.length>0&&<details open className="pathologyLayerGroup"><summary><span>CDM-1 · Patologias</span><small>{pathologyVisibleCount}/{pathologyLayers.length} visíveis</small></summary><div className="layerGroupActions"><button type="button" onClick={()=>setPathologyGroupVisible(true)}>Mostrar todas</button><button type="button" onClick={()=>setPathologyGroupVisible(false)}>Ocultar todas</button></div>{orderedPathologyLayers.map((layer,index)=><div className={"layerRow pathologyLayer "+(selectedPathologyId===layer.id?"selected":"")} key={layer.id} onClick={()=>setSelectedPathologyId(layer.id)}><label className="pathologyToggle"><input type="checkbox" checked={visible["cdm_1:"+layer.id]!==false} onChange={e=>setVisible(v=>({...v,["cdm_1:"+layer.id]:e.target.checked}))}/><span className="pathologySwatch" style={{background:layer.color}}/><span className="pathologyName">{layer.name}</span><small>({layer.count})</small></label><span className="layerStackLabel">{index===0?"TOPO":index===orderedPathologyLayers.length-1?"FUNDO":index+1}</span><span className="layerOrderControls"><button type="button" disabled={index===0} title={"Subir "+layer.name} onClick={()=>movePathologyLayer(layer.id,-1)}><ChevronUp size={11}/></button><button type="button" disabled={index===orderedPathologyLayers.length-1} title={"Descer "+layer.name} onClick={()=>movePathologyLayer(layer.id,1)}><ChevronDown size={11}/></button></span><button className="layerSolo" type="button" title={"Isolar "+layer.name} onClick={()=>isolatePathologyLayer(layer.id)}>Só</button></div>)}</details>}
         {temporalLayers.length>0&&<details className={"temporalLayerGroup "+(temporalQuality?.status||"")}><summary><span>Mudança t0→t1</span><small>{temporalQuality?.status==="fail"?"não validada":temporalQuality?.status==="warning"?"ressalvas":temporalQuality?.status==="pass"?temporalVisibleCount+"/"+temporalLayers.length+" visíveis":temporalLayers.length+" camadas"}</small></summary><div className="layerGroupActions"><button type="button" onClick={()=>setTemporalGroupVisible(true)}>Mostrar todas</button><button type="button" onClick={()=>setTemporalGroupVisible(false)}>Ocultar todas</button></div>{temporalLayers.map(layer=><label className="layerRow pathologyLayer temporalLayer" key={"temporal-"+layer.id}><input type="checkbox" checked={temporalLayerIsVisible(layer.id)} onChange={e=>setVisible(v=>({...v,["cdm_1:temporal:"+layer.id]:e.target.checked}))}/><span className="pathologySwatch" style={{background:layer.color}}/>{layer.name} <small>({layer.count})</small></label>)}</details>}
         <div className="editorPanelTitle"><b>Propriedades</b></div>
         <p>Tipo reconhecido: <b>{kind==="2d"?"Imagem 2D":kind==="3d"?"Modelo 3D":"Indefinido"}</b></p>
         {kind==="unknown"&&<div className="editorTypeChoice"><button onClick={()=>setKind("2d")}>Tratar como 2D</button><button onClick={()=>setKind("3d")}>Tratar como 3D</button></div>}
-        <p>Sobreposição: {Math.round(opacity*100)}%</p><input aria-label="Opacidade da sobreposição" type="range" min="0" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/><button className="viewerReset" type="button" onClick={resetViewerPreferences}>Restaurar visualização</button>
+        {selectedPathology&&<div className="layerInspector"><div><span className="pathologySwatch" style={{background:selectedPathology.color}}/><b>{selectedPathology.name}</b><small>{selectedPathology.count} achado(s) · {selectedPathologyIndex===0?"topo":selectedPathologyIndex===orderedPathologyLayers.length-1?"fundo":"posição "+(selectedPathologyIndex+1)}</small></div><label><span>Opacidade da camada</span><b>{Math.round(selectedPathologyOpacity*100)}%</b><input aria-label={"Opacidade de "+selectedPathology.name} type="range" min="0" max="1" step=".05" value={selectedPathologyOpacity} onChange={e=>setSelectedPathologyOpacity(e.target.value)}/></label><button type="button" onClick={()=>setSelectedPathologyOpacity(1)}>Restaurar 100%</button></div>}
+        <p>Sobreposição global: {Math.round(opacity*100)}%</p><input aria-label="Opacidade da sobreposição" type="range" min="0" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/><button className="viewerReset" type="button" onClick={resetViewerPreferences}>Restaurar visualização</button>
       </aside>}
       <div className="editorViewport" ref={surface}>
         {!layersOpen&&<button className="editorExpand" onClick={()=>setLayersOpen(true)} title="Mostrar camadas"><ChevronRight size={18}/></button>}

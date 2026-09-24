@@ -21,7 +21,7 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null),narrowLayout=useRef(window.innerWidth<760);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),surface=useRef(null),drag=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),surface=useRef(null),floating=useRef(null),drag=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1)},[file]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
@@ -50,8 +50,8 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
   const pct=progress?.total?Math.min(100,Math.round(progress.completed/progress.total*100)):0;
   const selectedEnginePreview=selectedEngines.slice(0,8),hiddenSelectedEngines=Math.max(0,selectedEngines.length-selectedEnginePreview.length);
   function capture(){const v=video.current;if(!v?.videoWidth)return;const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);c.toBlob(blob=>{if(blob){onFile(new File([blob],"captura-"+Date.now()+".png",{type:"image/png"}));setCameraOpen(false)}else setCameraError("Falha ao converter o quadro capturado.")},"image/png")}
-  function dragStart(e){if(e.target.closest("button"))return;drag.current={x:e.clientX-position.x,y:e.clientY-position.y};e.currentTarget.setPointerCapture(e.pointerId)}
-  function dragMove(e){if(drag.current)setPosition({x:e.clientX-drag.current.x,y:e.clientY-drag.current.y})}
+  function dragStart(e){if(e.target.closest("button"))return;const host=surface.current?.getBoundingClientRect(),panel=floating.current?.getBoundingClientRect();if(!host||!panel)return;drag.current={startX:e.clientX,startY:e.clientY,startPosX:position.x,startPosY:position.y,minDx:host.left-panel.left+8,maxDx:host.right-panel.right-8,minDy:host.top-panel.top+8,maxDy:host.bottom-panel.bottom-8};e.currentTarget.setPointerCapture(e.pointerId)}
+  function dragMove(e){if(!drag.current)return;const d=drag.current,dx=Math.max(d.minDx,Math.min(d.maxDx,e.clientX-d.startX)),dy=Math.max(d.minDy,Math.min(d.maxDy,e.clientY-d.startY));setPosition({x:d.startPosX+dx,y:d.startPosY+dy})}
   function dragEnd(){drag.current=null}
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
@@ -89,8 +89,8 @@ export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,
         </div>}
         </div>}
         {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>setZoom(z=>Math.max(.25,z-.25))}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>setZoom(z=>Math.min(4,z+.25))}><Plus size={15}/></button></div>}
-        {resultOpen&&(busy||results.length>0)&&<div className="editorFloating" style={{transform:`translate(${position.x}px,${position.y}px)`}}>
-          <div className="editorFloatHead" onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd}><b>Resultados</b><button title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
+        {resultOpen&&(busy||results.length>0)&&<div ref={floating} className="editorFloating" style={{transform:`translate(${position.x}px,${position.y}px)`}}>
+          <div className="editorFloatHead" onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}><b>Resultados</b><button title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.completed||0}/{progress?.total||selected.length}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel}>Cancelar</button>}</div>}
           {!busy&&res&&durationMs!=null&&<div className="editorRunTime">Tempo medido da rodada: <b>{(durationMs/1000).toFixed(2)} s</b></div>}
           {results.map(r=><button key={r.engine_id} className={"editorResultRow "+(chosen?.engine_id===r.engine_id?"active":"")} onClick={()=>{setActive(r.engine_id);setVisible(v=>({...v,[r.engine_id]:true}))}}><span>{r.name}</span><b>{r.detections?.length||0} achados</b><small>{Number(r.latency_ms||0).toFixed(0)} ms</small></button>)}

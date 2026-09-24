@@ -34,7 +34,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
-  const [pathologyOrder,setPathologyOrder]=useState([]);
+  const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder);
   const [selectedDetection,setSelectedDetection]=useState(null);
   const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState("");
   const [imageSize,setImageSize]=useState({width:1,height:1});
@@ -66,7 +66,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   },[file]);
   useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
-  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison})},[opacity,layersOpen,preferredComparison]);
+  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,pathologyOrder})},[opacity,layersOpen,preferredComparison,pathologyOrder]);
   useEffect(()=>{if(busy)setResultOpen(true)},[busy]);
   useEffect(()=>{if(busy){const now=performance.now();runStarted.current=now;setStartAt(now);setElapsed(0);setDurationMs(null)}
     else{if(runStarted.current!=null){setDurationMs(performance.now()-runStarted.current);runStarted.current=null}setStartAt(null)}},[busy]);

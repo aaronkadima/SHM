@@ -110,7 +110,7 @@ check(settingsStyles.includes(".settingsEngines{display:grid;grid-template-colum
 check(settingsStyles.includes(".settingsEngines{display:flex;flex-direction:column;align-items:stretch;align-content:normal}")&&settingsStyles.includes(".settingsEngines>.settingsEngineCard{flex:0 0 auto;width:100%;min-height:0}"),"mobile engine list must use non-shrinking vertical flex cards to prevent overlap");
 check(settingsStyles.includes("min-height:clamp(180px,24dvh,300px)")&&settingsStyles.includes("-webkit-overflow-scrolling:touch"),"mobile settings must reserve a useful scroll height for other engines");
 check(settingsStyles.includes(".analysisSettingsCard:not(.settingsMotorsCard){padding:12px 14px}")&&settingsStyles.includes(".settingsEngine{padding:10px 11px;min-height:62px}"),"mobile settings must compact non-engine sections instead of hiding engine cards");
-check(styles.includes("body:has(.settingsShell){overflow:hidden}"),"settings route must suppress document-level scrolling");
+check(styles.includes("body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}"),"settings route must suppress document-level scrolling and follow the dynamic viewport");
 check(settingsStyles.includes(".settingsBottom{height:42px;flex:0 0 42px"),"settings bottom bar must remain visible as the fixed flex footer");
 check(settings.includes('function EngineCard({engine,owned=false})')&&settings.includes('Ver código')&&settings.includes('Exportar código'),"every engine settings card must expose code inspection and export actions");
 check(settings.includes('engineCodePackage(engine)')&&settings.includes('new Blob([pkg.source]'),"engine code export must download the same source displayed by the card");

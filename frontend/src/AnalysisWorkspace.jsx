@@ -79,6 +79,21 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     }));
     return()=>cancelAnimationFrame(id);
   },[viewportSize.width,viewportSize.height,resultOpen]);
+  useEffect(()=>{
+    if(!resultOpen||!resultPanel.current)return;
+    let frame=0;
+    const reclamp=()=>{
+      if(frame)cancelAnimationFrame(frame);
+      frame=requestAnimationFrame(()=>setPosition(current=>{
+        const next=clampResultPosition(current);
+        return next.x===current.x&&next.y===current.y?current:next;
+      }));
+    };
+    const observer=new ResizeObserver(reclamp);
+    observer.observe(resultPanel.current);
+    reclamp();
+    return()=>{observer.disconnect();if(frame)cancelAnimationFrame(frame)};
+  },[resultOpen,busy,res]);
   useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked]})},[opacity,layersOpen,preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked]);
   useEffect(()=>{if(busy)setResultOpen(true)},[busy]);
   useEffect(()=>{if(busy){const now=performance.now();runStarted.current=now;setStartAt(now);setElapsed(0);setDurationMs(null)}

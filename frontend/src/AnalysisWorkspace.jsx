@@ -573,7 +573,11 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
             </details>
           </div>}
         </div>}
-        {!resultOpen&&results.length>0&&<button className="editorResultsTab" onClick={()=>setResultOpenPreference(true)}>Resultados · {results.length}</button>}
+        {!resultOpen&&(busy||results.length>0)&&<button className={"editorResultsTab "+(busy?"busy":"")} aria-live={busy?"polite":undefined} aria-label={busy?"Reabrir resultados · análise em andamento":"Reabrir resultados · "+results.length+" resultado"+(results.length===1?"":"s")} onClick={()=>setResultOpenPreference(true)}>
+          <span>Resultados</span>
+          <strong>{busy?(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)):results.length}</strong>
+          {busy&&<i aria-hidden="true"><b style={{width:pct+"%"}}/></i>}
+        </button>}
       </div>
     </div>
     <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?"transient":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}{appInfo?.channel==="development"&&<span className={"editorDevStamp "+(appInfo?.deployment?.status||"")} title={"Build de desenvolvimento · "+(appInfo?.buildSha||"—")+" · catálogo v"+(appInfo?.catalogVersion||"—")+" · deploy "+(appInfo?.deployment?.status||"não verificado")+(appInfo?.deployment?.manifest?.sha?" · publicado "+appInfo.deployment.manifest.sha:"")}>DEV · {String(appInfo?.buildSha||"—").slice(0,8)}{" "}<i className="editorDeployState" aria-label={"Deploy "+(appInfo?.deployment?.status||"não verificado")}>{appInfo?.deployment?.status==="synced"?"✓":appInfo?.deployment?.status==="divergent"?"!":appInfo?.deployment?.status==="unavailable"?"?":appInfo?.deployment?.status==="checking"?"…":""}</i></span>}</span></div>

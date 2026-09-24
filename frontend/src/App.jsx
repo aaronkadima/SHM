@@ -231,16 +231,16 @@ export default function App(){
   }
   async function useHistoryAsReference(id){
     setHistoryErr("");
-    let referenceToken=0;
+    const referenceToken=++referencePickSeq.current;
+    setReferenceValidating(true);
     try{
       const record=await getInspection(id);
+      if(referenceToken!==referencePickSeq.current)return;
       if(!record)throw new Error("Inspeção não encontrada.");
       const blob=record.image_blob;
       if(!blob)throw new Error("A imagem original desta inspeção não está disponível no histórico.");
       const meta=record.file_meta||{};
       const restoredReferenceFile=new File([blob],meta.name||"referencia-t0",{type:meta.type||blob.type||"application/octet-stream",lastModified:meta.lastModified||Date.now()});
-      referenceToken=++referencePickSeq.current;
-      setReferenceValidating(true);
       await validateReferenceImage(restoredReferenceFile);
       if(referenceToken!==referencePickSeq.current)return;
       if(referencePrev)URL.revokeObjectURL(referencePrev);
@@ -258,8 +258,8 @@ export default function App(){
       setInspectionMeta({...EMPTY_INSPECTION,...(record.inspection||{}),inspection_label:""});
       setSel(new Set(["cdm_1"]));
       navigate("analysis");
-    }catch(e){setHistoryErr("Falha ao preparar referência t0: "+String(e))}
-    finally{if(referenceToken&&referenceToken===referencePickSeq.current)setReferenceValidating(false)}
+    }catch(e){if(referenceToken===referencePickSeq.current)setHistoryErr("Falha ao preparar referência t0: "+String(e))}
+    finally{if(referenceToken===referencePickSeq.current)setReferenceValidating(false)}
   }
   async function removeHistory(id){
     try{await deleteInspection(id);await refreshHistory()}

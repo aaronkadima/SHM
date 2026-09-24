@@ -8,6 +8,7 @@ export const DEFAULT_VIEWER_PREFERENCES={
   pathologyOrder:[],
   pathologyOpacity:{},
   pathologyLocked:[],
+  resultPanelOpen:true,
   resultPanelPosition:{x:0,y:0},
   resultPanelSize:{width:360,height:null}
 };
@@ -35,6 +36,7 @@ export function normalizeViewerPreferences(value={}){
     pathologyOrder:Array.isArray(value?.pathologyOrder)?[...new Set(value.pathologyOrder.filter(x=>typeof x==="string"&&x.trim()))]:[],
     pathologyOpacity,
     pathologyLocked:Array.isArray(value?.pathologyLocked)?[...new Set(value.pathologyLocked.filter(x=>typeof x==="string"&&x.trim()))]:[],
+    resultPanelOpen:typeof value?.resultPanelOpen==="boolean"?value.resultPanelOpen:DEFAULT_VIEWER_PREFERENCES.resultPanelOpen,
     resultPanelPosition:{
       x:Number.isFinite(panelX)?Math.min(5000,Math.max(-5000,panelX)):DEFAULT_VIEWER_PREFERENCES.resultPanelPosition.x,
       y:Number.isFinite(panelY)?Math.min(5000,Math.max(-5000,panelY)):DEFAULT_VIEWER_PREFERENCES.resultPanelPosition.y

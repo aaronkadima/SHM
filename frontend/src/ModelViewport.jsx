@@ -30,8 +30,11 @@ export default function ModelViewport({file}){
     const fit=obj=>{
       if(disposed){releaseUrl();return}model=obj;releaseUrl();setLoading(false);setLoadProgress(100);
       if(vectorFallback)obj.traverse(n=>{if(n.isMesh){
-        const source=Array.isArray(n.material)?n.material[0]:n.material;
-        n.material=new THREE.MeshBasicMaterial({color:source?.color?.clone()||new THREE.Color(0x689aa4),side:THREE.DoubleSide})
+        const originals=Array.isArray(n.material)?n.material:[n.material];
+        const source=originals[0];
+        const replacement=new THREE.MeshBasicMaterial({color:source?.color?.clone()||new THREE.Color(0x689aa4),side:THREE.DoubleSide});
+        originals.forEach(disposeMaterial);
+        n.material=replacement;
       }});
       scene.add(obj);
       const bounds=new THREE.Box3().setFromObject(obj),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());

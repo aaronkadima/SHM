@@ -34,6 +34,7 @@ const fakeResult={
 
 function App(){
   const[result,setResult]=useState("VIEWER_SMOKE_PENDING");
+  const[droppedName,setDroppedName]=useState("");
   const[busy,setBusy]=useState(false),[analysisRes,setAnalysisRes]=useState(fakeResult),[runProgress,setRunProgress]=useState(null);
   const selected=useMemo(()=>["cdm_1"],[]);
   const selectedEngineLabels=useMemo(()=>{
@@ -63,6 +64,15 @@ function App(){
           const statusBarFit=!!statusBar&&!!statusMeta&&statusBar.scrollWidth<=statusBar.clientWidth+1&&statusMeta.scrollWidth<=statusMeta.clientWidth+1;
           const runTimeRow=document.querySelector(".editorRunTime");
           const measuredRuntimeOk=runTimeRow?.textContent.replace(/\s+/g," ").trim()==="Tempo da análise 1.23 s";
+          const dropViewport=document.querySelector(".editorViewport");
+          const dt=new DataTransfer();
+          dt.items.add(new File([svg],"drag-smoke.svg",{type:"image/svg+xml"}));
+          dropViewport?.dispatchEvent(new DragEvent("dragenter",{bubbles:true,cancelable:true,dataTransfer:dt}));
+          await sleep(30);
+          const dragOverlayVisible=!!document.querySelector(".editorDropOverlay")&&dropViewport?.classList.contains("fileDragActive");
+          dropViewport?.dispatchEvent(new DragEvent("drop",{bubbles:true,cancelable:true,dataTransfer:dt}));
+          await sleep(40);
+          const dragDropOk=dragOverlayVisible&&!document.querySelector(".editorDropOverlay")&&!dropViewport?.classList.contains("fileDragActive")&&document.querySelector("#drop-received")?.textContent==="drag-smoke.svg";
           const narrowSidebar=window.matchMedia("(max-width: 900px)").matches;
           const mobileInitialLayersCollapsedOk=!narrowSidebar||!document.querySelector(".editorLayers");
           const savedInitialPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
@@ -627,7 +637,7 @@ function App(){
             await sleep(40);
             const cameraEscapeOk=!document.querySelector(".editorCamera");
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,staleUpdateVisible,statusBarFit,measuredRuntimeOk,mobileInitialLayersCollapsedOk,desktopLayerPreferencePreserved,compactDrawerDismissOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,cameraModalFitOk,cameraEscapeOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingAvoidsZoomOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,persistencePhaseOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,pathologyInitialStateOk,pathologyGroupInteractiveOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,staleUpdateVisible,statusBarFit,measuredRuntimeOk,dragDropOk,mobileInitialLayersCollapsedOk,desktopLayerPreferencePreserved,compactDrawerDismissOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,cameraModalFitOk,cameraEscapeOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingAvoidsZoomOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,persistencePhaseOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,pathologyInitialStateOk,pathologyGroupInteractiveOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,phoneFitWithinViewportOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,sideWithinViewportOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,exportEscapeOk,
@@ -658,11 +668,12 @@ function App(){
         referenceInspectionId={null} referenceInspectionMeta={null}
         inspectionMeta={{oae_id:"SMOKE",element_id:"E1",source_id:"CI"}}
         res={analysisRes} busy={busy} progress={runProgress} selected={selected}
-        onFile={()=>{}} onReferenceFile={()=>{}} onRun={()=>{setAnalysisRes(null);setRunProgress({completed:0,total:selectedEngineLabels.length,state:"running"});setBusy(true)}} onCancel={()=>{setBusy(false);setRunProgress({completed:0,total:selectedEngineLabels.length,state:"cancelled"});setAnalysisRes(fakeResult)}}
+        onFile={f=>setDroppedName(f?.name||"")} onReferenceFile={()=>{}} onRun={()=>{setAnalysisRes(null);setRunProgress({completed:0,total:selectedEngineLabels.length,state:"running"});setBusy(true)}} onCancel={()=>{setBusy(false);setRunProgress({completed:0,total:selectedEngineLabels.length,state:"cancelled"});setAnalysisRes(fakeResult)}}
         onSettings={()=>{}} error="" onExport={()=>{}} onExportCsv={()=>{}}
         onExportMap={()=>{}} onExportCdm={()=>{}}
       />
     </div>
+    <span id="drop-received" hidden>{droppedName}</span>
     <pre id="viewer-smoke-state">{result}</pre>
   </>;
 }

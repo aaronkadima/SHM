@@ -48,9 +48,17 @@ function App(){
             await sleep(80);
             const overlayPanes=document.querySelectorAll(".editorImagePane").length;
             const overlayImages=document.querySelectorAll(".editorBaseImage").length;
+            const overlayStacks=document.querySelectorAll(".editorOverlayStack").length;
             const zoomAfterOverlay=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            if(overlayGeometryOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&zoomAfterOverlay==="100%"){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 overlay=1 side=2 fit=100%");
+            const original=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="Original");
+            original?.click();
+            await sleep(80);
+            const originalPanes=document.querySelectorAll(".editorImagePane").length;
+            const originalImages=document.querySelectorAll(".editorBaseImage").length;
+            const originalStacks=document.querySelectorAll(".editorOverlayStack").length;
+            const zoomAfterOriginal=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
+            if(overlayGeometryOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 fit=100%");
               return;
             }
           }

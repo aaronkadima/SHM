@@ -233,6 +233,9 @@ export default function App(){
     setHistoryErr("");
     const referenceToken=++referencePickSeq.current;
     setReferenceValidating(true);
+    setReferenceFile(null);setReferenceInspectionId(null);setReferenceInspectionMeta(null);setRes(null);setProgress(null);setJobId(null);
+    if(referencePrev)URL.revokeObjectURL(referencePrev);
+    setReferencePrev(null);
     try{
       const record=await getInspection(id);
       if(referenceToken!==referencePickSeq.current)return;
@@ -336,6 +339,9 @@ export default function App(){
     }
     setErr("");
     setReferenceValidating(true);
+    setReferenceFile(null);setReferenceInspectionId(null);setReferenceInspectionMeta(null);setRes(null);setProgress(null);setJobId(null);
+    if(referencePrev)URL.revokeObjectURL(referencePrev);
+    setReferencePrev(null);
     try{
       await validateReferenceImage(f);
       if(referenceToken!==referencePickSeq.current)return;

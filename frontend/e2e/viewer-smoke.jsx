@@ -64,9 +64,24 @@ function App(){
           const mobileInitialLayersCollapsedOk=!narrowSidebar||!document.querySelector(".editorLayers");
           const savedInitialPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
           const desktopLayerPreferencePreserved=!narrowSidebar||savedInitialPrefs.layersOpen===true;
+          let compactDrawerDismissOk=true;
           if(narrowSidebar){
-            document.querySelector('button[aria-label="Mostrar ou ocultar painel de camadas"]')?.click();
+            const layersToggle=document.querySelector('button[aria-label="Mostrar ou ocultar painel de camadas"]');
+            layersToggle?.click();
             await sleep(60);
+            const scrim=document.querySelector(".editorLayersScrim");
+            const scrimVisible=!!scrim&&getComputedStyle(scrim).display!=="none";
+            scrim?.click();
+            await sleep(40);
+            const scrimClosed=!document.querySelector(".editorLayers");
+            layersToggle?.click();
+            await sleep(40);
+            window.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"Escape"}));
+            await sleep(40);
+            const escapeClosed=!document.querySelector(".editorLayers");
+            layersToggle?.click();
+            await sleep(60);
+            compactDrawerDismissOk=scrimVisible&&scrimClosed&&escapeClosed&&!!document.querySelector(".editorLayers");
           }
           const sidebarEngines=document.querySelector(".editorSidebarEngines");
           const engineStatusPersistent=!!sidebarEngines&&sidebarEngines.textContent.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
@@ -576,7 +591,7 @@ function App(){
               alwaysPresentControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`))&&
               (!sidebarCurrentlyOpen||sidebarControlLabels.every(label=>!!document.querySelector(`button[aria-label="${label}"]`)));
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,staleUpdateVisible,statusBarFit,mobileInitialLayersCollapsedOk,desktopLayerPreferencePreserved,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,staleUpdateVisible,statusBarFit,mobileInitialLayersCollapsedOk,desktopLayerPreferencePreserved,compactDrawerDismissOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,phoneFitWithinViewportOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,sideWithinViewportOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,exportEscapeOk,

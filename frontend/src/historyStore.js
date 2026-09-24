@@ -152,6 +152,7 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
     result,
     summary:{
       mode:result.metadata?.mode||"unknown",
+      analysis_elapsed_ms:Number.isFinite(Number(result.metadata?.client_elapsed_ms))?Number(result.metadata.client_elapsed_ms):null,
       engine_ids:result.metadata?.engine_ids||[],
       engines_total:(result.results||[]).length,
       engines_ok:(result.results||[]).filter(r=>r.status==="ok").length,

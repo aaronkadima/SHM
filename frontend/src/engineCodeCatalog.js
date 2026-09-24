@@ -5,19 +5,19 @@ function cleanId(value){
   return String(value||"engine").replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").toLowerCase();
 }
 function commentHeader(engine,kind,stages){
-  const source=engine.source_url?\`// Origem do modelo/checkpoint: ${engine.source_url}\n\`:"";
-  const license=engine.license?\`// Licença declarada no catálogo: ${engine.license}\n\`:"";
-  return \`// SHM · pacote de implementação isolada
+  const source=engine.source_url?`// Origem do modelo/checkpoint: ${engine.source_url}\n`:"";
+  const license=engine.license?`// Licença declarada no catálogo: ${engine.license}\n`:"";
+  return `// SHM · pacote de implementação isolada
 // Motor: ${engine.name} (${engine.id})
 // Família: ${engine.family} · tarefa: ${engine.task}
 // Tipo deste arquivo: ${kind}
 ${source}${license}//
 // Etapas da implementação:
-// ${stages.map((step,index)=>\`${index+1}. ${step}\`).join("\n// ")}
+// ${stages.map((step,index)=>`${index+1}. ${step}`).join("\n// ")}
 //
 // Observação: preserve os requisitos/licenças do modelo original ao portar este motor.
 
-\`;
+`;
 }
 function pythonTemplate(engine){
   const family=String(engine.family||"").toLowerCase();
@@ -32,7 +32,7 @@ function pythonTemplate(engine){
 
   if(family.includes("ultralytics")){
     const ctor=String(engine.id).includes("rtdetr")?"RTDETR":"YOLO";
-    return commentHeader(engine,"template de portabilidade Python",commonStages)+\`from pathlib import Path
+    return commentHeader(engine,"template de portabilidade Python",commonStages)+`from pathlib import Path
 import numpy as np
 from PIL import Image
 from ultralytics import YOLO, RTDETR
@@ -76,11 +76,11 @@ def run(weights: str, image_path: str):
     image = Image.open(image_path)
     model = load_engine(weights)
     return serialize(infer(model, image))
-\`;
+`;
   }
 
   if(family.includes("detectron2")){
-    return commentHeader(engine,"template de portabilidade Python",commonStages)+\`from PIL import Image
+    return commentHeader(engine,"template de portabilidade Python",commonStages)+`from PIL import Image
 import numpy as np
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultPredictor
@@ -106,11 +106,11 @@ def run(predictor, image_path: str):
         "scores": instances.scores.numpy().tolist(),
         "classes": instances.pred_classes.numpy().tolist(),
     }
-\`;
+`;
   }
 
   if(family.includes("mmdetection")){
-    return commentHeader(engine,"template de portabilidade Python",commonStages)+\`from mmdet.apis import init_detector, inference_detector
+    return commentHeader(engine,"template de portabilidade Python",commonStages)+`from mmdet.apis import init_detector, inference_detector
 
 ENGINE_ID = "${engine.id}"
 
@@ -128,11 +128,11 @@ def run(model, image_path: str):
         "scores": pred.scores.numpy().tolist(),
         "classes": pred.labels.numpy().tolist(),
     }
-\`;
+`;
   }
 
   if(family.includes("mmseg")){
-    return commentHeader(engine,"template de portabilidade Python",commonStages)+\`from mmseg.apis import init_model, inference_model
+    return commentHeader(engine,"template de portabilidade Python",commonStages)+`from mmseg.apis import init_model, inference_model
 
 ENGINE_ID = "${engine.id}"
 
@@ -145,11 +145,11 @@ def run(model, image_path: str):
     sample = inference_model(model, image_path)
     mask = sample.pred_sem_seg.data.squeeze().cpu().numpy()
     return {"engine_id": ENGINE_ID, "mask": mask.tolist()}
-\`;
+`;
   }
 
   if(family.includes("pytorch")){
-    return commentHeader(engine,"template de portabilidade Python",commonStages)+\`import torch
+    return commentHeader(engine,"template de portabilidade Python",commonStages)+`import torch
 import numpy as np
 from PIL import Image
 
@@ -174,11 +174,11 @@ def run(model, image_path: str):
     # Etapas 3–5 — inferência, pós-processamento e contrato portátil.
     prediction = model(preprocess(image_path))
     return {"engine_id": ENGINE_ID, "prediction": prediction.cpu().numpy().tolist()}
-\`;
+`;
   }
 
   if(family.includes("anomalib")){
-    return commentHeader(engine,"template de portabilidade Python",commonStages)+\`# O Anomalib possui APIs diferentes conforme a versão e a arquitetura.
+    return commentHeader(engine,"template de portabilidade Python",commonStages)+`# O Anomalib possui APIs diferentes conforme a versão e a arquitetura.
 # Use o checkpoint cadastrado para ${engine.name} e preserve o pré/pós-processamento
 # definido pelo projeto de treinamento ao criar o Engine/Model do Anomalib.
 
@@ -190,10 +190,10 @@ def run(anomalib_engine, model, image_path: str):
     predictions = anomalib_engine.predict(model=model, data_path=image_path)
     # Etapas 3–5 — converta anomaly_map, score e máscara para seu contrato externo.
     return {"engine_id": ENGINE_ID, "predictions": predictions}
-\`;
+`;
   }
 
-  return commentHeader(engine,"template de portabilidade Python",commonStages)+\`ENGINE_ID = "${engine.id}"
+  return commentHeader(engine,"template de portabilidade Python",commonStages)+`ENGINE_ID = "${engine.id}"
 MODEL_SOURCE = "${engine.source_url||"checkpoint/runtime configurado no ambiente"}"
 
 def load_engine():
@@ -216,7 +216,7 @@ def run(image):
     # Etapa 5 — ponto de entrada isolado para outra plataforma.
     model = load_engine()
     return {"engine_id": ENGINE_ID, "result": postprocess(infer(model, preprocess(image)))}
-\`;
+`;
 }
 
 function openCvStandaloneSource(){

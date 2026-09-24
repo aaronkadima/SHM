@@ -425,7 +425,8 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         <div className="editorSidebarEngines" aria-label="Motores ativos" title={selectedEngineLabels.map(engine=>engine.name).join(", ")||"Nenhum motor selecionado"}>
           <small>MOTORES ATIVOS</small>
           <div className="editorSidebarEngineList">
-            {selectedEngineLabels.length?selectedEngineLabels.map(engine=><span className="editorSidebarEngineName" key={engine.id}>{engine.name}</span>):<span className="editorSidebarEngineName">—</span>}
+            {selectedEngineLabels.length?selectedEngineLabels.slice(0,12).map(engine=><span className="editorSidebarEngineName" key={engine.id}>{engine.name}</span>):<span className="editorSidebarEngineName">—</span>}
+            {selectedEngineLabels.length>12&&<span className="editorSidebarEngineOverflow">+{selectedEngineLabels.length-12} motores</span>}
           </div>
         </div>
       </aside><div className="editorLayerResizeHandle" role="separator" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" title="Arraste para ampliar ou reduzir o painel de camadas" onMouseDown={beginLayersResize}/></>}

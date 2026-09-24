@@ -31,7 +31,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
-  const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[wipeDirection,setWipeDirection]=useState(null),[wipeDragging,setWipeDragging]=useState(false),[showRawT0,setShowRawT0]=useState(false);
+  const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[spacePanHeld,setSpacePanHeld]=useState(false),[canvasPointerPanning,setCanvasPointerPanning]=useState(false),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[wipeDirection,setWipeDirection]=useState(null),[wipeDragging,setWipeDragging]=useState(false),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState(initialViewerPrefs.resultPanelPosition||DEFAULT_VIEWER_PREFERENCES.resultPanelPosition),[resultPanelSize,setResultPanelSize]=useState(initialViewerPrefs.resultPanelSize||DEFAULT_VIEWER_PREFERENCES.resultPanelSize);
   const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder),[pathologyOpacity,setPathologyOpacity]=useState(initialViewerPrefs.pathologyOpacity||{}),[pathologyLocked,setPathologyLocked]=useState(new Set(initialViewerPrefs.pathologyLocked||[])),[selectedPathologyId,setSelectedPathologyId]=useState(null);
   const [selectedDetection,setSelectedDetection]=useState(null);
@@ -41,7 +41,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{
     let cancelled=false;
@@ -387,9 +387,11 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
       }
       return;
     }
-    if(e.button!==1||e.isPrimary===false)return;
+    const spacePrimary=e.button===0&&spacePan.current;
+    if((e.button!==1&&!spacePrimary)||e.isPrimary===false)return;
     e.preventDefault();
-    canvasDrag.current={pointerId:e.pointerId,x:e.clientX-canvasPan.x,y:e.clientY-canvasPan.y};
+    canvasDrag.current={pointerId:e.pointerId,x:e.clientX-canvasPan.x,y:e.clientY-canvasPan.y,source:spacePrimary?"space":"middle"};
+    setCanvasPointerPanning(true);
     try{e.currentTarget.setPointerCapture?.(e.pointerId)}catch{}
   }
   function canvasPanMove(e){
@@ -458,10 +460,19 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     const dragState=canvasDrag.current;
     if(!dragState||e?.pointerId!==dragState.pointerId)return;
     canvasDrag.current=null;
+    setCanvasPointerPanning(false);
     try{e?.currentTarget?.releasePointerCapture?.(e.pointerId)}catch{}
   }
   function canvasKeyDown(e){
     if(e.target!==e.currentTarget||e.ctrlKey||e.metaKey||e.altKey)return;
+    if(e.key===" "){
+      e.preventDefault();
+      if(!spacePan.current){
+        spacePan.current=true;
+        setSpacePanHeld(true);
+      }
+      return;
+    }
     const panDelta={ArrowLeft:[-32,0],ArrowRight:[32,0],ArrowUp:[0,-32],ArrowDown:[0,32]}[e.key];
     if(panDelta){
       e.preventDefault();
@@ -479,6 +490,16 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
       e.preventDefault();
       fitView();
     }
+  }
+  function canvasKeyUp(e){
+    if(e.key!==" "||e.target!==e.currentTarget)return;
+    e.preventDefault();
+    spacePan.current=false;
+    setSpacePanHeld(false);
+  }
+  function canvasBlur(){
+    spacePan.current=false;
+    setSpacePanHeld(false);
   }
   function canvasWheel(e){
     if(e.target!==e.currentTarget&&canvasTouchExcluded(e.target))return;
@@ -748,7 +769,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
-        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio, setas, roda/trackpad ou toque para deslocar; Ctrl ou Command com roda, pinça, mais e menos para zoom; zero para ajustar à tela" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" data-touch-mode={zoom>1?"pan-pinch":"pinch-scroll"} onKeyDown={canvasKeyDown} onWheel={canvasWheel} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
+        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio, Espaço mais arraste, setas, roda/trackpad ou toque para deslocar; Ctrl ou Command com roda, pinça, mais e menos para zoom; zero para ajustar à tela" aria-keyshortcuts="Space ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" data-touch-mode={zoom>1?"pan-pinch":"pinch-scroll"} data-pan-mode={canvasPointerPanning?"grabbing":spacePanHeld?"ready":"idle"} onKeyDown={canvasKeyDown} onKeyUp={canvasKeyUp} onBlur={canvasBlur} onWheel={canvasWheel} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
           {comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}
           {comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)}
           {comparison==="wipe"&&renderWipePane(basePreview)}

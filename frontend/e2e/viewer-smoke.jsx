@@ -285,7 +285,7 @@ function App(){
             const floatingMaxWidthOk=!!floatingPanel&&getComputedStyle(floatingPanel).maxWidth!=="none";
             const floatingHandleOk=!!floatingHead&&floatingHead.tagName==="BUTTON"&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
             const floatingResizeHandle=floatingPanel?.querySelector(".editorFloatResizeHandle");
-            const floatingResizeModeOk=!!floatingPanel&&getComputedStyle(floatingPanel).resize==="none"&&!!floatingResizeHandle&&(phoneSidebar?getComputedStyle(floatingResizeHandle).display==="none":getComputedStyle(floatingResizeHandle).cursor==="nwse-resize");
+            const floatingResizeModeOk=!!floatingPanel&&getComputedStyle(floatingPanel).resize!=="both"&&!!floatingResizeHandle&&(phoneSidebar?getComputedStyle(floatingResizeHandle).display==="none":getComputedStyle(floatingResizeHandle).display!=="none");
             const floatingPreferenceGeometryOk=!!floatingPanel&&floatingPanel.dataset.panelWidth==="360"&&floatingPanel.dataset.panelHeight===""&&(!phoneSidebar?getComputedStyle(floatingPanel).width==="360px":true);
             let floatingResizeInteractionOk=true;
             if(!phoneSidebar&&floatingPanel&&floatingResizeHandle){

@@ -32,7 +32,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(360),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[wipeDirection,setWipeDirection]=useState(null),[wipeDragging,setWipeDragging]=useState(false),[showRawT0,setShowRawT0]=useState(false);
-  const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
+  const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState(initialViewerPrefs.resultPanelPosition||DEFAULT_VIEWER_PREFERENCES.resultPanelPosition),[resultPanelSize,setResultPanelSize]=useState(initialViewerPrefs.resultPanelSize||DEFAULT_VIEWER_PREFERENCES.resultPanelSize);
   const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder),[pathologyOpacity,setPathologyOpacity]=useState(initialViewerPrefs.pathologyOpacity||{}),[pathologyLocked,setPathologyLocked]=useState(new Set(initialViewerPrefs.pathologyLocked||[])),[selectedPathologyId,setSelectedPathologyId]=useState(null);
   const [selectedDetection,setSelectedDetection]=useState(null);
   const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState(""),[statusNotice,setStatusNotice]=useState("");
@@ -41,7 +41,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),canvasDrag=useRef(null),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeGesture=useRef(false),canvasDrag=useRef(null),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{
     let cancelled=false;
@@ -84,17 +84,23 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     let frame=0;
     const reclamp=()=>{
       if(frame)cancelAnimationFrame(frame);
-      frame=requestAnimationFrame(()=>setPosition(current=>{
-        const next=clampResultPosition(current);
-        return next.x===current.x&&next.y===current.y?current:next;
-      }));
+      frame=requestAnimationFrame(()=>{
+        if(resultResizeGesture.current&&!window.matchMedia("(max-width:560px)").matches&&resultPanel.current){
+          const width=Math.round(resultPanel.current.offsetWidth),height=Math.round(resultPanel.current.offsetHeight);
+          setResultPanelSize(current=>current.width===width&&current.height===height?current:{width,height});
+        }
+        setPosition(current=>{
+          const next=clampResultPosition(current);
+          return next.x===current.x&&next.y===current.y?current:next;
+        });
+      });
     };
     const observer=new ResizeObserver(reclamp);
     observer.observe(resultPanel.current);
     reclamp();
     return()=>{observer.disconnect();if(frame)cancelAnimationFrame(frame)};
   },[resultOpen,busy,res]);
-  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked]})},[opacity,layersOpen,preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked]);
+  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked],resultPanelPosition:position,resultPanelSize})},[opacity,layersOpen,preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked,position,resultPanelSize]);
   useEffect(()=>{if(busy)setResultOpen(true)},[busy]);
   useEffect(()=>{if(busy){const now=performance.now();runStarted.current=now;setStartAt(now);setElapsed(0);setDurationMs(null)}
     else{if(runStarted.current!=null){setDurationMs(performance.now()-runStarted.current);runStarted.current=null}setStartAt(null)}},[busy]);
@@ -239,6 +245,17 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   function dragEnd(e){
     drag.current=null;
     try{e?.currentTarget?.releasePointerCapture?.(e.pointerId)}catch{}
+  }
+  function detectResultResizeStart(e){
+    const panel=resultPanel.current;
+    if(!panel||window.matchMedia("(max-width:560px)").matches)return;
+    const rect=panel.getBoundingClientRect();
+    resultResizeGesture.current=e.clientX>=rect.right-22&&e.clientY>=rect.bottom-22;
+    if(resultResizeGesture.current){
+      const stop=()=>{resultResizeGesture.current=false;window.removeEventListener("pointerup",stop);window.removeEventListener("pointercancel",stop)};
+      window.addEventListener("pointerup",stop,{once:true});
+      window.addEventListener("pointercancel",stop,{once:true});
+    }
   }
   function moveResultPanelKey(e){
     if(e.key==="Home"||e.key==="End"){
@@ -392,7 +409,8 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     setZoom(1);
     setCanvasPan({x:0,y:0});
     setShowRawT0(false);
-    setPosition({x:0,y:0});
+    setPosition({...DEFAULT_VIEWER_PREFERENCES.resultPanelPosition});
+    setResultPanelSize({...DEFAULT_VIEWER_PREFERENCES.resultPanelSize});
   }
   const hasOverlayContent=useCombinedEngineOverlay||pathologyLayers.length>0||temporalLayers.length>0||boxes.length>0;
   function renderOverlayStack(stackStyle=null){
@@ -504,7 +522,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
           </>}
         </div>}
         {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>changeZoom(-.25)}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>changeZoom(.25)}><Plus size={15}/></button></div>}
-        {resultOpen&&(busy||results.length>0)&&<div ref={resultPanel} className="editorFloating" data-position-x={position.x} data-position-y={position.y} style={{transform:`translate(${position.x}px,${position.y}px)`}}>
+        {resultOpen&&(busy||results.length>0)&&<div ref={resultPanel} className="editorFloating" data-position-x={position.x} data-position-y={position.y} data-panel-width={resultPanelSize.width} data-panel-height={resultPanelSize.height||""} onPointerDownCapture={detectResultResizeStart} style={{transform:`translate(${position.x}px,${position.y}px)`,"--result-panel-width":resultPanelSize.width+"px",...(resultPanelSize.height?{"--result-panel-height":resultPanelSize.height+"px"}:{})}}>
           <div className="editorFloatHead"><button type="button" className="editorFloatMoveHandle" aria-label="Mover painel de resultados" title="Arraste ou use setas, Home e End para mover" onKeyDown={moveResultPanelKey} onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}><b>Resultados</b></button><button type="button" title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel} disabled={progress?.state==="cancel_requested"}>{progress?.state==="cancel_requested"?"Cancelando…":"Cancelar"}</button>}</div>}
           {!busy&&res&&durationMs!=null&&<div className="editorRunTime editorMetricRow"><span className="editorMetricLabel">Tempo medido</span><b className="editorMetricValue">{(durationMs/1000).toFixed(2)} s</b></div>}

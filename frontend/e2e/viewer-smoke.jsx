@@ -238,22 +238,14 @@ function App(){
             if(floatingClampOk){
               floatingHead.focus();
               floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowUp"}));
-              await sleep(50);
+              await sleep(40);
               const keyboardMoveStarted=Number(floatingPanel.dataset.positionY)<0;
-              for(let n=0;n<60;n++){
-                floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowLeft"}));
-                floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowUp"}));
-                if(n%15===14)await sleep(20);
-              }
-              await sleep(80);
+              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"Home"}));
+              await sleep(50);
               const topLeft=floatingPanel.getBoundingClientRect();
               const topLeftOk=topLeft.left>=viewportRect.left+7&&topLeft.top>=viewportRect.top+7;
-              for(let n=0;n<100;n++){
-                floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
-                floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowDown"}));
-                if(n%20===19)await sleep(20);
-              }
-              await sleep(80);
+              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"End"}));
+              await sleep(50);
               const bottomRight=floatingPanel.getBoundingClientRect();
               const bottomRightOk=bottomRight.right<=viewportRect.right-7&&bottomRight.bottom<=viewportRect.bottom-7;
               floatingClampOk=keyboardMoveStarted&&topLeftOk&&bottomRightOk&&Number.isFinite(Number(floatingPanel.dataset.positionX))&&Number.isFinite(Number(floatingPanel.dataset.positionY));

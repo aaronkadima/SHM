@@ -59,11 +59,13 @@ function check(){
   const motorsCard=document.querySelector(".settingsMotorsCard");
   const footer=document.querySelector(".settingsBottom");
   const top=document.querySelector(".settingsTop");
-  const firstOther=motors?.querySelector(".settingsEngineCard");
+  const motorCards=[...motors?.querySelectorAll(".settingsEngineCard")||[]];
+  const firstOther=motorCards[0];
   if(!content||!motors||!motorsCard||!footer||!top||!firstOther)return false;
 
   const html=document.documentElement,body=document.body;
   const viewportH=window.innerHeight,viewportW=window.innerWidth;
+  const visualBottom=(window.visualViewport?.height||viewportH)+(window.visualViewport?.offsetTop||0);
   const motorsRect=motors.getBoundingClientRect();
   const firstRect=firstOther.getBoundingClientRect();
   const footerRect=footer.getBoundingClientRect();
@@ -72,18 +74,20 @@ function check(){
   const documentNoScroll=html.scrollHeight<=viewportH+2&&body.scrollHeight<=viewportH+2;
   const generalNoScroll=content.scrollHeight<=content.clientHeight+2&&getComputedStyle(content).overflowY!=="auto"&&getComputedStyle(content).overflowY!=="scroll";
   const motorsOnlyScroll=getComputedStyle(motors).overflowY==="auto"&&motors.scrollHeight>motors.clientHeight+10;
-  const motorsVisible=motorsRect.height>=145&&firstRect.height>=55&&firstRect.bottom>motorsRect.top&&firstRect.top<motorsRect.bottom;
-  const barsVisible=topRect.top>=-1&&topRect.bottom<=viewportH+1&&footerRect.top>=0&&footerRect.bottom<=viewportH+1;
+  const motorsVisible=motorsRect.height>=175&&firstRect.height>=55&&firstRect.bottom>motorsRect.top&&firstRect.top<motorsRect.bottom;
+  const cardRects=motorCards.slice(0,6).map(card=>card.getBoundingClientRect());
+  const cardsSeparated=cardRects.length>=4&&cardRects.every((rect,index)=>index===0||rect.top>=cardRects[index-1].bottom-1)&&cardRects.every(rect=>rect.height>=55);
+  const barsVisible=topRect.top>=-1&&topRect.bottom<=visualBottom+1&&footerRect.top>=0&&footerRect.bottom<=visualBottom+1;
   const noHorizontalOverflow=html.scrollWidth<=viewportW+2&&body.scrollWidth<=viewportW+2;
   const candidates=[html,body,content,motorsCard,motors];
   const verticalScrollers=candidates.filter(el=>el.scrollHeight>el.clientHeight+3&&["auto","scroll"].includes(getComputedStyle(el).overflowY));
   const singleScroller=verticalScrollers.length===1&&verticalScrollers[0]===motors;
 
-  const checks={documentNoScroll,generalNoScroll,motorsOnlyScroll,motorsVisible,barsVisible,noHorizontalOverflow,singleScroller};
+  const checks={documentNoScroll,generalNoScroll,motorsOnlyScroll,motorsVisible,cardsSeparated,barsVisible,noHorizontalOverflow,singleScroller};
   const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
   result.textContent=failed.length
     ?"SETTINGS_SMOKE_FAIL "+failed.join(",")+" motorsHeight="+Math.round(motorsRect.height)+" viewport="+viewportW+"x"+viewportH
-    :"SETTINGS_SMOKE_PASS viewport="+viewportW+"x"+viewportH+" motorsHeight="+Math.round(motorsRect.height)+" single-scroll=motors footer=fixed";
+    :"SETTINGS_SMOKE_PASS viewport="+viewportW+"x"+viewportH+" motorsHeight="+Math.round(motorsRect.height)+" cards=separated single-scroll=motors footer=visual-viewport";
   return true;
 }
 

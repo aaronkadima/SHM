@@ -8,6 +8,13 @@ import{buildCdmSvg,buildCdmCsv,buildCdmCoco,buildCdmDxf,buildCdmBimJson,buildCdm
 import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
 import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,clearInspections,requestPersistentStorage,getStorageStatus}from"./historyStore.js";
 
+const APP_CHANNEL=import.meta.env.VITE_APP_CHANNEL||((import.meta.env.BASE_URL||"").includes("/dev/")?"development":"production");
+const BUILD_SHA=import.meta.env.VITE_BUILD_SHA||"local";
+const CATALOG_VERSION=catalog.version||"unknown";
+const engineRank=e=>e.id==="cdm_1"?0:e.catalog_visibility==="always"?1:e.browser_ready?2:e.recommended?3:4;
+const ENGINE_CATALOG=[...(catalog.engines||[])].sort((a,b)=>engineRank(a)-engineRank(b)||(a.name||a.id).localeCompare(b.name||b.id,"pt-BR"));
+const APP_INFO={channel:APP_CHANNEL,buildSha:BUILD_SHA,catalogVersion:CATALOG_VERSION};
+
 const DEFAULT_COMPARATOR="https://shm-api-production-01f8.up.railway.app";
 const DEFAULT_INDIVIDUAL="";
 const EMPTY_INSPECTION={oae_id:"",element_id:"",source_id:"",inspection_label:""};
@@ -81,7 +88,7 @@ function exportCdm(result,fileName,format,inspection={}){
 }
 
 export default function App(){
-  const engines=catalog.engines||[];
+  const engines=ENGINE_CATALOG;
   const[individualApi,setIndividualApi]=useState(()=>stored("shmIndividualApiUrl",DEFAULT_INDIVIDUAL));
   const[individualDraft,setIndividualDraft]=useState(()=>stored("shmIndividualApiUrl",DEFAULT_INDIVIDUAL));
   const[comparatorApi,setComparatorApi]=useState(()=>stored("shmComparatorApiUrl",DEFAULT_COMPARATOR));
@@ -420,7 +427,7 @@ export default function App(){
         <h1>PLATAFORMA SHM · OAE BRASIL</h1>
         <p>Inspeção visual multi-motor com execução individual independente e comparação cloud controlada.</p>
       </div>
-      <div className="liveStatus"><i/> SISTEMA ONLINE</div>
+      <div className={"environmentStatus "+APP_CHANNEL}><b>{APP_CHANNEL==="development"?"DESENVOLVIMENTO":"PRODUÇÃO"}</b><span>catálogo v{CATALOG_VERSION} · {BUILD_SHA}</span></div>
       <div className="sum">
         <div><b>{engines.length}</b><span>motores</span></div>
         <div><b>{recommended}</b><span>recomendados</span></div>
@@ -434,10 +441,10 @@ export default function App(){
     {activeView==="analysis"&&<>
     <AnalysisWorkspace file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
-    {activeView==="engines"&&<EnginesView engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
+    {activeView==="engines"&&<EnginesView appInfo={APP_INFO} engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 
     {activeView==="reports"&&<ReportsView res={res} inspection={inspectionMeta} onJson={()=>res&&exportJson(res)} onCsv={()=>res&&exportCsv(res)} onMap={()=>res&&downloadConsensus(res)} onNavigate={navigate}/>}
-    {activeView==="settings"&&<AnalysisSettings engines={engines} selected={selected} toggle={toggle} onBack={()=>navigate("analysis")} individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} inspectionMeta={inspectionMeta} updateInspectionMeta={updateInspectionMeta} cdmOptions={cdmOptions} setCdmOptions={setCdmOptions} error={err}/>}
+    {activeView==="settings"&&<AnalysisSettings appInfo={APP_INFO} engines={engines} selected={selected} toggle={toggle} onBack={()=>navigate("analysis")} individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} inspectionMeta={inspectionMeta} updateInspectionMeta={updateInspectionMeta} cdmOptions={cdmOptions} setCdmOptions={setCdmOptions} error={err}/>}
     </main>
   </div>
 }

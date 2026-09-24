@@ -54,6 +54,7 @@ createRoot(document.getElementById("root")).render(<App/>);
 
 function check(){
   const result=document.getElementById("settings-smoke-result");
+  document.querySelectorAll("details.analysisSettingsCard").forEach(detail=>{detail.open=true});
   const content=document.querySelector(".settingsContent");
   const motors=document.querySelector(".settingsEngines");
   const motorsCard=document.querySelector(".settingsMotorsCard");

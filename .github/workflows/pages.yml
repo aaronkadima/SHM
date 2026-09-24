@@ -81,7 +81,7 @@ jobs:
           printf '%s\n' 'SHM production: main' > site/DEPLOYMENT.txt
           printf '%s\n' 'SHM development: dev' > site/dev/DEPLOYMENT.txt
           printf '{"channel":"production","branch":"main","sha":"%s","catalogVersion":"%s"}\n' "$PROD_SHA" "$PROD_CATALOG" > site/build.json
-          printf '{"channel":"development","branch":"feat/cdm-1","sha":"%s","catalogVersion":"%s"}\n' "$DEV_SHA" "$DEV_CATALOG" > site/dev/build.json
+          printf '{"channel":"development","branch":"dev","sha":"%s","catalogVersion":"%s"}\n' "$DEV_SHA" "$DEV_CATALOG" > site/dev/build.json
           node -e "const fs=require('fs');for(const p of ['site/build.json','site/dev/build.json']){const x=JSON.parse(fs.readFileSync(p,'utf8'));if(!x.sha||!x.catalogVersion)throw new Error('Invalid build manifest: '+p)}"
 
       - name: Configure Pages

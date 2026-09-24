@@ -136,13 +136,16 @@ function App(){
               const beforeWidth=Math.round(layersPanel.getBoundingClientRect().width);
               const handleRect=layersResize.getBoundingClientRect();
               const startX=handleRect.left+Math.max(1,handleRect.width/2);
-              layersResize.dispatchEvent(new MouseEvent("mousedown",{bubbles:true,button:0,buttons:1,clientX:startX,clientY:handleRect.top+10}));
-              window.dispatchEvent(new MouseEvent("mousemove",{bubbles:true,button:0,buttons:1,clientX:startX+40,clientY:handleRect.top+10}));
-              window.dispatchEvent(new MouseEvent("mouseup",{bubbles:true,button:0,buttons:0,clientX:startX+40,clientY:handleRect.top+10}));
+              layersResize.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:71,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:startX,clientY:handleRect.top+10}));
+              window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:72,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:startX+120,clientY:handleRect.top+10}));
+              await sleep(20);
+              const foreignPointerIgnored=Math.round(layersPanel.getBoundingClientRect().width)===beforeWidth;
+              window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:71,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:startX+40,clientY:handleRect.top+10}));
+              window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:71,pointerType:"pen",isPrimary:true,button:0,buttons:0,clientX:startX+40,clientY:handleRect.top+10}));
               await sleep(80);
               const afterWidth=Math.round(layersPanel.getBoundingClientRect().width);
               const layerPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
-              const mousePersisted=afterWidth===Math.min(600,Math.max(340,beforeWidth+40))&&layerPrefs.layersWidth===afterWidth&&layersPanel.dataset.layerWidth===String(afterWidth);
+              const pointerPersisted=foreignPointerIgnored&&afterWidth===Math.min(600,Math.max(340,beforeWidth+40))&&layerPrefs.layersWidth===afterWidth&&layersPanel.dataset.layerWidth===String(afterWidth);
               layersResize.focus();
               layersResize.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"End"}));
               await sleep(50);
@@ -154,7 +157,15 @@ function App(){
               await sleep(50);
               const keyPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
               const arrowOk=Math.round(layersPanel.getBoundingClientRect().width)===360&&layersResize.getAttribute("aria-valuenow")==="360"&&keyPrefs.layersWidth===360;
-              layerWidthPersistenceOk=mousePersisted&&endOk&&homeOk&&arrowOk&&layersResize.tabIndex===0&&layersResize.getAttribute("aria-valuemin")==="340"&&layersResize.getAttribute("aria-valuemax")==="600";
+              const cancelStart=Math.round(layersPanel.getBoundingClientRect().width);
+              const cancelRect=layersResize.getBoundingClientRect();
+              const cancelX=cancelRect.left+Math.max(1,cancelRect.width/2);
+              layersResize.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:73,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:cancelX,clientY:cancelRect.top+10}));
+              window.dispatchEvent(new PointerEvent("pointercancel",{bubbles:true,pointerId:73,pointerType:"pen",isPrimary:true,button:0,buttons:0,clientX:cancelX,clientY:cancelRect.top+10}));
+              window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:73,pointerType:"pen",isPrimary:true,button:0,buttons:1,clientX:cancelX+100,clientY:cancelRect.top+10}));
+              await sleep(30);
+              const pointerCancelReleased=Math.round(layersPanel.getBoundingClientRect().width)===cancelStart;
+              layerWidthPersistenceOk=pointerPersisted&&pointerCancelReleased&&endOk&&homeOk&&arrowOk&&layersResize.tabIndex===0&&layersResize.getAttribute("aria-valuemin")==="340"&&layersResize.getAttribute("aria-valuemax")==="600";
             }else if(narrowSidebar&&layersPanel){
               const responsiveWidth=layersPanel.getBoundingClientRect().width;
               const stored=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}").layersWidth;
@@ -317,7 +328,7 @@ function App(){
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=compact-single-panel results=viewport-clamped+resize-aware+persistent+collapse-state+busy-tab sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=compact-single-panel results=viewport-clamped+resize-aware+persistent+collapse-state+busy-tab sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard+pointer no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
               setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+" ["+responsiveDiag+"]"+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }

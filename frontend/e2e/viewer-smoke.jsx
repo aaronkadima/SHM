@@ -40,16 +40,16 @@ function App(){
           const initialImageNoticeOk=status.textContent.includes("viewer-smoke.svg")&&status.textContent.includes("320×180");
           await sleep(1900);
           const imageNoticeCleared=!document.querySelector(".editorStatusMessage")?.textContent?.includes("Imagem carregada");
-          const sidebarEngines=document.querySelector(".editorToolEngines");
+          const sidebarEngines=document.querySelector(".editorSidebarEngines");
           const engineStatusPersistent=!!sidebarEngines&&sidebarEngines.textContent.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
-          const sidebarStyle=getComputedStyle(document.querySelector(".editorTools"));
-          const sidebarFixedOk=sidebarStyle.position==="sticky"&&sidebarStyle.overflow==="hidden";
+          const sidebarStyle=getComputedStyle(document.querySelector(".editorLayers"));
+          const sidebarFixedOk=sidebarStyle.position==="sticky"&&sidebarStyle.overflow==="hidden"&&sidebarStyle.overscrollBehavior==="none";
           const rect=pane.getBoundingClientRect();
           if(rect.width>100&&rect.height>80){
             const stack=document.querySelector(".editorOverlayStack");
             const stackRect=stack?.getBoundingClientRect();
             const overlayGeometryOk=!!stackRect&&Math.abs(stackRect.width-rect.width)<1&&Math.abs(stackRect.height-rect.height)<1;
-            const engineStatusOk=!!document.querySelector(".editorToolEngines")?.textContent?.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
+            const engineStatusOk=!!document.querySelector(".editorSidebarEngines")?.textContent?.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
             const hideAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Ocultar todas");
             const showAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Mostrar todas");
             const layerBefore=document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)").length;

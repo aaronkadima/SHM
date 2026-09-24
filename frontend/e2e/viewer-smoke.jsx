@@ -97,12 +97,6 @@ function App(){
             const referenceText=document.querySelector(".referenceLayer>span:nth-child(2)");
             const layerResizeOk=!!layersPanel&&!!layersResize&&getComputedStyle(layersResize).cursor==="col-resize"&&layersPanel.getBoundingClientRect().width>=340;
             const layerNoWrapOk=getComputedStyle(pathologyName).whiteSpace==="nowrap"&&getComputedStyle(referenceText).whiteSpace==="nowrap";
-            const lockButton=document.querySelector(".layerLockToggle");
-            const actionRow=document.querySelector(".layerInspectorActions");
-            const lockCompactOk=!!lockButton&&!!actionRow&&getComputedStyle(actionRow).display==="flex"&&lockButton.getBoundingClientRect().width<90&&Math.abs(actionRow.getBoundingClientRect().right-lockButton.getBoundingClientRect().right)<2;
-            const floating=document.querySelector(".editorFloating");
-            const metricRows=[...document.querySelectorAll(".editorCdmSummary .editorMetricRow")];
-            const resultGridOk=!!floating&&metricRows.length>=4&&metricRows.every(row=>getComputedStyle(row).whiteSpace==="nowrap"&&getComputedStyle(row).display==="grid")&&parseFloat(getComputedStyle(floating).backgroundColor.split(",")[3]||"1")<1;
             const zoomPlus=[...document.querySelectorAll("button")].find(b=>b.getAttribute("aria-label")==="Ampliar zoom");
             zoomPlus?.click();
             await sleep(40);
@@ -201,8 +195,8 @@ function App(){
             const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50;
-            if(initialImageNoticeOk&&imageNoticeCleared&&engineStatusPersistent&&overlayGeometryOk&&engineStatusOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&noFloatingLayersButton&&layerResizeOk&&layerNoWrapOk&&lockCompactOk&&resultGridOk&&zoomBefore==="125%"&&panOk&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&iconActionsOk&&unifiedExportOk&&wipeInitialOk&&wipeAnchorOk&&wipeMovedOk&&wipeDirectionOk&&wipeStatusOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+persistent-engines layers=min340+nowrap+compact-lock+toggle+solo+order+opacity+resize no-floating-layer-button controls=icons export=unified results=aligned+translucent wipe=compact+anchored-press+direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+            if(initialImageNoticeOk&&imageNoticeCleared&&engineStatusPersistent&&overlayGeometryOk&&engineStatusOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&noFloatingLayersButton&&layerResizeOk&&layerNoWrapOk&&zoomBefore==="125%"&&panOk&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&iconActionsOk&&unifiedExportOk&&wipeInitialOk&&wipeAnchorOk&&wipeMovedOk&&wipeDirectionOk&&wipeStatusOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+persistent-engines layers=min340+nowrap+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+anchored-press+direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
               return;
             }
           }

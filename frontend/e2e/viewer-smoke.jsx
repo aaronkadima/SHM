@@ -90,7 +90,7 @@ function App(){
           const visibleEngineNames=engineNodes.filter(node=>getComputedStyle(node).display!=="none").map(node=>node.textContent.trim());
           const expectedEngineCount=engineCatalog.engines.length;
           const engineOverflow=document.querySelector(".editorSidebarEngineOverflow");
-          const shortViewport=window.innerHeight<620;
+          const shortViewport=window.innerHeight<=620;
           const engineFooterVisibilityOk=shortViewport
             ?visibleEngineNames.length===Math.min(12,expectedEngineCount)&&getComputedStyle(engineOverflow).display!=="none"
             :visibleEngineNames.length===expectedEngineCount&&getComputedStyle(engineOverflow).display==="none";

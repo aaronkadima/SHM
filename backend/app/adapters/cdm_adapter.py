@@ -169,6 +169,7 @@ class CDM1Adapter(EngineAdapter):
             metrics={
                 "implementation": "CDM 2.8.5",
                 "runtime": "python-numpy-pillow",
+                "overlay_semantics": "transparent_layers",
                 "geometry_units": "processed_pixels",
                 "processed_width": width,
                 "processed_height": height,

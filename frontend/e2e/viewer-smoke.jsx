@@ -187,7 +187,7 @@ function App(){
         await sleep(100);
       }
       if(!cancelled)setResult("VIEWER_SMOKE_FAIL");
-    })();
+    })().catch(e=>{if(!cancelled)setResult("VIEWER_SMOKE_ERROR "+(e?.stack||e?.message||String(e)))});
     return()=>{cancelled=true};
   },[]);
   return <>

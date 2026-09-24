@@ -27,7 +27,7 @@ export function detectAsset(file){
   if(MODEL_EXT.test(name))return "3d";
   return "unknown";
 }
-export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
+export default function AnalysisWorkspace({appInfo=null,executionIssue="",selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [initialCompactLayout]=useState(()=>typeof window!=="undefined"&&window.innerWidth<900);
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialCompactLayout?false:initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
@@ -774,6 +774,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     ||(progress?.state==="cancelled"?"Análise cancelada":"")
     ||(busy?("Processando análise · "+(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length))):"")
     ||statusNotice
+    ||executionIssue
     ||(kind==="3d"?"Arquivo 3D reconhecido · análise 2D indisponível":"Pronto");
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
@@ -785,7 +786,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         <button disabled={busy} onClick={()=>picker.current?.click()}><ImagePlus size={16}/> Importar</button>
         {selected.length===1&&selected[0]==="cdm_1"&&<button disabled={busy} title="Carregar imagem anterior para comparação temporal" onClick={()=>referencePicker.current?.click()}><ImagePlus size={16}/> {referenceFile?"t0: "+referenceFile.name:"Referência t0"}</button>}
         <button disabled={busy} onClick={onSettings}><Settings2 size={16}/> Configurar</button>
-        <button className="editorPrimary" disabled={!file||kind!=="2d"||!selected.length||busy} onClick={onRun}><Play size={16}/> Analisar</button>
+        <button className="editorPrimary" disabled={!file||kind!=="2d"||!selected.length||busy||!!executionIssue} title={executionIssue||"Executar análise"} onClick={onRun}><Play size={16}/> Analisar</button>
       </div>
     </div>
     <div className="editorBody">

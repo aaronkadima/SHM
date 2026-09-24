@@ -43,7 +43,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
     <header className="settingsTop"><div><span className="editorMark">S</span><b>SHM Studio</b><em className={"settingsEnvBadge "+(appInfo?.channel||"production")}>{appInfo?.channel==="development"?"DEV":"PROD"} · v{appInfo?.catalogVersion||"—"} · {appInfo?.buildSha||"—"}</em></div><button onClick={onBack}><ArrowLeft size={16}/> Voltar ao canvas</button></header>
     <main className="settingsContent">
       <div className="settingsHeading"><Settings2 size={22}/><div><h1>Configurações da análise</h1><p>Defina os motores antes de executar a inspeção.</p></div></div>
-      <div className="analysisSettingsCard"><h2>Motores disponíveis</h2><p>Um motor executa uma análise individual. Dois ou mais ativam a comparação.</p>
+      <div className="analysisSettingsCard settingsMotorsCard"><h2>Motores disponíveis</h2><p>Um motor executa uma análise individual. Dois ou mais ativam a comparação.</p>
         <div className="settingsOwnedGroup">
           <div className="settingsGroupTitle"><span>MOTOR PRÓPRIO</span><small>Execução determinística local no navegador</small></div>
           {ownedEngine?<EngineCard engine={ownedEngine} owned/>:<div className="settingsCatalogError">CDM-1 não foi encontrado no catálogo carregado nesta versão.</div>}

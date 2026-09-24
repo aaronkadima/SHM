@@ -1,9 +1,9 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,RefreshCw,Settings2,Unlock,X} from "lucide-react";
 import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint}from"./viewerPreferences.js";
+import{detectAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./assetDetection.js";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
-const MODEL_EXT=/\.(glb|gltf|obj|ply|stl)$/i;
 const TEMPORAL_ISSUE_LABELS={
   registration_unreliable:"registro geométrico não confiável",
   insufficient_overlap:"sobreposição espacial insuficiente",
@@ -20,13 +20,6 @@ const TEMPORAL_WARNING_LABELS={
   exposure_warning:"exposição próxima do limite",
   low_texture:"baixa textura para registro"
 };
-export function detectAsset(file){
-  if(!file)return null;
-  const name=file.name.toLowerCase();
-  if(file.type.startsWith("image/")||/\.(png|jpe?g|webp|tiff?|bmp)$/i.test(name))return "2d";
-  if(MODEL_EXT.test(name))return "3d";
-  return "unknown";
-}
 export default function AnalysisWorkspace({appInfo=null,executionIssue="",selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [initialCompactLayout]=useState(()=>typeof window!=="undefined"&&window.innerWidth<900);
@@ -780,11 +773,11 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",select
     ||(persisting?"Análise concluída · salvando histórico local":"")
     ||(busy?("Processando análise · "+(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length))):"")
     ||statusNotice
-    ||(kind==="3d"?"Arquivo 3D reconhecido · análise 2D indisponível":executionIssue||"Pronto");
+    ||(kind==="3d"?"Arquivo 3D reconhecido · análise 2D indisponível":kind==="unknown"?"Formato de arquivo não suportado":executionIssue||"Pronto");
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><span className="editorMenus"><span>Arquivo</span><span>Editar</span><span>Visualizar</span><span>Análise</span></span></div>
-      <div className="editorFileTitle">{file?.name||"Nova inspeção"} {kind&&"· "+kind.toUpperCase()}<span className="editorEngineState">{selectedEngineLabels.length===0?"Nenhum motor":selectedEngineLabels.length===1?selectedEngineLabels[0].name+(selectedEngineLabels[0].browser_ready?" · browser local":""):selectedEngineLabels.length+" motores · comparação"}</span></div>
+      <div className="editorFileTitle">{file?.name||"Nova inspeção"} {kind&&"· "+(kind==="unknown"?"NÃO SUPORTADO":kind.toUpperCase())}<span className="editorEngineState">{selectedEngineLabels.length===0?"Nenhum motor":selectedEngineLabels.length===1?selectedEngineLabels[0].name+(selectedEngineLabels[0].browser_ready?" · browser local":""):selectedEngineLabels.length+" motores · comparação"}</span></div>
       <div className="editorTopActions">
         <input ref={picker} hidden type="file" accept="image/*,.glb,.gltf,.obj,.ply,.stl" onChange={e=>onFile(e.target.files?.[0]||null)}/>
         <input ref={referencePicker} hidden type="file" accept="image/*" onChange={e=>onReferenceFile(e.target.files?.[0]||null)}/>
@@ -826,9 +819,10 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",select
       </aside><div className="editorLayerResizeHandle" role="separator" tabIndex="0" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" aria-valuemin="340" aria-valuemax="600" aria-valuenow={Math.round(layersWidth)} aria-valuetext={Math.round(layersWidth)+" pixels"} title="Arraste ou use ← →, Home e End" onKeyDown={resizeLayersKey} onPointerDown={beginLayersResize}/></>}
       <div className="editorViewport" ref={surface}>
         <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
-        {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
+        {file&&<div className={"editorTypeBadge "+(kind==="unknown"?"unsupported":"")}>{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Formato não suportado"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
+        kind==="unknown"?<div className="editorEmpty editorUnsupported"><ImageIcon size={34}/><h2>Formato não suportado</h2><p>Use imagem {SUPPORTED_IMAGE_EXTENSIONS.map(ext=>"."+ext).join(", ")} ou modelo 3D {SUPPORTED_MODEL_EXTENSIONS.map(ext=>"."+ext).join(", ")}.</p><button onClick={()=>picker.current?.click()}>Escolher outro arquivo</button></div>:
         <div ref={canvasElement} className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio, Espaço mais arraste, setas, roda/trackpad ou toque para deslocar; Ctrl ou Command com roda, pinça, mais e menos para zoom; zero para ajustar à tela" aria-keyshortcuts="Space ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" data-touch-mode={zoom>1?"pan-pinch":"pinch-scroll"} data-pan-mode={canvasPointerPanning?"grabbing":spacePanHeld?"ready":"idle"} onKeyDown={canvasKeyDown} onKeyUp={canvasKeyUp} onBlur={canvasBlur} onWheel={canvasWheel} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
           {comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}
           {comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)}

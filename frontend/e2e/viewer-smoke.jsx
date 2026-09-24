@@ -11,7 +11,7 @@ const fakeResult={
   results:[{
     engine_id:"cdm_1",name:"CDM-1",status:"ok",latency_ms:12,detections:[],
     overlay_png_base64:transparentPng,
-    metrics:{overlay_semantics:"transparent_layers",layers:[],summary:{total_objects:0,crack_count:0,crack_length_total_px:0,spalling_area_px2:0},runtime:"browser-smoke"}
+    metrics:{overlay_semantics:"transparent_layers",layers:[{id:"cracks",name:"Fissuras",color:"#e64b4b",count:1,overlay_png_base64:transparentPng}],summary:{total_objects:1,crack_count:1,crack_length_total_px:12,spalling_area_px2:0},runtime:"browser-smoke"}
   }]
 };
 
@@ -32,6 +32,15 @@ function App(){
             const stack=document.querySelector(".editorOverlayStack");
             const stackRect=stack?.getBoundingClientRect();
             const overlayGeometryOk=!!stackRect&&Math.abs(stackRect.width-rect.width)<1&&Math.abs(stackRect.height-rect.height)<1;
+            const hideAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Ocultar todas");
+            const showAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Mostrar todas");
+            const layerBefore=document.querySelectorAll(".pathologyOverlay").length;
+            hideAll?.click();
+            await sleep(40);
+            const layerHidden=document.querySelectorAll(".pathologyOverlay").length===0;
+            showAll?.click();
+            await sleep(40);
+            const layerRestored=document.querySelectorAll(".pathologyOverlay").length===1;
             const zoomPlus=[...document.querySelectorAll("button")].find(b=>b.getAttribute("aria-label")==="Ampliar zoom");
             zoomPlus?.click();
             await sleep(40);
@@ -57,8 +66,8 @@ function App(){
             const originalImages=document.querySelectorAll(".editorBaseImage").length;
             const originalStacks=document.querySelectorAll(".editorOverlayStack").length;
             const zoomAfterOriginal=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            if(overlayGeometryOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 fit=100%");
+            if(overlayGeometryOk&&layerBefore===1&&layerHidden&&layerRestored&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 layers=toggle fit=100%");
               return;
             }
           }

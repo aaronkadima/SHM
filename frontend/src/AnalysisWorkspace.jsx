@@ -32,7 +32,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
-  const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[showRawT0,setShowRawT0]=useState(false);
+  const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
   const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder),[pathologyOpacity,setPathologyOpacity]=useState(initialViewerPrefs.pathologyOpacity||{}),[pathologyLocked,setPathologyLocked]=useState(new Set(initialViewerPrefs.pathologyLocked||[])),[selectedPathologyId,setSelectedPathologyId]=useState(null);
   const [selectedDetection,setSelectedDetection]=useState(null);
@@ -66,7 +66,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   },[file]);
   useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
-  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked]})},[opacity,layersOpen,preferredComparison,pathologyOrder,pathologyOpacity,pathologyLocked]);
+  useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked]})},[opacity,layersOpen,preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked]);
   useEffect(()=>{if(busy)setResultOpen(true)},[busy]);
   useEffect(()=>{if(busy){const now=performance.now();runStarted.current=now;setStartAt(now);setElapsed(0);setDurationMs(null)}
     else{if(runStarted.current!=null){setDurationMs(performance.now()-runStarted.current);runStarted.current=null}setStartAt(null)}},[busy]);
@@ -226,6 +226,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     setLayersOpen(DEFAULT_VIEWER_PREFERENCES.layersOpen);
     setPreferredComparison(DEFAULT_VIEWER_PREFERENCES.comparison);
     setComparison(DEFAULT_VIEWER_PREFERENCES.comparison);
+    setWipePosition(DEFAULT_VIEWER_PREFERENCES.wipePosition);
     setPathologyOrder(pathologyLayers.map(layer=>layer.id));
     setPathologyOpacity({});
     setPathologyLocked(new Set());
@@ -236,9 +237,9 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     setPosition({x:0,y:0});
   }
   const hasOverlayContent=useCombinedEngineOverlay||pathologyLayers.length>0||temporalLayers.length>0||boxes.length>0;
-  function renderOverlayStack(){
+  function renderOverlayStack(stackStyle=null){
     if(!hasOverlayContent)return null;
-    return <div className="editorOverlayStack" aria-label="Camadas de detecção sobre a imagem original">
+    return <div className="editorOverlayStack" aria-label="Camadas de detecção sobre a imagem original" style={stackStyle||undefined}>
       {useCombinedEngineOverlay&&<img className={"engineOverlayImage "+(overlaySemantics==="transparent_layers"?"transparentOverlay":"compositeOverlay")} src={engineOverlay} alt={"Sobreposição de "+(chosen?.name||"motor")} style={{opacity}}/>}
       {[...orderedPathologyLayers].reverse().filter(layer=>visible["cdm_1:"+layer.id]!==false).map(layer=><img className="pathologyOverlay" key={layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} data-layer-id={layer.id} style={{opacity:opacity*Number(pathologyOpacity[layer.id]??1)}}/>)}
       {temporalLayers.filter(layer=>temporalLayerIsVisible(layer.id)).map(layer=><img className="pathologyOverlay temporalOverlay" key={"temporal-"+layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
@@ -254,6 +255,18 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         onError={()=>{if(resolvedSrc===prev&&localPreview&&localPreview!==prev)setPreviewError("Preview principal indisponível; usando cópia local do arquivo.");else setPreviewError("Não foi possível decodificar a imagem importada.")}}/>
       {withOverlay&&renderOverlayStack()}
       {badge&&<span className="editorPaneBadge">{badge}</span>}
+    </div>;
+  }
+  function renderWipePane(src){
+    const resolvedSrc=src||localPreview;
+    if(!resolvedSrc)return <div className="editorImagePane editorImageMissing"><span>Imagem base indisponível</span></div>;
+    return <div className="editorImagePane editorWipePane">
+      <img className="editorBaseImage" src={resolvedSrc} alt="Comparação deslizante com imagem original"
+        onLoad={e=>{setPreviewError("");setImageSize({width:e.currentTarget.naturalWidth||1,height:e.currentTarget.naturalHeight||1})}}
+        onError={()=>setPreviewError("Não foi possível decodificar a imagem importada.")}/>
+      {renderOverlayStack({clipPath:`inset(0 0 0 ${wipePosition}%)`})}
+      <div className="editorWipeDivider" style={{left:wipePosition+"%"}} aria-hidden="true"><span/></div>
+      <span className="editorPaneBadge">original ↔ detecção</span>
     </div>;
   }
   return <section className="analysisEditor" aria-label="Workspace de análise">
@@ -294,6 +307,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} style={{transform:`scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
           {comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}
           {comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)}
+          {comparison==="wipe"&&renderWipePane(basePreview)}
           {comparison==="side"&&<>
             {renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}
             {renderBasePane(basePreview,"Imagem original com camadas de detecção","original + detecções",false,true)}
@@ -304,6 +318,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
           </>}
         </div>}
         {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>setZoom(z=>Math.max(.25,z-.25))}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>setZoom(z=>Math.min(4,z+.25))}><Plus size={15}/></button></div>}
+        {file&&kind==="2d"&&comparison==="wipe"&&<div className="editorWipeControl"><span>Original</span><input aria-label="Divisor original e detecção" type="range" min="5" max="95" step="1" value={wipePosition} onChange={e=>setWipePosition(Number(e.target.value))}/><span>Detecção</span><b>{Math.round(wipePosition)}%</b></div>}
         {resultOpen&&(busy||results.length>0)&&<div className="editorFloating" style={{transform:`translate(${position.x}px,${position.y}px)`}}>
           <div className="editorFloatHead" onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd}><b>Resultados</b><button title="Recolher resultados" onClick={()=>setResultOpen(false)}><Minus size={16}/></button></div>
           {busy&&<div className="editorProgress"><span>{progress?.current_engine||"Processando motores"} · {progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:pct+"%"}}/></div>{onCancel&&<button onClick={onCancel} disabled={progress?.state==="cancel_requested"}>{progress?.state==="cancel_requested"?"Cancelando…":"Cancelar"}</button>}</div>}
@@ -311,7 +326,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
           {results.map(r=><button key={r.engine_id} className={"editorResultRow "+(chosen?.engine_id===r.engine_id?"active":"")} onClick={()=>{setActive(r.engine_id);setVisible(v=>({...v,[r.engine_id]:true}))}}><span>{r.name}</span><b>{r.detections?.length||0} achados</b><small>{Number(r.latency_ms||0).toFixed(0)} ms</small></button>)}
           {cdmSummary&&<div className="editorCdmSummary"><b>CDM-1 · resumo morfológico</b><div><span>{cdmSummary.total_objects} achados</span><span>Fissuras: {cdmSummary.crack_count}</span><span>Comprimento: {Number(cdmSummary.crack_length_total_px||0).toFixed(1)} px</span><span>Desplacamento: {Number(cdmSummary.spalling_area_px2||0).toFixed(0)} px²</span></div>{cdmRating?.enabled&&<p>Estimativa por imagem: NT {cdmRating.NT_img} · EC {cdmRating.EC_DNIT_img} · GDE {Number(cdmRating.GDE_img||0).toFixed(2)}. Confirme em inspeção técnica.</p>}{temporal?.enabled&&<p><b>t0→t1:</b> crescimento {temporalGrowth.toFixed(temporalCalibrated?1:0)} {temporalUnit} · redução {temporalReduction.toFixed(temporalCalibrated?1:0)} {temporalUnit} · {temporalAlignment?.accepted?<>registro automático Δx={Number(temporalAlignment.dx_px||0).toFixed(0)} px, Δy={Number(temporalAlignment.dy_px||0).toFixed(0)} px · ganho {(Number(temporalAlignment.improvement||0)*100).toFixed(1)}%</>:<>alinhamento {temporal?.alignment_method==="translation_auto"?"automático sem translação aplicada":"por redimensionamento"}</>}.</p>}{temporalMetricRows.length>0&&<details className="editorTemporalMetrics"><summary>Quantificação por patologia <small>{temporalUnit}</small></summary><div className="editorTemporalTable"><span className="head">Patologia</span><span className="head">t0</span><span className="head">t1</span><span className="head">Δ</span><span className="head">Δ/t0</span>{temporalMetricRows.map(row=><React.Fragment key={row.cls}><span title={"IoU "+row.iou.toFixed(3)}>{row.label}</span><span>{row.previous.toFixed(1)}</span><span>{row.current.toFixed(1)}</span><span className={row.net>0?"positive":row.net<0?"negative":""}>{row.net>0?"+":""}{row.net.toFixed(1)}</span><span>{row.netRate==null?"—":(row.netRate>0?"+":"")+row.netRate.toFixed(1)+"%"}</span></React.Fragment>)}</div></details>}{temporalQualityLabel&&<p className={"editorTemporalQuality "+temporalQuality.status}><b>{temporalQualityLabel}</b>{temporalQuality?.metrics&&<> · sobreposição {(Number(temporalQuality.metrics.overlap_ratio||0)*100).toFixed(1)}% · Δ iluminação {(Number(temporalQuality.metrics.illumination_delta||0)*100).toFixed(1)}% · razão de nitidez {Number(temporalQuality.metrics.sharpness_ratio||0).toFixed(2)} · similaridade geométrica {Number(temporalQuality.metrics.edge_similarity||0).toFixed(2)}</>}{temporalQualityNotes.length>0&&<span> · {temporalQualityNotes.join("; ")}</span>}</p>}{temporalRegistrationWarning&&<p className="editorCdmWarning">{temporalRegistrationWarning}</p>}{chosen?.metrics?.performance_ms&&<p className="editorPerf"><b>Tempo real:</b> decodificação {(Number(chosen.metrics.performance_ms.decode||0)/1000).toFixed(2)} s · núcleo {(Number(chosen.metrics.performance_ms.core||0)/1000).toFixed(2)} s · renderização {(Number(chosen.metrics.performance_ms.render||0)/1000).toFixed(2)} s · total {(Number(chosen.metrics.performance_ms.total||0)/1000).toFixed(2)} s · {chosen.metrics.runtime||"browser"}</p>}</div>}
           {detail&&<div className="editorFinding"><b>{pathologyLayers.find(l=>l.id===detail.label)?.name||detail.label||detail.canonical_label||"Achado"} #{selectedDetection.index+1}</b><span>Motor: {chosen.name}</span><span>Confiança: {chosen.engine_id==="cdm_1"?"não calibrada":detail.score==null?"não informada":(Number(detail.score)*100).toFixed(1)+"%"}</span><span>Coordenadas: {detail.box.map(v=>Math.round(v)).join(", ")} px</span></div>}
-          {results.length>0&&<div className="editorCompare"><button className={comparison==="original"?"active":""} onClick={()=>changeComparison("original")}>Original</button><button className={comparison==="overlay"?"active":""} onClick={()=>changeComparison("overlay")}>Sobrepor</button><button className={comparison==="side"?"active":""} onClick={()=>changeComparison("side")}>Lado a lado</button>{temporal?.enabled&&referencePrev&&<button className={comparison==="temporal"?"active":""} onClick={()=>changeComparison("temporal")}>t0 / t1</button>}{comparison==="temporal"&&temporalAlignedPreview&&<button onClick={()=>setShowRawT0(v=>!v)}>{showRawT0?"Usar t0 alinhado":"Ver t0 bruto"}</button>}<button onClick={onExport} title="Exportar JSON">JSON</button><button onClick={onExportCsv} title="Exportar CSV da comparação">CSV</button>{res.consensus_overlay_png_base64&&<button onClick={onExportMap} title="Exportar mapa"><Download size={15}/></button>}</div>}
+          {results.length>0&&<div className="editorCompare"><button className={comparison==="original"?"active":""} onClick={()=>changeComparison("original")}>Original</button><button className={comparison==="overlay"?"active":""} onClick={()=>changeComparison("overlay")}>Sobrepor</button><button className={comparison==="wipe"?"active":""} onClick={()=>changeComparison("wipe")}>Deslizar</button><button className={comparison==="side"?"active":""} onClick={()=>changeComparison("side")}>Lado a lado</button>{temporal?.enabled&&referencePrev&&<button className={comparison==="temporal"?"active":""} onClick={()=>changeComparison("temporal")}>t0 / t1</button>}{comparison==="temporal"&&temporalAlignedPreview&&<button onClick={()=>setShowRawT0(v=>!v)}>{showRawT0?"Usar t0 alinhado":"Ver t0 bruto"}</button>}<button onClick={onExport} title="Exportar JSON">JSON</button><button onClick={onExportCsv} title="Exportar CSV da comparação">CSV</button>{res.consensus_overlay_png_base64&&<button onClick={onExportMap} title="Exportar mapa"><Download size={15}/></button>}</div>}
           {cdmSummary&&<div className="editorCompare editorCdmExports"><details className="editorExportMenu"><summary>Exportar CDM</summary><div><button onClick={()=>onExportCdm(chosen,"svg")}>SVG camadas</button><button onClick={()=>onExportCdm(chosen,"csv")}>CSV técnico</button><button onClick={()=>onExportCdm(chosen,"coco")}>COCO</button><button onClick={()=>onExportCdm(chosen,"dxf")}>DXF</button><button onClick={()=>onExportCdm(chosen,"bim")}>BIM JSON</button><button disabled={!Number(chosen.metrics?.mm_per_px)} title={!Number(chosen.metrics?.mm_per_px)?"Calibre mm/px para exportar IFC":""} onClick={()=>onExportCdm(chosen,"ifc")}>IFC</button><button onClick={()=>onExportCdm(chosen,"html")}>HTML</button>{temporalAlignedPreview&&<button onClick={()=>onExportCdm(chosen,"aligned_t0")}>PNG t0 alinhado</button>}</div></details></div>}
         </div>}
         {!resultOpen&&results.length>0&&<button className="editorResultsTab" onClick={()=>setResultOpen(true)}>Resultados · {results.length}</button>}

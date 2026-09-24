@@ -222,7 +222,7 @@ function App(){
             const resetLock=document.querySelector(".layerLockState");
             const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
-            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50&&savedPrefs.resultPanelPosition?.x===0&&savedPrefs.resultPanelPosition?.y===0&&savedPrefs.resultPanelSize?.width===360&&savedPrefs.resultPanelSize?.height===null;
+            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50&&savedPrefs.resultPanelOpen===true&&savedPrefs.resultPanelPosition?.x===0&&savedPrefs.resultPanelPosition?.y===0&&savedPrefs.resultPanelSize?.width===360&&savedPrefs.resultPanelSize?.height===null;
             let phoneOverlayArbitrationToggle=true;
             if(phoneSidebar){
               const layersToggle=[...document.querySelectorAll(".editorTools button")].find(button=>button.title==="Mostrar ou ocultar camadas");
@@ -244,8 +244,18 @@ function App(){
             const floatingResizeModeOk=!!floatingPanel&&getComputedStyle(floatingPanel).resize===(phoneSidebar?"none":"both");
             const floatingPreferenceGeometryOk=!!floatingPanel&&floatingPanel.dataset.panelWidth==="360"&&floatingPanel.dataset.panelHeight===""&&(!phoneSidebar?getComputedStyle(floatingPanel).width==="360px":true);
             const floatingClampOk=floatingHorizontalOk&&floatingVerticalOk&&floatingMaxWidthOk&&floatingHandleOk&&floatingResizeModeOk;
+            const collapseResults=[...document.querySelectorAll(".editorFloatHead button")].find(button=>button.title==="Recolher resultados");
+            collapseResults?.click();
+            await sleep(60);
+            const collapsedTab=document.querySelector(".editorResultsTab");
+            const collapsedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
+            const collapsedPersisted=!!collapsedTab&&collapsedPrefs.resultPanelOpen===false;
+            collapsedTab?.click();
+            await sleep(60);
+            const reopenedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
+            const resultVisibilityPersistenceOk=collapsedPersisted&&!!document.querySelector(".editorFloating")&&reopenedPrefs.resultPanelOpen===true;
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneOverlayArbitrationInitial,phoneOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneOverlayArbitrationInitial,phoneOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,resultVisibilityPersistenceOk,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,
@@ -254,7 +264,7 @@ function App(){
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=phone-single-panel results=viewport-clamped+resize-aware+persistent sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit overlays=phone-single-panel results=viewport-clamped+resize-aware+persistent+collapse-state sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
               setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }

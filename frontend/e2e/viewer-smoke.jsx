@@ -131,6 +131,13 @@ function App(){
             const stackRect=stack?.getBoundingClientRect();
             const overlayGeometryOk=!!stackRect&&Math.abs(stackRect.width-rect.width)<1&&Math.abs(stackRect.height-rect.height)<1;
             const engineStatusOk=!!document.querySelector(".editorSidebarEngines")?.textContent?.includes("CDM-1")&&!document.querySelector(".editorStatusEngines");
+            const pathologyGroup=document.querySelector(".pathologyLayerGroup");
+            const pathologyInitialStateOk=!!pathologyGroup&&(window.innerHeight<620?!pathologyGroup.open:pathologyGroup.open);
+            if(pathologyGroup&&!pathologyGroup.open){
+              pathologyGroup.querySelector("summary")?.click();
+              await sleep(40);
+            }
+            const pathologyGroupInteractiveOk=!!pathologyGroup?.open&&!!document.querySelector(".layerInspector");
             const hideAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Ocultar todas");
             const showAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Mostrar todas");
             const layerBefore=document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)").length;
@@ -603,7 +610,7 @@ function App(){
             await sleep(40);
             const cameraEscapeOk=!document.querySelector(".editorCamera");
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,staleUpdateVisible,statusBarFit,mobileInitialLayersCollapsedOk,desktopLayerPreferencePreserved,compactDrawerDismissOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,cameraModalFitOk,cameraEscapeOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingAvoidsZoomOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,staleUpdateVisible,statusBarFit,mobileInitialLayersCollapsedOk,desktopLayerPreferencePreserved,compactDrawerDismissOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneZoomCompactOk,phoneFloatingControlsOk,viewportLockOk,compactControlA11yOk,cameraModalFitOk,cameraEscapeOk,compactOverlayArbitrationInitial,compactOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingAvoidsZoomOk,floatingMaxWidthOk,floatingHandleOk,floatingResizeModeOk,floatingPreferenceGeometryOk,floatingResizeInteractionOk,floatingStickyHeadOk,floatingMoveInteractionOk,resultVisibilityPersistenceOk,busyAutoOpened,busyCollapsedTabOk,busyPreferenceRestored,overlayGeometryOk,engineStatusOk,pathologyInitialStateOk,pathologyGroupInteractiveOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerWidthPersistenceOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,phoneFitWithinViewportOk,spaceDragPanOk,canvasKeyboardOk,canvasClampOk,canvasWheelOk,canvasTouchOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,sideWithinViewportOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,exportEscapeOk,
@@ -612,7 +619,7 @@ function App(){
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit camera=viewport-fit+escape overlays=compact-single-panel results=viewport-clamped+sticky-head+custom-resize+pointer-safe-move+persistent+collapse-state+busy-tab sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard+pointer no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit camera=viewport-fit+escape overlays=compact-single-panel results=viewport-clamped+sticky-head+custom-resize+pointer-safe-move+persistent+collapse-state+busy-tab sidebar=engines+full-catalog-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+short-collapse+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard+pointer no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
               setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+" ["+responsiveDiag+"]"+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }

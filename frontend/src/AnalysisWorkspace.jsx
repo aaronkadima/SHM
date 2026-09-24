@@ -1,5 +1,5 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
-import {Camera,ChevronDown,ChevronLeft,ChevronUp,Download,ImagePlus,Layers3,Lock,Maximize2,Minus,Play,Plus,Settings2,Unlock,X} from "lucide-react";
+import {Camera,ChevronDown,ChevronLeft,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Settings2,Unlock,X} from "lucide-react";
 import{DEFAULT_VIEWER_PREFERENCES,loadViewerPreferences,saveViewerPreferences}from"./viewerPreferences.js";
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
 
@@ -32,22 +32,23 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(206),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
-  const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[showRawT0,setShowRawT0]=useState(false);
+  const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[wipeDirection,setWipeDirection]=useState(null),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
   const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder),[pathologyOpacity,setPathologyOpacity]=useState(initialViewerPrefs.pathologyOpacity||{}),[pathologyLocked,setPathologyLocked]=useState(new Set(initialViewerPrefs.pathologyLocked||[])),[selectedPathologyId,setSelectedPathologyId]=useState(null);
   const [selectedDetection,setSelectedDetection]=useState(null);
-  const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState("");
+  const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState(""),[statusNotice,setStatusNotice]=useState("");
   const [imageSize,setImageSize]=useState({width:1,height:1});
   const imageDecoded=imageSize.width>1&&imageSize.height>1;
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),drag=useRef(null),canvasDrag=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),drag=useRef(null),canvasDrag=useRef(null),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{
     let cancelled=false;
     setPreviewError("");
     setLocalPreview(null);
+    setImageSize({width:1,height:1});
     if(!file||detectAsset(file)!=="2d")return()=>{cancelled=true};
     const reader=new FileReader();
     reader.onload=()=>{
@@ -64,6 +65,11 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     reader.readAsDataURL(file);
     return()=>{cancelled=true;try{reader.abort()}catch{}};
   },[file]);
+  useEffect(()=>{
+    if(!file||kind!=="2d"||!imageDecoded||previewError)return;
+    showStatusNotice(`Imagem carregada · ${file.name} · ${imageSize.width}×${imageSize.height} px`,2800);
+  },[file,kind,imageDecoded,imageSize.width,imageSize.height,previewError]);
+  useEffect(()=>()=>{if(statusTimer.current)clearTimeout(statusTimer.current);if(wipeDirectionTimer.current)clearTimeout(wipeDirectionTimer.current)},[]);
   useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setCanvasPan({x:0,y:0});setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
   useEffect(()=>{saveViewerPreferences({opacity,layersOpen,comparison:preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked:[...pathologyLocked]})},[opacity,layersOpen,preferredComparison,wipePosition,pathologyOrder,pathologyOpacity,pathologyLocked]);
@@ -171,6 +177,16 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const displaySize={width:Math.max(160,safeImage.width*fit*panes),height:Math.max(120,safeImage.height*fit)};
   const pct=progress?.total?Math.min(100,Math.round(progress.completed/progress.total*100)):0;
   function capture(){const v=video.current;if(!v?.videoWidth)return;const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);c.toBlob(blob=>{if(blob){onFile(new File([blob],"captura-"+Date.now()+".png",{type:"image/png"}));setCameraOpen(false)}else setCameraError("Falha ao converter o quadro capturado.")},"image/png")}
+  function showStatusNotice(message,ms=1800){
+    if(statusTimer.current)clearTimeout(statusTimer.current);
+    setStatusNotice(message);
+    statusTimer.current=setTimeout(()=>{setStatusNotice("");statusTimer.current=null},ms);
+  }
+  function markWipeDirection(direction){
+    if(wipeDirectionTimer.current)clearTimeout(wipeDirectionTimer.current);
+    setWipeDirection(direction);
+    wipeDirectionTimer.current=setTimeout(()=>{setWipeDirection(null);wipeDirectionTimer.current=null},260);
+  }
   function dragStart(e){if(e.target.closest("button"))return;drag.current={x:e.clientX-position.x,y:e.clientY-position.y};e.currentTarget.setPointerCapture(e.pointerId)}
   function dragMove(e){if(drag.current)setPosition({x:e.clientX-drag.current.x,y:e.clientY-drag.current.y})}
   function dragEnd(){drag.current=null}
@@ -206,23 +222,31 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     const pane=e.currentTarget.closest(".editorWipePane");
     const rect=pane?.getBoundingClientRect();
     if(!rect?.width)return;
-    const update=clientX=>setWipePosition(Math.max(5,Math.min(95,(clientX-rect.left)/rect.width*100)));
+    const startX=e.clientX;
+    const startPosition=wipePosition;
+    const update=clientX=>{
+      const deltaPx=clientX-startX;
+      const next=Math.max(5,Math.min(95,startPosition+deltaPx/rect.width*100));
+      if(Math.abs(deltaPx)>.5)markWipeDirection(deltaPx<0?"left":"right");
+      setWipePosition(next);
+    };
     const move=ev=>{ev.preventDefault();update(ev.clientX)};
     const up=ev=>{
       update(ev.clientX);
       window.removeEventListener("mousemove",move);
       window.removeEventListener("mouseup",up);
     };
-    update(e.clientX);
     window.addEventListener("mousemove",move);
     window.addEventListener("mouseup",up);
   }
   function wipeHandleKey(e){
     if(e.key==="ArrowLeft"||e.key==="ArrowRight"){
       e.preventDefault();
-      setWipePosition(v=>Math.max(5,Math.min(95,v+(e.key==="ArrowLeft"?-2:2))));
-    }else if(e.key==="Home"){e.preventDefault();setWipePosition(5)}
-    else if(e.key==="End"){e.preventDefault();setWipePosition(95)}
+      const direction=e.key==="ArrowLeft"?"left":"right";
+      markWipeDirection(direction);
+      setWipePosition(v=>Math.max(5,Math.min(95,v+(direction==="left"?-2:2))));
+    }else if(e.key==="Home"){e.preventDefault();markWipeDirection("left");setWipePosition(5)}
+    else if(e.key==="End"){e.preventDefault();markWipeDirection("right");setWipePosition(95)}
   }
   function fitView(){
     const rect=surface.current?.getBoundingClientRect();
@@ -230,7 +254,12 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     setZoom(1);
     setCanvasPan({x:0,y:0});
   }
-  function changeComparison(mode){setComparison(mode);if(mode!=="temporal")setPreferredComparison(mode);fitView()}
+  function changeComparison(mode){
+    setComparison(mode);
+    if(mode!=="temporal")setPreferredComparison(mode);
+    fitView();
+    showStatusNotice("Visualização · "+({original:"Original",overlay:"Sobrepor",wipe:"Deslizar",side:"Lado a lado",temporal:"t0 / t1"}[mode]||mode),1400);
+  }
   function setPathologyGroupVisible(next){
     setVisible(current=>{
       const updated={...current};
@@ -322,17 +351,23 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         onError={()=>setPreviewError("Não foi possível decodificar a imagem importada.")}/>
       {renderOverlayStack({clipPath:`inset(0 0 0 ${wipePosition}%)`})}
       <div className="editorWipeDivider" style={{left:wipePosition+"%"}}>
-        <button className="editorWipeHandle" type="button" aria-label="Arrastar divisor original e detecção" title="Arraste para comparar original e detecção" onMouseDown={beginWipeDrag} onKeyDown={wipeHandleKey}/>
+        <button className="editorWipeHandle" type="button" aria-label="Arrastar divisor original e detecção" title="Arraste para comparar original e detecção" onMouseDown={beginWipeDrag} onKeyDown={wipeHandleKey}>
+          <span className={"wipeArrow left "+(wipeDirection==="left"?"active":"")} aria-hidden="true"/>
+          <span className={"wipeArrow right "+(wipeDirection==="right"?"active":"")} aria-hidden="true"/>
+        </button>
       </div>
       <span className="editorPaneBadge">original ↔ detecção</span>
     </div>;
   }
   const statusMessage=error
+    ||previewError
     ||(progress?.state==="cancelled"?"Análise cancelada":"")
     ||(busy?((progress?.current_engine||"Processando análise")+" · "+(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length))):"")
-    ||(file&&kind==="2d"?(previewError||(imageDecoded?`Imagem carregada · ${file.name} · ${imageSize.width}×${imageSize.height} px`:localPreview?"Decodificando imagem…":"Lendo imagem…")):"")
-    ||(kind==="3d"?"Arquivo 3D reconhecido · análise 2D indisponível":"")
-    ||(selected.length?selected.length+" motor(es) configurado(s)":"Configure os motores antes de analisar");
+    ||statusNotice
+    ||(kind==="3d"?"Arquivo 3D reconhecido · análise 2D indisponível":"Pronto");
+  const selectedEnginesStatus=selectedEngineLabels.length
+    ?"Motores selecionados: "+selectedEngineLabels.map(engine=>engine.name).join(", ")
+    :"Nenhum motor selecionado";
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><span className="editorMenus"><span>Arquivo</span><span>Editar</span><span>Visualizar</span><span>Análise</span></span></div>
@@ -386,13 +421,39 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
           {results.map(r=><button key={r.engine_id} className={"editorResultRow "+(chosen?.engine_id===r.engine_id?"active":"")} onClick={()=>{setActive(r.engine_id);setVisible(v=>({...v,[r.engine_id]:true}))}}><span>{r.name}</span><b>{r.detections?.length||0} achados</b><small>{Number(r.latency_ms||0).toFixed(0)} ms</small></button>)}
           {cdmSummary&&<div className="editorCdmSummary"><b>CDM-1 · resumo morfológico</b><div><span>{cdmSummary.total_objects} achados</span><span>Fissuras: {cdmSummary.crack_count}</span><span>Comprimento: {Number(cdmSummary.crack_length_total_px||0).toFixed(1)} px</span><span>Desplacamento: {Number(cdmSummary.spalling_area_px2||0).toFixed(0)} px²</span></div>{cdmRating?.enabled&&<p>Estimativa por imagem: NT {cdmRating.NT_img} · EC {cdmRating.EC_DNIT_img} · GDE {Number(cdmRating.GDE_img||0).toFixed(2)}. Confirme em inspeção técnica.</p>}{temporal?.enabled&&<p><b>t0→t1:</b> crescimento {temporalGrowth.toFixed(temporalCalibrated?1:0)} {temporalUnit} · redução {temporalReduction.toFixed(temporalCalibrated?1:0)} {temporalUnit} · {temporalAlignment?.accepted?<>registro automático Δx={Number(temporalAlignment.dx_px||0).toFixed(0)} px, Δy={Number(temporalAlignment.dy_px||0).toFixed(0)} px · ganho {(Number(temporalAlignment.improvement||0)*100).toFixed(1)}%</>:<>alinhamento {temporal?.alignment_method==="translation_auto"?"automático sem translação aplicada":"por redimensionamento"}</>}.</p>}{temporalMetricRows.length>0&&<details className="editorTemporalMetrics"><summary>Quantificação por patologia <small>{temporalUnit}</small></summary><div className="editorTemporalTable"><span className="head">Patologia</span><span className="head">t0</span><span className="head">t1</span><span className="head">Δ</span><span className="head">Δ/t0</span>{temporalMetricRows.map(row=><React.Fragment key={row.cls}><span title={"IoU "+row.iou.toFixed(3)}>{row.label}</span><span>{row.previous.toFixed(1)}</span><span>{row.current.toFixed(1)}</span><span className={row.net>0?"positive":row.net<0?"negative":""}>{row.net>0?"+":""}{row.net.toFixed(1)}</span><span>{row.netRate==null?"—":(row.netRate>0?"+":"")+row.netRate.toFixed(1)+"%"}</span></React.Fragment>)}</div></details>}{temporalQualityLabel&&<p className={"editorTemporalQuality "+temporalQuality.status}><b>{temporalQualityLabel}</b>{temporalQuality?.metrics&&<> · sobreposição {(Number(temporalQuality.metrics.overlap_ratio||0)*100).toFixed(1)}% · Δ iluminação {(Number(temporalQuality.metrics.illumination_delta||0)*100).toFixed(1)}% · razão de nitidez {Number(temporalQuality.metrics.sharpness_ratio||0).toFixed(2)} · similaridade geométrica {Number(temporalQuality.metrics.edge_similarity||0).toFixed(2)}</>}{temporalQualityNotes.length>0&&<span> · {temporalQualityNotes.join("; ")}</span>}</p>}{temporalRegistrationWarning&&<p className="editorCdmWarning">{temporalRegistrationWarning}</p>}{chosen?.metrics?.performance_ms&&<p className="editorPerf"><b>Tempo real:</b> decodificação {(Number(chosen.metrics.performance_ms.decode||0)/1000).toFixed(2)} s · núcleo {(Number(chosen.metrics.performance_ms.core||0)/1000).toFixed(2)} s · renderização {(Number(chosen.metrics.performance_ms.render||0)/1000).toFixed(2)} s · total {(Number(chosen.metrics.performance_ms.total||0)/1000).toFixed(2)} s · {chosen.metrics.runtime||"browser"}</p>}</div>}
           {detail&&<div className="editorFinding"><b>{pathologyLayers.find(l=>l.id===detail.label)?.name||detail.label||detail.canonical_label||"Achado"} #{selectedDetection.index+1}</b><span>Motor: {chosen.name}</span><span>Confiança: {chosen.engine_id==="cdm_1"?"não calibrada":detail.score==null?"não informada":(Number(detail.score)*100).toFixed(1)+"%"}</span><span>Coordenadas: {detail.box.map(v=>Math.round(v)).join(", ")} px</span></div>}
-          {results.length>0&&<div className="editorCompare"><button className={comparison==="original"?"active":""} onClick={()=>changeComparison("original")}>Original</button><button className={comparison==="overlay"?"active":""} onClick={()=>changeComparison("overlay")}>Sobrepor</button><button className={comparison==="wipe"?"active":""} onClick={()=>changeComparison("wipe")}>Deslizar</button><button className={comparison==="side"?"active":""} onClick={()=>changeComparison("side")}>Lado a lado</button>{temporal?.enabled&&referencePrev&&<button className={comparison==="temporal"?"active":""} onClick={()=>changeComparison("temporal")}>t0 / t1</button>}{comparison==="temporal"&&temporalAlignedPreview&&<button onClick={()=>setShowRawT0(v=>!v)}>{showRawT0?"Usar t0 alinhado":"Ver t0 bruto"}</button>}<button onClick={onExport} title="Exportar JSON">JSON</button><button onClick={onExportCsv} title="Exportar CSV da comparação">CSV</button>{res.consensus_overlay_png_base64&&<button onClick={onExportMap} title="Exportar mapa"><Download size={15}/></button>}</div>}
-          {cdmSummary&&<div className="editorCompare editorCdmExports"><details className="editorExportMenu"><summary>Exportar CDM</summary><div><button onClick={()=>onExportCdm(chosen,"svg")}>SVG camadas</button><button onClick={()=>onExportCdm(chosen,"csv")}>CSV técnico</button><button onClick={()=>onExportCdm(chosen,"coco")}>COCO</button><button onClick={()=>onExportCdm(chosen,"dxf")}>DXF</button><button onClick={()=>onExportCdm(chosen,"bim")}>BIM JSON</button><button disabled={!Number(chosen.metrics?.mm_per_px)} title={!Number(chosen.metrics?.mm_per_px)?"Calibre mm/px para exportar IFC":""} onClick={()=>onExportCdm(chosen,"ifc")}>IFC</button><button onClick={()=>onExportCdm(chosen,"html")}>HTML</button>{temporalAlignedPreview&&<button onClick={()=>onExportCdm(chosen,"aligned_t0")}>PNG t0 alinhado</button>}</div></details></div>}
+          {results.length>0&&<div className="editorCompare editorViewActions">
+            <button className={"editorIconButton "+(comparison==="original"?"active":"")} aria-label="Original" title="Original" onClick={()=>changeComparison("original")}><ImageIcon size={15}/></button>
+            <button className={"editorIconButton "+(comparison==="overlay"?"active":"")} aria-label="Sobrepor" title="Sobrepor" onClick={()=>changeComparison("overlay")}><Layers3 size={15}/></button>
+            <button className={"editorIconButton "+(comparison==="wipe"?"active":"")} aria-label="Deslizar" title="Deslizar" onClick={()=>changeComparison("wipe")}><MoveHorizontal size={15}/></button>
+            <button className={"editorIconButton "+(comparison==="side"?"active":"")} aria-label="Lado a lado" title="Lado a lado" onClick={()=>changeComparison("side")}><Columns2 size={15}/></button>
+            {temporal?.enabled&&referencePrev&&<button className={comparison==="temporal"?"active temporalModeButton":"temporalModeButton"} title="Comparação temporal t0 / t1" onClick={()=>changeComparison("temporal")}>t0 / t1</button>}
+            {comparison==="temporal"&&temporalAlignedPreview&&<button title={showRawT0?"Usar t0 alinhado":"Ver t0 bruto"} onClick={()=>setShowRawT0(v=>!v)}>{showRawT0?"Alinhado":"Bruto"}</button>}
+            <details className="editorExportMenu editorExportUnified">
+              <summary className="editorIconButton" aria-label="Exportar" title="Exportar"><Download size={15}/></summary>
+              <div>
+                <span className="editorExportSection">Comparação</span>
+                <button onClick={onExport}>JSON</button>
+                <button onClick={onExportCsv}>CSV</button>
+                {res.consensus_overlay_png_base64&&<button onClick={onExportMap}>Mapa PNG</button>}
+                {cdmSummary&&<>
+                  <span className="editorExportSection">CDM-1</span>
+                  <button onClick={()=>onExportCdm(chosen,"svg")}>SVG camadas</button>
+                  <button onClick={()=>onExportCdm(chosen,"csv")}>CSV técnico</button>
+                  <button onClick={()=>onExportCdm(chosen,"coco")}>COCO</button>
+                  <button onClick={()=>onExportCdm(chosen,"dxf")}>DXF</button>
+                  <button onClick={()=>onExportCdm(chosen,"bim")}>BIM JSON</button>
+                  <button disabled={!Number(chosen.metrics?.mm_per_px)} title={!Number(chosen.metrics?.mm_per_px)?"Calibre mm/px para exportar IFC":""} onClick={()=>onExportCdm(chosen,"ifc")}>IFC</button>
+                  <button onClick={()=>onExportCdm(chosen,"html")}>HTML</button>
+                  {temporalAlignedPreview&&<button onClick={()=>onExportCdm(chosen,"aligned_t0")}>PNG t0 alinhado</button>}
+                </>}
+              </div>
+            </details>
+          </div>}
         </div>}
         {!resultOpen&&results.length>0&&<button className="editorResultsTab" onClick={()=>setResultOpen(true)}>Resultados · {results.length}</button>}
       </div>
     </div>
-    <div className="editorStatus"><span className="editorStatusMessage" title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}</span></div>
+    <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?"transient":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusEngines" title={selectedEnginesStatus}>{selectedEnginesStatus}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}</span></div>
     {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera"><header><b>Modo câmera</b><button title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={()=>setCameraReady(true)}/><footer><span>{cameraError?"Verifique a permissão da câmera":cameraReady?"Prévia ao vivo · capture um quadro para análise 2D":"Aguardando câmera…"}</span><button onClick={capture} disabled={!!cameraError||!cameraReady}><Camera size={16}/> Capturar imagem</button></footer></div></div>}
   </section>
 }

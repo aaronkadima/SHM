@@ -77,6 +77,24 @@ export function clampLayersPanelWidth(value){
   return Number.isFinite(width)?Math.min(600,Math.max(340,Math.round(width))):DEFAULT_VIEWER_PREFERENCES.layersWidth;
 }
 
+export function clampResultPanelSize(next,geometry={}){
+  const minWidth=Math.max(1,Number(geometry.minWidth)||340);
+  const minHeight=Math.max(1,Number(geometry.minHeight)||65);
+  const maxWidth=Math.max(1,Number(geometry.maxWidth)||900);
+  const maxHeight=Math.max(1,Number(geometry.maxHeight)||900);
+  const clampAxis=(value,min,max,fallback)=>{
+    const upper=Math.max(1,max);
+    const lower=Math.min(min,upper);
+    const n=Number(value);
+    const source=Number.isFinite(n)?n:fallback;
+    return Math.round(Math.max(lower,Math.min(upper,source)));
+  };
+  return{
+    width:clampAxis(next?.width,minWidth,maxWidth,DEFAULT_VIEWER_PREFERENCES.resultPanelSize.width),
+    height:clampAxis(next?.height,minHeight,maxHeight,minHeight)
+  };
+}
+
 export function clampFloatingPanelPosition(next,geometry={}){
   const margin=Number.isFinite(Number(geometry.margin))?Number(geometry.margin):8;
   const panelLeft=Number(geometry.panelLeft)||0;

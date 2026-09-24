@@ -68,6 +68,23 @@ function App(){
             await sleep(60);
             const selectedLayer=document.querySelector('.pathologyOverlay[data-layer-id="cracks"]');
             const layerOpacityOk=!!selectedLayer&&Math.abs(Number(selectedLayer.style.opacity)-0.3)<0.01;
+            const lockToggle=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
+            lockToggle?.click();
+            await sleep(40);
+            const lockedInput=[...document.querySelectorAll('.layerInspector input[type="range"]')][0];
+            const lockIcon=document.querySelector(".layerLockState");
+            const lockedMove=[...document.querySelectorAll(".layerOrderControls button")].find(b=>b.title==="Subir Fissuras");
+            const lockStateOk=!!lockIcon&&lockedInput?.disabled===true&&lockedMove?.disabled===true;
+            setNativeValue(lockedInput,.9);
+            await sleep(40);
+            const lockedOpacityStable=Math.abs(Number(document.querySelector('.pathologyOverlay[data-layer-id="cracks"]')?.style.opacity)-0.3)<0.01;
+            const cracksRow=[...document.querySelectorAll(".pathologyLayer")].find(row=>row.textContent.includes("Fissuras"));
+            const cracksCheckbox=cracksRow?.querySelector('input[type="checkbox"]');
+            cracksCheckbox?.click();
+            await sleep(40);
+            const lockedVisibilityStillEditable=document.querySelectorAll('.pathologyOverlay[data-layer-id="cracks"]').length===0;
+            cracksCheckbox?.click();
+            await sleep(40);
             const zoomPlus=[...document.querySelectorAll("button")].find(b=>b.getAttribute("aria-label")==="Ampliar zoom");
             zoomPlus?.click();
             await sleep(40);
@@ -109,9 +126,11 @@ function App(){
             const resetOrder=[...document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)")].map(img=>img.alt).join(">");
             const resetZoom=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const resetOpacity=document.querySelector('.pathologyOverlay[data-layer-id="cracks"]')?.style.opacity;
-            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01;
-            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 temporal=2 layers=toggle+solo+order+opacity reset=ok fit=100%");
+            const resetLock=document.querySelector(".layerLockState");
+            const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
+            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton;
+            if(overlayGeometryOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 original=1 overlay=1 side=2 temporal=2 layers=toggle+solo+order+opacity+lock reset=ok fit=100%");
               return;
             }
           }

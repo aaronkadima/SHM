@@ -12,7 +12,7 @@ export function detectAsset(file){
 }
 
 export default function AnalysisWorkspace({file,prev,res,busy,progress,selected,selectedEngines=[],onFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap}){
-  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(true),[resultOpen,setResultOpen]=useState(true);
+  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(()=>window.innerWidth>=760),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[opacity,setOpacity]=useState(.75),[comparison,setComparison]=useState("overlay");
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});

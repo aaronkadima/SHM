@@ -29,19 +29,28 @@ function App(){
         if(img&&pane&&status&&img.naturalWidth===320&&img.naturalHeight===180){
           const rect=pane.getBoundingClientRect();
           if(rect.width>100&&rect.height>80){
+            const stack=document.querySelector(".editorOverlayStack");
+            const stackRect=stack?.getBoundingClientRect();
+            const overlayGeometryOk=!!stackRect&&Math.abs(stackRect.width-rect.width)<1&&Math.abs(stackRect.height-rect.height)<1;
+            const zoomPlus=[...document.querySelectorAll("button")].find(b=>b.getAttribute("aria-label")==="Ampliar zoom");
+            zoomPlus?.click();
+            await sleep(40);
+            const zoomBefore=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const side=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="Lado a lado");
             side?.click();
             await sleep(80);
             const panes=[...document.querySelectorAll(".editorImagePane")];
             const images=[...document.querySelectorAll(".editorBaseImage")];
             const sideOk=panes.length===2&&images.length===2&&panes.every(p=>{const r=p.getBoundingClientRect();return r.width>80&&r.height>80});
+            const zoomAfterSide=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const overlay=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="Sobrepor");
             overlay?.click();
             await sleep(80);
             const overlayPanes=document.querySelectorAll(".editorImagePane").length;
             const overlayImages=document.querySelectorAll(".editorBaseImage").length;
-            if(sideOk&&overlayPanes===1&&overlayImages===1){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 overlay=1 side=2");
+            const zoomAfterOverlay=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
+            if(overlayGeometryOk&&zoomBefore==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&zoomAfterOverlay==="100%"){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 overlay=1 side=2 fit=100%");
               return;
             }
           }

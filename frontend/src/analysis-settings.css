@@ -20,3 +20,6 @@
 @media(max-width:700px){.settingsEngines,.settingsMeta{grid-template-columns:1fr}}
 
 .settingsRuntimeNotice{padding:12px 14px;border:1px solid #d8e8e5;border-radius:9px;background:#f4faf8;color:#31545a}.settingsRuntimeNotice b{display:block;color:#0b736b;font-size:12px}.settingsRuntimeNotice p{margin:5px 0 0!important;font-size:11px;line-height:1.45;color:#5e767d}
+
+.settingsEnvBadge{display:inline-flex;align-items:center;padding:3px 6px;border:1px solid #d5e3e5;border-radius:999px;font-style:normal;font-size:9px;font-weight:700;letter-spacing:.25px;color:#6a7f88;background:#f7fafb}.settingsEnvBadge.development{color:#8a5c20;background:#fff8ed;border-color:#ead9ba}.settingsEnvBadge.production{color:#176e67;background:#edf7f4;border-color:#cee3de}.settingsEnginePinned{border-color:#b9dcd6;background:#f4faf8;box-shadow:inset 2px 0 0 #0d766e}.settingsEngine b{display:flex;align-items:center;gap:6px}.settingsOwnBadge{display:inline-flex;padding:2px 5px;border:1px solid #b9dcd6;border-radius:999px;color:#0d766e;background:#edf7f4;font-style:normal;font-size:8px;font-weight:700;letter-spacing:.25px}
+@media(max-width:700px){.settingsEnvBadge{display:none}}

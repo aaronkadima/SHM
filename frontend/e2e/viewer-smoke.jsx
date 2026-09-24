@@ -236,21 +236,27 @@ function App(){
             const viewportRect=document.querySelector(".editorViewport")?.getBoundingClientRect();
             let floatingClampOk=!!floatingPanel&&!!floatingHead&&!!viewportRect&&parseFloat(getComputedStyle(floatingPanel).maxWidth)>0&&floatingHead.tabIndex===0&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
             if(floatingClampOk){
+              floatingHead.focus();
+              floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowLeft"}));
+              await sleep(50);
+              const keyboardMoveStarted=Number(floatingPanel.dataset.positionX)<0;
               for(let n=0;n<60;n++){
                 floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowLeft"}));
                 floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowUp"}));
+                if(n%15===14)await sleep(20);
               }
-              await sleep(100);
+              await sleep(80);
               const topLeft=floatingPanel.getBoundingClientRect();
               const topLeftOk=topLeft.left>=viewportRect.left+7&&topLeft.top>=viewportRect.top+7;
               for(let n=0;n<100;n++){
                 floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
                 floatingHead.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowDown"}));
+                if(n%20===19)await sleep(20);
               }
-              await sleep(100);
+              await sleep(80);
               const bottomRight=floatingPanel.getBoundingClientRect();
               const bottomRightOk=bottomRight.right<=viewportRect.right-7&&bottomRight.bottom<=viewportRect.bottom-7;
-              floatingClampOk=topLeftOk&&bottomRightOk&&Number.isFinite(Number(floatingPanel.dataset.positionX))&&Number.isFinite(Number(floatingPanel.dataset.positionY));
+              floatingClampOk=keyboardMoveStarted&&topLeftOk&&bottomRightOk&&Number.isFinite(Number(floatingPanel.dataset.positionX))&&Number.isFinite(Number(floatingPanel.dataset.positionY));
             }
             const checks={
               initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneOverlayArbitrationInitial,phoneOverlayArbitrationToggle,floatingClampOk,overlayGeometryOk,engineStatusOk,

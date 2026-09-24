@@ -1,4 +1,4 @@
-import React,{useState} from "react";
+import React,{useEffect,useRef,useState} from "react";
 import {ArrowLeft,Check,Code2,Download,ExternalLink,Info,RefreshCw,Settings2,X} from "lucide-react";
 import {engineCodePackage} from "./engineCodeCatalog.js";
 import "./analysis-settings.css";
@@ -13,8 +13,10 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
   const [openCode,setOpenCode]=useState(null);
   const [openInfo,setOpenInfo]=useState(null);
   const [syncState,setSyncState]=useState({});
+  const syncRequests=useRef(new Map());
   const selectedStatus="Motores selecionados: "+selected.length;
   const repositoryRef=appInfo?.channel==="development"?"dev":"main";
+  useEffect(()=>()=>{for(const request of syncRequests.current.values())request.abort();syncRequests.current.clear()},[]);
   function exportEngineCode(engine){
     const pkg=engineCodePackage(engine);
     if(!pkg)return;
@@ -25,25 +27,37 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
   }
   function normalizeSource(value){return String(value||"").replace(/\r\n/g,"\n")}
   async function checkBrowserUpdate(engine){
-    const pkg=engineCodePackage(engine);
+    const pkg=engineCodePackage(engine),engineId=engine.id;
     if(!pkg?.repositoryPath||pkg.repositorySource==null){
-      setSyncState(v=>({...v,[engine.id]:{status:"unavailable",message:"Sem código browser local para comparar."}}));
+      setSyncState(v=>({...v,[engineId]:{status:"unavailable",message:"Sem código browser local para comparar."}}));
       return;
     }
-    setSyncState(v=>({...v,[engine.id]:{status:"checking",message:"Verificando repositório…"}}));
+    syncRequests.current.get(engineId)?.abort();
+    const controller=new AbortController();
+    syncRequests.current.set(engineId,controller);
+    let timedOut=false;
+    const timeout=setTimeout(()=>{timedOut=true;controller.abort()},12000);
+    setSyncState(v=>({...v,[engineId]:{status:"checking",message:"Verificando repositório · "+repositoryRef+"…"}}));
     try{
       const path=pkg.repositoryPath.split("/").map(encodeURIComponent).join("/");
       const url="https://raw.githubusercontent.com/aaronkadima/SHM/"+encodeURIComponent(repositoryRef)+"/"+path+"?ts="+Date.now();
-      const response=await fetch(url,{cache:"no-store",headers:{"Cache-Control":"no-cache"}});
+      const response=await fetch(url,{cache:"no-store",headers:{"Cache-Control":"no-cache"},signal:controller.signal});
+      if(syncRequests.current.get(engineId)!==controller)return;
       if(!response.ok)throw new Error("GitHub raw "+response.status);
       const remoteSource=await response.text();
+      if(syncRequests.current.get(engineId)!==controller)return;
       const same=normalizeSource(remoteSource)===normalizeSource(pkg.repositorySource);
-      setSyncState(v=>({...v,[engine.id]:same
-        ?{status:"current",message:"Atualizado · código browser igual ao repositório."}
-        :{status:"different",message:"Atualização disponível · o código browser publicado difere do repositório."}
+      setSyncState(v=>({...v,[engineId]:same
+        ?{status:"current",message:"Atualizado · código browser igual ao repositório ("+repositoryRef+")."}
+        :{status:"different",message:"Atualização disponível · código browser difere do repositório ("+repositoryRef+")."}
       }));
     }catch(err){
-      setSyncState(v=>({...v,[engine.id]:{status:"error",message:"Falha ao verificar · "+(err?.message||"erro de rede")}}));
+      if(syncRequests.current.get(engineId)!==controller)return;
+      if(controller.signal.aborted&&!timedOut)return;
+      setSyncState(v=>({...v,[engineId]:{status:"error",message:timedOut?"Tempo limite ao verificar o repositório.":"Falha ao verificar · "+(err?.message||"erro de rede")}}));
+    }finally{
+      clearTimeout(timeout);
+      if(syncRequests.current.get(engineId)===controller)syncRequests.current.delete(engineId);
     }
   }
   function EngineCard({engine,owned=false}){

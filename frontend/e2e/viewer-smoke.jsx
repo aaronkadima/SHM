@@ -236,9 +236,13 @@ function App(){
             const viewport=document.querySelector(".editorViewport");
             const viewportRect=viewport?.getBoundingClientRect();
             const floatingRect=floatingPanel?.getBoundingClientRect();
-            const floatingClampOk=!!floatingPanel&&!!floatingHead&&!!viewportRect&&!!floatingRect&&floatingRect.left>=viewportRect.left+7&&floatingRect.right<=viewportRect.right-7&&floatingRect.top>=viewportRect.top+7&&floatingRect.bottom<=viewportRect.bottom-7&&getComputedStyle(floatingPanel).maxWidth!=="none"&&floatingHead.tagName==="BUTTON"&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
+            const floatingHorizontalOk=!!viewportRect&&!!floatingRect&&floatingRect.left>=viewportRect.left+7&&floatingRect.right<=viewportRect.right-7;
+            const floatingVerticalOk=!!viewportRect&&!!floatingRect&&floatingRect.top>=viewportRect.top+7&&floatingRect.bottom<=viewportRect.bottom-7;
+            const floatingMaxWidthOk=!!floatingPanel&&getComputedStyle(floatingPanel).maxWidth!=="none";
+            const floatingHandleOk=!!floatingHead&&floatingHead.tagName==="BUTTON"&&floatingHead.getAttribute("aria-label")==="Mover painel de resultados";
+            const floatingClampOk=floatingHorizontalOk&&floatingVerticalOk&&floatingMaxWidthOk&&floatingHandleOk;
             const checks={
-              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneOverlayArbitrationInitial,phoneOverlayArbitrationToggle,floatingClampOk,overlayGeometryOk,engineStatusOk,
+              initialImageNoticeOk,imageNoticeCleared,devStampOk,engineStatusPersistent,multiEngineFooterOk,sidebarFixedOk,mobileSidebarOk,topActionsFit,phoneTopCompactOk,phoneOverlayArbitrationInitial,phoneOverlayArbitrationToggle,floatingClampOk,floatingHorizontalOk,floatingVerticalOk,floatingMaxWidthOk,floatingHandleOk,overlayGeometryOk,engineStatusOk,
               layerBefore:layerBefore===2,layerHidden,layerRestored,layerSoloOk,layerOrderOk,layerOpacityOk,lockStateOk,lockedOpacityStable,lockedVisibilityStillEditable,noFloatingLayersButton,layerResizeOk,layerNoWrapOk,selectedActionsVisible,sidebarContentFits,
               zoomBefore:zoomBefore==="125%",panOk,fitButtonOk,zoomBeforeSide:zoomBeforeSide==="125%",sideOk,zoomAfterSide:zoomAfterSide==="100%",
               overlayPanes:overlayPanes===1,overlayImages:overlayImages===1,overlayStacks:overlayStacks===1,zoomAfterOverlay:zoomAfterOverlay==="100%",iconActionsOk,unifiedExportOk,

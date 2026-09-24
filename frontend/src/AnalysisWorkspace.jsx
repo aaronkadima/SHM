@@ -384,7 +384,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   const statusMessage=error
     ||previewError
     ||(progress?.state==="cancelled"?"Análise cancelada":"")
-    ||(busy?((progress?.current_engine||"Processando análise")+" · "+(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length))):"")
+    ||(busy?("Processando análise · "+(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length))):"")
     ||statusNotice
     ||(kind==="3d"?"Arquivo 3D reconhecido · análise 2D indisponível":"Pronto");
   return <section className="analysisEditor" aria-label="Workspace de análise">
@@ -409,12 +409,8 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
           <button title="Ajustar à tela" aria-label="Ajustar à tela" onClick={fitView}><Maximize2/></button>
           <button title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button>
         </div>
-        <div className="editorToolEngines" aria-label="Motores ativos" title={selectedEngineLabels.map(engine=>engine.name).join(", ")||"Nenhum motor selecionado"}>
-          <small>MOTORES</small>
-          {selectedEngineLabels.length?selectedEngineLabels.map(engine=><span key={engine.id}>{engine.name}</span>):<span>—</span>}
-        </div>
       </div>
-      {layersOpen&&<><aside className="editorLayers" style={{width:layersWidth}}><div className="editorPanelTitle"><b>Camadas</b><button title="Recolher camadas" onClick={()=>setLayersOpen(false)}><ChevronLeft size={17}/></button></div>
+      {layersOpen&&<><aside className="editorLayers" style={{width:layersWidth}}><div className="editorLayersContent"><div className="editorPanelTitle"><b>Camadas</b><button title="Recolher camadas" onClick={()=>setLayersOpen(false)}><ChevronLeft size={17}/></button></div>
         <div className="layerRow"><span>◉</span> Arquivo atual · t1</div>
         {referenceFile&&<div className="layerRow referenceLayer"><span>○</span><span>Referência · t0 <small>{referenceFile.name}</small>{linkedReferenceCompatibility&&<em className={"referenceCompatibility "+linkedReferenceCompatibility.status} title={linkedReferenceCompatibility.refLabel}>{linkedReferenceCompatibility.text}</em>}</span><button className="layerClear" disabled={busy} title="Remover referência t0" onClick={()=>onReferenceFile(null)}><X size={13}/></button></div>}
         {results.map(r=><label className="layerRow" key={r.engine_id}><input type="checkbox" checked={visible[r.engine_id]!==false} onChange={e=>setVisible(v=>({...v,[r.engine_id]:e.target.checked}))}/>{r.name}</label>)}
@@ -425,6 +421,13 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
         {kind==="unknown"&&<div className="editorTypeChoice"><button onClick={()=>setKind("2d")}>Tratar como 2D</button><button onClick={()=>setKind("3d")}>Tratar como 3D</button></div>}
         {selectedPathology&&<div className={"layerInspector "+(selectedPathologyLocked?"locked":"")}><div className="layerInspectorHeader"><span className="pathologySwatch" style={{background:selectedPathology.color}}/><b>{selectedPathology.name}</b><small>{selectedPathology.count} achado(s) · {selectedPathologyIndex===0?"topo":selectedPathologyIndex===orderedPathologyLayers.length-1?"fundo":"posição "+(selectedPathologyIndex+1)}</small></div><label><span>Opacidade da camada</span><b>{Math.round(selectedPathologyOpacity*100)}%</b><input aria-label={"Opacidade de "+selectedPathology.name} type="range" min="0" max="1" step=".05" value={selectedPathologyOpacity} disabled={selectedPathologyLocked} onChange={e=>setSelectedPathologyOpacity(e.target.value)}/></label><div className="layerInspectorActions"><button type="button" className="layerOpacityReset" disabled={selectedPathologyLocked} onClick={()=>setSelectedPathologyOpacity(1)}>Restaurar 100%</button><button type="button" className="layerLockToggle" title={selectedPathologyLocked?"Desbloquear camada":"Bloquear camada"} onClick={toggleSelectedPathologyLock}>{selectedPathologyLocked?<><Unlock size={10}/> Desbloquear</>:<><Lock size={10}/> Bloquear</>}</button></div></div>}
         <p>Sobreposição global: {Math.round(opacity*100)}%</p><input aria-label="Opacidade da sobreposição" type="range" min="0" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/><button className="viewerReset" type="button" onClick={resetViewerPreferences}>Restaurar visualização</button>
+        </div>
+        <div className="editorSidebarEngines" aria-label="Motores ativos" title={selectedEngineLabels.map(engine=>engine.name).join(", ")||"Nenhum motor selecionado"}>
+          <small>MOTORES ATIVOS</small>
+          <div className="editorSidebarEngineList">
+            {selectedEngineLabels.length?selectedEngineLabels.map(engine=><span className="editorSidebarEngineName" key={engine.id}>{engine.name}</span>):<span className="editorSidebarEngineName">—</span>}
+          </div>
+        </div>
       </aside><div className="editorLayerResizeHandle" role="separator" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" title="Arraste para ampliar ou reduzir o painel de camadas" onMouseDown={beginLayersResize}/></>}
       <div className="editorViewport" ref={surface}>
         <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>

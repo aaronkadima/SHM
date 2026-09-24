@@ -7,7 +7,8 @@ import {
   clampResultPanelSize,
   loadViewerPreferences,
   normalizeViewerPreferences,
-  saveViewerPreferences
+  saveViewerPreferences,
+  zoomCanvasPanAroundPoint
 } from "../src/viewerPreferences.js";
 
 const failures=[];
@@ -34,6 +35,14 @@ const canvasPanMin=clampCanvasPan({x:-5000,y:-5000},{viewportWidth:800,viewportH
 check(canvasPanMin.x===-984&&canvasPanMin.y===-644,"canvas pan clamp must be symmetric on negative axes");
 const canvasPanFit=clampCanvasPan({x:5000,y:5000},{viewportWidth:800,viewportHeight:600,canvasWidth:640,canvasHeight:400,zoom:1,minVisible:56});
 check(canvasPanFit.x===664&&canvasPanFit.y===444,"canvas pan clamp must also keep a visible strip at fit zoom");
+
+const focalSame=zoomCanvasPanAroundPoint({x:0,y:0},1,2,{x:100,y:50});
+check(focalSame.x===-100&&focalSame.y===-50,"focal zoom helper must keep a stationary screen anchor fixed while scaling");
+const focalMoved=zoomCanvasPanAroundPoint({x:20,y:-10},1,1.5,{x:-80,y:40},{x:-55,y:65});
+check(Math.abs(focalMoved.x-95)<1e-9&&Math.abs(focalMoved.y+10)<1e-9,"focal zoom helper must combine zoom anchoring with moving pinch midpoint");
+const focalRoundTrip=zoomCanvasPanAroundPoint(focalSame,2,1,{x:100,y:50});
+check(Math.abs(focalRoundTrip.x)<1e-9&&Math.abs(focalRoundTrip.y)<1e-9,"focal zoom helper must round-trip around the same anchor");
+
 
 
 const beforeResizeGeometry={viewportWidth:600,viewportHeight:600,panelLeft:222,panelTop:82,panelWidth:360,panelHeight:300,margin:8};

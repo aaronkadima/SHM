@@ -21,6 +21,8 @@ check(workspace.includes('function changeComparison(mode){setComparison(mode);if
 check(workspace.includes('function setPathologyGroupVisible(next)'),"viewer must support group pathology visibility");
 check(workspace.includes('function isolatePathologyLayer(id)'),"viewer must support single-pathology isolation");
 check(workspace.includes('function movePathologyLayer(id,delta)'),"viewer must support pathology z-order changes");
+check(workspace.includes('function resetViewerPreferences()'),"viewer must expose a safe visualization reset");
+check(workspace.includes('Restaurar visualização'),"viewer must surface the visualization reset action");
 check(workspace.includes('[...orderedPathologyLayers].reverse()'),"top layer in the panel must render on top of the overlay stack");
 check(workspace.includes('>Original</button>'),"viewer must expose a dedicated Original comparison mode");
 check(workspace.includes('const safeViewport={width:Math.max(480'),"viewer must protect against zero-size viewport collapse");

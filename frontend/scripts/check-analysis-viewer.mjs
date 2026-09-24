@@ -45,6 +45,7 @@ check(workspace.includes('function beginLayersResize(e)')&&workspace.includes('c
 check(workspace.includes('className="editorLayerResizeHandle"'),"layer panel must expose a resize separator");
 check(workspace.includes('[layersWidth,setLayersWidth]=useState(360)'),"layer panel must open at a wider default width");
 check(styles.includes(".editorLayers{width:360px;min-width:340px"),"layer panel must enforce a no-collapse minimum width");
+check(workspace.includes("initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth")&&workspace.includes("saveViewerPreferences({opacity,layersOpen,layersWidth")&&workspace.includes("setLayersWidth(DEFAULT_VIEWER_PREFERENCES.layersWidth)")&&workspace.includes("data-layer-width={layersWidth}")&&workspace.includes("Math.max(340,Math.min(600,startWidth+ev.clientX-startX))"),"desktop Layers width must persist within 340–600px while reset restores 360px");
 check(styles.includes(".layerRow{")&&styles.includes("white-space:nowrap")&&styles.includes(".pathologyName{min-width:0;white-space:nowrap"),"primary layer rows and pathology names must remain on one line");
 check(workspace.includes('className="layerInspectorHeader"')&&workspace.includes('className="layerLockToggle"'),"layer inspector must separate its header from action controls");
 check(styles.includes(".layerInspectorActions{display:flex!important")&&styles.includes(".layerLockToggle{flex:0 0 auto;margin-left:auto!important"),"lock button must stay compact and aligned to the end of the action row");

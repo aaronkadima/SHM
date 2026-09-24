@@ -25,6 +25,12 @@ check(mobileBottomRight.x===0&&mobileBottomRight.y===80,"floating panel mobile b
 const oversized=clampFloatingPanelPosition({x:999,y:999},{viewportWidth:300,viewportHeight:300,panelLeft:0,panelTop:0,panelWidth:320,panelHeight:340,margin:8});
 check(Number.isFinite(oversized.x)&&Number.isFinite(oversized.y),"floating panel clamp must stay finite even when the panel is larger than the viewport");
 
+const beforeResizeGeometry={viewportWidth:600,viewportHeight:600,panelLeft:222,panelTop:82,panelWidth:360,panelHeight:300,margin:8};
+const beforeResize=clampFloatingPanelPosition({x:0,y:999},beforeResizeGeometry);
+check(beforeResize.x===0&&beforeResize.y===210,"floating panel clamp must allow the panel to reach the bottom margin before resize");
+const afterResize=clampFloatingPanelPosition(beforeResize,{...beforeResizeGeometry,panelHeight:500});
+check(afterResize.x===0&&afterResize.y===10,"floating panel clamp must pull a resized panel back inside the bottom margin");
+
 const normalized=normalizeViewerPreferences({opacity:1.5,layersOpen:false,comparison:"temporal",wipePosition:140,pathologyOrder:["cracks","corrosion_rust","cracks",42,""],pathologyOpacity:{cracks:1.4,corrosion_rust:.45,bad:"x","":.3},pathologyLocked:["cracks","cracks",42,""]});
 check(normalized.opacity===1,"opacity must clamp to 1");
 check(normalized.layersOpen===false,"layersOpen false must persist");

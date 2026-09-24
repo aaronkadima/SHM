@@ -374,12 +374,13 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     showStatusNotice("Painel de camadas · "+width+" px",700);
   }
   function beginWipeDrag(e){
-    if(e.button!==0)return;
+    if(e.button!==0||e.isPrimary===false)return;
     e.preventDefault();
     e.stopPropagation();
     const pane=e.currentTarget.closest(".editorWipePane");
     const rect=pane?.getBoundingClientRect();
     if(!rect?.width)return;
+    const pointerId=e.pointerId;
     const startX=e.clientX;
     const startPosition=wipePosition;
     setWipeDragging(true);
@@ -390,17 +391,24 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
       setWipePosition(next);
       return next;
     };
-    const move=ev=>{ev.preventDefault();update(ev.clientX)};
-    const up=ev=>{
-      const next=update(ev.clientX);
+    const move=ev=>{
+      if(ev.pointerId!==pointerId)return;
+      ev.preventDefault();
+      update(ev.clientX);
+    };
+    const finish=ev=>{
+      if(ev.pointerId!==pointerId)return;
+      const next=ev.type==="pointercancel"?wipePosition:update(ev.clientX);
       setWipeDragging(false);
       setWipeDirection(null);
-      showStatusNotice("Divisor · "+Math.round(next)+"%",900);
-      window.removeEventListener("mousemove",move);
-      window.removeEventListener("mouseup",up);
+      if(ev.type!=="pointercancel")showStatusNotice("Divisor · "+Math.round(next)+"%",900);
+      window.removeEventListener("pointermove",move);
+      window.removeEventListener("pointerup",finish);
+      window.removeEventListener("pointercancel",finish);
     };
-    window.addEventListener("mousemove",move);
-    window.addEventListener("mouseup",up);
+    window.addEventListener("pointermove",move);
+    window.addEventListener("pointerup",finish);
+    window.addEventListener("pointercancel",finish);
   }
   function wipeHandleKey(e){
     if(e.key==="ArrowLeft"||e.key==="ArrowRight"){
@@ -528,7 +536,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         onError={()=>setPreviewError("Não foi possível decodificar a imagem importada.")}/>
       {renderOverlayStack({clipPath:`inset(0 0 0 ${wipePosition}%)`})}
       <div className="editorWipeDivider" style={{left:wipePosition+"%"}}>
-        <button className={"editorWipeHandle "+(wipeDragging?"dragging":"")} type="button" aria-label="Arrastar divisor original e detecção" title="Arraste para comparar original e detecção" onMouseDown={beginWipeDrag} onKeyDown={wipeHandleKey}>
+        <button className={"editorWipeHandle "+(wipeDragging?"dragging":"")} type="button" role="slider" aria-orientation="horizontal" aria-label="Divisor original e detecção" aria-valuemin="5" aria-valuemax="95" aria-valuenow={Math.round(wipePosition)} aria-valuetext={Math.round(wipePosition)+"%"} title="Arraste ou use ← →, Home e End" onPointerDown={beginWipeDrag} onKeyDown={wipeHandleKey}>
           <ChevronLeft className={"wipeArrowIcon left "+(wipeDirection==="left"?"active":"")} size={7} strokeWidth={2.4} aria-hidden="true"/>
           <ChevronRight className={"wipeArrowIcon right "+(wipeDirection==="right"?"active":"")} size={7} strokeWidth={2.4} aria-hidden="true"/>
         </button>

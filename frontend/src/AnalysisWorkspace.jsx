@@ -41,7 +41,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const [viewportSize,setViewportSize]=useState({width:1000,height:700});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0),[durationMs,setDurationMs]=useState(null);
   const runStarted=useRef(null);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),surface=useRef(null),resultPanel=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),statusTimer=useRef(null),wipeDirectionTimer=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
   useEffect(()=>{
     let cancelled=false;
@@ -330,19 +330,79 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
     e.preventDefault();
     setPosition(current=>clampResultPosition({x:current.x+delta[0],y:current.y+delta[1]}));
   }
+  function canvasTouchExcluded(target){
+    return !!target?.closest?.("button,input,summary,details,a,[role=slider]");
+  }
   function canvasPanStart(e){
+    if(e.pointerType==="touch"){
+      if(canvasTouchExcluded(e.target))return;
+      const gesture=canvasTouch.current;
+      gesture.points.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(gesture.points.size===1){
+        if(zoom>1){
+          e.preventDefault();
+          gesture.mode="pan";
+          gesture.startPoint={x:e.clientX,y:e.clientY};
+          gesture.startPan={...canvasPan};
+          try{e.currentTarget.setPointerCapture?.(e.pointerId)}catch{}
+        }else gesture.mode="idle";
+      }else if(gesture.points.size===2){
+        e.preventDefault();
+        const points=[...gesture.points.values()];
+        gesture.mode="pinch";
+        gesture.startDistance=Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y)||1;
+        gesture.startZoom=zoom;
+        gesture.startMidpoint={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
+        gesture.startPan={...canvasPan};
+        for(const id of gesture.points.keys())try{e.currentTarget.setPointerCapture?.(id)}catch{}
+      }
+      return;
+    }
     if(e.button!==1||e.isPrimary===false)return;
     e.preventDefault();
     canvasDrag.current={pointerId:e.pointerId,x:e.clientX-canvasPan.x,y:e.clientY-canvasPan.y};
     try{e.currentTarget.setPointerCapture?.(e.pointerId)}catch{}
   }
   function canvasPanMove(e){
+    if(e.pointerType==="touch"){
+      const gesture=canvasTouch.current;
+      if(!gesture.points.has(e.pointerId))return;
+      gesture.points.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(gesture.mode==="pinch"&&gesture.points.size>=2){
+        e.preventDefault();
+        const points=[...gesture.points.values()].slice(0,2);
+        const distance=Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y)||1;
+        const midpoint={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
+        const nextZoom=Math.max(1,Math.min(4,gesture.startZoom*distance/gesture.startDistance));
+        setZoom(nextZoom);
+        setCanvasPan({
+          x:gesture.startPan.x+midpoint.x-gesture.startMidpoint.x,
+          y:gesture.startPan.y+midpoint.y-gesture.startMidpoint.y
+        });
+      }else if(gesture.mode==="pan"&&gesture.points.size===1&&zoom>1){
+        e.preventDefault();
+        setCanvasPan({
+          x:gesture.startPan.x+e.clientX-gesture.startPoint.x,
+          y:gesture.startPan.y+e.clientY-gesture.startPoint.y
+        });
+      }
+      return;
+    }
     const dragState=canvasDrag.current;
     if(!dragState||e.pointerId!==dragState.pointerId)return;
     e.preventDefault();
     setCanvasPan({x:e.clientX-dragState.x,y:e.clientY-dragState.y});
   }
   function canvasPanEnd(e){
+    if(e.pointerType==="touch"){
+      const gesture=canvasTouch.current;
+      if(!gesture.points.has(e.pointerId))return;
+      gesture.points.delete(e.pointerId);
+      try{e?.currentTarget?.releasePointerCapture?.(e.pointerId)}catch{}
+      if(gesture.points.size===0)gesture.mode=null;
+      else if(gesture.mode==="pinch")gesture.mode="wait";
+      return;
+    }
     const dragState=canvasDrag.current;
     if(!dragState||e?.pointerId!==dragState.pointerId)return;
     canvasDrag.current=null;
@@ -624,7 +684,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
         {file&&<div className="editorTypeBadge">{kind==="2d"?"▧  2D detectado":kind==="3d"?"◇  3D detectado":"Tipo indefinido"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou modelo</h2><p>A imagem 2D pode ser analisada pelos motores selecionados. O tipo de arquivo é reconhecido automaticamente.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
         kind==="3d"?<Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>:
-        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio ou setas para deslocar; mais e menos para zoom; zero para ajustar à tela" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" onKeyDown={canvasKeyDown} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
+        <div className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio, setas ou toque para deslocar; gesto de pinça para zoom; zero para ajustar à tela" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" data-touch-mode={zoom>1?"pan-pinch":"pinch-scroll"} onKeyDown={canvasKeyDown} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
           {comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}
           {comparison==="overlay"&&renderBasePane(basePreview,"Imagem original da inspeção","original + camadas",true,true)}
           {comparison==="wipe"&&renderWipePane(basePreview)}

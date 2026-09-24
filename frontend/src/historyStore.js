@@ -48,7 +48,11 @@ function toSummary(record){
     reference_inspection_id:record.reference_inspection_id||null,
     reference_origin_inspection_id:record.reference_origin_inspection_id||record.reference_inspection_id||null,
     reference_inspection_meta:record.reference_inspection_meta||null,
-    summary:record.summary||{}
+    summary:{
+      ...(record.summary||{}),
+      image_sha256:record.summary?.image_sha256||record.image_sha256||null,
+      reference_image_sha256:record.summary?.reference_image_sha256||record.reference_image_sha256||null
+    }
   };
 }
 async function prune(){
@@ -262,6 +266,7 @@ export async function deleteInspection(id){
         reference_inspection_id:null,
         reference_origin_inspection_id:row.reference_origin_inspection_id||id,
         reference_storage:materialized?"materialized_history":"missing_reference",
+        reference_image_sha256:row.reference_image_sha256||target.image_sha256||target.summary?.image_sha256||null,
         has_reference_image:!!materialized
       };
       store.put(row);

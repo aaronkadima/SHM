@@ -207,6 +207,7 @@ export default function AnalysisWorkspace({appInfo=null,selectedEngineLabels=[],
   const safeImage={width:Math.max(1,Number(imageSize.width)||1),height:Math.max(1,Number(imageSize.height)||1)};
   const fit=Math.min(safeViewport.width*.83/(safeImage.width*panes),safeViewport.height*.8/safeImage.height);
   const displaySize={width:Math.max(160,safeImage.width*fit*panes),height:Math.max(120,safeImage.height*fit)};
+  useEffect(()=>{setCanvasPan(current=>{const next=clampCanvasPan(current,{viewportWidth:surface.current?.clientWidth||viewportSize.width,viewportHeight:surface.current?.clientHeight||viewportSize.height,canvasWidth:displaySize.width,canvasHeight:displaySize.height,zoom,minVisible:56});return next.x===current.x&&next.y===current.y?current:next})},[zoom,viewportSize.width,viewportSize.height,displaySize.width,displaySize.height]);
   const pct=progress?.total?Math.min(100,Math.round(progress.completed/progress.total*100)):0;
   function capture(){const v=video.current;if(!v?.videoWidth)return;const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);c.toBlob(blob=>{if(blob){onFile(new File([blob],"captura-"+Date.now()+".png",{type:"image/png"}));setCameraOpen(false)}else setCameraError("Falha ao converter o quadro capturado.")},"image/png")}
   function showStatusNotice(message,ms=1800){

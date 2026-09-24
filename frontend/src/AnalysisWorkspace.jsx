@@ -301,8 +301,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     const files=[...(e.dataTransfer.files||[])];
     if(files.length!==1){showStatusNotice("Solte apenas um arquivo por vez.",1800);return}
     const dropped=files[0];
+    if(detectAsset(dropped)==="unknown"){showStatusNotice("Formato não suportado · use um formato listado em Importar.",1800);return}
     onFile(dropped);
-    showStatusNotice(detectAsset(dropped)==="unknown"?"Arquivo recebido · formato não suportado":"Arquivo importado por arrastar e soltar",1600);
+    showStatusNotice("Arquivo importado por arrastar e soltar",1600);
   }
   function showStatusNotice(message,ms=1800){
     if(statusTimer.current)clearTimeout(statusTimer.current);

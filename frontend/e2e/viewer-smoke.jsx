@@ -93,7 +93,10 @@ function App(){
             const noFloatingLayersButton=!document.querySelector(".editorExpand");
             const layersPanel=document.querySelector(".editorLayers");
             const layersResize=document.querySelector(".editorLayerResizeHandle");
-            const layerResizeOk=!!layersPanel&&!!layersResize&&getComputedStyle(layersResize).cursor==="col-resize"&&layersPanel.getBoundingClientRect().width>=180;
+            const pathologyName=document.querySelector(".pathologyName");
+            const referenceText=document.querySelector(".referenceLayer>span:nth-child(2)");
+            const layerResizeOk=!!layersPanel&&!!layersResize&&getComputedStyle(layersResize).cursor==="col-resize"&&layersPanel.getBoundingClientRect().width>=340;
+            const layerNoWrapOk=getComputedStyle(pathologyName).whiteSpace==="nowrap"&&getComputedStyle(referenceText).whiteSpace==="nowrap";
             const zoomPlus=[...document.querySelectorAll("button")].find(b=>b.getAttribute("aria-label")==="Ampliar zoom");
             zoomPlus?.click();
             await sleep(40);
@@ -147,6 +150,17 @@ function App(){
             const wipeDivider=document.querySelector(".editorWipeDivider");
             const wipeHandle=document.querySelector(".editorWipeHandle");
             const wipeInitialOk=!!wipePane&&!!wipeStack&&!!wipeDivider&&!!wipeHandle&&!document.querySelector(".editorWipeControl")&&document.querySelectorAll(".editorImagePane").length===1&&document.querySelectorAll(".editorBaseImage").length===1;
+            const handleBefore=wipeHandle?.getBoundingClientRect();
+            if(wipeHandle&&handleBefore){
+              const hx=handleBefore.left+handleBefore.width/2,hy=handleBefore.top+handleBefore.height/2;
+              wipeHandle.dispatchEvent(new MouseEvent("mousedown",{bubbles:true,button:0,buttons:1,clientX:hx,clientY:hy}));
+              await sleep(50);
+              const handlePressed=wipeHandle.getBoundingClientRect();
+              window.dispatchEvent(new MouseEvent("mouseup",{bubbles:true,button:0,buttons:0,clientX:hx,clientY:hy}));
+              await sleep(30);
+              window.__wipeAnchorOk=Math.abs(handlePressed.top-handleBefore.top)<.5&&Math.abs(handlePressed.left-handleBefore.left)<.5&&handleBefore.width<=25&&handleBefore.height<=35;
+            }
+            const wipeAnchorOk=window.__wipeAnchorOk===true;
             for(let n=0;n<9;n++)wipeHandle?.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"ArrowRight"}));
             await sleep(90);
             const wipePct=parseFloat(document.querySelector(".editorWipeDivider")?.style.left||"0");
@@ -181,8 +195,8 @@ function App(){
             const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50;
-            if(initialImageNoticeOk&&imageNoticeCleared&&engineStatusPersistent&&overlayGeometryOk&&engineStatusOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&noFloatingLayersButton&&layerResizeOk&&zoomBefore==="125%"&&panOk&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&iconActionsOk&&unifiedExportOk&&wipeInitialOk&&wipeMovedOk&&wipeDirectionOk&&wipeStatusOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+persistent-engines layers=toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified wipe=anchored+direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+            if(initialImageNoticeOk&&imageNoticeCleared&&engineStatusPersistent&&overlayGeometryOk&&engineStatusOk&&layerBefore===2&&layerHidden&&layerRestored&&layerSoloOk&&layerOrderOk&&layerOpacityOk&&lockStateOk&&lockedOpacityStable&&lockedVisibilityStillEditable&&noFloatingLayersButton&&layerResizeOk&&layerNoWrapOk&&zoomBefore==="125%"&&panOk&&fitButtonOk&&zoomBeforeSide==="125%"&&sideOk&&zoomAfterSide==="100%"&&overlayPanes===1&&overlayImages===1&&overlayStacks===1&&zoomAfterOverlay==="100%"&&iconActionsOk&&unifiedExportOk&&wipeInitialOk&&wipeAnchorOk&&wipeMovedOk&&wipeDirectionOk&&wipeStatusOk&&zoomAfterWipe==="100%"&&temporalOk&&zoomAfterTemporal==="100%"&&originalPanes===1&&originalImages===1&&originalStacks===0&&zoomAfterOriginal==="100%"&&resetOk){
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+persistent-engines layers=min340+nowrap+toggle+solo+order+opacity+lock+resize no-floating-layer-button controls=icons export=unified wipe=compact+anchored-press+direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
               return;
             }
           }

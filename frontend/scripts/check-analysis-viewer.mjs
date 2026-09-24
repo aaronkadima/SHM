@@ -2,6 +2,8 @@ import fs from "node:fs";
 
 const workspace=fs.readFileSync(new URL("../src/AnalysisWorkspace.jsx",import.meta.url),"utf8");
 const styles=fs.readFileSync(new URL("../src/styles.css",import.meta.url),"utf8");
+const settings=fs.readFileSync(new URL("../src/AnalysisSettings.jsx",import.meta.url),"utf8");
+const settingsStyles=fs.readFileSync(new URL("../src/analysis-settings.css",import.meta.url),"utf8");
 const failures=[];
 const check=(ok,msg)=>{if(!ok)failures.push(msg)};
 
@@ -55,7 +57,7 @@ check(workspace.includes('data-tooltip="Original"')&&workspace.includes('data-to
 check(workspace.includes('function renderWipePane(src)'),"viewer must render the swipe comparison in a dedicated pane");
 check(workspace.includes('clipPath:`inset(0 0 0 ${wipePosition}%)`'),"swipe mode must clip only the overlay stack");
 check(workspace.includes('editorWipeHandle "+(wipeDragging?"dragging":"")')&&workspace.includes('aria-label="Arrastar divisor original e detecção"'),"swipe mode must expose a draggable on-canvas direction handle with an explicit drag state");
-check(workspace.includes('wipeArrow left')&&workspace.includes('wipeArrow right')&&workspace.includes('markWipeDirection'),"swipe handle must expose independent directional-arrow states");
+check(workspace.includes('wipeArrowIcon left')&&workspace.includes('wipeArrowIcon right')&&workspace.includes('markWipeDirection')&&workspace.includes('<ChevronLeft')&&workspace.includes('<ChevronRight'),"swipe handle must expose independent compact SVG chevrons");
 check(workspace.includes('function beginWipeDrag(e)')&&workspace.includes('const startX=e.clientX;')&&workspace.includes('const startPosition=wipePosition;')&&workspace.includes('startPosition+deltaPx/rect.width*100')&&workspace.includes('setWipePosition(next)'),"swipe handle must stay anchored on press and move by relative drag delta");
 check(!workspace.includes('className="editorWipeControl"'),"swipe mode must not render a lower range control over the zoom control");
 check(workspace.includes('className="editorExportMenu editorExportUnified"')&&workspace.includes('aria-label="Exportar"'),"results must expose one icon-based unified export menu");
@@ -77,20 +79,26 @@ check(styles.includes(".editorImage.editorSide>.editorImagePane{position:relativ
 check(styles.includes(".editorBaseImage{position:absolute;inset:0"),"base image must share overlay coordinates");
 check(styles.includes(".editorWipeDivider{position:absolute"),"swipe divider must be positioned inside the canvas");
 check(styles.includes(".editorWipeHandle{position:absolute")&&styles.includes("cursor:ew-resize"),"swipe divider handle must be directly draggable on the canvas");
-check(styles.includes("width:18px;height:28px")&&styles.includes("border-top:2px solid transparent")&&styles.includes("border-right:3px solid #4f6872")&&styles.includes("gap:2px"),"swipe handle and direction arrows must remain compact and separated");
+check(styles.includes("width:20px!important;height:26px!important")&&styles.includes(".wipeArrowIcon{")&&styles.includes("width:7px!important")&&styles.includes("gap:0!important"),"swipe handle and SVG chevrons must remain compact and non-overlapping");
 check(styles.includes(".editorWipeHandle:active,.editorWipeHandle.dragging")&&styles.includes("transform:translate(-50%,-50%)"),"swipe handle active/dragging state must override the global button press translation and stay vertically anchored");
-check(styles.includes(".wipeArrow.left.active")&&styles.includes(".wipeArrow.right.active"),"active swipe direction must have its own visual color state");
+check(styles.includes(".wipeArrowIcon.active{color:#0d766e!important}"),"active swipe direction must have its own visual color state");
 check(styles.includes(".editorExportUnified{width:auto")&&styles.includes(".editorViewActions .editorIconButton"),"result view/export actions must use compact icon styling");
 check(styles.includes(".editorViewActions [data-tooltip]:after")&&styles.includes("[data-tooltip]:hover:after"),"icon hover labels must render without waiting for the browser title tooltip");
 check(!styles.includes(".editorWipeControl{"),"obsolete lower swipe control styling must be removed");
 check(styles.includes(".editorLayerResizeHandle{width:6px")&&styles.includes("cursor:col-resize"),"layer panel resize handle must have a horizontal-resize affordance");
 
 check(workspace.includes('editorRunTime editorMetricRow')&&workspace.includes('editorMetricsGrid performance')&&workspace.includes('editorMetricLabel')&&workspace.includes('editorMetricValue'),"results from measured time through real time must use aligned parameter/value rows");
-check(styles.includes(".editorMetricRow{display:grid;grid-template-columns:minmax(148px,1fr) minmax(82px,auto)")&&styles.includes("white-space:nowrap"),"result metric parameters and values must align without wrapping");
+check(styles.includes(".editorMetricRow{display:grid;grid-template-columns:148px 88px")&&styles.includes("column-gap:7px")&&styles.includes("white-space:nowrap"),"result metric parameters and values must align closely without wrapping");
 check(styles.includes("background:rgba(255,255,255,.88)"),"floating results container must use a softly translucent background");
+check(styles.includes(".editorFloating{")&&styles.includes("width:382px")&&styles.includes("min-width:350px"),"floating results container must remain compact");
 check(styles.includes(".editorMetricsGrid .accentA")&&styles.includes(".editorMetricsGrid .accentTotal"),"result metrics must expose restrained color accents");
 check(styles.includes(".editorStatusMessage{")&&styles.includes(".editorStatusEngines{")&&styles.includes(".editorStatusMeta{"),"bottom bar must dedicate separate transient-status, selected-engine and view-metadata regions");
 check(styles.includes(".editorSide .compositePane{border-left:2px solid white}"),"side-by-side composite pane must remain visually separated");
+check(styles.includes(".editorTop{")&&styles.includes("position:sticky;top:0;z-index:40"),"analysis top bar must stay fixed while the workspace scrolls");
+check(styles.includes(".editorStatus{")&&styles.includes("position:sticky;bottom:0;z-index:40"),"analysis bottom status bar must stay fixed while the workspace scrolls");
+check(settings.includes('className="settingsBottom"')&&settings.includes('settingsStatusEngines')&&settings.includes('settingsApply'),"settings page must expose the shared bottom status-bar pattern");
+check(settingsStyles.includes(".settingsTop{")&&settingsStyles.includes("position:fixed;top:0;left:0;right:0;z-index:70"),"settings top bar must be fixed");
+check(settingsStyles.includes(".settingsBottom{position:fixed;left:0;right:0;bottom:0;z-index:70"),"settings bottom bar must be fixed");
 
 if(failures.length){
   console.error("Analysis viewer composition failures:");

@@ -40,7 +40,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
       const same=normalizeSource(remoteSource)===normalizeSource(pkg.repositorySource);
       setSyncState(v=>({...v,[engine.id]:same
         ?{status:"current",message:"Atualizado · código browser igual ao repositório."}
-        :{status:"different",message:"Diferente · o build browser não coincide com o repositório."}
+        :{status:"different",message:"Atualização disponível · o código browser publicado difere do repositório."}
       }));
     }catch(err){
       setSyncState(v=>({...v,[engine.id]:{status:"error",message:"Falha ao verificar · "+(err?.message||"erro de rede")}}));

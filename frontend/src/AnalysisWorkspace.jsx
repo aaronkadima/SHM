@@ -30,7 +30,7 @@ export function detectAsset(file){
 
 export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,referenceFile,referencePrev,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
-  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(206),[resultOpen,setResultOpen]=useState(true);
+  const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(360),[resultOpen,setResultOpen]=useState(true);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false);
   const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[wipeDirection,setWipeDirection]=useState(null),[wipeDragging,setWipeDragging]=useState(false),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState({x:0,y:0});
@@ -216,7 +216,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
     const startWidth=layersWidth;
     let currentWidth=startWidth;
     const move=ev=>{
-      currentWidth=Math.max(180,Math.min(520,startWidth+ev.clientX-startX));
+      currentWidth=Math.max(340,Math.min(600,startWidth+ev.clientX-startX));
       setLayersWidth(currentWidth);
     };
     const up=()=>{

@@ -879,10 +879,10 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",select
             </details>
           </div>}
         </div>}
-        {!resultOpen&&(busy||results.length>0)&&<button className={"editorResultsTab "+(busy?"busy":"")} aria-live={busy?"polite":undefined} aria-label={busy?"Reabrir resultados · análise em andamento":"Reabrir resultados · "+results.length+" resultado"+(results.length===1?"":"s")} onClick={()=>setResultOpenPreference(true)}>
+        {!resultOpen&&(busy||results.length>0)&&<button className={"editorResultsTab "+(persisting?"persisting":busy?"busy":"")} aria-live={busy?"polite":undefined} aria-label={persisting?"Reabrir resultados · salvando histórico":busy?"Reabrir resultados · análise em andamento":"Reabrir resultados · "+results.length+" resultado"+(results.length===1?"":"s")} onClick={()=>setResultOpenPreference(true)}>
           <span>Resultados</span>
-          <strong>{busy?(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)):results.length}</strong>
-          {busy&&<i aria-hidden="true"><b style={{width:pct+"%"}}/></i>}
+          <strong>{persisting?"100%":busy?(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)):results.length}</strong>
+          {busy&&<i aria-hidden="true"><b style={{width:(persisting?100:pct)+"%"}}/></i>}
         </button>}
       </div>
     </div>

@@ -67,6 +67,28 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     return()=>window.removeEventListener("paste",onPaste);
   },[busy,onFile]);
   useEffect(()=>{
+    const onShortcut=e=>{
+      if(!(e.ctrlKey||e.metaKey)||e.altKey)return;
+      const target=e.target;
+      if(target instanceof HTMLInputElement||target instanceof HTMLTextAreaElement||target instanceof HTMLSelectElement||target?.isContentEditable)return;
+      if(cameraOpen)return;
+      const key=String(e.key||"").toLowerCase();
+      if(key==="o"&&!e.shiftKey){
+        e.preventDefault();
+        if(busy){showStatusNotice("Aguarde a análise atual terminar para importar outro arquivo.",1800,"warning");return}
+        picker.current?.click();
+        return;
+      }
+      if(key===","&&!e.shiftKey){
+        e.preventDefault();
+        if(busy){showStatusNotice("Configurações indisponíveis durante a análise.",1600,"warning");return}
+        onSettings?.();
+      }
+    };
+    window.addEventListener("keydown",onShortcut);
+    return()=>window.removeEventListener("keydown",onShortcut);
+  },[busy,cameraOpen,onSettings]);
+  useEffect(()=>{
     const onEscape=e=>{
       if(e.key!=="Escape")return;
       let handled=false;
@@ -876,9 +898,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       <div className="editorTopActions">
         <input ref={picker} hidden type="file" accept={ASSET_ACCEPT} onChange={e=>{const next=e.target.files?.[0]||null;e.target.value="";onFile(next)}}/>
         <input ref={referencePicker} hidden type="file" accept={IMAGE_ACCEPT} onChange={e=>{const next=e.target.files?.[0]||null;e.target.value="";onReferenceFile(next)}}/>
-        <button disabled={busy} onClick={()=>picker.current?.click()}><ImagePlus size={16}/> Importar</button>
+        <button disabled={busy} aria-keyshortcuts="Control+O Meta+O" title="Importar arquivo · Ctrl/Cmd+O" onClick={()=>picker.current?.click()}><ImagePlus size={16}/> Importar</button>
         {selected.length===1&&selected[0]==="cdm_1"&&<button disabled={busy||referenceValidating} title={referenceValidating?"Validando referência t0…":"Carregar imagem anterior para comparação temporal"} onClick={()=>referencePicker.current?.click()}><ImagePlus size={16}/> {referenceValidating?"Validando t0…":referenceFile?"t0: "+referenceFile.name:"Referência t0"}</button>}
-        <button disabled={busy} onClick={onSettings}><Settings2 size={16}/> Configurar</button>
+        <button disabled={busy} aria-keyshortcuts="Control+, Meta+," title="Configurações · Ctrl/Cmd+," onClick={onSettings}><Settings2 size={16}/> Configurar</button>
         <button className="editorPrimary" disabled={!file||kind!=="2d"||!imageDecoded||!!previewError||!selected.length||busy||referenceValidating||!!executionIssue} title={analysisBlockedReason||"Executar análise"} onClick={onRun}><Play size={16}/> Analisar</button>
       </div>
     </div>

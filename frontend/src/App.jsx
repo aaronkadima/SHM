@@ -4,6 +4,7 @@ import catalog from"./engines.json";
 import AnalysisWorkspace from"./AnalysisWorkspace.jsx";
 import AnalysisSettings from"./AnalysisSettings.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
+import{sortEngines,engineMatchesFilter,engineMatchesQuery}from"./engineCatalog.js";
 import{buildCdmSvg,buildCdmCsv,buildCdmCoco,buildCdmDxf,buildCdmBimJson,buildCdmIfc,buildCdmHtml}from"./cdmExports.js";
 import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
 import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,clearInspections,requestPersistentStorage,getStorageStatus}from"./historyStore.js";
@@ -11,8 +12,7 @@ import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,cle
 const APP_CHANNEL=import.meta.env.VITE_APP_CHANNEL||((import.meta.env.BASE_URL||"").includes("/dev/")?"development":"production");
 const BUILD_SHA=import.meta.env.VITE_BUILD_SHA||"local";
 const CATALOG_VERSION=catalog.version||"unknown";
-const engineRank=e=>e.id==="cdm_1"?0:e.catalog_visibility==="always"?1:e.browser_ready?2:e.recommended?3:4;
-const ENGINE_CATALOG=[...(catalog.engines||[])].sort((a,b)=>engineRank(a)-engineRank(b)||(a.name||a.id).localeCompare(b.name||b.id,"pt-BR"));
+const ENGINE_CATALOG=sortEngines(catalog.engines||[]);
 const APP_INFO={channel:APP_CHANNEL,buildSha:BUILD_SHA,catalogVersion:CATALOG_VERSION};
 
 const DEFAULT_COMPARATOR="https://shm-api-production-01f8.up.railway.app";
@@ -232,19 +232,7 @@ export default function App(){
   const recommended=engines.filter(e=>e.recommended).length;
   const cloudVerified=engines.filter(e=>e.cloud_verified).length;
   const browserReady=engines.filter(e=>e.browser_ready).length;
-  const visibleEng=useMemo(()=>{
-    const q=engineQuery.trim().toLowerCase();
-    return engines.filter(e=>{
-      if(engineFilter==="owned"&&e.id!=="cdm_1"&&e.catalog_group!=="CDM / determinístico")return false;
-      if(engineFilter==="recommended"&&!e.recommended)return false;
-      if(engineFilter==="verified"&&!e.cloud_verified)return false;
-      if(engineFilter==="browser"&&!e.browser_ready)return false;
-      if(engineFilter==="public"&&e.domain_mode!=="public_shm_checkpoint")return false;
-      if(engineFilter==="optional"&&e.domain_mode!=="optional_runtime"&&e.domain_mode!=="shm_checkpoint"&&e.domain_mode!=="generic_pretrained")return false;
-      if(!q)return true;
-      return [e.name,e.family,e.task,e.description,e.domain_mode].filter(Boolean).join(" ").toLowerCase().includes(q);
-    });
-  },[engines,engineQuery,engineFilter]);
+  const visibleEng=useMemo(()=>engines.filter(e=>engineMatchesFilter(e,engineFilter)&&engineMatchesQuery(e,engineQuery)),[engines,engineQuery,engineFilter]);
 
   function saveIndividual(){
     const v=individualDraft.trim().replace(/\/$/,"");localStorage.setItem("shmIndividualApiUrl",v);setIndividualApi(v);setIndividualOnline(null);

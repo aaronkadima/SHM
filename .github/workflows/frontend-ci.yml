@@ -94,6 +94,47 @@ jobs:
 
           grep "VIEWER_SMOKE_PASS" /tmp/shm-viewer-dom.html
 
+      - name: Mobile settings smoke
+        working-directory: frontend
+        shell: bash
+        run: |
+          VITE_BASE_PATH=/ npm run dev -- --host 127.0.0.1 --port 4174 > /tmp/shm-settings-vite.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
+
+          READY=0
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4174/e2e/settings-mobile-smoke.html >/dev/null; then
+              READY=1
+              break
+            fi
+            sleep 0.5
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/shm-settings-vite.log
+            exit 1
+          fi
+
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chromium-compatible browser found on runner."
+            exit 1
+          fi
+
+          timeout 30s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-background-networking --user-data-dir="/tmp/shm-settings-chrome-$RANDOM" --window-size=412,915 --virtual-time-budget=12000 --dump-dom http://127.0.0.1:4174/e2e/settings-mobile-smoke.html > /tmp/shm-settings-dom.html 2>/tmp/shm-settings-chrome.log || {
+              cat /tmp/shm-settings-chrome.log
+              exit 1
+            }
+
+          if ! grep -q "SETTINGS_SMOKE_PASS" /tmp/shm-settings-dom.html; then
+            cat /tmp/shm-settings-vite.log
+            cat /tmp/shm-settings-chrome.log
+            cat /tmp/shm-settings-dom.html
+            exit 1
+          fi
+
+          grep "SETTINGS_SMOKE_PASS" /tmp/shm-settings-dom.html
+
       - name: Build
         working-directory: frontend
         run: npm run build

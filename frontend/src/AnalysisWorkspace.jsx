@@ -67,7 +67,7 @@ export default function AnalysisWorkspace({selectedEngineLabels=[],file,prev,ref
   },[file]);
   useEffect(()=>{
     if(!file||kind!=="2d"||!imageDecoded||previewError)return;
-    showStatusNotice(`Imagem carregada · ${file.name} · ${imageSize.width}×${imageSize.height} px`,2800);
+    showStatusNotice(`Imagem carregada · ${file.name} · ${imageSize.width}×${imageSize.height} px`,1800);
   },[file,kind,imageDecoded,imageSize.width,imageSize.height,previewError]);
   useEffect(()=>()=>{if(statusTimer.current)clearTimeout(statusTimer.current);if(wipeDirectionTimer.current)clearTimeout(wipeDirectionTimer.current)},[]);
   useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});setZoom(1);setCanvasPan({x:0,y:0});setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);

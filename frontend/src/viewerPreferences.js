@@ -95,6 +95,23 @@ export function clampResultPanelSize(next,geometry={}){
   };
 }
 
+export function clampCanvasPan(next,geometry={}){
+  const viewportWidth=Math.max(1,Number(geometry.viewportWidth)||1);
+  const viewportHeight=Math.max(1,Number(geometry.viewportHeight)||1);
+  const canvasWidth=Math.max(1,Number(geometry.canvasWidth)||1);
+  const canvasHeight=Math.max(1,Number(geometry.canvasHeight)||1);
+  const zoom=Math.max(.25,Math.min(4,Number(geometry.zoom)||1));
+  const minVisible=Math.max(24,Number(geometry.minVisible)||56);
+  const scaledWidth=canvasWidth*zoom;
+  const scaledHeight=canvasHeight*zoom;
+  const maxX=Math.max(0,viewportWidth/2+scaledWidth/2-Math.min(minVisible,scaledWidth));
+  const maxY=Math.max(0,viewportHeight/2+scaledHeight/2-Math.min(minVisible,scaledHeight));
+  return{
+    x:Math.round(Math.max(-maxX,Math.min(maxX,Number(next?.x)||0))),
+    y:Math.round(Math.max(-maxY,Math.min(maxY,Number(next?.y)||0)))
+  };
+}
+
 export function clampFloatingPanelPosition(next,geometry={}){
   const margin=Number.isFinite(Number(geometry.margin))?Number(geometry.margin):8;
   const panelLeft=Number(geometry.panelLeft)||0;

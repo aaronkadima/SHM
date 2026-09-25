@@ -6,7 +6,7 @@ A camada browser permite que motores compactos sejam executados diretamente pelo
 
 - `opencv_crack`: **funcional no navegador**, implementado em JavaScript/Canvas.
 - `cdm_1`: **funcional no navegador**, pipeline determinístico CDM 2.8.5.
-- `yolov8n_public_crack_seg`: candidato ONNX Runtime Web; exportação e validação automatizadas.
+- `yolov8n_public_crack_seg`: candidato avançado ONNX Runtime Web; runtime WASM, letterbox, NMS e reconstrução de máscara passaram no smoke de Chrome, aguardando paridade final com o backend.
 - `unet_public_crack`: candidato ONNX Runtime Web; exportação e validação automatizadas.
 - `segformer_public_crack`: **funcional no navegador**, ONNX Runtime Web/WASM com manifesto, SHA-256 e smoke test em Chrome.
 

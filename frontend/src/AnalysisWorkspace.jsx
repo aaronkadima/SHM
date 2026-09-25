@@ -37,11 +37,13 @@ const TEMPORAL_WARNING_LABELS={
   exposure_warning:"exposição próxima do limite",
   low_texture:"baixa textura para registro"
 };
-export default function AnalysisWorkspace({appInfo=null,executionIssue="",referenceValidating=false,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,spatialRgbFile=null,spatialRgbPrev=null,onSpatialRgbFile=null,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
+export default function AnalysisWorkspace({appInfo=null,executionIssue="",referenceValidating=false,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,spatialRgbFile=null,spatialRgbPrev=null,onSpatialRgbFile=null,spatialRegistration=null,onSolveSpatialRegistration=null,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,error,onExport,onExportCsv,onExportMap,onExportCdm}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [initialCompactLayout]=useState(()=>typeof window!=="undefined"&&window.innerWidth<900);
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialCompactLayout?false:initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false),[cameraFacing,setCameraFacing]=useState("environment"),[cameraCapturing,setCameraCapturing]=useState(false),[cameraResolution,setCameraResolution]=useState("");
+  const [registrationOpen,setRegistrationOpen]=useState(false),[registrationPairs,setRegistrationPairs]=useState([]),[registrationPendingUv,setRegistrationPendingUv]=useState(null),[registrationBusy,setRegistrationBusy]=useState(false),[registrationError,setRegistrationError]=useState("");
+  const [registrationIntrinsics,setRegistrationIntrinsics]=useState({fx:"",fy:"",cx:"",cy:""});
   const [zoom,setZoom]=useState(1),[canvasPan,setCanvasPan]=useState({x:0,y:0}),[spacePanHeld,setSpacePanHeld]=useState(false),[canvasPointerPanning,setCanvasPointerPanning]=useState(false),[opacity,setOpacity]=useState(initialViewerPrefs.opacity),[comparison,setComparison]=useState(initialViewerPrefs.comparison),[preferredComparison,setPreferredComparison]=useState(initialViewerPrefs.comparison),[wipePosition,setWipePosition]=useState(initialViewerPrefs.wipePosition??50),[wipeDirection,setWipeDirection]=useState(null),[wipeDragging,setWipeDragging]=useState(false),[showRawT0,setShowRawT0]=useState(false);
   const [active,setActive]=useState(null),[visible,setVisible]=useState({}),[position,setPosition]=useState(initialViewerPrefs.resultPanelPosition||DEFAULT_VIEWER_PREFERENCES.resultPanelPosition),[resultPanelSize,setResultPanelSize]=useState(initialViewerPrefs.resultPanelSize||DEFAULT_VIEWER_PREFERENCES.resultPanelSize);
   const [pathologyOrder,setPathologyOrder]=useState(initialViewerPrefs.pathologyOrder),[pathologyOpacity,setPathologyOpacity]=useState(initialViewerPrefs.pathologyOpacity||{}),[pathologyLocked,setPathologyLocked]=useState(new Set(initialViewerPrefs.pathologyLocked||[])),[selectedPathologyId,setSelectedPathologyId]=useState(null);
@@ -55,8 +57,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const [viewportSize,setViewportSize]=useState({width:0,height:0});
   const [startAt,setStartAt]=useState(null),[elapsed,setElapsed]=useState(0);
   const compactLayout=useRef(initialCompactLayout),desktopLayersPreference=useRef(initialViewerPrefs.layersOpen);
-  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),spatialRgbPicker=useRef(null),analyzeButton=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null),fileDragDepth=useRef(0),cameraCaptureSeq=useRef(0);
+  const video=useRef(null),stream=useRef(null),picker=useRef(null),referencePicker=useRef(null),spatialRgbPicker=useRef(null),analyzeButton=useRef(null),surface=useRef(null),canvasElement=useRef(null),resultPanel=useRef(null),exportMenu=useRef(null),drag=useRef(null),resultResizeDrag=useRef(null),resultOpenPreference=useRef(initialViewerPrefs.resultPanelOpen),busyForcedResults=useRef(false),canvasDrag=useRef(null),canvasTouch=useRef({points:new Map(),mode:null}),spacePan=useRef(false),zoomRef=useRef(1),statusTimer=useRef(null),wipeDirectionTimer=useRef(null),fileDragDepth=useRef(0),cameraCaptureSeq=useRef(0),registrationImage=useRef(null);
   useEffect(()=>setKind(detectAsset(file)),[file]);
+  useEffect(()=>{setRegistrationOpen(false);setRegistrationPairs([]);setRegistrationPendingUv(null);setRegistrationBusy(false);setRegistrationError("");setRegistrationIntrinsics({fx:"",fy:"",cx:"",cy:""})},[file,spatialRgbFile]);
   useEffect(()=>{if(busy){fileDragDepth.current=0;setFileDragActive(false);setCameraOpen(false)}},[busy]);
   useEffect(()=>{
     const syncCompactLayout=()=>{
@@ -953,6 +956,44 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     ||analysisBlockedReason
     ||"Pronto";
   const analysisDisabled=!file||!selected.length||busy||referenceValidating||!!executionIssue||!((kind==="2d"&&imageDecoded&&!previewError)||spatialCdm3Ready);
+  function pickRegistrationPixel(e){
+    const image=registrationImage.current;
+    if(!image?.naturalWidth||!image?.naturalHeight)return;
+    const rect=image.getBoundingClientRect();
+    if(rect.width<1||rect.height<1)return;
+    const u=(e.clientX-rect.left)/rect.width*image.naturalWidth;
+    const v=(e.clientY-rect.top)/rect.height*image.naturalHeight;
+    setRegistrationPendingUv([Math.max(0,Math.min(image.naturalWidth-1,u)),Math.max(0,Math.min(image.naturalHeight-1,v))]);
+    setRegistrationError("");
+  }
+  function pickRegistrationWorldPoint(point){
+    if(!registrationPendingUv||!point?.xyz)return;
+    setRegistrationPairs(rows=>[...rows,{uv:registrationPendingUv,xyz:point.xyz,point_index:point.index??null}]);
+    setRegistrationPendingUv(null);
+    setRegistrationError("");
+  }
+  function undoRegistrationPair(){
+    if(registrationPendingUv){setRegistrationPendingUv(null);return}
+    setRegistrationPairs(rows=>rows.slice(0,-1));
+  }
+  function resetRegistrationPairs(){
+    setRegistrationPairs([]);setRegistrationPendingUv(null);setRegistrationError("");
+  }
+  async function solveRegistration(){
+    const image=registrationImage.current;
+    if(registrationPairs.length<6){setRegistrationError("São necessários pelo menos 6 pares 2D–3D.");return}
+    if(!image?.naturalWidth||!image?.naturalHeight){setRegistrationError("Dimensões da imagem RGB indisponíveis.");return}
+    if(!onSolveSpatialRegistration){setRegistrationError("Solver de registro indisponível.");return}
+    const fx=Number(registrationIntrinsics.fx),fy=Number(registrationIntrinsics.fy),cx=Number(registrationIntrinsics.cx),cy=Number(registrationIntrinsics.cy);
+    const intrinsics=Number.isFinite(fx)&&fx>0
+      ?{fx,fy:Number.isFinite(fy)&&fy>0?fy:fx,cx:Number.isFinite(cx)?cx:image.naturalWidth/2,cy:Number.isFinite(cy)?cy:image.naturalHeight/2}
+      :null;
+    setRegistrationBusy(true);setRegistrationError("");
+    try{
+      await onSolveSpatialRegistration({correspondences:registrationPairs,imageWidth:image.naturalWidth,imageHeight:image.naturalHeight,intrinsics});
+    }catch(e){setRegistrationError(e?.message||String(e))}
+    finally{setRegistrationBusy(false)}
+  }
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><nav className="editorMenus" aria-label="Menu do editor">
@@ -1029,7 +1070,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         {fileDragActive&&<div className="editorDropOverlay" aria-hidden="true"><ImagePlus size={30}/><b>Solte para importar</b><span>Imagem 2D, modelo 3D ou LAS / XYZ / IFC</span></div>}
         {file&&<div className={"editorTypeBadge "+(kind==="unknown"?"unsupported":"")}>{kind==="2d"?"▧  2D detectado":kind==="3d"?(isCdm3SpatialAsset(file)?"◇  CDM-3 espacial":"◇  3D detectado"):"Formato não suportado"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou ativo espacial</h2><p>Imagens 2D usam os motores visuais. LAS, XYZ e IFC são reconhecidos como entradas espaciais do CDM-3. Também é possível arrastar o arquivo ou colar uma imagem.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
-        kind==="3d"?<><Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file}/></Suspense>{spatialRgbPrev&&<div className="spatialRgbPreview" title="Imagem RGB auxiliar para registro espacial"><img src={spatialRgbPrev} alt="Imagem RGB auxiliar do CDM-3"/><span><b>RGB externo</b><small>registro 2D→3D pendente</small></span><button type="button" aria-label="Remover imagem RGB espacial" onClick={()=>onSpatialRgbFile?.(null)}><X size={12}/></button></div>}</>:
+        kind==="3d"?<><Suspense fallback={<div className="editorEmpty">Preparando visualizador 3D…</div>}><ModelViewport file={file} pickEnabled={registrationOpen&&!!registrationPendingUv} onPointPick={pickRegistrationWorldPoint} rgbReferenceFile={spatialRgbFile} registration={spatialRegistration}/></Suspense>{spatialRgbPrev&&<div className="spatialRgbPreview" title="Imagem RGB auxiliar para registro espacial"><img src={spatialRgbPrev} alt="Imagem RGB auxiliar do CDM-3"/><span><b>RGB externo</b><small>{spatialRegistration?.registration?"pose resolvida":"registro 2D→3D pendente"}</small><button type="button" className="spatialRgbRegister" onClick={()=>setRegistrationOpen(v=>!v)}>{registrationOpen?"Fechar":"Registrar"}</button></span><button type="button" aria-label="Remover imagem RGB espacial" onClick={()=>onSpatialRgbFile?.(null)}><X size={12}/></button></div>}{registrationOpen&&spatialRgbPrev&&<div className="spatialRegistrationPanel" role="dialog" aria-label="Registro da imagem RGB na nuvem 3D"><header><b>Registro RGB · 2D→3D</b><button type="button" aria-label="Fechar registro RGB" onClick={()=>setRegistrationOpen(false)}><X size={14}/></button></header><p>{registrationPendingUv?"Agora clique no ponto correspondente na nuvem 3D.":"Clique primeiro no ponto de controle na fotografia."}</p><button type="button" className={"spatialRegistrationImage "+(registrationPendingUv?"pointPending":"")} onClick={pickRegistrationPixel}><img ref={registrationImage} src={spatialRgbPrev} alt="Fotografia RGB para selecionar pontos de controle"/></button><div className="spatialRegistrationStats"><b>{registrationPairs.length}/6 pares mínimos</b>{registrationPendingUv&&<span>Pixel: {registrationPendingUv.map(v=>v.toFixed(1)).join(", ")}</span>}{registrationPairs.slice(-3).map((pair,index)=><small key={registrationPairs.length+"-"+index}>uv [{pair.uv.map(v=>v.toFixed(1)).join(", ")}] → XYZ [{pair.xyz.map(v=>Number(v).toFixed(3)).join(", ")}]</small>)}</div><details className="spatialRegistrationIntrinsics"><summary>Intrínsecos da câmera · opcional</summary><div><label>fx<input type="number" inputMode="decimal" value={registrationIntrinsics.fx} onChange={e=>setRegistrationIntrinsics(v=>({...v,fx:e.target.value}))}/></label><label>fy<input type="number" inputMode="decimal" value={registrationIntrinsics.fy} onChange={e=>setRegistrationIntrinsics(v=>({...v,fy:e.target.value}))}/></label><label>cx<input type="number" inputMode="decimal" value={registrationIntrinsics.cx} onChange={e=>setRegistrationIntrinsics(v=>({...v,cx:e.target.value}))}/></label><label>cy<input type="number" inputMode="decimal" value={registrationIntrinsics.cy} onChange={e=>setRegistrationIntrinsics(v=>({...v,cy:e.target.value}))}/></label></div><small>Sem fx/fy o solver usa intrínsecos aproximados apenas para prévia e marca o resultado como não métrico.</small></details><div className="spatialRegistrationActions"><button type="button" disabled={(!registrationPairs.length&&!registrationPendingUv)||registrationBusy} onClick={undoRegistrationPair}>Desfazer</button><button type="button" disabled={(!registrationPairs.length&&!registrationPendingUv)||registrationBusy} onClick={resetRegistrationPairs}>Limpar</button><button type="button" className="primary" disabled={registrationPairs.length<6||registrationBusy} onClick={solveRegistration}>{registrationBusy?"Resolvendo…":"Resolver pose"}</button></div>{registrationError&&<p className="spatialRegistrationError">{registrationError}</p>}{spatialRegistration?.registration&&<div className="spatialRegistrationSolved"><b>Pose resolvida</b><span>Inliers: {spatialRegistration.registration.inlier_count} · RMSE {Number(spatialRegistration.registration.reprojection_rmse_px||0).toFixed(2)} px</span><span>{spatialRegistration.registration.metric_projection_valid?"Calibração métrica válida":"Prévia não métrica · intrínsecos estimados"}</span></div>}</div>}</>:
         kind==="unknown"?<div className="editorEmpty editorUnsupported"><ImageIcon size={34}/><h2>Formato não suportado</h2><p>Use imagem {SUPPORTED_IMAGE_EXTENSIONS.map(ext=>"."+ext).join(", ")} ou modelo 3D {SUPPORTED_MODEL_EXTENSIONS.map(ext=>"."+ext).join(", ")}.</p><button onClick={()=>picker.current?.click()}>Escolher outro arquivo</button></div>:
         <div ref={canvasElement} className={"editorImage "+((comparison==="side"||comparison==="temporal")?"editorSide":"")} role="region" tabIndex="0" aria-label="Canvas de análise; botão do meio, Espaço mais arraste, setas, roda/trackpad ou toque para deslocar; Ctrl ou Command com roda, pinça, mais e menos para zoom; zero para ajustar à tela" aria-keyshortcuts="Space ArrowLeft ArrowRight ArrowUp ArrowDown + - 0" data-touch-mode={zoom>1?"pan-pinch":"pinch-scroll"} data-pan-mode={canvasPointerPanning?"grabbing":spacePanHeld?"ready":"idle"} onKeyDown={canvasKeyDown} onKeyUp={canvasKeyUp} onBlur={canvasBlur} onWheel={canvasWheel} onPointerDown={canvasPanStart} onPointerMove={canvasPanMove} onPointerUp={canvasPanEnd} onPointerCancel={canvasPanEnd} onAuxClick={e=>{if(e.button===1)e.preventDefault()}} style={{transform:`translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${zoom})`,width:displaySize.width,height:displaySize.height}}>
           {comparison==="original"&&renderBasePane(basePreview,"Imagem original da inspeção","original",true,false)}

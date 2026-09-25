@@ -51,6 +51,48 @@ def _sha256(path):
         for chunk in iter(lambda:f.read(1024*1024),b""):h.update(chunk)
     return h.hexdigest()
 
+def runtime_metadata(engine):
+    if engine=="unet_public_crack":
+        return {
+            "preprocess":{
+                "resize":{"height":256,"width":256},
+                "rescale_factor":1/255,
+                "image_mean":[.485,.456,.406],
+                "image_std":[.229,.224,.225],
+                "channel_order":"rgb_chw"
+            },
+            "threshold":.50,
+            "labels":{"0":"background","1":"crack"},
+            "crack_id":1,
+        }
+    if engine=="segformer_public_crack":
+        from transformers import AutoConfig,AutoImageProcessor
+        processor=AutoImageProcessor.from_pretrained("onebeans/segformer_crack_detection")
+        config=AutoConfig.from_pretrained("onebeans/segformer_crack_detection")
+        size=dict(getattr(processor,"size",{}) or {})
+        labels={str(k):str(v) for k,v in (getattr(config,"id2label",{}) or {}).items()}
+        crack_id=next((int(k) for k,v in labels.items() if "crack" in v.lower()),1)
+        return {
+            "preprocess":{
+                "resize":size,
+                "rescale_factor":float(getattr(processor,"rescale_factor",1/255)),
+                "image_mean":[float(x) for x in getattr(processor,"image_mean",[.485,.456,.406])],
+                "image_std":[float(x) for x in getattr(processor,"image_std",[.229,.224,.225])],
+                "channel_order":"rgb_chw"
+            },
+            "threshold":.50,
+            "labels":labels,
+            "crack_id":crack_id,
+        }
+    if engine=="yolov8n_public_crack_seg":
+        return {
+            "preprocess":{"letterbox":{"height":640,"width":640},"rescale_factor":1/255,"channel_order":"rgb_chw"},
+            "threshold":.25,
+            "labels":{"0":"crack"},
+            "crack_id":0,
+        }
+    return {}
+
 def write_manifest(engine,out):
     import onnx
     model=onnx.load(out)
@@ -66,6 +108,7 @@ def write_manifest(engine,out):
         "inputs":[{"name":x.name,"shape":_dims(x)} for x in model.graph.input],
         "outputs":[{"name":x.name,"shape":_dims(x)} for x in model.graph.output],
         **SOURCE_META[engine],
+        **runtime_metadata(engine),
     }
     target=Path(out).with_name("manifest.json")
     target.write_text(json.dumps(manifest,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
@@ -111,6 +154,6 @@ def main():
     a=p.parse_args();OUTROOT.mkdir(parents=True,exist_ok=True)
     out={"yolov8n_public_crack_seg":yolo,"unet_public_crack":unet,"segformer_public_crack":segformer}[a.engine]()
     manifest_path,manifest=write_manifest(a.engine,out)
-    print(json.dumps({"model":str(out),"manifest":str(manifest_path),"sha256":manifest["sha256"],"bytes":manifest["bytes"]},indent=2))
+    print(json.dumps({"model":str(out),"manifest":str(manifest_path),"manifest_data":manifest},indent=2,ensure_ascii=False))
 
 if __name__=="__main__":main()

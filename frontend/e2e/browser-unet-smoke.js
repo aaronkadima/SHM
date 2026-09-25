@@ -49,7 +49,8 @@ try{
   if(meanDelta>Number(tol.mean_probability_abs_max??.04))throw new Error("mean probability parity failed · Δ="+meanDelta.toFixed(6));
   if(maxDelta>Number(tol.max_probability_abs_max??.08))throw new Error("max probability parity failed · Δ="+maxDelta.toFixed(6));
 
-  const qc=reference.quantization_consistency||{};
+  const qc=reference.quantization_consistency||{},quality=reference.quality_gate||{};
   if(Number(qc.mean_binary_iou||0)<.95)throw new Error("quantization consistency IoU below gate");
-  pass("U-Net INT8 parity · "+Math.round(row.latency_ms)+" ms · "+Math.round(Number(metrics.model_bytes)/1e6)+" MB · Δscore "+scoreDelta.toFixed(5)+" · Δarea "+areaDelta.toFixed(6)+" · Q-IoU "+Number(qc.mean_binary_iou||0).toFixed(5));
+  if(quality.passed!==false)throw new Error("checkpoint quality gate must remain blocked until external real-image validation passes");
+  pass("U-Net INT8 parity · "+Math.round(row.latency_ms)+" ms · "+Math.round(Number(metrics.model_bytes)/1e6)+" MB · Δscore "+scoreDelta.toFixed(5)+" · Δarea "+areaDelta.toFixed(6)+" · Q-IoU "+Number(qc.mean_binary_iou||0).toFixed(5)+" · QUALITY_BLOCKED");
 }catch(error){console.error(error);fail(error?.stack||error?.message||String(error))}

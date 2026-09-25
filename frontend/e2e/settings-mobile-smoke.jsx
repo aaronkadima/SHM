@@ -99,7 +99,7 @@ function check(){
   const checks={documentNoScroll,pageScrollEnabled,motorsScrollEnabled,motorsVisible,cardsSeparated,barsVisible,environmentSwitchOk,selectedCountOk,cardActionsOk,cardActionsFit,noHorizontalOverflow,intendedScrollers};
   const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
   result.textContent=failed.length
-    ?"SETTINGS_SMOKE_FAIL "+failed.join(",")+" motorsHeight="+Math.round(motorsRect.height)+" first="+Math.round(firstRect.top)+"/"+Math.round(firstRect.bottom)+"/h"+Math.round(firstRect.height)+" motorTopBottom="+Math.round(motorsRect.top)+"/"+Math.round(motorsRect.bottom)+" cards="+cardRects.map(r=>Math.round(r.top)+"/"+Math.round(r.bottom)+"/h"+Math.round(r.height)).join("|")+" viewport="+viewportW+"x"+viewportH+" html="+html.scrollHeight+"/"+html.clientHeight+" body="+body.scrollHeight+"/"+body.clientHeight+" footer="+Math.round(footerRect.top)+"-"+Math.round(footerRect.bottom)+" visualBottom="+Math.round(visualBottom)+" minMotors="+minMotorsHeight
+    ?"SETTINGS_SMOKE_FAIL "+failed.join(",")+" motorsHeight="+Math.round(motorsRect.height)+" viewport="+viewportW+"x"+viewportH+" html="+html.scrollHeight+"/"+html.clientHeight+" body="+body.scrollHeight+"/"+body.clientHeight+" footer="+Math.round(footerRect.top)+"-"+Math.round(footerRect.bottom)+" visualBottom="+Math.round(visualBottom)+" minMotors="+minMotorsHeight
     :"SETTINGS_SMOKE_PASS viewport="+viewportW+"x"+viewportH+" motorsHeight="+Math.round(motorsRect.height)+" cards=separated env-switch=fit actions=info+update+fit selected=count scroll=page+motors footer=visual-viewport";
   return true;
 }

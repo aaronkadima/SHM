@@ -2,10 +2,14 @@ name: Deploy SHM production + development preview to GitHub Pages
 
 on:
   push:
-    branches: ["main","dev"]
+    branches: ["main"]
     paths:
       - "frontend/**"
       - ".github/workflows/pages.yml"
+  workflow_run:
+    workflows: ["Frontend build check"]
+    types: [completed]
+    branches: ["dev"]
   workflow_dispatch:
 
 permissions:
@@ -19,6 +23,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source

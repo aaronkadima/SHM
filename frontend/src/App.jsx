@@ -357,12 +357,10 @@ export default function App(){
   function pick(f){
     historyOpenSeq.current++;
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
+    setSpatialRgbFile(null);
+    if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev);
+    setSpatialRgbPrev(null);
     if(f&&isCdm3SpatialAsset(f))setSel(new Set(["cdm_3"]));
-    else{
-      setSpatialRgbFile(null);
-      if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev);
-      setSpatialRgbPrev(null);
-    }
     if(prev)URL.revokeObjectURL(prev);
     setPrev(f&&detectAsset(f)==="2d"?URL.createObjectURL(f):null);
   }

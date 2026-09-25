@@ -1,8 +1,12 @@
+import * as bundledOrt from "onnxruntime-web";
 const ORT_VERSION="1.30.0";
-const ORT_BASE="https://cdn.jsdelivr.net/npm/onnxruntime-web@"+ORT_VERSION+"/dist/";
-const ORT_SCRIPT=ORT_BASE+"ort.min.js";
 let ortPromise=null;
 const sessionCache=new Map();
+
+function ortAssetBase(){
+  const base=String(import.meta.env.BASE_URL||"/").replace(/\/?$/,"/");
+  return new URL(base+"ort/",globalThis.location?.origin||"http://localhost").href;
+}
 
 function abortError(){return new DOMException("Execução cancelada.","AbortError")}
 function ensureActive(signal){if(signal?.aborted)throw abortError()}
@@ -22,28 +26,19 @@ function modelBaseUrl(control={}){
 function assetUrl(base,name){return base+encodeURIComponent(name)}
 
 async function loadOrt(){
-  if(globalThis.ort?.InferenceSession)return globalThis.ort;
   if(ortPromise)return ortPromise;
-  ortPromise=new Promise((resolve,reject)=>{
-    if(typeof document==="undefined"){reject(new Error("ONNX Runtime Web exige um navegador."));return}
-    const existing=document.querySelector('script[data-shm-ort="'+ORT_VERSION+'"]');
-    const finish=()=>{
-      if(!globalThis.ort?.InferenceSession){reject(new Error("ONNX Runtime Web não ficou disponível após o carregamento."));return}
-      globalThis.ort.env.wasm.wasmPaths=ORT_BASE;
-      globalThis.ort.env.wasm.numThreads=globalThis.crossOriginIsolated?Math.max(1,Math.min(4,navigator.hardwareConcurrency||2)):1;
-      resolve(globalThis.ort);
-    };
-    if(existing){existing.addEventListener("load",finish,{once:true});existing.addEventListener("error",()=>reject(new Error("Falha ao carregar ONNX Runtime Web.")),{once:true});return}
-    const script=document.createElement("script");
-    script.src=ORT_SCRIPT;script.async=true;script.crossOrigin="anonymous";script.dataset.shmOrt=ORT_VERSION;
-    script.onload=finish;script.onerror=()=>reject(new Error("Falha ao carregar ONNX Runtime Web do CDN."));
-    document.head.appendChild(script);
+  ortPromise=Promise.resolve().then(()=>{
+    const ort=bundledOrt;
+    if(!ort?.InferenceSession||!ort?.env?.wasm)throw new Error("ONNX Runtime Web local não ficou disponível.");
+    ort.env.wasm.wasmPaths=ortAssetBase();
+    ort.env.wasm.numThreads=globalThis.crossOriginIsolated?Math.max(1,Math.min(4,navigator.hardwareConcurrency||2)):1;
+    return ort;
   }).catch(error=>{ortPromise=null;throw error});
   return ortPromise;
 }
 
 async function fetchJson(url,signal){
-  const response=await fetch(url,{cache:"no-store",signal,headers:{Accept:"application/json","Cache-Control":"no-cache"}});
+  const response=await fetch(url,{cache:"no-store",signal,headers:{Accept:"application/json"}});
   if(!response.ok)throw new Error("Manifesto browser indisponível · HTTP "+response.status);
   return response.json();
 }
@@ -180,7 +175,7 @@ export async function runUnetCrackBrowser(file,control={}){
         crack_area_ratio:Number((area/Math.max(1,pixels)).toFixed(6)),
         mean_probability:Number((sumAll/Math.max(1,pixels)).toFixed(6)),
         max_probability:Number(maxProb.toFixed(6)),
-        threshold,source_repo:manifest.source_repo,runtime:"onnxruntime-web-wasm",runtime_version:ORT_VERSION,
+        threshold,source_repo:manifest.source_repo,overlay_semantics:"composite_image",runtime:"onnxruntime-web-wasm",runtime_version:ORT_VERSION,
         model_sha256:loaded.digest,model_bytes:Number(manifest.bytes||0),precision:manifest.optimization?.precision||"int8",
         quantization:manifest.optimization?.quantization||"static-qdq",processed_scale:Number(prepared.processedScale.toFixed(4))
       },
@@ -264,7 +259,7 @@ export async function runCrackenPyBrowser(file,control={}){
         mean_crack_probability:Number((sumProb/modelPixels).toFixed(6)),
         max_crack_probability:Number(maxProb.toFixed(6)),
         model_width:ow,model_height:oh,crack_class_id:crackId,
-        source_repo:manifest.source_repo,runtime:"onnxruntime-web-wasm",runtime_version:ORT_VERSION,
+        source_repo:manifest.source_repo,overlay_semantics:"composite_image",runtime:"onnxruntime-web-wasm",runtime_version:ORT_VERSION,
         model_sha256:loaded.digest,model_bytes:Number(manifest.bytes||0),precision:manifest.optimization?.precision||"int8",
         quantization:manifest.optimization?.quantization||"static-qdq-minmax",processed_scale:Number(prepared.processedScale.toFixed(4))
       },
@@ -333,7 +328,7 @@ export async function runSegformerBrowser(file,control={}){
         crack_area_ratio:Number((area/Math.max(1,pixels)).toFixed(6)),
         mean_crack_probability:Number((sumAll/Math.max(1,pixels)).toFixed(6)),
         max_crack_probability:Number(maxProb.toFixed(6)),
-        threshold,source_repo:manifest.source_repo,runtime:"onnxruntime-web-wasm",
+        threshold,source_repo:manifest.source_repo,overlay_semantics:"composite_image",runtime:"onnxruntime-web-wasm",
         runtime_version:ORT_VERSION,model_sha256:loaded.digest,model_bytes:Number(manifest.bytes||0),
         processed_scale:Number(prepared.processedScale.toFixed(4))
       },
@@ -448,7 +443,7 @@ export async function runYolov8nCrackSegBrowser(file,control={}){
     results:[{
       engine_id:"yolov8n_public_crack_seg",name:"YOLOv8n Crack Segmentation · navegador",task:"instance_segmentation",status:"ok",
       latency_ms:performance.now()-started,detections,overlay_png_base64:canvasBase64(canvas),
-      metrics:{detections:detections.length,crack_area_ratio:Number((maskArea/Math.max(1,union.length)).toFixed(6)),confidence_threshold:threshold,nms_iou:.45,source_repo:manifest.source_repo,runtime:"onnxruntime-web-wasm",runtime_version:ORT_VERSION,model_sha256:loaded.digest,model_bytes:Number(manifest.bytes||0),processed_scale:Number(prepared.processedScale.toFixed(4))},
+      metrics:{detections:detections.length,crack_area_ratio:Number((maskArea/Math.max(1,union.length)).toFixed(6)),confidence_threshold:threshold,nms_iou:.45,source_repo:manifest.source_repo,overlay_semantics:"composite_image",runtime:"onnxruntime-web-wasm",runtime_version:ORT_VERSION,model_sha256:loaded.digest,model_bytes:Number(manifest.bytes||0),processed_scale:Number(prepared.processedScale.toFixed(4))},
       message:"YOLOv8n-Seg executado no navegador com artefato ONNX verificado por SHA-256; runtime ainda em validação de paridade antes da promoção browser_ready."
     }],
     consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,

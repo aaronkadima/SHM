@@ -52,30 +52,87 @@ function elevationColors(positions){
   }
   return out;
 }
-function visualColors(parsed,mode){
+function visualColors(parsed,mode,registeredColors=null){
+  if(mode==="registered_rgb"&&registeredColors)return registeredColors;
   if(mode==="rgb"&&parsed.colors)return parsed.colors;
   if(mode==="intensity"&&parsed.intensities)return intensityColors(parsed.intensities);
   if(mode==="classification"&&parsed.classifications)return classificationColors(parsed.classifications);
   return elevationColors(parsed.positions);
 }
-function pointModes(parsed){
+function pointModes(parsed,hasRegistered=false){
   return [
+    ...(hasRegistered?[{id:"registered_rgb",label:"RGB registrado"}]:[]),
     ...(parsed.colors?[{id:"rgb",label:"RGB"}]:[]),
     ...(parsed.intensities?[{id:"intensity",label:"Intensidade"}]:[]),
     ...(parsed.classifications?[{id:"classification",label:"Classificação"}]:[]),
     {id:"elevation",label:"Elevação Z"}
   ];
 }
+async function imagePixels(file){
+  if(!file)throw new Error("Imagem RGB externa ausente.");
+  if(typeof createImageBitmap==="function"){
+    const bitmap=await createImageBitmap(file);
+    try{
+      const canvas=document.createElement("canvas");canvas.width=bitmap.width;canvas.height=bitmap.height;
+      const ctx=canvas.getContext("2d",{willReadFrequently:true});
+      if(!ctx)throw new Error("Canvas 2D indisponível.");
+      ctx.drawImage(bitmap,0,0);
+      return {width:bitmap.width,height:bitmap.height,data:ctx.getImageData(0,0,bitmap.width,bitmap.height).data};
+    }finally{bitmap.close?.()}
+  }
+  const url=URL.createObjectURL(file);
+  try{
+    const image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error("Falha ao decodificar imagem RGB."));img.src=url});
+    const canvas=document.createElement("canvas");canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+    const ctx=canvas.getContext("2d",{willReadFrequently:true});
+    if(!ctx)throw new Error("Canvas 2D indisponível.");
+    ctx.drawImage(image,0,0);
+    return {width:canvas.width,height:canvas.height,data:ctx.getImageData(0,0,canvas.width,canvas.height).data};
+  }finally{URL.revokeObjectURL(url)}
+}
+function registeredPointColors(parsed,registration,pixels){
+  const pose=registration?.registration||registration;
+  if(!pose?.camera_matrix||!pose?.rotation_matrix||!pose?.translation_vector)return null;
+  const k=pose.camera_matrix,r=pose.rotation_matrix,t=pose.translation_vector,d=pose.distortion||[];
+  const fx=Number(k[0][0]),fy=Number(k[1][1]),cx=Number(k[0][2]),cy=Number(k[1][2]);
+  const k1=Number(d[0]||0),k2=Number(d[1]||0),p1=Number(d[2]||0),p2=Number(d[3]||0),k3=Number(d[4]||0);
+  if(![fx,fy,cx,cy].every(Number.isFinite))return null;
+  const center=parsed.bounds?.center||[0,0,0],fallback=elevationColors(parsed.positions);
+  const count=parsed.positions.length/3,out=new Float32Array(count*3);
+  let colored=0;
+  for(let i=0;i<count;i++){
+    const X=parsed.positions[i*3]+center[0],Y=parsed.positions[i*3+1]+center[1],Z=parsed.positions[i*3+2]+center[2];
+    const xc=Number(r[0][0])*X+Number(r[0][1])*Y+Number(r[0][2])*Z+Number(t[0]);
+    const yc=Number(r[1][0])*X+Number(r[1][1])*Y+Number(r[1][2])*Z+Number(t[1]);
+    const zc=Number(r[2][0])*X+Number(r[2][1])*Y+Number(r[2][2])*Z+Number(t[2]);
+    let rr=fallback[i*3]*.45,gg=fallback[i*3+1]*.45,bb=fallback[i*3+2]*.45;
+    if(zc>1e-9){
+      const x=xc/zc,y=yc/zc,r2=x*x+y*y,radial=1+k1*r2+k2*r2*r2+k3*r2*r2*r2;
+      const xd=x*radial+2*p1*x*y+p2*(r2+2*x*x);
+      const yd=y*radial+p1*(r2+2*y*y)+2*p2*x*y;
+      const u=Math.round(fx*xd+cx),v=Math.round(fy*yd+cy);
+      if(u>=0&&u<pixels.width&&v>=0&&v<pixels.height){
+        const p=(v*pixels.width+u)*4;
+        rr=pixels.data[p]/255;gg=pixels.data[p+1]/255;bb=pixels.data[p+2]/255;colored++;
+      }
+    }
+    out[i*3]=rr;out[i*3+1]=gg;out[i*3+2]=bb;
+  }
+  return {colors:out,colored,total:count};
+}
 
-export default function ModelViewport({file}){
-  const mount=useRef(null),view=useRef(null);
+export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null}){
+  const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick);
   const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null);
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState("");
+  useEffect(()=>{pickEnabledRef.current=pickEnabled},[pickEnabled]);
+  useEffect(()=>{onPointPickRef.current=onPointPick},[onPointPick]);
   useEffect(()=>{
     if(!file||!mount.current)return;
     setError("");setFallback(false);setLoading(true);setLoadProgress(null);setModes([]);setSpatialNotice("");
     const el=mount.current,scene=new THREE.Scene();scene.background=new THREE.Color(0xdce4e7);
     const camera=new THREE.PerspectiveCamera(45,1,.01,100000);
+    const pickMarkers=new THREE.Group();scene.add(pickMarkers);
     let renderer,vectorFallback=false,dirty=true;
     try{renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2))}
     catch{renderer=new SVGRenderer();vectorFallback=true;setFallback(true)}
@@ -110,7 +167,8 @@ export default function ModelViewport({file}){
       try{
         const parsed=await parseSpatialAsset(file,{maxPoints:250000});
         if(disposed)return;
-        const available=pointModes(parsed);
+        let registeredColors=null;
+        const available=pointModes(parsed,false);
         const preferred=parsed.colors?"rgb":parsed.intensities?"intensity":parsed.classifications?"classification":"elevation";
         setModes(available);setMode(preferred);
         const extension=spatialExtension(file);
@@ -122,7 +180,7 @@ export default function ModelViewport({file}){
         );
         const geometry=new THREE.BufferGeometry();
         geometry.setAttribute("position",new THREE.BufferAttribute(parsed.positions,3));
-        const initialColors=visualColors(parsed,preferred);
+        const initialColors=visualColors(parsed,preferred,registeredColors);
         if(initialColors)geometry.setAttribute("color",new THREE.BufferAttribute(initialColors,3));
         geometry.computeBoundingSphere();
         const radius=Math.max(Number(geometry.boundingSphere?.radius)||1,1e-6);
@@ -130,7 +188,7 @@ export default function ModelViewport({file}){
         const material=new THREE.PointsMaterial({size:pointSize,sizeAttenuation:true,vertexColors:!!initialColors,color:0xffffff});
         const points=new THREE.Points(geometry,material);
         const applyPointMode=nextMode=>{
-          const colors=visualColors(parsed,nextMode);
+          const colors=visualColors(parsed,nextMode,registeredColors);
           if(colors){
             geometry.setAttribute("color",new THREE.BufferAttribute(colors,3));
             geometry.attributes.color.needsUpdate=true;material.vertexColors=true;
@@ -139,6 +197,14 @@ export default function ModelViewport({file}){
           }
           material.needsUpdate=true;dirty=true;
         };
+        const setRegisteredColors=payload=>{
+          registeredColors=payload?.colors||null;
+          if(!registeredColors)return;
+          setModes(pointModes(parsed,true));
+          setMode("registered_rgb");
+          applyPointMode("registered_rgb");
+          setSpatialNotice("RGB externo projetado pela pose registrada · "+Number(payload.colored||0).toLocaleString("pt-BR")+"/"+Number(payload.total||0).toLocaleString("pt-BR")+" pontos receberam cor da imagem.");
+        };
         points.userData.spatialAsset={
           extension,
           ...parsed.metadata,
@@ -146,9 +212,27 @@ export default function ModelViewport({file}){
           sampled_points:parsed.sampled_points,
           active_visual_channel:preferred
         };
-        fit(points,{setPointMode:applyPointMode,pointModes:available});
+        fit(points,{setPointMode:applyPointMode,setRegisteredColors,parsed,points,pointModes:available});
       }catch(e){fail(e)}
     };
+    const handlePointPick=e=>{
+      if(!pickEnabledRef.current||!model||!onPointPickRef.current)return;
+      const rect=renderer.domElement.getBoundingClientRect();
+      if(rect.width<1||rect.height<1)return;
+      const mouse=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height*2-1));
+      const raycaster=new THREE.Raycaster();raycaster.params.Points.threshold=Math.max((view.current?.radius||1)/180,.002);raycaster.setFromCamera(mouse,camera);
+      const hit=raycaster.intersectObject(model,true).find(item=>item.object?.isPoints&&Number.isInteger(item.index));
+      if(!hit)return;
+      const attr=hit.object.geometry?.getAttribute("position");if(!attr)return;
+      const centered=[attr.getX(hit.index),attr.getY(hit.index),attr.getZ(hit.index)];
+      const origin=hit.object.userData?.spatialAsset?.bounds?.center||[0,0,0];
+      const xyz=[centered[0]+Number(origin[0]||0),centered[1]+Number(origin[1]||0),centered[2]+Number(origin[2]||0)];
+      const markerRadius=Math.max((view.current?.radius||1)/120,.004);
+      const marker=new THREE.Mesh(new THREE.SphereGeometry(markerRadius,10,8),new THREE.MeshBasicMaterial({color:0xf0a93c}));
+      marker.position.set(...centered);pickMarkers.add(marker);dirty=true;
+      onPointPickRef.current({xyz,index:hit.index,distance:Number(hit.distance||0)});
+    };
+    renderer.domElement.addEventListener("click",handlePointPick);
     const loadGltf=async()=>{
       if(ext==="gltf"){
         let text;
@@ -173,8 +257,17 @@ export default function ModelViewport({file}){
     }catch(e){fail(e)}
     controls.addEventListener("change",()=>{dirty=true});
     let animation;const draw=()=>{animation=requestAnimationFrame(draw);controls.update();if(!vectorFallback||dirty){renderer.render(scene,camera);dirty=false}};draw();
-    return()=>{disposed=true;view.current=null;cancelAnimationFrame(animation);observer.disconnect();controls.dispose();scene.remove(model);model?.traverse?.(n=>{n.geometry?.dispose();if(n.material){const materials=Array.isArray(n.material)?n.material:[n.material];materials.forEach(disposeMaterial)}});renderer.dispose?.();renderer.domElement.remove();releaseUrl()}
+    return()=>{disposed=true;view.current=null;cancelAnimationFrame(animation);observer.disconnect();controls.dispose();renderer.domElement.removeEventListener("click",handlePointPick);scene.remove(model);model?.traverse?.(n=>{n.geometry?.dispose();if(n.material){const materials=Array.isArray(n.material)?n.material:[n.material];materials.forEach(disposeMaterial)}});pickMarkers.traverse(n=>{n.geometry?.dispose?.();disposeMaterial(n.material)});renderer.dispose?.();renderer.domElement.remove();releaseUrl()}
   },[file]);
+  useEffect(()=>{
+    if(!rgbReferenceFile||!registration?.registration||!view.current?.parsed||!view.current?.setRegisteredColors)return;
+    let cancelled=false;
+    imagePixels(rgbReferenceFile)
+      .then(pixels=>registeredPointColors(view.current?.parsed,registration,pixels))
+      .then(payload=>{if(!cancelled&&payload)view.current?.setRegisteredColors?.(payload)})
+      .catch(e=>{if(!cancelled)setError("Falha ao projetar RGB registrado: "+(e?.message||String(e)))});
+    return()=>{cancelled=true};
+  },[rgbReferenceFile,registration,file]);
   function setView(direction){
     const data=view.current;if(!data)return;
     const {camera,controls,center,radius}=data;
@@ -187,11 +280,12 @@ export default function ModelViewport({file}){
   function setPointMode(next){
     setMode(next);view.current?.setPointMode?.(next);
   }
-  return <div className="modelViewport" ref={mount} role="region" aria-label="Visualizador espacial 3D do arquivo importado" aria-busy={loading}>
+  return <div className={"modelViewport "+(pickEnabled?"pointPickMode":"")} ref={mount} role="region" aria-label={pickEnabled?"Visualizador espacial 3D; selecione o ponto correspondente":"Visualizador espacial 3D do arquivo importado"} aria-busy={loading}>
     {loading&&<div className="modelLoading" role="status" aria-live="polite"><b>Carregando ativo espacial / 3D</b><span>{loadProgress==null?"Preparando geometria…":loadProgress+"%"}</span>{loadProgress!=null&&<i><b style={{width:loadProgress+"%"}}/></i>}</div>}
     {error&&<div className="modelError" role="alert">{error}</div>}
     <div className="modelViews" aria-label="Vistas do modelo 3D"><button disabled={loading||!!error} onClick={()=>setView("perspective")}>Perspectiva</button><button disabled={loading||!!error} onClick={()=>setView("front")}>Frontal</button><button disabled={loading||!!error} onClick={()=>setView("top")}>Superior</button><button disabled={loading||!!error} onClick={()=>setView("side")}>Lateral</button></div>
     {modes.length>0&&<div className="pointCloudModes" aria-label="Canal visual da nuvem de pontos"><label htmlFor="point-cloud-mode">Visual</label><select id="point-cloud-mode" value={mode} onChange={e=>setPointMode(e.target.value)}>{modes.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select><span>{spatialNotice}</span></div>}
+    {pickEnabled&&<div className="modelPickHint">Selecione na nuvem o ponto correspondente ao pixel marcado</div>}
     {fallback&&<div className="modelFallback">Visualização vetorial · WebGL indisponível</div>}
     <div className="modelHint">3D · arraste para orbitar · roda para ampliar · botão direito para deslocar</div>
   </div>

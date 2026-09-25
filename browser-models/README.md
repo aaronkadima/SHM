@@ -9,7 +9,7 @@ A camada browser permite que motores compactos sejam executados diretamente pelo
 - `yolov8n_public_crack_seg`: **funcional no navegador**, ONNX Runtime Web/WASM com letterbox, NMS, reconstrução de máscara e paridade quantitativa validada contra o backend Ultralytics/PyTorch.
 - `unet_public_crack`: candidato **INT8 ONNX Runtime Web**; FP32 124,1 MB → INT8 39,5 MB (−68,15%), runtime WASM e paridade técnica aprovados, porém promoção bloqueada pelo quality gate porque o checkpoint satura em imagens reais externas.
 - `segformer_public_crack`: **funcional no navegador**, ONNX Runtime Web/WASM com manifesto, SHA-256 e smoke test em Chrome.
-- `crackenpy_public_crack`: candidato **INT8 ONNX Runtime Web** com licença BSD; 102,3 MB → 26,3 MB (−74,25%), paridade PyTorch→ONNX `IoU=1,0`, INT8→FP32 `IoU≈0,95` e qualidade em concreto rotulado `IoU≈0,65` / `Dice≈0,79`; smoke Chrome com máscara pixel a pixel habilitado antes da promoção.
+- `crackenpy_public_crack`: **funcional no navegador**, INT8 ONNX Runtime Web/WASM com licença BSD; 102,3 MB → 26,3 MB (−74,25%), paridade PyTorch→ONNX `IoU=1,0`, INT8→FP32 `IoU≈0,95` e qualidade em concreto rotulado `IoU≈0,65` / `Dice≈0,79`, validada também por máscara pixel a pixel no Chrome.
 
 Os candidatos ainda não promovidos permanecem com `browser_ready: false` até que o runtime Web, o pré/pós-processamento e a paridade com o backend sejam validados. SegFormer e YOLOv8n Crack Segmentation já foram promovidos e usam assets same-origin publicados junto ao GitHub Pages.
 
@@ -86,4 +86,4 @@ A promoção exige, no mínimo:
 
 Somente depois dessas etapas o catálogo deve marcar o motor como `browser_ready: true`.
 
-Para CrackenPy, a promoção ainda exige que o CI completo do frontend permaneça verde com os assets do release `browser-models-dev`, incluindo validação de máscara rotulada diretamente no Chrome.
+CrackenPy foi promovido somente após o CI completo permanecer verde com os assets do release e a validação da máscara rotulada diretamente no Chrome.

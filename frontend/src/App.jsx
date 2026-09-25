@@ -6,7 +6,7 @@ import AnalysisSettings from"./AnalysisSettings.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
 import{analysisExecutionIssue,executionEndpointIssue}from"./executionConfig.js";
 import{buildComparisonCsv}from"./resultExport.js";
-import{detectAsset}from"./assetDetection.js";
+import{detectAsset,isCdm3SpatialAsset}from"./assetDetection.js";
 import{sortEngines,engineMatchesFilter,engineMatchesQuery}from"./engineCatalog.js";
 import{buildCdmSvg,buildCdmCsv,buildCdmCoco,buildCdmDxf,buildCdmBimJson,buildCdmIfc,buildCdmHtml}from"./cdmExports.js";
 import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
@@ -354,6 +354,7 @@ export default function App(){
   function pick(f){
     historyOpenSeq.current++;
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
+    if(f&&isCdm3SpatialAsset(f))setSel(new Set(["cdm_3"]));
     if(prev)URL.revokeObjectURL(prev);
     setPrev(f&&detectAsset(f)==="2d"?URL.createObjectURL(f):null);
   }

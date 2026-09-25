@@ -286,7 +286,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const shown=results.filter(r=>visible[r.engine_id]!==false);
   const chosen=shown.find(r=>r.engine_id===active)||shown[0];
   const basePreview=localPreview||prev;
-  const pathologyEngineId=(chosen?.engine_id==="cdm_1"||chosen?.engine_id==="cdm_3")?chosen.engine_id:null;\n  const pathologyLayers=pathologyEngineId?chosen.metrics?.layers||[]:[];
+  const pathologyEngineId=(chosen?.engine_id==="cdm_1"||chosen?.engine_id==="cdm_3")?chosen.engine_id:null;
+  const pathologyLayers=pathologyEngineId?chosen.metrics?.layers||[]:[];
   const pathologyIdsKey=pathologyLayers.map(layer=>layer.id).join("|");
   useEffect(()=>{
     const incoming=pathologyLayers.map(layer=>layer.id);

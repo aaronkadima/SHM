@@ -55,6 +55,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-asset-detection.mjs
 
+      - name: CDM-3 spatial ingestion
+        working-directory: frontend
+        run: node scripts/check-cdm3-spatial.mjs
+
       - name: 3D model asset validation
         working-directory: frontend
         run: node scripts/check-model-asset-validation.mjs

@@ -112,6 +112,8 @@ export default function App(){
   const[prev,setPrev]=useState(null);
   const[referenceFile,setReferenceFile]=useState(null);
   const[referencePrev,setReferencePrev]=useState(null);
+  const[spatialRgbFile,setSpatialRgbFile]=useState(null);
+  const[spatialRgbPrev,setSpatialRgbPrev]=useState(null);
   const[referenceInspectionId,setReferenceInspectionId]=useState(null);
   const[referenceInspectionMeta,setReferenceInspectionMeta]=useState(null);
   const[referenceValidating,setReferenceValidating]=useState(false);
@@ -135,6 +137,7 @@ export default function App(){
 
   useEffect(()=>()=>{if(prev)URL.revokeObjectURL(prev)},[prev]);
   useEffect(()=>()=>{if(referencePrev)URL.revokeObjectURL(referencePrev)},[referencePrev]);
+  useEffect(()=>()=>{if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev)},[spatialRgbPrev]);
   useEffect(()=>()=>{activeRun.current?.controller?.abort()},[]);
   useEffect(()=>{localStorage.setItem("shmSelectedEngines",JSON.stringify([...sel]))},[sel]);
   useEffect(()=>{localStorage.setItem("shmInspectionMetaDraft",JSON.stringify(inspectionMeta))},[inspectionMeta]);
@@ -355,8 +358,28 @@ export default function App(){
     historyOpenSeq.current++;
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
     if(f&&isCdm3SpatialAsset(f))setSel(new Set(["cdm_3"]));
+    else{
+      setSpatialRgbFile(null);
+      if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev);
+      setSpatialRgbPrev(null);
+    }
     if(prev)URL.revokeObjectURL(prev);
     setPrev(f&&detectAsset(f)==="2d"?URL.createObjectURL(f):null);
+  }
+  async function pickSpatialRgb(f){
+    if(!f){
+      setSpatialRgbFile(null);setRes(null);setProgress(null);setJobId(null);setErr("");
+      if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev);
+      setSpatialRgbPrev(null);
+      return;
+    }
+    setErr("");
+    try{
+      await validateReferenceImage(f);
+      const nextPreview=URL.createObjectURL(f);
+      if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev);
+      setSpatialRgbFile(f);setSpatialRgbPrev(nextPreview);setRes(null);setProgress(null);setJobId(null);
+    }catch(e){setErr("Imagem RGB espacial inválida: "+(e?.message||String(e)))}
   }
   async function pickReference(f){
     historyOpenSeq.current++;
@@ -394,7 +417,9 @@ export default function App(){
     if(meta?.browser_ready&&browserEngineSupported(engineId)){
       updateProgress({state:"running",completed:0,total:100,current_engine:(meta.name||engineId)+" · preparando"});
       return await runBrowserEngine(
-        engineId,sourceFile,engineId==="cdm_1"?cdmOptions:{},engineId==="cdm_1"?sourceReference:null,
+        engineId,sourceFile,
+        engineId==="cdm_1"?cdmOptions:engineId==="cdm_3"?{rgbReferenceFile:spatialRgbFile}:{},
+        engineId==="cdm_1"?sourceReference:null,
         {signal,onProgress:updateProgress,channel:APP_CHANNEL,buildSha:BUILD_SHA}
       );
     }
@@ -541,7 +566,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
+    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
     {activeView==="engines"&&<EnginesView appInfo={APP_INFO} engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 

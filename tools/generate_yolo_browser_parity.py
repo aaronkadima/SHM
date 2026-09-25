@@ -8,6 +8,9 @@ import numpy as np
 from PIL import Image,ImageDraw,ImageFilter
 
 ROOT=Path(__file__).resolve().parents[1]
+os.environ.setdefault("SHM_COMPACT_MODEL_CACHE","/tmp/shm-compact-model-cache")
+os.environ.setdefault("SHM_UNLOAD_AFTER_INFERENCE","0")
+os.environ.setdefault("SHM_PUBLIC_YOLO_CONF",".25")
 sys.path.insert(0,str(ROOT/"backend"))
 
 from app.adapters.hf_pathology_adapters import public_pathology_catalog
@@ -50,8 +53,6 @@ def build_fixture(path:Path)->Image.Image:
 def backend_reference(image:Image.Image):
     adapter=next((x for x in public_pathology_catalog() if x.meta.id==ENGINE_ID),None)
     if adapter is None:raise RuntimeError(f"{ENGINE_ID} adapter not found")
-    os.environ.setdefault("SHM_UNLOAD_AFTER_INFERENCE","0")
-    os.environ.setdefault("SHM_PUBLIC_YOLO_CONF",".25")
     result=adapter.predict(image)
     detections=[]
     for d in result.detections:

@@ -110,6 +110,46 @@ jobs:
             exit 1
           }
 
+      - name: YOLOv8n browser ONNX candidate smoke
+        working-directory: frontend
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p public/browser-models
+          gh release download browser-models-dev --repo "$GITHUB_REPOSITORY" --pattern "yolov8n_public_crack_seg.onnx" --pattern "yolov8n_public_crack_seg.json" --dir public/browser-models --clobber
+          VITE_BASE_PATH=/ VITE_APP_CHANNEL=development npm run dev -- --host 127.0.0.1 --port 4178 > /tmp/shm-yolo-vite.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
+
+          READY=0
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4178/e2e/browser-yolo-smoke.html >/dev/null; then
+              READY=1
+              break
+            fi
+            sleep 0.5
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/shm-yolo-vite.log
+            exit 1
+          fi
+
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chromium-compatible browser found on runner."
+            exit 1
+          fi
+
+          CHROME_BIN="$CHROME" \
+          SMOKE_URL="http://127.0.0.1:4178/e2e/browser-yolo-smoke.html" \
+          SMOKE_TIMEOUT_MS=180000 \
+          SMOKE_DEBUG_PORT=9228 \
+          node scripts/run-browser-onnx-smoke.mjs || {
+            cat /tmp/shm-yolo-vite.log
+            exit 1
+          }
+
       - name: Browser viewer smoke
         working-directory: frontend
         shell: bash

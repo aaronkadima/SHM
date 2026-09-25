@@ -128,12 +128,46 @@ jobs:
           test -f site/dev/ort/ort-wasm-simd-threaded.mjs
           test -f site/dev/ort/ort-wasm-simd-threaded.jsep.wasm
           test -f site/dev/ort/ort-wasm-simd-threaded.jsep.mjs
-          if test -f site/browser-models/segformer_public_crack.onnx; then test -f site/browser-models/segformer_public_crack.json; fi
-          if test -f site/browser-models/yolov8n_public_crack_seg.onnx; then test -f site/browser-models/yolov8n_public_crack_seg.json; test -f site/browser-models/yolov8n_public_crack_seg.parity.png; test -f site/browser-models/yolov8n_public_crack_seg.parity.json; fi
-          if test -f site/browser-models/crackenpy_public_crack.int8.onnx; then test -f site/browser-models/crackenpy_public_crack.int8.json; test -f site/browser-models/crackenpy_public_crack.int8.parity.png; test -f site/browser-models/crackenpy_public_crack.int8.parity.json; test -f site/browser-models/crackenpy_public_crack.int8.parity-mask.png; fi
-          if test -f site/dev/browser-models/segformer_public_crack.onnx; then test -f site/dev/browser-models/segformer_public_crack.json; fi
-          if test -f site/dev/browser-models/yolov8n_public_crack_seg.onnx; then test -f site/dev/browser-models/yolov8n_public_crack_seg.json; test -f site/dev/browser-models/yolov8n_public_crack_seg.parity.png; test -f site/dev/browser-models/yolov8n_public_crack_seg.parity.json; fi
-          if test -f site/dev/browser-models/crackenpy_public_crack.int8.onnx; then test -f site/dev/browser-models/crackenpy_public_crack.int8.json; test -f site/dev/browser-models/crackenpy_public_crack.int8.parity.png; test -f site/dev/browser-models/crackenpy_public_crack.int8.parity.json; test -f site/dev/browser-models/crackenpy_public_crack.int8.parity-mask.png; fi
+          # Browser-ready neural engines are mandatory deployment assets.
+          test -s site/browser-models/segformer_public_crack.onnx
+          test -s site/browser-models/segformer_public_crack.json
+          test -s site/browser-models/yolov8n_public_crack_seg.onnx
+          test -s site/browser-models/yolov8n_public_crack_seg.json
+          test -s site/browser-models/yolov8n_public_crack_seg.parity.png
+          test -s site/browser-models/yolov8n_public_crack_seg.parity.json
+          test -s site/browser-models/crackenpy_public_crack.int8.onnx
+          test -s site/browser-models/crackenpy_public_crack.int8.json
+          test -s site/browser-models/crackenpy_public_crack.int8.parity.png
+          test -s site/browser-models/crackenpy_public_crack.int8.parity.json
+          test -s site/browser-models/crackenpy_public_crack.int8.parity-mask.png
+          test -s site/dev/browser-models/segformer_public_crack.onnx
+          test -s site/dev/browser-models/segformer_public_crack.json
+          test -s site/dev/browser-models/yolov8n_public_crack_seg.onnx
+          test -s site/dev/browser-models/yolov8n_public_crack_seg.json
+          test -s site/dev/browser-models/yolov8n_public_crack_seg.parity.png
+          test -s site/dev/browser-models/yolov8n_public_crack_seg.parity.json
+          test -s site/dev/browser-models/crackenpy_public_crack.int8.onnx
+          test -s site/dev/browser-models/crackenpy_public_crack.int8.json
+          test -s site/dev/browser-models/crackenpy_public_crack.int8.parity.png
+          test -s site/dev/browser-models/crackenpy_public_crack.int8.parity.json
+          test -s site/dev/browser-models/crackenpy_public_crack.int8.parity-mask.png
+          node - <<'NODE'
+          const fs=require("fs");
+          const checks=[
+            ["site/browser-models/segformer_public_crack.json","segformer_public_crack"],
+            ["site/browser-models/yolov8n_public_crack_seg.json","yolov8n_public_crack_seg"],
+            ["site/browser-models/crackenpy_public_crack.int8.json","crackenpy_public_crack"],
+            ["site/dev/browser-models/segformer_public_crack.json","segformer_public_crack"],
+            ["site/dev/browser-models/yolov8n_public_crack_seg.json","yolov8n_public_crack_seg"],
+            ["site/dev/browser-models/crackenpy_public_crack.int8.json","crackenpy_public_crack"]
+          ];
+          for(const [file,id] of checks){
+            const m=JSON.parse(fs.readFileSync(file,"utf8"));
+            if(m.engine_id!==id)throw new Error(file+" engine_id="+m.engine_id+" expected "+id);
+            if(!/^[0-9a-f]{64}$/i.test(String(m.sha256||"")))throw new Error(file+" invalid sha256");
+            if(!(Number(m.bytes)>0))throw new Error(file+" invalid bytes");
+          }
+          NODE
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

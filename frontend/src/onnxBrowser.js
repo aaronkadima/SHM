@@ -204,4 +204,113 @@ export async function runSegformerBrowser(file,control={}){
   };
 }
 
+
+function sigmoid(value){
+  if(value>=0){const z=Math.exp(-value);return 1/(1+z)}
+  const z=Math.exp(value);return z/(1+z);
+}
+async function prepareLetterboxTensor(file,manifest,signal){
+  ensureActive(signal);
+  const bmp=await createImageBitmap(file);
+  try{
+    const maxSide=1600,displayScale=Math.min(1,maxSide/Math.max(1,bmp.width,bmp.height));
+    const width=Math.max(1,Math.round(bmp.width*displayScale)),height=Math.max(1,Math.round(bmp.height*displayScale));
+    const source=document.createElement("canvas");source.width=width;source.height=height;
+    const sourceCtx=source.getContext("2d",{willReadFrequently:true});sourceCtx.drawImage(bmp,0,0,width,height);
+    const letterbox=manifest.preprocess?.letterbox||{},inputWidth=Number(letterbox.width||640),inputHeight=Number(letterbox.height||640);
+    const ratio=Math.min(inputWidth/width,inputHeight/height),drawWidth=Math.max(1,Math.round(width*ratio)),drawHeight=Math.max(1,Math.round(height*ratio));
+    const padX=(inputWidth-drawWidth)/2,padY=(inputHeight-drawHeight)/2;
+    const resized=document.createElement("canvas");resized.width=inputWidth;resized.height=inputHeight;
+    const ctx=resized.getContext("2d",{willReadFrequently:true});ctx.fillStyle="rgb(114,114,114)";ctx.fillRect(0,0,inputWidth,inputHeight);
+    ctx.drawImage(source,0,0,width,height,padX,padY,drawWidth,drawHeight);
+    const rgba=ctx.getImageData(0,0,inputWidth,inputHeight).data,n=inputWidth*inputHeight,factor=Number(manifest.preprocess?.rescale_factor??(1/255)),data=new Float32Array(n*3);
+    for(let i=0,j=0;i<n;i++,j+=4){data[i]=rgba[j]*factor;data[n+i]=rgba[j+1]*factor;data[2*n+i]=rgba[j+2]*factor}
+    return{source,width,height,inputWidth,inputHeight,data,ratio,padX,padY,processedScale:displayScale};
+  }finally{bmp.close?.()}
+}
+function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
+function iou(a,b){
+  const x1=Math.max(a[0],b[0]),y1=Math.max(a[1],b[1]),x2=Math.min(a[2],b[2]),y2=Math.min(a[3],b[3]);
+  const inter=Math.max(0,x2-x1)*Math.max(0,y2-y1),aa=Math.max(0,a[2]-a[0])*Math.max(0,a[3]-a[1]),bb=Math.max(0,b[2]-b[0])*Math.max(0,b[3]-b[1]);
+  return inter/Math.max(aa+bb-inter,1e-9);
+}
+function nms(items,iouThreshold=.45,maxDet=40){
+  const ordered=[...items].sort((a,b)=>b.score-a.score),kept=[];
+  for(const item of ordered){
+    let reject=false;for(const prev of kept){if(iou(item.boxInput,prev.boxInput)>iouThreshold){reject=true;break}}
+    if(!reject){kept.push(item);if(kept.length>=maxDet)break}
+  }
+  return kept;
+}
+function reconstructMask(proto,coeffs,channels,w,h){
+  const plane=w*h,out=new Float32Array(plane);
+  for(let p=0;p<plane;p++){
+    let sum=0;for(let k=0;k<channels;k++)sum+=coeffs[k]*proto[k*plane+p];
+    out[p]=sigmoid(sum);
+  }
+  return out;
+}
+function sampleMask(mask,w,h,x,y){return bilinear(mask,0,w,h,x,y)}
+
+export async function runYolov8nCrackSegBrowser(file,control={}){
+  const started=performance.now(),signal=control.signal,onProgress=control.onProgress;
+  ensureActive(signal);progress(onProgress,1,"YOLOv8n Crack Seg · preparando","start");
+  const loaded=await getSession("yolov8n_public_crack_seg",control);
+  const{ort,session,manifest}=loaded;
+  progress(onProgress,53,"YOLOv8n · letterbox","preprocess");
+  const prepared=await prepareLetterboxTensor(file,manifest,signal);ensureActive(signal);
+  const inputName=manifest.inputs?.[0]?.name||session.inputNames?.[0]||"images";
+  const tensor=new ort.Tensor("float32",prepared.data,[1,3,prepared.inputHeight,prepared.inputWidth]);
+  progress(onProgress,60,"YOLOv8n · inferência ONNX/WASM","inference");
+  const outputs=await session.run({[inputName]:tensor});ensureActive(signal);
+  progress(onProgress,76,"YOLOv8n · NMS e máscaras","postprocess");
+  const names=manifest.outputs?.map(x=>x.name)||session.outputNames||Object.keys(outputs),det=outputs[names[0]]||outputs.output0,proto=outputs[names[1]]||outputs.output1;
+  if(!det?.data||!proto?.data||det.dims?.length!==3||proto.dims?.length!==4)throw new Error("Saída YOLOv8-Seg ONNX inesperada.");
+  const channels=Number(det.dims[1]),candidates=Number(det.dims[2]),maskChannels=Number(proto.dims[1]),protoH=Number(proto.dims[2]),protoW=Number(proto.dims[3]);
+  if(channels<5+maskChannels)throw new Error("Dimensões YOLOv8-Seg incompatíveis com coeficientes de máscara.");
+  const classCount=channels-4-maskChannels,threshold=Number(manifest.threshold??.25),raw=[];
+  for(let i=0;i<candidates;i++){
+    let score=-Infinity,classId=0;
+    for(let cls=0;cls<classCount;cls++){const value=Number(det.data[(4+cls)*candidates+i]);if(value>score){score=value;classId=cls}}
+    if(score<threshold)continue;
+    const cx=Number(det.data[i]),cy=Number(det.data[candidates+i]),bw=Number(det.data[2*candidates+i]),bh=Number(det.data[3*candidates+i]);
+    const boxInput=[cx-bw/2,cy-bh/2,cx+bw/2,cy+bh/2],coeffs=new Float32Array(maskChannels);
+    for(let k=0;k<maskChannels;k++)coeffs[k]=Number(det.data[(4+classCount+k)*candidates+i]);
+    raw.push({score,classId,boxInput,coeffs});
+  }
+  const kept=nms(raw,.45,30),canvas=prepared.source,ctx=canvas.getContext("2d",{willReadFrequently:true}),img=ctx.getImageData(0,0,prepared.width,prepared.height),union=new Uint8Array(prepared.width*prepared.height),detections=[];
+  const protoData=proto.data;
+  for(const item of kept){
+    ensureActive(signal);
+    const[x1i,y1i,x2i,y2i]=item.boxInput;
+    const x1=clamp((x1i-prepared.padX)/prepared.ratio,0,prepared.width),y1=clamp((y1i-prepared.padY)/prepared.ratio,0,prepared.height),x2=clamp((x2i-prepared.padX)/prepared.ratio,0,prepared.width),y2=clamp((y2i-prepared.padY)/prepared.ratio,0,prepared.height);
+    if(x2<=x1||y2<=y1)continue;
+    const mask=reconstructMask(protoData,item.coeffs,maskChannels,protoW,protoH);
+    let area=0;
+    const ix1=Math.max(0,Math.floor(x1)),iy1=Math.max(0,Math.floor(y1)),ix2=Math.min(prepared.width,Math.ceil(x2)),iy2=Math.min(prepared.height,Math.ceil(y2));
+    for(let y=iy1;y<iy2;y++)for(let x=ix1;x<ix2;x++){
+      const inputX=x*prepared.ratio+prepared.padX,inputY=y*prepared.ratio+prepared.padY,px=(inputX/prepared.inputWidth)*protoW-.5,py=(inputY/prepared.inputHeight)*protoH-.5;
+      if(sampleMask(mask,protoW,protoH,px,py)<.5)continue;
+      area++;union[y*prepared.width+x]=1;
+      const p=(y*prepared.width+x)*4;img.data[p]=Math.round(.55*img.data[p]+.45*255);img.data[p+1]=Math.round(.55*img.data[p+1]+.45*92);img.data[p+2]=Math.round(.55*img.data[p+2]+.45*35);
+    }
+    detections.push({label:"crack",canonical_label:"crack",score:item.score,box:[x1,y1,x2,y2],area_px:area,class_id:item.classId});
+  }
+  ctx.putImageData(img,0,0);ctx.strokeStyle="rgb(255,92,35)";ctx.lineWidth=2;
+  for(const d of detections){const[x1,y1,x2,y2]=d.box;ctx.strokeRect(x1,y1,x2-x1,y2-y1)}
+  let maskArea=0;for(const v of union)maskArea+=v;
+  progress(onProgress,100,"YOLOv8n · concluído","done");
+  return{
+    image_width:prepared.width,image_height:prepared.height,
+    results:[{
+      engine_id:"yolov8n_public_crack_seg",name:"YOLOv8n Crack Segmentation · navegador",task:"instance_segmentation",status:"ok",
+      latency_ms:performance.now()-started,detections,overlay_png_base64:canvasBase64(canvas),
+      metrics:{detections:detections.length,crack_area_ratio:Number((maskArea/Math.max(1,union.length)).toFixed(6)),confidence_threshold:threshold,nms_iou:.45,source_repo:manifest.source_repo,runtime:"onnxruntime-web-wasm",runtime_version:ORT_VERSION,model_sha256:loaded.digest,model_bytes:Number(manifest.bytes||0),processed_scale:Number(prepared.processedScale.toFixed(4))},
+      message:"YOLOv8n-Seg executado no navegador com artefato ONNX verificado por SHA-256; runtime ainda em validação de paridade antes da promoção browser_ready."
+    }],
+    consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,
+    metadata:{analysis_id:"browser-"+crypto.randomUUID(),api_version:"browser-onnx-1.0",generated_at:new Date().toISOString(),mode:"browser",engine_ids:["yolov8n_public_crack_seg"],implementation:"yolov8n-seg-onnxruntime-web-v1",model_release:loaded.tag}
+  };
+}
+
 export function clearOnnxSessionCache(){sessionCache.clear()}

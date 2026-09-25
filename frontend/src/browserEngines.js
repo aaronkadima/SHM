@@ -1,5 +1,5 @@
 import{runCdmBrowser}from"./cdmBrowser.js";
-import{runSegformerBrowser,runUnetCrackBrowser,runYolov8nCrackSegBrowser}from"./onnxBrowser.js";
+import{runCrackenPyBrowser,runSegformerBrowser,runUnetCrackBrowser,runYolov8nCrackSegBrowser}from"./onnxBrowser.js";
 function maxFilterHorizontal(src,w,h,r){
   const out=new Uint8Array(src.length);
   for(let y=0;y<h;y++){const row=y*w;for(let x=0;x<w;x++){let m=0;const a=Math.max(0,x-r),b=Math.min(w-1,x+r);for(let xx=a;xx<=b;xx++){const v=src[row+xx];if(v>m)m=v}out[row+x]=m}}
@@ -122,12 +122,13 @@ async function runOpenCVBaseline(file){
   };
 }
 
-export function browserEngineSupported(engineId){return engineId==="opencv_crack"||engineId==="cdm_1"||engineId==="segformer_public_crack"||engineId==="yolov8n_public_crack_seg"||engineId==="unet_public_crack"}
+export function browserEngineSupported(engineId){return engineId==="opencv_crack"||engineId==="cdm_1"||engineId==="segformer_public_crack"||engineId==="yolov8n_public_crack_seg"||engineId==="unet_public_crack"||engineId==="crackenpy_public_crack"}
 export async function runBrowserEngine(engineId,file,options={},previousFile=null,control={}){
   if(engineId==="opencv_crack")return runOpenCVBaseline(file);
   if(engineId==="cdm_1")return runCdmBrowser(file,options,previousFile,control);
   if(engineId==="segformer_public_crack")return runSegformerBrowser(file,control);
   if(engineId==="yolov8n_public_crack_seg")return runYolov8nCrackSegBrowser(file,control);
   if(engineId==="unet_public_crack")return runUnetCrackBrowser(file,control);
+  if(engineId==="crackenpy_public_crack")return runCrackenPyBrowser(file,control);
   throw new Error("Motor ainda não possui artefato browser publicado: "+engineId);
 }

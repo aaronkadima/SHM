@@ -47,6 +47,8 @@ def status():
             "las_ifc_alignment",
             "ifc_component_resolution",
             "svg_ifc_pathology_export",
+            "image_to_spatial_pnp_registration",
+            "world_to_image_projection",
         ],
     }
 
@@ -69,6 +71,88 @@ async def las_summary(file: UploadFile = File(...)):
         except Exception as exc:
             raise HTTPException(400, f"LAS read failed: {type(exc).__name__}: {exc}") from exc
     return {"summary": summary.as_dict(), "environment": environment}
+
+
+@router.post("/registration/pnp")
+async def register_image_to_spatial(
+    image_width: int = Form(...),
+    image_height: int = Form(...),
+    correspondences_json: str = Form(...),
+    intrinsics_json: str | None = Form(None),
+    distortion_json: str | None = Form(None),
+    reprojection_error_px: float = Form(4.0),
+):
+    """Solve camera pose from 2D pixel <-> 3D world correspondences.
+
+    Intrinsics are optional only for preview. If omitted, the response marks
+    metric_projection_valid=false so approximate registration cannot be
+    mistaken for a calibrated metric result.
+    """
+    from .registration import solve_camera_pose
+    try:
+        correspondences = json.loads(correspondences_json)
+        if isinstance(correspondences, dict):
+            correspondences = correspondences.get("correspondences", [])
+        if not isinstance(correspondences, list):
+            raise ValueError("correspondences must be a list")
+        intrinsics = json.loads(intrinsics_json) if intrinsics_json else None
+        distortion = json.loads(distortion_json) if distortion_json else None
+        if intrinsics is not None and not isinstance(intrinsics, dict):
+            raise ValueError("intrinsics_json must be an object")
+        if distortion is not None and not isinstance(distortion, list):
+            raise ValueError("distortion_json must be an array")
+        result = solve_camera_pose(
+            correspondences=correspondences,
+            image_width=image_width,
+            image_height=image_height,
+            intrinsics=intrinsics,
+            distortion=distortion,
+            reprojection_error_px=reprojection_error_px,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, f"Invalid registration input: {exc}") from exc
+    except Exception as exc:
+        raise HTTPException(422, f"Camera registration failed: {type(exc).__name__}: {exc}") from exc
+    return {
+        "engine_id": "cdm_3",
+        "registration": result.as_dict(),
+        "correspondence_count": len(correspondences),
+        "ready_for_metric_pathology_projection": bool(result.metric_projection_valid),
+    }
+
+
+@router.post("/registration/project")
+async def project_world_to_image(
+    image_width: int = Form(...),
+    image_height: int = Form(...),
+    points_json: str = Form(...),
+    pose_json: str = Form(...),
+):
+    """Project 3D points into a registered image using an already solved pose."""
+    from .registration import project_world_points
+    try:
+        points = json.loads(points_json)
+        if isinstance(points, dict):
+            points = points.get("points", [])
+        pose = json.loads(pose_json)
+        if not isinstance(points, list):
+            raise ValueError("points_json must be a list")
+        if not isinstance(pose, dict):
+            raise ValueError("pose_json must be an object")
+        if len(points) > 250000:
+            raise ValueError("At most 250000 points can be projected per request.")
+        projected = project_world_points(points, pose, image_width, image_height)
+    except ValueError as exc:
+        raise HTTPException(400, f"Invalid projection input: {exc}") from exc
+    except Exception as exc:
+        raise HTTPException(422, f"World-to-image projection failed: {type(exc).__name__}: {exc}") from exc
+    visible = sum(1 for row in projected if row["in_frame"])
+    return {
+        "engine_id": "cdm_3",
+        "point_count": len(projected),
+        "in_frame_count": visible,
+        "projected": projected,
+    }
 
 
 @router.post("/ifc/resolve")

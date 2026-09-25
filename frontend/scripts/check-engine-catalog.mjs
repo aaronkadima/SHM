@@ -6,6 +6,7 @@ const catalog=JSON.parse(fs.readFileSync(new URL("../src/engines.json",import.me
 const repositoryCatalog=JSON.parse(fs.readFileSync(new URL("../../engines/catalog.json",import.meta.url),"utf8"));
 const engines=Array.isArray(catalog.engines)?catalog.engines:[];
 const cdm=engines.find(e=>e.id==="cdm_1");
+const cdm3=engines.find(e=>e.id==="cdm_3");
 const segformer=engines.find(e=>e.id==="segformer_public_crack");
 const yoloBrowser=engines.find(e=>e.id==="yolov8n_public_crack_seg");
 const unetBrowser=engines.find(e=>e.id==="unet_public_crack");
@@ -26,6 +27,19 @@ if(cdm){
   check(cdm.browser_runtime==="browser-js-cdm-v285","CDM-1 browser runtime mismatch");
 }
 check(browserEngineSupported("cdm_1")===true,"browserEngines must support cdm_1");
+check(!!cdm3,"cdm_3 must exist in engines.json");
+if(cdm3){
+  check(cdm3.name==="CDM-3","cdm_3 display name must be CDM-3");
+  check(cdm3.catalog_owned===true,"CDM-3 must be marked as an owned engine");
+  check(cdm3.browser_ready===true,"CDM-3 spatial ingestion must be browser_ready in dev");
+  check(cdm3.browser_runtime==="browser-js-cdm3-spatial-dev","CDM-3 browser runtime mismatch");
+  check(cdm3.catalog_visibility==="always","CDM-3 must remain visible in the catalog");
+  check(["las","xyz","ifc"].every(x=>cdm3.input_modalities?.includes(x)),"CDM-3 must declare LAS/XYZ/IFC inputs");
+  check(engineMatchesFilter(cdm3,"owned"),"Owned filter must include CDM-3");
+  check(engineMatchesFilter(cdm3,"browser"),"Browser filter must include CDM-3 spatial ingestion");
+  check(engineMatchesQuery(cdm3,"espacial"),"Catalog search must find CDM-3 by spatial description/group");
+}
+check(browserEngineSupported("cdm_3")===true,"browserEngines must support cdm_3");
 check(!!segformer,"segformer_public_crack must exist in engines.json");
 if(segformer){
   check(segformer.browser_ready===true,"SegFormer public crack must be browser_ready");
@@ -84,6 +98,7 @@ const sorted=sortEngines(engines);
 check(sorted[0]?.id==="cdm_1","CDM-1 must be first in sorted engine catalog");
 const owned=sorted.filter(e=>engineMatchesFilter(e,"owned"));
 check(owned.some(e=>e.id==="cdm_1"),"Owned filter must include CDM-1");
+check(owned.some(e=>e.id==="cdm_3"),"Owned filter must include CDM-3");
 check(engineMatchesFilter(cdm,"recommended"),"Recommended filter must include CDM-1");
 check(engineMatchesFilter(cdm,"browser"),"Browser filter must include CDM-1");
 check(engineMatchesQuery(cdm,"concrete damage morphology"),"Catalog search must find CDM-1 by family");

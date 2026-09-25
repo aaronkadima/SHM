@@ -149,11 +149,25 @@ export default function App(){
       .then(response=>{if(!response.ok)throw new Error("HTTP "+response.status);return response.json()})
       .then(manifest=>{
         if(cancelled)return;
-        const shaOk=String(manifest?.sha||"")===String(BUILD_SHA||"");
+        const publishedSha=String(manifest?.sha||"").trim();
+        const shaOk=publishedSha===String(BUILD_SHA||"");
         const channelOk=manifest?.channel===APP_CHANNEL;
         const branchOk=manifest?.branch===expectedBranch;
         const catalogOk=String(manifest?.catalogVersion||"")===String(CATALOG_VERSION||"");
-        setDeploymentCheck({status:shaOk&&channelOk&&branchOk&&catalogOk?"synced":"divergent",manifest,expectedBranch});
+        const synced=shaOk&&channelOk&&branchOk&&catalogOk;
+        setDeploymentCheck({status:synced?"synced":"divergent",manifest,expectedBranch});
+        if(!synced&&publishedSha&&channelOk&&branchOk){
+          const guardKey="shmAutoReloadBuild";
+          const alreadyTried=sessionStorage.getItem(guardKey);
+          if(alreadyTried!==publishedSha){
+            sessionStorage.setItem(guardKey,publishedSha);
+            const url=new URL(window.location.href);
+            url.searchParams.set("build",publishedSha);
+            window.location.replace(url.toString());
+          }
+        }else if(synced){
+          sessionStorage.removeItem("shmAutoReloadBuild");
+        }
       })
       .catch(error=>{if(!cancelled)setDeploymentCheck({status:"unavailable",manifest:null,error:String(error),expectedBranch})});
     return()=>{cancelled=true};

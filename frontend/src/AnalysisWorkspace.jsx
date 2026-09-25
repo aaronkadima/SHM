@@ -936,7 +936,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const persisting=busy&&progress?.state==="persisting";
   const spatialCdm3Ready=kind==="3d"&&selected.length===1&&selected[0]==="cdm_3"&&isCdm3SpatialAsset(file);
   const analysisBlockedReason=kind==="3d"
-    ?(spatialCdm3Ready?executionIssue:"Arquivo 3D reconhecido · para analisar LAS/IFC/XYZ selecione somente o CDM-3")
+    ?(isCdm3SpatialAsset(file)?(spatialCdm3Ready?executionIssue:"Ativo espacial CDM-3 reconhecido · selecione somente o CDM-3"):"Arquivo 3D reconhecido · análise 2D indisponível")
     :kind==="unknown"
       ?"Formato de arquivo não suportado"
       :kind==="2d"&&!imageDecoded

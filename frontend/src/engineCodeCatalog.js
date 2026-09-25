@@ -1,4 +1,6 @@
 import cdmBrowserSource from "./cdmBrowser.js?raw";
+import cdm3SpatialBrowserSource from "./cdm3SpatialBrowser.js?raw";
+import spatialAssetSource from "./spatialAsset.js?raw";
 import browserEnginesSource from "./browserEngines.js?raw";
 import onnxBrowserSource from "./onnxBrowser.js?raw";
 
@@ -232,6 +234,23 @@ function openCvStandaloneSource(){
 
 export function engineCodePackage(engine){
   if(!engine)return null;
+  if(engine.id==="cdm_3"){
+    const repositorySource=cdm3SpatialBrowserSource+"\n\n"+spatialAssetSource;
+    return {
+      kind:"Código real · CDM-3 espacial DEV",
+      language:"javascript",
+      fileName:"cdm-3-spatial-browser.js",
+      repositoryPath:"frontend/src/cdm3SpatialBrowser.js + frontend/src/spatialAsset.js",
+      repositorySource,
+      source:commentHeader(engine,"código real do motor espacial browser",[
+        "Reconhecer LAS, XYZ e IFC como entradas espaciais próprias do CDM-3.",
+        "Ler LAS binário preservando escala, offset, formato de ponto e amostragem controlada.",
+        "Ler XYZ e extrair coordenadas IFC para prévia espacial no canvas.",
+        "Recentralizar apenas a prévia 3D, mantendo bounds/origem absolutos nos metadados.",
+        "Serializar o ativo espacial no contrato SHM e encaminhar o pipeline profundo ao backend CDM-3."
+      ])+repositorySource
+    };
+  }
   if(engine.id==="cdm_1"){
     return {
       kind:"Código real · browser",

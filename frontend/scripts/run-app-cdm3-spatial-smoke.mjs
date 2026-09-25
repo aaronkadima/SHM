@@ -23,7 +23,7 @@ try{
   await waitUntil(request,'(()=>{const badge=document.querySelector(".editorTypeBadge")?.textContent||"";const engine=document.querySelector(".editorEngineState")?.textContent||"";const button=document.querySelector(".editorPrimary");return badge.includes("CDM-3 espacial")&&engine.includes("CDM-3")&&!!button&&!button.disabled})()',"CDM-3 spatial asset ready");
   await evaluate(request,'(()=>{document.querySelector(".editorPrimary")?.click();return true})()');
   const state=await waitUntil(request,'(()=>{const row=document.querySelector(".editorResultRow");const title=[...document.querySelectorAll(".editorCdmTitle")].map(x=>x.textContent||"").find(x=>x.includes("CDM-3 · ativo espacial"))||"";const progress=document.querySelector(".editorProgress");const model=document.querySelector(".modelViewport");const status=document.querySelector(".editorStatusMessage")?.textContent?.trim()||"";if(row&&title&&!progress&&model)return {row:row.textContent?.trim()||"",title,status,badge:document.querySelector(".editorTypeBadge")?.textContent?.trim()||"",engine:document.querySelector(".editorEngineState")?.textContent?.trim()||""};return null})()',"CDM-3 spatial result",60000);
-  if(!/Pontos\\s*5/.test(state.row))throw new Error("Spatial result did not report 5 points: "+JSON.stringify(state));
+  if(!String(state.row||"").includes("Pontos5"))throw new Error("Spatial result did not report 5 points: "+JSON.stringify(state));
   if(!state.badge.includes("CDM-3 espacial"))throw new Error("Spatial badge missing: "+JSON.stringify(state));
   if(!state.engine.includes("CDM-3"))throw new Error("CDM-3 was not auto-selected: "+JSON.stringify(state));
   console.log("APP_CDM3_SPATIAL_SMOKE_PASS",JSON.stringify(state));

@@ -21,6 +21,7 @@ on:
       - "tools/validate_browser_model.py"
       - "tools/generate_yolo_browser_parity.py"
       - "tools/optimize_unet_browser.py"
+      - "tools/evaluate_unet_alternatives.py"
       - "tools/requirements-browser-export.txt"
 
 permissions:
@@ -84,10 +85,12 @@ jobs:
             fi
             if [ "$ENGINE" = "unet_public_crack" ]; then
               python tools/optimize_unet_browser.py --dir "browser-models/artifacts/$ENGINE"
+              python tools/evaluate_unet_alternatives.py --out "browser-models/artifacts/$ENGINE/alternatives.json"
               cp "browser-models/artifacts/$ENGINE/model.int8.onnx" "browser-models/release/$ENGINE.int8.onnx"
               cp "browser-models/artifacts/$ENGINE/manifest.int8.json" "browser-models/release/$ENGINE.int8.json"
               cp "browser-models/artifacts/$ENGINE/parity.int8.png" "browser-models/release/$ENGINE.int8.parity.png"
               cp "browser-models/artifacts/$ENGINE/parity.int8.json" "browser-models/release/$ENGINE.int8.parity.json"
+              cp "browser-models/artifacts/$ENGINE/alternatives.json" "browser-models/release/$ENGINE.alternatives.json"
             fi
             echo "::endgroup::"
           done

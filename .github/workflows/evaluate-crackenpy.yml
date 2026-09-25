@@ -3,7 +3,7 @@ name: Evaluate CrackenPy candidate
 on:
   workflow_dispatch:
   push:
-    branches: ["dev"]
+    branches: ["main","dev"]
     paths:
       - "tools/evaluate_crackenpy_candidate.py"
       - "tools/export_crackenpy_browser.py"
@@ -63,9 +63,17 @@ jobs:
           cp "$SRC/parity-mask.png" browser-models/release-crackenpy/crackenpy_public_crack.int8.parity-mask.png
           cp "$SRC/parity.int8.json" browser-models/release-crackenpy/crackenpy_public_crack.int8.parity.json
           cp "$SRC/evaluation.json" browser-models/release-crackenpy/crackenpy_public_crack.evaluation.json
-          TAG="browser-models-dev"
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            TAG="browser-models-stable"
+            TITLE="SHM browser models · stable"
+            EXTRA=""
+          else
+            TAG="browser-models-dev"
+            TITLE="SHM browser models · development"
+            EXTRA="--prerelease"
+          fi
           if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "SHM browser models · development" --notes "Validated ONNX assets for SHM browser inference." --prerelease
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TITLE" --notes "Validated ONNX assets for SHM browser inference." $EXTRA
           fi
           gh release upload "$TAG" browser-models/release-crackenpy/* --repo "$GITHUB_REPOSITORY" --clobber
 

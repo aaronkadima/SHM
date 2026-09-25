@@ -492,7 +492,11 @@ function App(){
               await sleep(50);
               reset=document.querySelector(".viewerReset");
             }
-            reset?.click();
+            let resetClickObserved=false;
+            if(reset){
+              reset.addEventListener("click",()=>{resetClickObserved=true},{once:true});
+              reset.click();
+            }
             await sleep(80);
             const resetMode=document.querySelector(".editorViewActions button.active")?.getAttribute("aria-label")||document.querySelector(".editorViewActions button.active")?.textContent?.trim();
             const resetLayers=document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)").length;
@@ -510,7 +514,7 @@ function App(){
               ?Number.isFinite(Number(savedPrefs.resultPanelPosition?.x))&&Number.isFinite(Number(savedPrefs.resultPanelPosition?.y))
               :savedPrefs.resultPanelPosition?.x===0&&savedPrefs.resultPanelPosition?.y===0;
             const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&resetLockControlOk&&resetDrawerOk&&savedPrefs.wipePosition===50&&savedPrefs.layersWidth===360&&savedPrefs.resultPanelOpen===true&&resetPositionOk&&savedPrefs.resultPanelSize?.width===360&&savedPrefs.resultPanelSize?.height===null;
-            const resetDiag=`reset(mode=${resetMode||"none"},layers=${resetLayers},order=${resetOrder||"none"},zoom=${resetZoom||"none"},opacity=${resetOpacity||"none"},lock=${resetLockControlOk},drawer=${resetDrawerOk},wipe=${savedPrefs.wipePosition},lw=${savedPrefs.layersWidth},ropen=${savedPrefs.resultPanelOpen},rpos=${savedPrefs.resultPanelPosition?.x}/${savedPrefs.resultPanelPosition?.y},rsize=${savedPrefs.resultPanelSize?.width}/${savedPrefs.resultPanelSize?.height})`;
+            const resetDiag=`reset(found=${!!reset},connected=${!!reset?.isConnected},disabled=${!!reset?.disabled},clicked=${resetClickObserved},mode=${resetMode||"none"},layers=${resetLayers},order=${resetOrder||"none"},zoom=${resetZoom||"none"},opacity=${resetOpacity||"none"},lock=${resetLockControlOk},drawer=${resetDrawerOk},wipe=${savedPrefs.wipePosition},lw=${savedPrefs.layersWidth},ropen=${savedPrefs.resultPanelOpen},rpos=${savedPrefs.resultPanelPosition?.x}/${savedPrefs.resultPanelPosition?.y},rsize=${savedPrefs.resultPanelSize?.width}/${savedPrefs.resultPanelSize?.height})`;
             let compactOverlayArbitrationToggle=true;
             if(compactOverlay){
               const layersToggle=[...document.querySelectorAll(".editorTools button")].find(button=>button.title==="Mostrar ou ocultar camadas");

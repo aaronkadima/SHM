@@ -102,7 +102,8 @@ try{
     return true;
   })()`);
   await request("Page.reload",{ignoreCache:true});
-  await waitUntil(request,'document.readyState==="complete"&&!!document.querySelector(".analysisEditor")',"analysis workspace");
+  await sleep(500);
+  await waitUntil(request,'document.readyState==="complete"&&!!document.querySelector(".analysisEditor")&&!!document.querySelector(\'.editorTopActions input[type="file"]\')',"reloaded analysis workspace",30000);
 
   const injected=await evaluate(request,`(async()=>{
     const response=await fetch(${JSON.stringify(fixtureUrl)},{cache:"no-store"});

@@ -1,7 +1,6 @@
 const ORT_VERSION="1.30.0";
 const ORT_BASE="https://cdn.jsdelivr.net/npm/onnxruntime-web@"+ORT_VERSION+"/dist/";
 const ORT_SCRIPT=ORT_BASE+"ort.min.js";
-const RELEASE_ROOT="https://github.com/aaronkadima/SHM/releases/download/";
 let ortPromise=null;
 const sessionCache=new Map();
 
@@ -15,7 +14,12 @@ function activeReleaseTag(channel){
   const base=String(import.meta.env.BASE_URL||"/");
   return base.includes("/dev/")?"browser-models-dev":"browser-models-stable";
 }
-function assetUrl(tag,name){return RELEASE_ROOT+encodeURIComponent(tag)+"/"+encodeURIComponent(name)}
+function modelBaseUrl(control={}){
+  if(control.modelBaseUrl)return String(control.modelBaseUrl).replace(/\/?$/,"/");
+  const base=String(import.meta.env.BASE_URL||"/").replace(/\/?$/,"/");
+  return new URL(base+"browser-models/",globalThis.location?.origin||"http://localhost").href;
+}
+function assetUrl(base,name){return base+encodeURIComponent(name)}
 
 async function loadOrt(){
   if(globalThis.ort?.InferenceSession)return globalThis.ort;
@@ -73,15 +77,15 @@ async function sha256Hex(bytes){
 }
 async function getSession(engineId,control={}){
   const signal=control.signal,onProgress=control.onProgress,channel=control.channel;
-  const tag=control.releaseTag||activeReleaseTag(channel),key=tag+":"+engineId;
+  const tag=control.releaseTag||activeReleaseTag(channel),base=modelBaseUrl(control),key=base+":"+engineId;
   if(sessionCache.has(key))return sessionCache.get(key);
   const label=engineId+" · ONNX";
   ensureActive(signal);progress(onProgress,3,label,"manifest");
-  const manifest=await fetchJson(assetUrl(tag,engineId+".json"),signal);
+  const manifest=await fetchJson(assetUrl(base,engineId+".json"),signal);
   if(manifest.engine_id!==engineId)throw new Error("Manifesto ONNX pertence a outro motor.");
   progress(onProgress,6,label,"runtime");
   const ort=await loadOrt();ensureActive(signal);
-  const bytes=await fetchBytes(assetUrl(tag,engineId+".onnx"),signal,onProgress,label,8,38);
+  const bytes=await fetchBytes(assetUrl(base,engineId+".onnx"),signal,onProgress,label,8,38);
   ensureActive(signal);progress(onProgress,40,label,"checksum");
   const digest=await sha256Hex(bytes);
   if(String(manifest.sha256||"").toLowerCase()!==digest)throw new Error("Checksum SHA-256 do modelo ONNX não confere.");
@@ -89,7 +93,7 @@ async function getSession(engineId,control={}){
   progress(onProgress,45,label,"session");
   const session=await ort.InferenceSession.create(bytes,{executionProviders:["wasm"],graphOptimizationLevel:"all"});
   ensureActive(signal);progress(onProgress,50,label,"session_ready");
-  const loaded={ort,session,manifest,tag,digest};
+  const loaded={ort,session,manifest,tag,base,digest};
   sessionCache.set(key,loaded);
   return loaded;
 }

@@ -6,6 +6,7 @@ const catalog=JSON.parse(fs.readFileSync(new URL("../src/engines.json",import.me
 const repositoryCatalog=JSON.parse(fs.readFileSync(new URL("../../engines/catalog.json",import.meta.url),"utf8"));
 const engines=Array.isArray(catalog.engines)?catalog.engines:[];
 const cdm=engines.find(e=>e.id==="cdm_1");
+const segformer=engines.find(e=>e.id==="segformer_public_crack");
 const failures=[];
 const check=(ok,msg)=>{if(!ok)failures.push(msg)};
 
@@ -22,6 +23,17 @@ if(cdm){
   check(cdm.browser_runtime==="browser-js-cdm-v285","CDM-1 browser runtime mismatch");
 }
 check(browserEngineSupported("cdm_1")===true,"browserEngines must support cdm_1");
+check(!!segformer,"segformer_public_crack must exist in engines.json");
+if(segformer){
+  check(segformer.browser_ready===true,"SegFormer public crack must be browser_ready");
+  check(segformer.browser_runtime==="onnxruntime-web-wasm-1.30.0","SegFormer browser runtime mismatch");
+  check(segformer.browser_stage==="browser-ready","SegFormer browser stage must be browser-ready");
+  check(segformer.browser_release_asset==="segformer_public_crack.onnx","SegFormer ONNX asset name mismatch");
+  check(segformer.browser_manifest_asset==="segformer_public_crack.json","SegFormer manifest asset name mismatch");
+  check(engineMatchesFilter(segformer,"browser"),"Browser filter must include SegFormer");
+}
+check(browserEngineSupported("segformer_public_crack")===true,"browserEngines must support SegFormer");
+
 check(new Set(engines.map(e=>e.id)).size===engines.length,"engine ids must be unique");
 const sorted=sortEngines(engines);
 check(sorted[0]?.id==="cdm_1","CDM-1 must be first in sorted engine catalog");
@@ -37,4 +49,4 @@ if(failures.length){
   failures.forEach(x=>console.error(" - "+x));
   process.exit(1);
 }
-console.log("Engine catalog passed:",{count:engines.length,cdm:{id:cdm.id,name:cdm.name,recommended:cdm.recommended,browser_ready:cdm.browser_ready}});
+console.log("Engine catalog passed:",{count:engines.length,version:catalog.version,cdm:{id:cdm.id,browser_ready:cdm.browser_ready},segformer:{id:segformer.id,browser_ready:segformer.browser_ready,browser_runtime:segformer.browser_runtime}});

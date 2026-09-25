@@ -1,5 +1,5 @@
 {
-  "version": "1.4.1",
+  "version": "1.5.0",
   "engines": [
     {
       "id": "opencv_crack",
@@ -106,22 +106,21 @@
       "name": "YOLOv8n Crack Segmentation (OpenSistemas)",
       "family": "Ultralytics / Hugging Face",
       "task": "instance_segmentation",
-      "description": "YOLOv8n-Seg treinado no Crack-seg; runtime candidato no navegador validado em Chrome via ONNX Runtime Web/WASM, aguardando paridade final com o backend antes de browser_ready.",
+      "description": "YOLOv8n-Seg treinado no Crack-seg; execução individual validada no navegador via ONNX Runtime Web/WASM, com paridade quantitativa aprovada contra o backend Ultralytics/PyTorch.",
       "recommended": true,
       "cloud_verified": true,
       "domain_mode": "public_shm_checkpoint",
       "license": "AGPL-3.0",
       "source_url": "https://huggingface.co/OpenSistemas/YOLOv8-crack-seg",
-      "browser_ready": false,
-      "browser_runtime": null,
-      "browser_candidate": true,
+      "browser_ready": true,
+      "browser_runtime": "onnxruntime-web-wasm-1.30.0",
+      "browser_candidate": false,
       "browser_target": "onnx-web",
-      "browser_stage": "browser-smoke-validated",
+      "browser_stage": "browser-ready",
       "browser_release_dev": "browser-models-dev",
       "browser_release_stable": "browser-models-stable",
       "browser_release_asset": "yolov8n_public_crack_seg.onnx",
-      "browser_manifest_asset": "yolov8n_public_crack_seg.json",
-      "browser_runtime_candidate": "onnxruntime-web-wasm-1.30.0"
+      "browser_manifest_asset": "yolov8n_public_crack_seg.json"
     },
     {
       "id": "unet_public_crack",

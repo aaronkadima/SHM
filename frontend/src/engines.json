@@ -1,5 +1,5 @@
 {
-  "version": "1.5.1",
+  "version": "1.6.0",
   "engines": [
     {
       "id": "opencv_crack",
@@ -147,6 +147,35 @@
       "browser_size_reduction_percent": 68.15,
       "browser_quality_gate": "external-real-image-saturation",
       "browser_block_reason": "Checkpoint saturates on external real concrete-crack images; do not promote until checkpoint quality/generalization validation passes."
+    },
+    {
+      "id": "crackenpy_public_crack",
+      "name": "CrackenPy FPN Crack Segmentation (public)",
+      "family": "CrackenPy / segmentation_models_pytorch",
+      "task": "semantic_segmentation",
+      "description": "FPN com encoder ResNeXt50-32x4d para materiais cimentícios; candidato browser INT8 validado em Chrome e em referência rotulada de concreto, ainda aguardando promoção final.",
+      "recommended": false,
+      "cloud_verified": true,
+      "domain_mode": "public_shm_checkpoint",
+      "license": "BSD",
+      "source_url": "https://huggingface.co/rievil/crackenpy",
+      "doi": "10.57967/hf/3295",
+      "browser_ready": false,
+      "browser_runtime": null,
+      "browser_candidate": true,
+      "browser_target": "onnx-web",
+      "browser_stage": "browser-smoke-validated",
+      "browser_release_dev": "browser-models-dev",
+      "browser_release_stable": "browser-models-stable",
+      "browser_release_asset": "crackenpy_public_crack.int8.onnx",
+      "browser_manifest_asset": "crackenpy_public_crack.int8.json",
+      "browser_runtime_candidate": "onnxruntime-web-wasm-1.30.0",
+      "browser_precision": "int8",
+      "browser_model_bytes": 26336725,
+      "browser_size_reduction_percent": 74.25,
+      "browser_quality_gate": "labeled-concrete-mask",
+      "browser_quality_iou": 0.648371,
+      "browser_quality_dice": 0.786681
     },
     {
       "id": "segformer_public_crack",

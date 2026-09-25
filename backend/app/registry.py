@@ -1,5 +1,6 @@
 from .adapters.opencv_adapter import OpenCVCrackAdapter
 from .adapters.cdm_adapter import CDM1Adapter
+from .adapters.cdm3_adapter import CDM3Adapter
 from .adapters.ultralytics_adapter import UltralyticsAdapter
 from .adapters.grounding_adapter import GroundingDINOAdapter
 from .adapters.zeroshot_adapters import OWLv2Adapter,CLIPSegAdapter
@@ -12,6 +13,7 @@ def build():
     x=[
       OpenCVCrackAdapter(),
       CDM1Adapter(),
+      CDM3Adapter(),
       *public_pathology_catalog(),
       SegFormerCrackAdapter(),
       GroundingDINOAdapter(),OWLv2Adapter(),CLIPSegAdapter(),GroundedSAM2Adapter(),

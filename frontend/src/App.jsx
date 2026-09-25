@@ -380,7 +380,7 @@ export default function App(){
       updateProgress({state:"running",completed:0,total:100,current_engine:(meta.name||engineId)+" · preparando"});
       return await runBrowserEngine(
         engineId,sourceFile,engineId==="cdm_1"?cdmOptions:{},engineId==="cdm_1"?sourceReference:null,
-        {signal,onProgress:updateProgress,channel:APP_CHANNEL}
+        {signal,onProgress:updateProgress,channel:APP_CHANNEL,buildSha:BUILD_SHA}
       );
     }
     updateProgress({state:"running",completed:0,total:1,current_engine:(meta?.name||engineId)+" · enviando"});

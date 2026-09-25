@@ -92,6 +92,8 @@ try{
   const request=cdp(ws);
   await request("Runtime.enable");
   await request("Page.enable");
+  const wantedOrigin=new URL(targetUrl).origin;
+  await waitUntil(request,`document.readyState==="complete"&&location.origin===${JSON.stringify(wantedOrigin)}`,"initial SHM document",30000);
 
   await evaluate(request,`(()=>{
     localStorage.setItem("shmSelectedEngines",JSON.stringify([${JSON.stringify(engineId)}]));

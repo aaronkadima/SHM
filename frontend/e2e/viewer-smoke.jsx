@@ -109,7 +109,7 @@ function App(){
           const expectedEngineCount=engineCatalog.engines.length;
           const engineOverflow=document.querySelector(".editorSidebarEngineOverflow");
           const shortViewport=window.innerHeight<=620;
-          const compactUltraEngineFooter=expectedEngineCount>=24&&window.innerHeight<=820;
+          const compactUltraEngineFooter=expectedEngineCount>=24&&window.innerHeight<=900;
           const engineFooterCollapsed=shortViewport||compactUltraEngineFooter;
           const engineFooterVisibilityOk=engineFooterCollapsed
             ?visibleEngineNames.length===Math.min(12,expectedEngineCount)&&getComputedStyle(engineOverflow).display!=="none"

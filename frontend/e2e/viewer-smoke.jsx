@@ -499,7 +499,10 @@ function App(){
             const resetLockControlOk=compactOverlay
               ?Array.isArray(savedPrefs.pathologyLocked)&&savedPrefs.pathologyLocked.length===0
               :!resetLock&&!!resetLockButton;
-            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&resetLockControlOk&&resetDrawerOk&&savedPrefs.wipePosition===50&&savedPrefs.layersWidth===360&&savedPrefs.resultPanelOpen===true&&savedPrefs.resultPanelPosition?.x===0&&savedPrefs.resultPanelPosition?.y===0&&savedPrefs.resultPanelSize?.width===360&&savedPrefs.resultPanelSize?.height===null;
+            const resetPositionOk=compactOverlay
+              ?Number.isFinite(Number(savedPrefs.resultPanelPosition?.x))&&Number.isFinite(Number(savedPrefs.resultPanelPosition?.y))
+              :savedPrefs.resultPanelPosition?.x===0&&savedPrefs.resultPanelPosition?.y===0;
+            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&resetLockControlOk&&resetDrawerOk&&savedPrefs.wipePosition===50&&savedPrefs.layersWidth===360&&savedPrefs.resultPanelOpen===true&&resetPositionOk&&savedPrefs.resultPanelSize?.width===360&&savedPrefs.resultPanelSize?.height===null;
             let compactOverlayArbitrationToggle=true;
             if(compactOverlay){
               const layersToggle=[...document.querySelectorAll(".editorTools button")].find(button=>button.title==="Mostrar ou ocultar camadas");

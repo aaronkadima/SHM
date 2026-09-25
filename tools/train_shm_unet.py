@@ -17,7 +17,7 @@ from PIL import Image
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from huggingface_hub import HfApi,hf_hub_download
+from huggingface_hub import HfApi,snapshot_download
 
 ROOT=Path(__file__).resolve().parents[1]
 DATASET_REPO="Mr-Perfectuz/crack"
@@ -49,11 +49,23 @@ def resolve_training_pairs(max_pairs:int):
             idx=np.linspace(0,len(matched)-1,per,dtype=int)
             matched=[matched[int(i)] for i in idx]
         selected.extend(matched)
+    selected=selected[:max_pairs]
+    wanted=[]
+    for image_file,mask_file in selected:wanted.extend([image_file,mask_file])
+    snapshot=Path(snapshot_download(
+        repo_id=DATASET_REPO,
+        repo_type="dataset",
+        allow_patterns=wanted,
+        cache_dir="/tmp/shm-unet-dataset",
+        max_workers=8,
+    ))
     pairs=[]
-    for image_file,mask_file in selected[:max_pairs]:
-        image_path=hf_hub_download(repo_id=DATASET_REPO,filename=image_file,repo_type="dataset",cache_dir="/tmp/shm-unet-dataset")
-        mask_path=hf_hub_download(repo_id=DATASET_REPO,filename=mask_file,repo_type="dataset",cache_dir="/tmp/shm-unet-dataset")
-        pairs.append((Path(image_path),Path(mask_path),image_file))
+    for image_file,mask_file in selected:
+        image_path=snapshot/image_file;mask_path=snapshot/mask_file
+        if not image_path.exists() or not mask_path.exists():
+            raise RuntimeError("Snapshot is missing paired sample: "+image_file+" / "+mask_file)
+        pairs.append((image_path,mask_path,image_file))
+    print(json.dumps({"dataset_snapshot":"ok","pairs":len(pairs),"files":len(wanted)}),flush=True)
     return pairs
 
 def concrete_reference(root:Path,size:int):

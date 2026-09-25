@@ -7,9 +7,9 @@ on:
       - "frontend/**"
       - ".github/workflows/pages.yml"
   workflow_run:
-    workflows: ["Frontend build check"]
+    workflows: ["Frontend build check","Export browser ONNX models"]
     types: [completed]
-    branches: ["dev"]
+    branches: ["dev","main"]
   workflow_dispatch:
 
 permissions:
@@ -69,16 +69,35 @@ jobs:
 
       - name: Validate development catalog
         run: |
+          DEV_CATALOG="$(node -p "require('./dev-src/frontend/src/engines.json').version")"
           grep -R -q "CDM-1" dev-src/frontend/dist/assets
           grep -R -q "browser-js-cdm-v285" dev-src/frontend/dist/assets
           grep -R -q "development" dev-src/frontend/dist/assets
-          grep -R -q "1.2.0" dev-src/frontend/dist/assets
+          grep -R -q "$DEV_CATALOG" dev-src/frontend/dist/assets
+
+      - name: Fetch same-origin browser model assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p prod-browser-models dev-browser-models
+          if gh release view browser-models-stable --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release download browser-models-stable --repo "$GITHUB_REPOSITORY" --pattern "segformer_public_crack.onnx" --pattern "segformer_public_crack.json" --dir prod-browser-models --clobber
+          else
+            echo "Stable browser model release not available yet; production assets will be added on the next model workflow completion."
+          fi
+          if gh release view browser-models-dev --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release download browser-models-dev --repo "$GITHUB_REPOSITORY" --pattern "segformer_public_crack.onnx" --pattern "segformer_public_crack.json" --dir dev-browser-models --clobber
+          else
+            echo "Development browser model release not available."
+          fi
 
       - name: Assemble Pages artifact
         run: |
-          mkdir -p site/dev
+          mkdir -p site/dev site/browser-models site/dev/browser-models
           cp -a prod-src/frontend/dist/. site/
           cp -a dev-src/frontend/dist/. site/dev/
+          if compgen -G "prod-browser-models/*" >/dev/null; then cp -a prod-browser-models/. site/browser-models/; fi
+          if compgen -G "dev-browser-models/*" >/dev/null; then cp -a dev-browser-models/. site/dev/browser-models/; fi
           PROD_SHA="$(git -C prod-src rev-parse --short HEAD)"
           DEV_SHA="$(git -C dev-src rev-parse --short HEAD)"
           PROD_CATALOG="$(node -p "require('./prod-src/frontend/src/engines.json').version")"
@@ -101,6 +120,8 @@ jobs:
           grep -q "/SHM/dev/assets/" site/dev/index.html
           test "$(node -p "require('./site/build.json').branch")" = "main"
           test "$(node -p "require('./site/dev/build.json').branch")" = "dev"
+          if test -f site/browser-models/segformer_public_crack.onnx; then test -f site/browser-models/segformer_public_crack.json; fi
+          if test -f site/dev/browser-models/segformer_public_crack.onnx; then test -f site/dev/browser-models/segformer_public_crack.json; fi
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

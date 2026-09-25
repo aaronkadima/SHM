@@ -34,11 +34,19 @@ jobs:
         run: |
           pip install -r backend/requirements.txt
           pip install "segmentation-models-pytorch>=0.3.3,<1"
+          pip install -r tools/requirements-browser-export.txt
 
       - name: Evaluate licensed candidate
         run: |
           set -euo pipefail
           python tools/evaluate_crackenpy_candidate.py --out browser-models/artifacts/crackenpy_public_crack/evaluation.json
+
+      - name: Export and quantize browser candidate
+        run: |
+          set -euo pipefail
+          python tools/export_crackenpy_browser.py \
+            --evaluation browser-models/artifacts/crackenpy_public_crack/evaluation.json \
+            --out-dir browser-models/artifacts/crackenpy_public_crack
 
       - name: Show gate summary
         run: |

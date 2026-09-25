@@ -74,7 +74,11 @@ jobs:
       - name: SegFormer browser ONNX smoke
         working-directory: frontend
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          mkdir -p public/browser-models
+          gh release download browser-models-dev --repo "$GITHUB_REPOSITORY" --pattern "segformer_public_crack.onnx" --pattern "segformer_public_crack.json" --dir public/browser-models --clobber
           VITE_BASE_PATH=/ VITE_APP_CHANNEL=development npm run dev -- --host 127.0.0.1 --port 4177 > /tmp/shm-onnx-vite.log 2>&1 &
           VITE_PID=$!
           trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT

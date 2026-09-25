@@ -21,7 +21,7 @@ try{
   await waitUntil(request,'document.readyState==="complete"&&!!document.querySelector(".analysisEditor")',"analysis workspace");
   await evaluate(request,'(()=>{localStorage.setItem("shmSelectedEngines",JSON.stringify(["cdm_1"]));return true})()');
   await request("Page.reload",{ignoreCache:true});
-  await waitUntil(request,'document.readyState==="complete"&&!!document.querySelector(".analysisEditor")',"reloaded workspace");
+  await waitUntil(request,'document.readyState==="complete"&&!!document.querySelector(".analysisEditor")&&!!document.querySelector(\'.editorTopActions input[type="file"]\')',"reloaded workspace with file input");
   await evaluate(request,'(()=>{const input=document.querySelector(\'.editorTopActions input[type="file"]\');if(!input)throw new Error("analysis file input not found");const xyz=["100 200 10","101 200 10.5","102 201 11","103 202 12","104 203 12.5"].join("\\n");const file=new File([xyz],"cdm3-spatial-smoke.xyz",{type:"text/plain"});const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;input.dispatchEvent(new Event("change",{bubbles:true}));return true})()');
   await waitUntil(request,'(()=>{const badge=document.querySelector(".editorTypeBadge")?.textContent||"";const engine=document.querySelector(".editorEngineState")?.textContent||"";const button=document.querySelector(".editorPrimary");return badge.includes("CDM-3 espacial")&&engine.includes("CDM-3")&&!!button&&!button.disabled})()',"CDM-3 spatial asset ready");
   await evaluate(request,'(()=>{document.querySelector(".editorPrimary")?.click();return true})()');

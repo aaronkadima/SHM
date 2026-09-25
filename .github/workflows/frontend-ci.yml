@@ -77,8 +77,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p public/browser-models
-          gh release download browser-models-dev --repo "$GITHUB_REPOSITORY" --pattern "segformer_public_crack.onnx" --pattern "segformer_public_crack.json" --dir public/browser-models --clobber
+          TAG="browser-models-dev"
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then TAG="browser-models-stable"; fi
+          node scripts/fetch-browser-model-assets.mjs --tag "$TAG" --repo "$GITHUB_REPOSITORY" --engine segformer_public_crack --dir public/browser-models
           VITE_BASE_PATH=/ VITE_APP_CHANNEL=development npm run dev -- --host 127.0.0.1 --port 4177 > /tmp/shm-onnx-vite.log 2>&1 &
           VITE_PID=$!
           trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
@@ -116,8 +117,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p public/browser-models
-          gh release download browser-models-dev --repo "$GITHUB_REPOSITORY" --pattern "yolov8n_public_crack_seg.onnx" --pattern "yolov8n_public_crack_seg.json" --pattern "yolov8n_public_crack_seg.parity.png" --pattern "yolov8n_public_crack_seg.parity.json" --dir public/browser-models --clobber
+          TAG="browser-models-dev"
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then TAG="browser-models-stable"; fi
+          node scripts/fetch-browser-model-assets.mjs --tag "$TAG" --repo "$GITHUB_REPOSITORY" --engine yolov8n_public_crack_seg --parity --dir public/browser-models
           VITE_BASE_PATH=/ VITE_APP_CHANNEL=development npm run dev -- --host 127.0.0.1 --port 4178 > /tmp/shm-yolo-vite.log 2>&1 &
           VITE_PID=$!
           trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
@@ -158,8 +160,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p public/browser-models
-          gh release download browser-models-dev --repo "$GITHUB_REPOSITORY" --pattern "unet_public_crack.int8.onnx" --pattern "unet_public_crack.int8.json" --pattern "unet_public_crack.int8.parity.png" --pattern "unet_public_crack.int8.parity.json" --dir public/browser-models --clobber
+          TAG="browser-models-dev"
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then TAG="browser-models-stable"; fi
+          node scripts/fetch-browser-model-assets.mjs --tag "$TAG" --repo "$GITHUB_REPOSITORY" --engine unet_public_crack --variant int8 --parity --dir public/browser-models
           VITE_BASE_PATH=/ VITE_APP_CHANNEL=development npm run dev -- --host 127.0.0.1 --port 4179 > /tmp/shm-unet-vite.log 2>&1 &
           VITE_PID=$!
           trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT

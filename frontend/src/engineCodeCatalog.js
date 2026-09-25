@@ -1,5 +1,6 @@
 import cdmBrowserSource from "./cdmBrowser.js?raw";
 import browserEnginesSource from "./browserEngines.js?raw";
+import onnxBrowserSource from "./onnxBrowser.js?raw";
 
 function cleanId(value){
   return String(value||"engine").replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").toLowerCase();
@@ -223,9 +224,9 @@ function openCvStandaloneSource(){
   // O arquivo browserEngines.js contém o OpenCV e o despachante compartilhado.
   // Para exportação isolada removemos apenas a dependência do CDM e o despachante final,
   // preservando literalmente os helpers e runOpenCVBaseline usados pela plataforma.
-  const withoutCdmImport=browserEnginesSource.replace(/^import\{runCdmBrowser\}from"\.\/cdmBrowser\.js";\s*/,"");
-  const dispatcher=withoutCdmImport.indexOf("export function browserEngineSupported");
-  const implementation=dispatcher>=0?withoutCdmImport.slice(0,dispatcher):withoutCdmImport;
+  const withoutBrowserImports=browserEnginesSource.replace(/^import\{runCdmBrowser\}from"\.\/cdmBrowser\.js";\s*/,"").replace(/^import\{runSegformerBrowser\}from"\.\/onnxBrowser\.js";\s*/,"");
+  const dispatcher=withoutBrowserImports.indexOf("export function browserEngineSupported");
+  const implementation=dispatcher>=0?withoutBrowserImports.slice(0,dispatcher):withoutBrowserImports;
   return implementation+"\nexport {runOpenCVBaseline};\n";
 }
 
@@ -245,6 +246,22 @@ export function engineCodePackage(engine){
         "Executar alinhamento e gate de qualidade quando houver inspeção t0.",
         "Serializar camadas, métricas e resumo para o contrato SHM."
       ])+cdmBrowserSource
+    };
+  }
+  if(engine.id==="segformer_public_crack"){
+    return {
+      kind:"Código real · ONNX browser",
+      language:"javascript",
+      fileName:"segformer-onnx-browser.js",
+      repositoryPath:"frontend/src/onnxBrowser.js",
+      repositorySource:onnxBrowserSource,
+      source:commentHeader(engine,"runtime real ONNX no navegador",[
+        "Resolver o manifesto e o modelo ONNX pelo mesmo domínio do GitHub Pages.",
+        "Validar tamanho e SHA-256 do artefato antes de criar a sessão.",
+        "Normalizar a imagem RGB conforme o AutoImageProcessor do checkpoint.",
+        "Executar SegFormer via ONNX Runtime Web/WASM e aplicar softmax/limiar para a classe fissura.",
+        "Reconstruir overlay e métricas no contrato padrão SHM sem enviar a imagem ao Railway."
+      ])+onnxBrowserSource
     };
   }
   if(engine.id==="opencv_crack"){

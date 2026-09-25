@@ -1,5 +1,5 @@
 {
-  "version": "1.6.1",
+  "version": "1.7.0",
   "engines": [
     {
       "id": "opencv_crack",
@@ -30,6 +30,47 @@
       "catalog_visibility": "always",
       "catalog_group": "CDM / determinístico",
       "catalog_owned": true
+    },
+    {
+      "id": "cdm_3",
+      "name": "CDM-3",
+      "family": "Concrete Damage Morphology / Spatial AI",
+      "task": "semantic_segmentation",
+      "description": "Motor espacial 2D/3D em desenvolvimento: morfologia CDM + SegFormer multiclasse, contexto LAS, alinhamento LAS↔IFC, resolução geométrica de componentes e exportação de patologias como SVG/IfcAnnotation.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "shm_checkpoint",
+      "browser_ready": true,
+      "browser_runtime": "browser-js-cdm3-dev-bootstrap",
+      "catalog_visibility": "always",
+      "catalog_group": "CDM / espacial 3D",
+      "catalog_owned": true,
+      "dev_only": true,
+      "stage": "dev",
+      "input_modalities": [
+        "image",
+        "las",
+        "laz",
+        "ifc"
+      ],
+      "training_sources": [
+        "DACL10K",
+        "SemanticBridge",
+        "Open Images"
+      ],
+      "context_sources": [
+        "LAS ASPRS",
+        "Dynamic World",
+        "Sentinel-2",
+        "Sentinel-1",
+        "Sen1Floods11"
+      ],
+      "browser_stage": "dev-bootstrap",
+      "browser_limitations": [
+        "2D morphology bootstrap only",
+        "Stage-C AI requires configured backend checkpoint",
+        "LAS/LAZ and IFC tools require CDM-3 backend"
+      ]
     },
     {
       "id": "yolov8_public_crack",

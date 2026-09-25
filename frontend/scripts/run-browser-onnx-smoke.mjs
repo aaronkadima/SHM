@@ -6,6 +6,8 @@ const chrome=process.env.CHROME_BIN||process.argv[2];
 const targetUrl=process.env.SMOKE_URL||process.argv[3]||"http://127.0.0.1:4177/e2e/browser-onnx-smoke.html";
 const timeoutMs=Number(process.env.SMOKE_TIMEOUT_MS||180000);
 const port=Number(process.env.SMOKE_DEBUG_PORT||9227);
+const passToken=process.env.SMOKE_PASS_TOKEN||"BROWSER_ONNX_SMOKE_PASS";
+const failToken=process.env.SMOKE_FAIL_TOKEN||"BROWSER_ONNX_SMOKE_FAIL";
 if(!chrome)throw new Error("Chrome/Chromium executable was not provided.");
 
 const profile="/tmp/shm-cdp-smoke-"+process.pid;
@@ -79,12 +81,12 @@ try{
     });
     const value=String(result?.result?.value||"").trim();
     if(value&&value!==lastText){console.log(value);lastText=value}
-    if(value.includes("BROWSER_ONNX_SMOKE_PASS"))process.exitCode=0;
-    else if(value.includes("BROWSER_ONNX_SMOKE_FAIL"))throw new Error(value);
+    if(value.includes(passToken))process.exitCode=0;
+    else if(value.includes(failToken))throw new Error(value);
     else{await sleep(500);continue}
     break;
   }
-  if(process.exitCode!==0)throw new Error("Timed out waiting for BROWSER_ONNX_SMOKE_PASS. Last status: "+lastText);
+  if(process.exitCode!==0)throw new Error("Timed out waiting for "+passToken+". Last status: "+lastText);
 }finally{
   try{ws?.close()}catch{}
   if(child.exitCode==null)child.kill("SIGTERM");

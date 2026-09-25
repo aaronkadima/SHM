@@ -439,8 +439,14 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 .editorWipePane{overflow:hidden}.editorWipeDivider{position:absolute;top:0;bottom:0;z-index:7;width:2px;background:#fff;box-shadow:0 0 0 1px rgba(20,37,43,.22),0 0 10px rgba(20,37,43,.25);pointer-events:none;transform:translateX(-1px)}.editorWipeHandle{position:absolute!important;top:50%!important;left:1px!important;width:20px!important;height:26px!important;min-width:20px!important;min-height:26px!important;max-width:20px!important;max-height:26px!important;margin:0!important;padding:0!important;border-radius:7px!important;border:1px solid #cadadd!important;background:rgba(255,255,255,.94)!important;color:#4f6872!important;box-shadow:0 2px 6px rgba(32,55,64,.16)!important;transform:translate(-50%,-50%)!important;pointer-events:auto;cursor:ew-resize;display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important;user-select:none;touch-action:none;appearance:none;line-height:0;overflow:hidden}.editorWipeHandle:active,.editorWipeHandle.dragging{border-color:#8abeb7!important;background:#f4fbf9!important;box-shadow:0 2px 6px rgba(32,55,64,.2)!important;transform:translate(-50%,-50%)!important}.editorWipeHandle:focus-visible{outline:2px solid #0d766e;outline-offset:2px}.wipeArrowIcon{display:block!important;flex:0 0 7px;width:7px!important;height:7px!important;min-width:7px!important;max-width:7px!important;transition:color .12s;pointer-events:none}.wipeArrowIcon.left{margin-right:-1px}.wipeArrowIcon.right{margin-left:-1px}.wipeArrowIcon.active{color:#0d766e!important}
 
 @media(max-height:820px){
+  .editorLayers.engineDensityUltra .editorAssetMeta{grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 6px;margin:4px 0 6px;padding:5px}
+  .editorLayers.engineDensityUltra .editorAssetMeta>div{grid-template-columns:42px minmax(0,1fr);gap:4px}
+  .editorLayers.engineDensityUltra .editorAssetMeta span{font-size:6.5px}
+  .editorLayers.engineDensityUltra .editorAssetMeta b{font-size:7.5px}
   .editorLayers.engineDensityUltra .editorSidebarEngineExtra{display:none}
   .editorLayers.engineDensityUltra .editorSidebarEngineOverflow{display:block}
+  .editorLayers.engineDensityUltra .editorSidebarEngines{padding-top:2px;gap:0}
+  .editorLayers.engineDensityUltra .editorSidebarEngineName,.editorLayers.engineDensityUltra .editorSidebarEngineOverflow{font-size:4.5px;line-height:1}
 }
 @media(max-height:760px){
   .editorLayers{padding:8px 10px}

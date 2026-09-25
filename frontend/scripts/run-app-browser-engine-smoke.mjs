@@ -33,7 +33,8 @@ async function waitTarget(){
     if(child.exitCode!=null)throw new Error("Chrome exited before DevTools became ready.\n"+chromeErr);
     try{
       const list=await json("http://127.0.0.1:"+port+"/json/list");
-      const target=list.find(x=>x.type==="page"&&x.webSocketDebuggerUrl);
+      const wanted=new URL(targetUrl);
+      const target=list.find(x=>x.type==="page"&&x.webSocketDebuggerUrl&&(()=>{try{const u=new URL(x.url);return u.origin===wanted.origin&&u.pathname===wanted.pathname}catch{return false}})());
       if(target)return target;
     }catch(error){lastError=error}
     await sleep(250);
@@ -65,7 +66,11 @@ function cdp(ws){
 
 async function evaluate(request,expression){
   const result=await request("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});
-  if(result?.exceptionDetails)throw new Error(result.exceptionDetails.text||"Runtime evaluation failed");
+  if(result?.exceptionDetails){
+    const details=result.exceptionDetails;
+    const description=details.exception?.description||details.exception?.value||details.text||"Runtime evaluation failed";
+    throw new Error(String(description));
+  }
   return result?.result?.value;
 }
 async function waitUntil(request,testExpression,label,timeout=30000){

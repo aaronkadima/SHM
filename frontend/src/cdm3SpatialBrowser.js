@@ -23,14 +23,22 @@ export async function runCdm3SpatialBrowser(file,control={}){
     spatial_asset:{
       sampled_points:parsed.sampled_points,
       bounds:parsed.bounds,
+      visual_channels:parsed.metadata?.visual_channels||["elevation"],
+      has_rgb:!!parsed.colors,
+      has_intensity:!!parsed.intensities,
+      has_classification:!!parsed.classifications,
       ...parsed.metadata
     },
     capabilities:{
       browser_preview:true,
       point_cloud_ingestion:ext==="las"||ext==="xyz",
+      rgb_point_rendering:!!parsed.colors,
+      geometry_only_segmentation:!parsed.colors&&(ext==="las"||ext==="xyz"),
       ifc_preview:ext==="ifc",
       pathology_projection_ready:false,
-      note:"A importação espacial está ativa no DEV. Segmentação patológica 3D e vínculo final IfcElement usam o backend CDM-3 quando o pipeline espacial completo estiver configurado."
+      note:parsed.colors
+        ?"A nuvem contém RGB por ponto. O CDM-3 pode combinar cor, geometria, intensidade e classes na preparação da segmentação."
+        :"A nuvem não contém RGB. O CDM-3 deve limitar o browser a geometria/intensidade/classificação; fissuras, corrosão e manchas exigem imagem registrada ou nuvem colorizada."
     },
     spatial_backend:{
       status:"optional_for_ingestion_required_for_deep_pipeline",
@@ -45,7 +53,9 @@ export async function runCdm3SpatialBrowser(file,control={}){
     latency_ms:performance.now()-started,detections:[],overlay_png_base64:null,metrics,
     message:ext==="ifc"
       ?"CDM-3 DEV: IFC carregado no canvas e indexado para o pipeline espacial; a prévia browser usa coordenadas IFC, enquanto a resolução semântica final usa IfcOpenShell."
-      :"CDM-3 DEV: "+ext.toUpperCase()+" carregado no canvas como nuvem de pontos e preparado para o pipeline espacial."
+      :parsed.colors
+        ?"CDM-3 DEV: "+ext.toUpperCase()+" carregado com RGB por ponto e preparado para fusão cor + geometria."
+        :"CDM-3 DEV: "+ext.toUpperCase()+" carregado sem RGB; visualização por intensidade/classificação/elevação disponível, mas patologia visual requer textura/imagem registrada."
   };
   return {
     image_width:1,image_height:1,results:[result],consensus:{},spatial_consensus:[],

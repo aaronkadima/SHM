@@ -40,11 +40,19 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
     setSyncState(v=>({...v,[engineId]:{status:"checking",message:"Verificando repositório · "+repositoryRef+"…"}}));
     try{
       const path=pkg.repositoryPath.split("/").map(encodeURIComponent).join("/");
-      const url="https://raw.githubusercontent.com/aaronkadima/SHM/"+encodeURIComponent(repositoryRef)+"/"+path+"?ts="+Date.now();
-      const response=await fetch(url,{cache:"no-store",headers:{"Cache-Control":"no-cache"},signal:controller.signal});
-      if(syncRequests.current.get(engineId)!==controller)return;
-      if(!response.ok)throw new Error("GitHub raw "+response.status);
-      const remoteSource=await response.text();
+      const rawUrl="https://raw.githubusercontent.com/aaronkadima/SHM/"+encodeURIComponent(repositoryRef)+"/"+path+"?ts="+Date.now();
+      let remoteSource="";
+      try{
+        const response=await fetch(rawUrl,{cache:"no-store",credentials:"omit",signal:controller.signal});
+        if(!response.ok)throw new Error("GitHub raw "+response.status);
+        remoteSource=await response.text();
+      }catch(rawError){
+        if(controller.signal.aborted)throw rawError;
+        const apiUrl="https://api.github.com/repos/aaronkadima/SHM/contents/"+path+"?ref="+encodeURIComponent(repositoryRef)+"&ts="+Date.now();
+        const response=await fetch(apiUrl,{cache:"no-store",credentials:"omit",headers:{"Accept":"application/vnd.github.raw+json"},signal:controller.signal});
+        if(!response.ok)throw new Error("GitHub API "+response.status);
+        remoteSource=await response.text();
+      }
       if(syncRequests.current.get(engineId)!==controller)return;
       const same=normalizeSource(remoteSource)===normalizeSource(pkg.repositorySource);
       setSyncState(v=>({...v,[engineId]:same

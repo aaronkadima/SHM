@@ -1,6 +1,7 @@
 import React,{useState,useEffect} from "react";
 import {createRoot} from "react-dom/client";
 import AnalysisSettings from "../src/AnalysisSettings.jsx";
+import {engineCodePackage} from "../src/engineCodeCatalog.js";
 import "../src/styles.css";
 
 const engines=[
@@ -19,6 +20,20 @@ const engines=[
     source_url:"https://github.com/"
   }))
 ];
+
+const originalFetch=globalThis.fetch?.bind(globalThis);
+const cdmRepositorySource=engineCodePackage(engines[0])?.repositorySource||"";
+globalThis.fetch=async(input,init={})=>{
+  const url=String(input?.url||input||"");
+  if(url.includes("raw.githubusercontent.com/aaronkadima/SHM/")){
+    throw new TypeError("Failed to fetch");
+  }
+  if(url.includes("api.github.com/repos/aaronkadima/SHM/contents/")){
+    return new Response(cdmRepositorySource,{status:200,headers:{"Content-Type":"text/plain;charset=utf-8"}});
+  }
+  if(originalFetch)return originalFetch(input,init);
+  throw new TypeError("Unexpected fetch in settings smoke: "+url);
+};
 
 function App(){
   const [selected,setSelected]=useState(["cdm_1"]);
@@ -87,8 +102,17 @@ function check(){
   const selectedCountOk=document.querySelector(".settingsStatusEngines")?.textContent?.trim()==="Motores selecionados: 1"&&!document.querySelector(".settingsStatusMeta");
   const ownedActionButtons=[...ownedCard?.querySelectorAll(".settingsEngineCodeActions button")||[]];
   const ownedActions=ownedActionButtons.map(button=>button.textContent.trim());
+  const updateButton=ownedActionButtons.find(button=>button.textContent.includes("Atualização"));
+  if(!updateCheckStarted&&updateButton){
+    updateCheckStarted=true;
+    updateButton.click();
+    return false;
+  }
+  const updateState=ownedCard?.querySelector(".settingsSyncState");
+  if(updateCheckStarted&&updateState?.classList.contains("checking"))return false;
   const ownedRect=ownedCard?.getBoundingClientRect();
   const cardActionsOk=ownedActions.some(text=>text.includes("Informações"))&&ownedActions.some(text=>text.includes("Atualização"));
+  const updateFallbackOk=updateCheckStarted&&updateState?.classList.contains("current")&&updateState.textContent.includes("Atualizado")&&!updateState.textContent.includes("Failed to fetch");
   const cardActionsFit=!!ownedRect&&ownedActionButtons.length>=4&&ownedActionButtons.every(button=>{const r=button.getBoundingClientRect();return r.left>=ownedRect.left-1&&r.right<=ownedRect.right+1&&r.top>=ownedRect.top-1&&r.bottom<=ownedRect.bottom+1});
   const environmentSwitchOk=!!envSwitch&&envSwitch.textContent.trim()==="Abrir PROD"&&envSwitch.getAttribute("href")?.includes("#/settings")&&!envSwitch.getAttribute("href")?.includes("/dev/")&&!!envSwitchRect&&envSwitchRect.left>=topRect.left-1&&envSwitchRect.right<=topRect.right+1;
   const noHorizontalOverflow=html.scrollWidth<=viewportW+2&&body.scrollWidth<=viewportW+2;
@@ -96,15 +120,15 @@ function check(){
   const verticalScrollers=candidates.filter(el=>el.scrollHeight>el.clientHeight+3&&["auto","scroll"].includes(getComputedStyle(el).overflowY));
   const intendedScrollers=verticalScrollers.length===2&&verticalScrollers.includes(content)&&verticalScrollers.includes(motors);
 
-  const checks={documentNoScroll,pageScrollEnabled,motorsScrollEnabled,motorsVisible,cardsSeparated,barsVisible,environmentSwitchOk,selectedCountOk,cardActionsOk,cardActionsFit,noHorizontalOverflow,intendedScrollers};
+  const checks={documentNoScroll,pageScrollEnabled,motorsScrollEnabled,motorsVisible,cardsSeparated,barsVisible,environmentSwitchOk,selectedCountOk,cardActionsOk,updateFallbackOk,cardActionsFit,noHorizontalOverflow,intendedScrollers};
   const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
   result.textContent=failed.length
     ?"SETTINGS_SMOKE_FAIL "+failed.join(",")+" motorsHeight="+Math.round(motorsRect.height)+" viewport="+viewportW+"x"+viewportH+" html="+html.scrollHeight+"/"+html.clientHeight+" body="+body.scrollHeight+"/"+body.clientHeight+" footer="+Math.round(footerRect.top)+"-"+Math.round(footerRect.bottom)+" visualBottom="+Math.round(visualBottom)+" minMotors="+minMotorsHeight
-    :"SETTINGS_SMOKE_PASS viewport="+viewportW+"x"+viewportH+" motorsHeight="+Math.round(motorsRect.height)+" cards=separated env-switch=fit actions=info+update+fit selected=count scroll=page+motors footer=visual-viewport";
+    :"SETTINGS_SMOKE_PASS viewport="+viewportW+"x"+viewportH+" motorsHeight="+Math.round(motorsRect.height)+" cards=separated env-switch=fit actions=info+update+fallback+fit selected=count scroll=page+motors footer=visual-viewport";
   return true;
 }
 
-let attempts=0;
+let attempts=0,updateCheckStarted=false;
 const timer=setInterval(()=>{
   attempts++;
   if(check()||attempts>40)clearInterval(timer);

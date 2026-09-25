@@ -1,0 +1,70 @@
+name: Evaluate CrackenPy candidate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["dev"]
+    paths:
+      - "tools/evaluate_crackenpy_candidate.py"
+      - ".github/workflows/evaluate-crackenpy.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evaluate-crackenpy-dev
+  cancel-in-progress: true
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install runtime
+        run: |
+          pip install -r backend/requirements.txt
+          pip install "segmentation-models-pytorch>=0.3.3,<1"
+
+      - name: Evaluate licensed candidate
+        run: |
+          set -euo pipefail
+          python tools/evaluate_crackenpy_candidate.py --out browser-models/artifacts/crackenpy_public_crack/evaluation.json
+
+      - name: Show gate summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("browser-models/artifacts/crackenpy_public_crack/evaluation.json").read_text())
+          print(json.dumps({
+            "candidate_id":d["candidate_id"],
+            "license":d["license"],
+            "model_bytes":d["model_bytes"],
+            "concrete_reference":d["concrete_reference"],
+            "cross_domain_road":{
+              "count":d["cross_domain_road"]["count"],
+              "mean_iou":d["cross_domain_road"]["mean_iou"],
+              "mean_dice":d["cross_domain_road"]["mean_dice"],
+              "mean_area_ratio_abs_delta":d["cross_domain_road"]["mean_area_ratio_abs_delta"],
+            },
+            "gate":d["gate"],
+          },indent=2))
+          PY
+
+      - name: Upload evaluation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: crackenpy-candidate-evaluation
+          path: browser-models/artifacts/crackenpy_public_crack/*
+          if-no-files-found: error
+          retention-days: 14

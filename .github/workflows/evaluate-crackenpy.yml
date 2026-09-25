@@ -6,6 +6,7 @@ on:
     branches: ["dev"]
     paths:
       - "tools/evaluate_crackenpy_candidate.py"
+      - "tools/export_crackenpy_browser.py"
       - ".github/workflows/evaluate-crackenpy.yml"
 
 permissions:

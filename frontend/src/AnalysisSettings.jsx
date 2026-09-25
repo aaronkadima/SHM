@@ -4,8 +4,8 @@ import {engineCodePackage} from "./engineCodeCatalog.js";
 import "./analysis-settings.css";
 
 export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,cdmOptions,setCdmOptions,error}){
-  const ownedEngine=engines.find(e=>e.id==="cdm_1")||null;
-  const otherEngines=engines.filter(e=>e.id!=="cdm_1");
+  const ownedEngines=engines.filter(e=>e.catalog_owned===true);
+  const otherEngines=engines.filter(e=>e.catalog_owned!==true);
   const selectedEngine=selected.length===1?engines.find(e=>e.id===selected[0]):null;
   const localBrowser=!!selectedEngine?.browser_ready;
   const needsIndividual=selected.length===1&&!localBrowser;
@@ -92,7 +92,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
     const browserComparable=!!pkg?.repositoryPath||!!engine.browser_ready;
     return <div className={"settingsEngineCard "+(owned?"settingsEngineCardOwned":"")} data-engine-id={engine.id}>
       <label className={"settingsEngine "+(owned?"settingsEnginePinned settingsOwnedEngine":"")}>
-        <span><b>{engine.name}{owned&&<em className="settingsOwnBadge">PRÓPRIO · BROWSER</em>}{!owned&&engine.browser_ready&&<em className="settingsOwnBadge">BROWSER</em>}{!owned&&!engine.browser_ready&&engine.browser_candidate&&<em className="settingsCandidateBadge">ONNX · CANDIDATO</em>}</b><small>{engine.family} · {engine.task.replaceAll("_"," ")}</small>{owned&&<small className="settingsEngineDescription">{engine.description}</small>}</span>
+        <span><b>{engine.name}{owned&&<em className="settingsOwnBadge">{engine.id==="cdm_3"?"PRÓPRIO · ESPACIAL DEV":"PRÓPRIO · BROWSER"}</em>}{!owned&&engine.browser_ready&&<em className="settingsOwnBadge">BROWSER</em>}{!owned&&!engine.browser_ready&&engine.browser_candidate&&<em className="settingsCandidateBadge">ONNX · CANDIDATO</em>}</b><small>{engine.family} · {engine.task.replaceAll("_"," ")}</small>{owned&&<small className="settingsEngineDescription">{engine.description}</small>}</span>
         <input type="checkbox" checked={selected.includes(engine.id)} onChange={()=>toggle(engine.id)}/><span className="settingsSwitch" aria-hidden="true"/>
       </label>
       <div className="settingsEngineCodeActions">
@@ -130,12 +130,13 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
       <div className="settingsHeading"><Settings2 size={22}/><div><h1>Configurações da análise</h1><p>Defina os motores antes de executar a inspeção.</p></div></div>
       <div className="analysisSettingsCard settingsMotorsCard"><h2>Motores disponíveis</h2><p>Um motor executa uma análise individual. Dois ou mais ativam a comparação.</p>
         <div className="settingsOwnedGroup">
-          <div className="settingsGroupTitle"><span>MOTOR PRÓPRIO</span><small>Execução determinística local no navegador</small></div>
-          {ownedEngine?<EngineCard engine={ownedEngine} owned/>:<div className="settingsCatalogError">CDM-1 não foi encontrado no catálogo carregado nesta versão.</div>}
+          <div className="settingsGroupTitle"><span>MOTORES PRÓPRIOS</span><small>CDM-1 determinístico + CDM-3 espacial 2D/3D</small></div>
+          {ownedEngines.length?ownedEngines.map(engine=><EngineCard key={engine.id} engine={engine} owned/>):<div className="settingsCatalogError">Nenhum motor próprio CDM foi encontrado no catálogo carregado nesta versão.</div>}
         </div>
         <div className="settingsGroupTitle settingsOtherTitle"><span>OUTROS MOTORES</span><small>{otherEngines.length} registrados</small></div>
         <div className="settingsEngines">{otherEngines.map(e=><EngineCard key={e.id} engine={e}/>)}</div>
       </div>
+      {selected.includes("cdm_3")&&<details className="analysisSettingsCard" open><summary>CDM-3 · Entrada espacial</summary><p>Motor próprio espacial em desenvolvimento. No DEV, imagens 2D usam o bootstrap morfológico rastreável; arquivos <b>.LAS</b>, <b>.XYZ</b> e <b>.IFC</b> são importados diretamente no canvas 3D e entram no pipeline CDM-3.</p><div className="settingsMeta"><div className="settingsRuntimeNotice"><b>Formatos espaciais ativos</b><p>LAS · nuvem de pontos não comprimida; XYZ · coordenadas X Y Z; IFC · prévia espacial + indexação para resolução por IfcElement no backend CDM-3.</p></div><div className="settingsRuntimeNotice"><b>Pipeline profundo</b><p>Alinhamento LAS↔IFC, resolução do elemento hospedeiro e exportação IfcAnnotation/SVG permanecem disponíveis no backend CDM-3. O frontend não simula checkpoint IA ausente.</p></div></div></details>}
       {selected.includes("cdm_1")&&<details className="analysisSettingsCard"><summary>CDM-1 · Parâmetros morfológicos</summary><p>Valores iniciais da extensão CDM 2.8.5. Na análise individual, o CDM-1 executa localmente no navegador; na comparação com outros motores, o comparador usa os valores iniciais.</p><div className="settingsMeta">
         {[["cdm_threshold","Limiar T",1,255,1],["cdm_kernel_size","Kernel black-hat",3,99,1],["cdm_min_area","Área mínima (px²)",1,1000000,1],["cdm_min_aspect_ratio","Alongamento mínimo",1,50,.1],["cdm_mm_per_px","Calibração (mm/px; 0 = sem escala)",0,1000,.001]].map(([key,label,min,max,step])=><label key={key} className="settingsField">{label}<input type="number" min={min} max={max} step={step} value={cdmOptions[key]} onChange={e=>setCdmOptions(v=>({...v,[key]:Number(e.target.value)}))}/></label>)}
         <label className="settingsField">Tipo de elemento<select value={cdmOptions.cdm_element_family} onChange={e=>setCdmOptions(v=>({...v,cdm_element_family:e.target.value}))}><option value="barreiras_guarda_corpo_pista">Barreiras/pista · Fr=1</option><option value="juntas_dilatacao">Juntas · Fr=2</option><option value="transversinas_cortinas_alas">Transversinas/cortinas · Fr=3</option><option value="lajes_vigas_secundarias_apoios">Lajes/vigas secundárias/apoios · Fr=4</option><option value="vigas_pilares_principais">Vigas/pilares principais · Fr=5</option></select></label>

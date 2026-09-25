@@ -632,14 +632,15 @@ function App(){
             setAnalysisRes(fakeResult);
             setRunProgress({completed:100,total:100,state:"persisting",current_engine:"Salvando histórico local"});
             await sleep(100);
-            const persistingTab=document.querySelector(".editorResultsTab");
+            const persistingPanel=document.querySelector(".editorFloating");
             const persistingStatus=document.querySelector(".editorStatusMessage")?.textContent?.trim();
-            const persistencePhaseOk=!!persistingTab&&persistingTab.classList.contains("persisting")&&persistingTab.querySelector("strong")?.textContent.trim()==="100%"&&persistingTab.getAttribute("aria-label")==="Reabrir resultados · salvando histórico"&&!persistingTab.textContent.includes("Cancelar")&&persistingStatus==="Análise concluída · salvando histórico local";
+            const persistingPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
+            const persistencePhaseOk=!!persistingPanel&&!document.querySelector(".editorResultsTab")&&persistingPrefs.resultPanelOpen===true&&persistingStatus==="Análise concluída · salvando histórico local";
             setBusy(false);
             setRunProgress(null);
             await sleep(100);
             const afterBusyPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
-            const busyPreferenceRestored=afterBusyPrefs.resultPanelOpen===false&&!document.querySelector(".editorFloating")&&!!document.querySelector(".editorResultsTab");
+            const busyPreferenceRestored=afterBusyPrefs.resultPanelOpen===true&&!!document.querySelector(".editorFloating")&&!document.querySelector(".editorResultsTab");
             const alwaysPresentControlLabels=[
               "Mostrar ou ocultar painel de camadas",
               "Ampliar zoom",
@@ -676,7 +677,7 @@ function App(){
             };
             const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
             if(!failed.length){
-              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit camera=viewport-fit+escape overlays=compact-single-panel results=viewport-clamped+sticky-head+custom-resize+pointer-safe-move+persistent+collapse-state+busy-tab+persistence-phase sidebar=engines+all-names+short-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+short-collapse+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard+pointer no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
+              setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit camera=viewport-fit+escape overlays=compact-single-panel results=viewport-clamped+sticky-head+custom-resize+pointer-safe-move+persistent+collapse-state+busy-tab+auto-reveal+persistence-phase sidebar=engines+all-names+short-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+short-collapse+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard+pointer no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
               setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+" ["+responsiveDiag+"]"+(failed.includes("resetOk")?" ["+resetDiag+"]":"")+(failed.includes("sideWithinViewportOk")?" ["+sideDiag+"]":"")+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }

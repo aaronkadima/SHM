@@ -1,17 +1,75 @@
 #!/usr/bin/env python3
-"""Exporta checkpoints compactos SHM para ONNX visando ONNX Runtime Web.
+"""Export compact SHM checkpoints to ONNX for ONNX Runtime Web.
 
-Uso:
+Usage:
   python tools/export_browser_models.py --engine yolov8n_public_crack_seg
   python tools/export_browser_models.py --engine unet_public_crack
   python tools/export_browser_models.py --engine segformer_public_crack
 """
-import argparse,shutil,sys
+import argparse,hashlib,json,shutil,sys
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"backend"))
 OUTROOT=ROOT/"browser-models"/"artifacts"
+
+SOURCE_META={
+    "yolov8n_public_crack_seg":{
+        "source_repo":"OpenSistemas/YOLOv8-crack-seg",
+        "source_file":"yolov8n/weights/best.pt",
+        "license":"AGPL-3.0",
+        "input_size":[640,640],
+        "postprocess":"ultralytics-yolov8-seg-v1",
+    },
+    "unet_public_crack":{
+        "source_repo":"samir-mohamed/concrete-crack-segmentation",
+        "source_file":"unet_model_weights.pth",
+        "license":"MIT",
+        "input_size":[256,256],
+        "postprocess":"binary-mask-threshold-0.5-v1",
+    },
+    "segformer_public_crack":{
+        "source_repo":"onebeans/segformer_crack_detection",
+        "source_file":"model.safetensors",
+        "license":"MIT",
+        "input_size":[512,512],
+        "postprocess":"segformer-softmax-crack-v1",
+    },
+}
+
+def _dims(value):
+    out=[]
+    for dim in value.type.tensor_type.shape.dim:
+        if dim.dim_value:out.append(int(dim.dim_value))
+        elif dim.dim_param:out.append(dim.dim_param)
+        else:out.append(None)
+    return out
+
+def _sha256(path):
+    h=hashlib.sha256()
+    with Path(path).open("rb") as f:
+        for chunk in iter(lambda:f.read(1024*1024),b""):h.update(chunk)
+    return h.hexdigest()
+
+def write_manifest(engine,out):
+    import onnx
+    model=onnx.load(out)
+    onnx.checker.check_model(model)
+    manifest={
+        "schema":"shm-browser-model-v1",
+        "engine_id":engine,
+        "format":"onnx",
+        "opset":max((int(x.version) for x in model.opset_import),default=None),
+        "sha256":_sha256(out),
+        "bytes":Path(out).stat().st_size,
+        "file":"model.onnx",
+        "inputs":[{"name":x.name,"shape":_dims(x)} for x in model.graph.input],
+        "outputs":[{"name":x.name,"shape":_dims(x)} for x in model.graph.output],
+        **SOURCE_META[engine],
+    }
+    target=Path(out).with_name("manifest.json")
+    target.write_text(json.dumps(manifest,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
+    return target,manifest
 
 def yolo():
     from huggingface_hub import hf_hub_download
@@ -48,9 +106,11 @@ def segformer():
     return out
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument("--engine",required=True,choices=["yolov8n_public_crack_seg","unet_public_crack","segformer_public_crack"])
+    choices=["yolov8n_public_crack_seg","unet_public_crack","segformer_public_crack"]
+    p=argparse.ArgumentParser();p.add_argument("--engine",required=True,choices=choices)
     a=p.parse_args();OUTROOT.mkdir(parents=True,exist_ok=True)
     out={"yolov8n_public_crack_seg":yolo,"unet_public_crack":unet,"segformer_public_crack":segformer}[a.engine]()
-    print(out)
+    manifest_path,manifest=write_manifest(a.engine,out)
+    print(json.dumps({"model":str(out),"manifest":str(manifest_path),"sha256":manifest["sha256"],"bytes":manifest["bytes"]},indent=2))
 
 if __name__=="__main__":main()

@@ -1,5 +1,5 @@
 {
-  "version": "1.7.0",
+  "version": "1.7.1",
   "engines": [
     {
       "id": "opencv_crack",
@@ -41,16 +41,16 @@
       "cloud_verified": false,
       "domain_mode": "shm_checkpoint",
       "browser_ready": true,
-      "browser_runtime": "browser-js-cdm3-dev-bootstrap",
+      "browser_runtime": "browser-js-cdm3-spatial-dev",
       "catalog_visibility": "always",
-      "catalog_group": "CDM / espacial 3D",
+      "catalog_group": "CDM / motores próprios / espacial 3D",
       "catalog_owned": true,
       "dev_only": true,
       "stage": "dev",
       "input_modalities": [
         "image",
         "las",
-        "laz",
+        "xyz",
         "ifc"
       ],
       "training_sources": [
@@ -65,11 +65,11 @@
         "Sentinel-1",
         "Sen1Floods11"
       ],
-      "browser_stage": "dev-bootstrap",
+      "browser_stage": "dev-spatial-ingestion",
       "browser_limitations": [
-        "2D morphology bootstrap only",
-        "Stage-C AI requires configured backend checkpoint",
-        "LAS/LAZ and IFC tools require CDM-3 backend"
+        "2D image mode still uses the explicit CDM-1 morphology bootstrap until a validated Stage-C checkpoint is configured",
+        "LAS browser ingestion supports uncompressed .las; LAZ is not yet enabled",
+        "IFC browser preview uses Cartesian coordinates; final IfcElement resolution/export uses the CDM-3 backend"
       ]
     },
     {

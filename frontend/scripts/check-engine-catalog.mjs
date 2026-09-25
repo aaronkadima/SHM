@@ -63,18 +63,18 @@ check(browserEngineSupported("unet_public_crack")===true,"browserEngines must ex
 
 check(!!crackenpyBrowser,"crackenpy_public_crack must exist in engines.json");
 if(crackenpyBrowser){
-  check(crackenpyBrowser.browser_ready===false,"CrackenPy must remain browser_ready=false before final promotion");
-  check(crackenpyBrowser.browser_candidate===true,"CrackenPy must be marked as browser candidate");
-  check(crackenpyBrowser.browser_stage==="browser-smoke-validated","CrackenPy browser stage mismatch");
-  check(crackenpyBrowser.browser_runtime_candidate==="onnxruntime-web-wasm-1.30.0","CrackenPy candidate runtime mismatch");
+  check(crackenpyBrowser.browser_ready===true,"CrackenPy must be browser_ready after final promotion");
+  check(crackenpyBrowser.browser_candidate===false,"CrackenPy must no longer be marked as browser candidate");
+  check(crackenpyBrowser.browser_stage==="browser-ready","CrackenPy browser stage mismatch");
+  check(crackenpyBrowser.browser_runtime==="onnxruntime-web-wasm-1.30.0","CrackenPy browser runtime mismatch");
   check(crackenpyBrowser.browser_release_asset==="crackenpy_public_crack.int8.onnx","CrackenPy asset mismatch");
   check(crackenpyBrowser.browser_manifest_asset==="crackenpy_public_crack.int8.json","CrackenPy manifest mismatch");
   check(crackenpyBrowser.browser_precision==="int8","CrackenPy precision mismatch");
   check(crackenpyBrowser.license==="BSD","CrackenPy license must remain BSD");
   check(Number(crackenpyBrowser.browser_quality_iou)>=.60,"CrackenPy labeled-concrete IoU must stay >= 0.60");
   check(Number(crackenpyBrowser.browser_quality_dice)>=.75,"CrackenPy labeled-concrete Dice must stay >= 0.75");
-  check(crackenpyBrowser.recommended===false,"CrackenPy must not be recommended before final promotion");
-  check(!engineMatchesFilter(crackenpyBrowser,"browser"),"Browser filter must exclude CrackenPy until final promotion");
+  check(crackenpyBrowser.recommended===true,"CrackenPy should be recommended after validated promotion");
+  check(engineMatchesFilter(crackenpyBrowser,"browser"),"Browser filter must include CrackenPy after promotion");
 }
 check(browserEngineSupported("crackenpy_public_crack")===true,"browserEngines must expose CrackenPy candidate runtime for smoke/parity tests");
 

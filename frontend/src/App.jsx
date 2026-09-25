@@ -115,6 +115,7 @@ export default function App(){
   const[spatialRgbFile,setSpatialRgbFile]=useState(null);
   const[spatialRgbPrev,setSpatialRgbPrev]=useState(null);
   const[spatialRegistration,setSpatialRegistration]=useState(null);
+  const[spatialRgbAnalysis,setSpatialRgbAnalysis]=useState(null);
   const[referenceInspectionId,setReferenceInspectionId]=useState(null);
   const[referenceInspectionMeta,setReferenceInspectionMeta]=useState(null);
   const[referenceValidating,setReferenceValidating]=useState(false);
@@ -359,7 +360,7 @@ export default function App(){
     historyOpenSeq.current++;
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
     setSpatialRgbFile(null);
-    setSpatialRegistration(null);
+    setSpatialRegistration(null);setSpatialRgbAnalysis(null);
     if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev);
     setSpatialRgbPrev(null);
     if(f&&isCdm3SpatialAsset(f))setSel(new Set(["cdm_3"]));
@@ -368,7 +369,7 @@ export default function App(){
   }
   async function pickSpatialRgb(f){
     if(!f){
-      setSpatialRgbFile(null);setSpatialRegistration(null);setRes(null);setProgress(null);setJobId(null);setErr("");
+      setSpatialRgbFile(null);setSpatialRegistration(null);setSpatialRgbAnalysis(null);setRes(null);setProgress(null);setJobId(null);setErr("");
       if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev);
       setSpatialRgbPrev(null);
       return;
@@ -378,7 +379,7 @@ export default function App(){
       await validateReferenceImage(f);
       const nextPreview=URL.createObjectURL(f);
       if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev);
-      setSpatialRgbFile(f);setSpatialRegistration(null);setSpatialRgbPrev(nextPreview);setRes(null);setProgress(null);setJobId(null);
+      setSpatialRgbFile(f);setSpatialRegistration(null);setSpatialRgbAnalysis(null);setSpatialRgbPrev(nextPreview);setRes(null);setProgress(null);setJobId(null);
     }catch(e){setErr("Imagem RGB espacial inválida: "+(e?.message||String(e)))}
   }
   async function pickReference(f){
@@ -417,7 +418,15 @@ export default function App(){
     const response=await fetch(endpoint+"/cdm3/registration/pnp",{method:"POST",body:fd});
     if(!response.ok)throw new Error(await response.text());
     const solved=await response.json();
+    let rgbAnalysis=null;
+    if(spatialRgbFile){
+      rgbAnalysis=await runBrowserEngine(
+        "cdm_3",spatialRgbFile,cdmOptions,null,
+        {channel:APP_CHANNEL,buildSha:BUILD_SHA}
+      );
+    }
     setSpatialRegistration(solved);
+    setSpatialRgbAnalysis(rgbAnalysis);
     return solved;
   }
     function toggle(id){setErr("");setSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n})}
@@ -581,7 +590,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} spatialRegistration={spatialRegistration} onSolveSpatialRegistration={solveSpatialRegistration} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
+    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} spatialRegistration={spatialRegistration} spatialRgbAnalysis={spatialRgbAnalysis} onSolveSpatialRegistration={solveSpatialRegistration} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)}/>
     </>}
     {activeView==="engines"&&<EnginesView appInfo={APP_INFO} engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 

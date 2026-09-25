@@ -174,3 +174,111 @@ export function projectPathologyToPoints(parsed,registration,analysis,sourceImag
 
 export const CDM3_PATHOLOGY_COLORS=PATHOLOGY_COLORS;
 export const CDM3_PATHOLOGY_PRIORITY=PATHOLOGY_PRIORITY;
+
+function sampledPathPoints(points,maxPoints=64){
+  if(!Array.isArray(points)||points.length<=maxPoints)return Array.isArray(points)?points:[];
+  const out=[];
+  for(let i=0;i<maxPoints;i++){
+    const index=Math.min(points.length-1,Math.round(i*(points.length-1)/(maxPoints-1)));
+    out.push(points[index]);
+  }
+  return out;
+}
+
+function absolutePoint(parsed,index){
+  const center=parsed.bounds?.center||[0,0,0];
+  return [
+    Number(parsed.positions[index*3])+Number(center[0]||0),
+    Number(parsed.positions[index*3+1])+Number(center[1]||0),
+    Number(parsed.positions[index*3+2])+Number(center[2]||0)
+  ];
+}
+
+function projectionGrid(projection,analysisWidth,analysisHeight,sourceWidth,sourceHeight,bucketSize=12){
+  const grid=new Map(),sx=analysisWidth/Math.max(1,sourceWidth),sy=analysisHeight/Math.max(1,sourceHeight);
+  for(let i=0;i<projection.total;i++){
+    if(!projection.visible[i])continue;
+    const x=projection.uv[i*2]*sx,y=projection.uv[i*2+1]*sy;
+    if(!Number.isFinite(x)||!Number.isFinite(y))continue;
+    const gx=Math.floor(x/bucketSize),gy=Math.floor(y/bucketSize),key=gx+","+gy;
+    const row=grid.get(key)||[];row.push({index:i,x,y});grid.set(key,row);
+  }
+  return {grid,sx,sy,bucketSize};
+}
+
+function nearestProjectedPoint(index,target,maxDistancePx=36){
+  const x=Number(target?.[0]),y=Number(target?.[1]);
+  if(!Number.isFinite(x)||!Number.isFinite(y))return null;
+  const {grid,bucketSize}=index,gx=Math.floor(x/bucketSize),gy=Math.floor(y/bucketSize);
+  const rings=Math.max(1,Math.ceil(maxDistancePx/bucketSize));let best=null,bestD2=maxDistancePx*maxDistancePx;
+  for(let ring=0;ring<=rings;ring++){
+    for(let yy=gy-ring;yy<=gy+ring;yy++)for(let xx=gx-ring;xx<=gx+ring;xx++){
+      if(ring>0&&xx>gx-ring&&xx<gx+ring&&yy>gy-ring&&yy<gy+ring)continue;
+      for(const candidate of grid.get(xx+","+yy)||[]){
+        const dx=candidate.x-x,dy=candidate.y-y,d2=dx*dx+dy*dy;
+        if(d2<bestD2){bestD2=d2;best=candidate}
+      }
+    }
+  }
+  return best?{...best,distance_px:Math.sqrt(bestD2)}:null;
+}
+
+export function buildSpatialPathologyRecords(
+  parsed,registration,analysis,sourceImageWidth,sourceImageHeight,
+  {sourceImageName="",maxVertexReprojectionPx=36,engineVersion="CDM-3 3.0.0-dev"}={}
+){
+  const engine=analysis?.results?.[0]||analysis?.result||analysis;
+  const imageRecords=engine?.metrics?.records||[];
+  const analysisWidth=Number(analysis?.image_width||engine?.metrics?.processed_width||0);
+  const analysisHeight=Number(analysis?.image_height||engine?.metrics?.processed_height||0);
+  if(!imageRecords.length||!(analysisWidth>0)||!(analysisHeight>0))return [];
+  const projection=projectSpatialPoints(parsed,registration,sourceImageWidth,sourceImageHeight);
+  if(!projection)return [];
+  const index=projectionGrid(projection,analysisWidth,analysisHeight,sourceImageWidth,sourceImageHeight);
+  const metricValid=registration?.registration?.metric_projection_valid===true;
+  const out=[];
+  imageRecords.forEach((record,recordIndex)=>{
+    const cls=String(record?.class||record?.damage_class||"");
+    if(!PATHOLOGY_PRIORITY.includes(cls))return;
+    const sourcePoints=sampledPathPoints(record?.points||record?.polygon||[],record?.closed?64:32);
+    const matches=[],seen=new Set();
+    for(const sourcePoint of sourcePoints){
+      const match=nearestProjectedPoint(index,sourcePoint,maxVertexReprojectionPx);
+      if(!match||seen.has(match.index))continue;
+      seen.add(match.index);matches.push(match);
+    }
+    if(matches.length<2)return;
+    const vertices=matches.map(match=>absolutePoint(parsed,match.index));
+    if(record?.closed&&vertices.length>=3){
+      const first=vertices[0],last=vertices.at(-1);
+      if(Math.hypot(first[0]-last[0],first[1]-last[1],first[2]-last[2])>1e-9)vertices.push([...first]);
+    }
+    const reprojectionRmse=Math.sqrt(matches.reduce((sum,row)=>sum+row.distance_px*row.distance_px,0)/matches.length);
+    out.push({
+      id:String(record?.id||("cdm3-"+cls+"-"+(recordIndex+1))),
+      damage_class:cls,
+      source_class:cls,
+      engine_version:engineVersion,
+      geometry:{
+        vertices_3d:vertices,
+        coord_frame:"point_cloud_world",
+        reprojection_error_px:reprojectionRmse,
+        source_record_closed:!!record?.closed,
+        source_bbox_px:record?.bbox||null,
+        source_width_px:Number(record?.width_px||0),
+        source_area_px2:Number(record?.area_px2||0),
+        registration_metric_valid:metricValid,
+        vertex_match_count:matches.length
+      },
+      provenance:{
+        source_image:sourceImageName,
+        detector:"CDM morphology bootstrap",
+        detector_confidence_calibrated:false,
+        registration_method:"2d_3d_correspondences_pnp_ransac",
+        registration_metric_valid:metricValid
+      }
+    });
+  });
+  return out;
+}
+

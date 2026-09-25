@@ -20,6 +20,18 @@
 - Sem `SHM_CDM3_CHECKPOINT`, o motor usa explicitamente o CDM-1 como bootstrap morfológico. O fallback é marcado em `metrics.runtime_mode=morphology_bootstrap`; a plataforma não apresenta esse resultado como inferência IA.
 - Com checkpoint configurado, `runtime_mode=segformer_stage_c`.
 
+## Importação espacial no canvas DEV
+
+O frontend de desenvolvimento reconhece automaticamente os formatos espaciais próprios do CDM-3:
+
+- `.las`: leitura binária LAS não comprimida, preservando escala, offset, formato de ponto, bounds e classes amostradas; a prévia é uma nuvem de pontos Three.js.
+- `.xyz`: leitura de coordenadas X Y Z separadas por espaço, vírgula ou ponto e vírgula; a prévia é uma nuvem de pontos.
+- `.ifc`: leitura STEP para identificação de schema/entidades e extração de coordenadas cartesianas para prévia espacial. A resolução geométrica/semântica final continua no backend com IfcOpenShell.
+
+Ao importar qualquer um desses três formatos, a UI seleciona automaticamente somente o CDM-3, identifica o arquivo como **CDM-3 espacial**, habilita **Analisar** e reporta formato, pontos amostrados, bounds e metadados IFC no painel de resultados.
+
+Limitações atuais: `.laz` ainda não é aceito pelo parser browser; a prévia IFC não substitui a tesselação geométrica completa do IfcOpenShell; e a importação espacial não deve ser interpretada como um checkpoint de detecção 3D já treinado.
+
 ## LAS <-> IFC
 
 O módulo de alinhamento implementa ICP rígido como refinamento. ICP ponto-a-ponto não deve ser usado como única fonte de pose quando o alvo é dominado por superfícies planas (por exemplo, tabuleiro/laje), pois existe degenerescência geométrica. Para inspeções reais, usar GCP/RTK-GNSS ou uma inicialização equivalente e, quando possível, incluir feições não planares (pilares, vigas, guarda-corpos, juntas) antes do refinamento ICP.

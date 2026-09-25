@@ -145,6 +145,8 @@ jobs:
           SMOKE_URL="http://127.0.0.1:4178/e2e/browser-yolo-smoke.html" \
           SMOKE_TIMEOUT_MS=180000 \
           SMOKE_DEBUG_PORT=9228 \
+          SMOKE_PASS_TOKEN="BROWSER_YOLO_SMOKE_PASS" \
+          SMOKE_FAIL_TOKEN="BROWSER_YOLO_SMOKE_FAIL" \
           node scripts/run-browser-onnx-smoke.mjs || {
             cat /tmp/shm-yolo-vite.log
             exit 1

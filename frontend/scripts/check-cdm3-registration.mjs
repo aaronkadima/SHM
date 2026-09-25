@@ -62,8 +62,23 @@ assert.equal(crack.counts.cracks,1);
 assert.deepEqual(crack.source_analysis_size,[202,202]);
 assert.deepEqual(crack.source_image_size,[101,101]);
 
+const occludedParsed={
+  positions:new Float32Array([0,0,0,0,0,5]),
+  bounds:{center:[0,0,5]}
+};
+const occludedColor=registeredPointColors(occludedParsed,registration,{width,height,data});
+assert.equal(occludedColor.colored,1);
+assert.equal(occludedColor.projection.inFrame[0],1);
+assert.equal(occludedColor.projection.inFrame[1],1);
+assert.equal(occludedColor.projection.visible[0],1);
+assert.equal(occludedColor.projection.visible[1],0);
+const occludedPathology=projectPathologyToPoints(occludedParsed,registration,regionAnalysis,width,height);
+assert.equal(occludedPathology.in_frame_points,2);
+assert.equal(occludedPathology.visible_points,1);
+assert.equal(occludedPathology.matched_points,1);
+
 console.log("CDM3_REGISTERED_RGB_PROJECTION_PASS",{
   center_color:Array.from(projected.colors).map(v=>Number(v.toFixed(4))),
   colored:projected.colored,
-  out_of_frame_colored:fallback.colored, pathology_region:region.matched_points, pathology_crack:crack.matched_points
+  out_of_frame_colored:fallback.colored, pathology_region:region.matched_points, pathology_crack:crack.matched_points, occlusion_visible:occludedPathology.visible_points
 });

@@ -1,0 +1,47 @@
+name: Bootstrap local ONNX Runtime dependency
+
+on:
+  push:
+    branches: ["dev"]
+    paths:
+      - ".github/workflows/bootstrap-ort.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v6
+        with:
+          ref: dev
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install pinned ONNX Runtime Web
+        working-directory: frontend
+        run: |
+          npm pkg set 'scripts.copy-ort=node scripts/copy-ort-runtime.mjs'
+          npm pkg set 'scripts.postinstall=npm run copy-ort'
+          npm install onnxruntime-web@1.30.0 --save-exact
+
+      - name: Commit deterministic dependency lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package.json frontend/package-lock.json
+          if git diff --cached --quiet; then
+            echo "Dependency already synchronized."
+            exit 0
+          fi
+          git commit -m "Bundle ONNX Runtime Web for same-origin inference"
+          git push origin HEAD:dev

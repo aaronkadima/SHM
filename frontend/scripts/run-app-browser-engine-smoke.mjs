@@ -106,7 +106,7 @@ try{
   await waitUntil(request,'document.readyState==="complete"&&!!document.querySelector(".analysisEditor")',"reloaded analysis workspace",30000);
 
   await evaluate(request,'(()=>{location.hash="#/settings";return true})()');
-  await waitUntil(request,'!!document.querySelector(".analysisSettings")&&!!document.querySelector(".settingsEngineCard input[type=\"checkbox\"]:checked")',"settings with selected engine",30000);
+  await waitUntil(request,`!!document.querySelector(".analysisSettings")&&!!document.querySelector('.settingsEngineCard input[type="checkbox"]:checked')`,"settings with selected engine",30000);
   const updateState=await evaluate(request,`(async()=>{
     const selected=document.querySelector('.settingsEngineCard input[type="checkbox"]:checked');
     const card=selected?.closest(".settingsEngineCard");

@@ -81,3 +81,14 @@ O visualizador DEV preserva os atributos visuais da nuvem em vez de reduzir o at
 
 Regra de segmentação CDM-3: geometria, intensidade e classes são adequadas para segmentação de componentes, terreno, tabuleiro, água/vegetação e priors espaciais. Elas **não substituem informação fotométrica** para detecção visual fina de fissuras, corrosão, manchas, eflorescência ou desplacamento superficial. Para estas manifestações, o pipeline deve usar RGB por ponto ou imagens RGB/IRT calibradas e registradas na mesma referência espacial da nuvem/IFC. A interface sinaliza explicitamente quando o ativo não possui RGB, evitando atribuir confiança visual a uma nuvem sem textura.
 
+### Registro de imagem RGB sobre LAS/XYZ/IFC
+
+Quando a nuvem não possui RGB interno, o DEV permite anexar uma **Imagem RGB** auxiliar sem substituir o ativo espacial. O vínculo segue duas fases:
+
+1. **Fonte fotométrica anexada** — a imagem fica associada ao LAS/XYZ/IFC e aparece em Camadas e no canvas como `RGB externo`.
+2. **Registro geométrico 2D→3D** — a pose da câmera é resolvida por correspondências pixel↔coordenada 3D usando PnP/RANSAC no endpoint `/cdm3/registration/pnp`. A projeção de pontos 3D de volta para a imagem usa `/cdm3/registration/project`.
+
+O registro exige pelo menos 6 correspondências 2D–3D. Intrínsecos de câmera (`fx`, `fy`, `cx`, `cy`) podem ser fornecidos. Na ausência deles, o backend aceita uma aproximação pinhole apenas para inicialização/preview e retorna `metric_projection_valid=false`; esse resultado não deve ser usado para quantificação métrica de patologias. A projeção final de máscaras para a nuvem/IFC só deve ser habilitada após uma pose aceita e, para uso métrico, calibração intrínseca válida.
+
+Ao trocar o ativo espacial principal, a imagem RGB auxiliar é removida automaticamente para impedir associação acidental entre arquivos de campanhas ou modelos diferentes.
+

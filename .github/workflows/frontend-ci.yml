@@ -102,7 +102,7 @@ jobs:
             exit 1
           fi
 
-          timeout 180s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --user-data-dir="/tmp/shm-onnx-chrome-$RANDOM" --window-size=1024,768 --dump-dom http://127.0.0.1:4177/e2e/browser-onnx-smoke.html > /tmp/shm-onnx-dom.html 2>/tmp/shm-onnx-chrome.log || {
+          timeout 180s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --user-data-dir="/tmp/shm-onnx-chrome-$RANDOM" --window-size=1024,768 --virtual-time-budget=120000 --dump-dom http://127.0.0.1:4177/e2e/browser-onnx-smoke.html > /tmp/shm-onnx-dom.html 2>/tmp/shm-onnx-chrome.log || {
               cat /tmp/shm-onnx-vite.log
               cat /tmp/shm-onnx-chrome.log
               exit 1

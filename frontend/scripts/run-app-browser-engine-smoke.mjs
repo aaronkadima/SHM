@@ -169,14 +169,18 @@ try{
       const error=document.querySelector(".editorStatusMessage")?.textContent?.trim()||"";
       const rows=[...document.querySelectorAll(".editorResultRow")];
       const overlay=document.querySelector(".engineOverlayImage");
+      const pathologyOverlays=[...document.querySelectorAll(".pathologyOverlay")];
+      const firstPathology=pathologyOverlays[0]||null;
       const panel=document.querySelector(".editorFloating");
       const progress=document.querySelector(".editorProgress");
       return{
         error,
         resultRows:rows.length,
         resultText:rows.map(x=>x.textContent?.trim()||""),
-        overlay:!!overlay,
-        overlaySrc:overlay?.getAttribute("src")||"",
+        overlay:!!overlay||pathologyOverlays.length>0,
+        overlayType:overlay?"engine":pathologyOverlays.length>0?"pathology":"none",
+        overlayCount:overlay?1:pathologyOverlays.length,
+        overlaySrc:overlay?.getAttribute("src")||firstPathology?.getAttribute("src")||"",
         panel:!!panel,
         progress:!!progress,
         comparison:[...document.querySelectorAll(".editorPaneBadge")].map(x=>x.textContent?.trim()||""),
@@ -194,6 +198,7 @@ try{
   }
   if(!String(state.overlaySrc||"").startsWith("data:image/png;base64,"))throw new Error("Overlay is not an inline PNG result.");
   if(!state.comparison.some(x=>/camadas|detec/i.test(x)))throw new Error("Viewer did not switch to an overlay-capable comparison.");
+  if(engineId==="cdm_1"&&state.overlayType!=="pathology")throw new Error("CDM-1 did not render pathology layers.");
   console.log("APP_BROWSER_ENGINE_SMOKE_PASS",JSON.stringify(state));
 }finally{
   try{ws?.close()}catch{}

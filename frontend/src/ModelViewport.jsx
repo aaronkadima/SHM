@@ -7,6 +7,7 @@ import {PLYLoader} from "three/addons/loaders/PLYLoader.js";
 import {STLLoader} from "three/addons/loaders/STLLoader.js";
 import {SVGRenderer} from "three/addons/renderers/SVGRenderer.js";
 import {standaloneGltfIssue} from "./modelAssetValidation.js";
+import {parseSpatialAsset,spatialExtension} from "./spatialAsset.js";
 
 export default function ModelViewport({file}){
   const mount=useRef(null),view=useRef(null),[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null);
@@ -43,8 +44,23 @@ export default function ModelViewport({file}){
       view.current={camera,controls,center:center.clone(),radius};
       controls.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(radius,radius*.65,radius));camera.near=Math.max(.001,size.length()/10000);camera.far=Math.max(100,size.length()*100);camera.updateProjectionMatrix();controls.update();dirty=true
     };
-    const fail=e=>{releaseUrl();if(!disposed){setLoading(false);setLoadProgress(null);setError("Não foi possível abrir o modelo: "+(e?.message||String(e)))} };
+    const fail=e=>{releaseUrl();if(!disposed){setLoading(false);setLoadProgress(null);setError("Não foi possível abrir o ativo espacial/3D: "+(e?.message||String(e)))} };
     const onProgress=event=>{if(disposed)return;const total=Number(event?.total)||0,loaded=Number(event?.loaded)||0;setLoadProgress(total>0?Math.max(0,Math.min(99,Math.round(loaded/total*100))):null)};
+    const loadSpatial=async()=>{
+      try{
+        const parsed=await parseSpatialAsset(file,{maxPoints:250000});
+        if(disposed)return;
+        const geometry=new THREE.BufferGeometry();
+        geometry.setAttribute("position",new THREE.BufferAttribute(parsed.positions,3));
+        geometry.computeBoundingSphere();
+        const radius=Math.max(Number(geometry.boundingSphere?.radius)||1,1e-6);
+        const pointSize=Math.max(radius/420,0.001);
+        const material=new THREE.PointsMaterial({size:pointSize,sizeAttenuation:true});
+        const points=new THREE.Points(geometry,material);
+        points.userData.spatialAsset={extension:spatialExtension(file),...parsed.metadata,bounds:parsed.bounds,sampled_points:parsed.sampled_points};
+        fit(points);
+      }catch(e){fail(e)}
+    };
     const loadGltf=async()=>{
       if(ext==="gltf"){
         let text;
@@ -59,7 +75,8 @@ export default function ModelViewport({file}){
       new GLTFLoader().load(url,g=>fit(g.scene),onProgress,fail);
     };
     try{
-      if(ext==="glb"||ext==="gltf")loadGltf().catch(fail);
+      if(spatialExtension(file))loadSpatial().catch(fail);
+      else if(ext==="glb"||ext==="gltf")loadGltf().catch(fail);
       else if(ext==="obj")new OBJLoader().load(url,fit,onProgress,fail);
       else if(ext==="stl"||ext==="ply"){
         const loader=ext==="stl"?new STLLoader():new PLYLoader();
@@ -79,5 +96,5 @@ export default function ModelViewport({file}){
     if(direction==="top")camera.up.set(0,0,-1);
     controls.target.copy(center);camera.lookAt(center);controls.update()
   }
-  return <div className="modelViewport" ref={mount} role="region" aria-label="Visualizador 3D do modelo importado" aria-busy={loading}>{loading&&<div className="modelLoading" role="status" aria-live="polite"><b>Carregando modelo 3D</b><span>{loadProgress==null?"Preparando geometria…":loadProgress+"%"}</span>{loadProgress!=null&&<i><b style={{width:loadProgress+"%"}}/></i>}</div>}{error&&<div className="modelError" role="alert">{error}</div>}<div className="modelViews" aria-label="Vistas do modelo 3D"><button disabled={loading||!!error} onClick={()=>setView("perspective")}>Perspectiva</button><button disabled={loading||!!error} onClick={()=>setView("front")}>Frontal</button><button disabled={loading||!!error} onClick={()=>setView("top")}>Superior</button><button disabled={loading||!!error} onClick={()=>setView("side")}>Lateral</button></div>{fallback&&<div className="modelFallback">Visualização vetorial · WebGL indisponível</div>}<div className="modelHint">3D · arraste para orbitar · roda para ampliar · botão direito para deslocar</div></div>
+  return <div className="modelViewport" ref={mount} role="region" aria-label="Visualizador espacial 3D do arquivo importado" aria-busy={loading}>{loading&&<div className="modelLoading" role="status" aria-live="polite"><b>Carregando ativo espacial / 3D</b><span>{loadProgress==null?"Preparando geometria…":loadProgress+"%"}</span>{loadProgress!=null&&<i><b style={{width:loadProgress+"%"}}/></i>}</div>}{error&&<div className="modelError" role="alert">{error}</div>}<div className="modelViews" aria-label="Vistas do modelo 3D"><button disabled={loading||!!error} onClick={()=>setView("perspective")}>Perspectiva</button><button disabled={loading||!!error} onClick={()=>setView("front")}>Frontal</button><button disabled={loading||!!error} onClick={()=>setView("top")}>Superior</button><button disabled={loading||!!error} onClick={()=>setView("side")}>Lateral</button></div>{fallback&&<div className="modelFallback">Visualização vetorial · WebGL indisponível</div>}<div className="modelHint">3D · arraste para orbitar · roda para ampliar · botão direito para deslocar</div></div>
 }

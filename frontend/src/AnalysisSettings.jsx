@@ -90,7 +90,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
   function EngineCard({engine,owned=false}){
     const pkg=engineCodePackage(engine),opened=openCode===engine.id,infoOpen=openInfo===engine.id,sync=syncState[engine.id];
     const browserComparable=!!pkg?.repositoryPath||!!engine.browser_ready;
-    return <div className={"settingsEngineCard "+(owned?"settingsEngineCardOwned":"")}>
+    return <div className={"settingsEngineCard "+(owned?"settingsEngineCardOwned":"")} data-engine-id={engine.id}>
       <label className={"settingsEngine "+(owned?"settingsEnginePinned settingsOwnedEngine":"")}>
         <span><b>{engine.name}{owned&&<em className="settingsOwnBadge">PRÓPRIO · BROWSER</em>}{!owned&&engine.browser_ready&&<em className="settingsOwnBadge">BROWSER</em>}{!owned&&!engine.browser_ready&&engine.browser_candidate&&<em className="settingsCandidateBadge">ONNX · CANDIDATO</em>}</b><small>{engine.family} · {engine.task.replaceAll("_"," ")}</small>{owned&&<small className="settingsEngineDescription">{engine.description}</small>}</span>
         <input type="checkbox" checked={selected.includes(engine.id)} onChange={()=>toggle(engine.id)}/><span className="settingsSwitch" aria-hidden="true"/>

@@ -28,8 +28,8 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
   function normalizeSource(value){return String(value||"").replace(/\r\n/g,"\n")}
   async function checkBrowserUpdate(engine){
     const pkg=engineCodePackage(engine),engineId=engine.id;
-    if(!pkg?.repositoryPath||pkg.repositorySource==null){
-      setSyncState(v=>({...v,[engineId]:{status:"unavailable",message:"Sem código browser local para comparar."}}));
+    if(!pkg?.repositoryPath&&!engine.browser_ready){
+      setSyncState(v=>({...v,[engineId]:{status:"unavailable",message:"Sem implementação local publicada para verificar."}}));
       return;
     }
     syncRequests.current.get(engineId)?.abort();
@@ -37,32 +37,51 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
     syncRequests.current.set(engineId,controller);
     let timedOut=false;
     const timeout=setTimeout(()=>{timedOut=true;controller.abort()},12000);
-    setSyncState(v=>({...v,[engineId]:{status:"checking",message:"Verificando repositório · "+repositoryRef+"…"}}));
+    setSyncState(v=>({...v,[engineId]:{status:"checking",message:"Verificando publicação "+repositoryRef+"…"}}));
     try{
-      const path=pkg.repositoryPath.split("/").map(encodeURIComponent).join("/");
-      const rawUrl="https://raw.githubusercontent.com/aaronkadima/SHM/"+encodeURIComponent(repositoryRef)+"/"+path+"?ts="+Date.now();
-      let remoteSource="";
-      try{
-        const response=await fetch(rawUrl,{cache:"no-store",credentials:"omit",signal:controller.signal});
-        if(!response.ok)throw new Error("GitHub raw "+response.status);
-        remoteSource=await response.text();
-      }catch(rawError){
-        if(controller.signal.aborted)throw rawError;
-        const apiUrl="https://api.github.com/repos/aaronkadima/SHM/contents/"+path+"?ref="+encodeURIComponent(repositoryRef)+"&ts="+Date.now();
-        const response=await fetch(apiUrl,{cache:"no-store",credentials:"omit",headers:{"Accept":"application/vnd.github.raw+json"},signal:controller.signal});
-        if(!response.ok)throw new Error("GitHub API "+response.status);
-        remoteSource=await response.text();
+      const base=String(import.meta.env.BASE_URL||"/").replace(/\/?$/,"/");
+      const buildUrl=new URL(base+"build.json",window.location.origin);
+      buildUrl.searchParams.set("ts",String(Date.now()));
+      const buildResponse=await fetch(buildUrl,{cache:"no-store",credentials:"same-origin",signal:controller.signal});
+      if(!buildResponse.ok)throw new Error("build.json HTTP "+buildResponse.status);
+      const published=await buildResponse.json();
+      const publishedSha=String(published?.sha||"").trim();
+      const localSha=String(appInfo?.buildSha||"").trim();
+      const buildCurrent=!!publishedSha&&!!localSha&&(publishedSha===localSha||publishedSha.startsWith(localSha)||localSha.startsWith(publishedSha));
+
+      let modelInfo=null;
+      if(engine.browser_ready&&engine.browser_manifest_asset){
+        const manifestUrl=new URL(base+"browser-models/"+encodeURIComponent(engine.browser_manifest_asset),window.location.origin);
+        manifestUrl.searchParams.set("ts",String(Date.now()));
+        const response=await fetch(manifestUrl,{cache:"no-store",credentials:"same-origin",signal:controller.signal});
+        if(!response.ok)throw new Error("manifesto "+engine.name+" HTTP "+response.status);
+        const manifest=await response.json();
+        if(manifest.engine_id!==engineId)throw new Error("manifesto publicado pertence a "+String(manifest.engine_id||"outro motor"));
+        const sha=String(manifest.sha256||"");
+        if(!/^[0-9a-f]{64}$/i.test(sha))throw new Error("manifesto publicado sem SHA-256 válido");
+        modelInfo={sha,bytes:Number(manifest.bytes||0)};
       }
+
       if(syncRequests.current.get(engineId)!==controller)return;
-      const same=normalizeSource(remoteSource)===normalizeSource(pkg.repositorySource);
-      setSyncState(v=>({...v,[engineId]:same
-        ?{status:"current",message:"Atualizado · código browser igual ao repositório ("+repositoryRef+")."}
-        :{status:"different",message:"Atualização disponível · código browser difere do repositório ("+repositoryRef+")."}
-      }));
+      if(!buildCurrent){
+        setSyncState(v=>({...v,[engineId]:{
+          status:"different",
+          message:"Atualização disponível · página "+(localSha||"—")+" · publicada "+(publishedSha||"—")+". Recarregue a aplicação."
+        }}));
+      }else{
+        const modelText=modelInfo?" · modelo "+(modelInfo.bytes?((modelInfo.bytes/1e6).toFixed(1)+" MB · "):"")+modelInfo.sha.slice(0,8):"";
+        setSyncState(v=>({...v,[engineId]:{
+          status:"current",
+          message:"Atualizado · build "+publishedSha+modelText+"."
+        }}));
+      }
     }catch(err){
       if(syncRequests.current.get(engineId)!==controller)return;
       if(controller.signal.aborted&&!timedOut)return;
-      setSyncState(v=>({...v,[engineId]:{status:"error",message:timedOut?"Tempo limite ao verificar o repositório.":"Falha ao verificar · "+(err?.message||"erro de rede")}}));
+      setSyncState(v=>({...v,[engineId]:{
+        status:"error",
+        message:timedOut?"Tempo limite ao verificar a publicação.":"Falha na publicação local · "+(err?.message||"erro de rede")
+      }}));
     }finally{
       clearTimeout(timeout);
       if(syncRequests.current.get(engineId)===controller)syncRequests.current.delete(engineId);
@@ -70,7 +89,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
   }
   function EngineCard({engine,owned=false}){
     const pkg=engineCodePackage(engine),opened=openCode===engine.id,infoOpen=openInfo===engine.id,sync=syncState[engine.id];
-    const browserComparable=!!pkg?.repositoryPath&&pkg?.repositorySource!=null;
+    const browserComparable=!!pkg?.repositoryPath||!!engine.browser_ready;
     return <div className={"settingsEngineCard "+(owned?"settingsEngineCardOwned":"")}>
       <label className={"settingsEngine "+(owned?"settingsEnginePinned settingsOwnedEngine":"")}>
         <span><b>{engine.name}{owned&&<em className="settingsOwnBadge">PRÓPRIO · BROWSER</em>}{!owned&&engine.browser_ready&&<em className="settingsOwnBadge">BROWSER</em>}{!owned&&!engine.browser_ready&&engine.browser_candidate&&<em className="settingsCandidateBadge">ONNX · CANDIDATO</em>}</b><small>{engine.family} · {engine.task.replaceAll("_"," ")}</small>{owned&&<small className="settingsEngineDescription">{engine.description}</small>}</span>

@@ -117,7 +117,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p public/browser-models
-          gh release download browser-models-dev --repo "$GITHUB_REPOSITORY" --pattern "yolov8n_public_crack_seg.onnx" --pattern "yolov8n_public_crack_seg.json" --dir public/browser-models --clobber
+          gh release download browser-models-dev --repo "$GITHUB_REPOSITORY" --pattern "yolov8n_public_crack_seg.onnx" --pattern "yolov8n_public_crack_seg.json" --pattern "yolov8n_public_crack_seg.parity.png" --pattern "yolov8n_public_crack_seg.parity.json" --dir public/browser-models --clobber
           VITE_BASE_PATH=/ VITE_APP_CHANNEL=development npm run dev -- --host 127.0.0.1 --port 4178 > /tmp/shm-yolo-vite.log 2>&1 &
           VITE_PID=$!
           trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT

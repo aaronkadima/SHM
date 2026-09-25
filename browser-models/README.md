@@ -7,7 +7,7 @@ A camada browser permite que motores compactos sejam executados diretamente pelo
 - `opencv_crack`: **funcional no navegador**, implementado em JavaScript/Canvas.
 - `cdm_1`: **funcional no navegador**, pipeline determinístico CDM 2.8.5.
 - `yolov8n_public_crack_seg`: **funcional no navegador**, ONNX Runtime Web/WASM com letterbox, NMS, reconstrução de máscara e paridade quantitativa validada contra o backend Ultralytics/PyTorch.
-- `unet_public_crack`: candidato ONNX Runtime Web; exportação e validação automatizadas.
+- `unet_public_crack`: candidato **INT8 ONNX Runtime Web**; FP32 124,1 MB → INT8 39,5 MB (−68,15%), runtime WASM e paridade técnica aprovados, porém promoção bloqueada pelo quality gate porque o checkpoint satura em imagens reais externas.
 - `segformer_public_crack`: **funcional no navegador**, ONNX Runtime Web/WASM com manifesto, SHA-256 e smoke test em Chrome.
 
 Os candidatos ainda não promovidos permanecem com `browser_ready: false` até que o runtime Web, o pré/pós-processamento e a paridade com o backend sejam validados. SegFormer e YOLOv8n Crack Segmentation já foram promovidos e usam assets same-origin publicados junto ao GitHub Pages.
@@ -26,12 +26,23 @@ O workflow `.github/workflows/browser-models.yml`:
    - `browser-models-dev` para a branch `dev`;
    - `browser-models-stable` para a branch `main`.
 
-Cada motor produz dois assets:
+Cada motor produz pelo menos dois assets:
 
 ```text
 <engine>.onnx
 <engine>.json
 ```
+
+A U-Net mantém também a variante experimental otimizada e seus artefatos de regressão:
+
+```text
+unet_public_crack.int8.onnx
+unet_public_crack.int8.json
+unet_public_crack.int8.parity.png
+unet_public_crack.int8.parity.json
+```
+
+A variante INT8 usa quantização estática QDQ (Conv), calibração MinMax e pesos INT8 por canal. O artefato só pode ser promovido a `browser_ready` quando **duas condições independentes** passarem: consistência FP32×INT8 e quality gate do checkpoint em imagens reais.
 
 O JSON é o manifesto de integridade usado para verificar o binário antes de habilitar a inferência Web.
 
@@ -69,6 +80,7 @@ A promoção exige, no mínimo:
 - pós-processamento equivalente ao backend Python;
 - comparação numérica em imagens de referência;
 - smoke test em desktop e mobile;
-- tratamento de cancelamento, progresso e falha de carregamento.
+- tratamento de cancelamento, progresso e falha de carregamento;
+- quality gate em imagens reais externas para impedir promoção de checkpoints que colapsem ou saturem, mesmo quando a conversão ONNX/INT8 estiver numericamente correta.
 
 Somente depois dessas etapas o catálogo deve marcar o motor como `browser_ready: true`.

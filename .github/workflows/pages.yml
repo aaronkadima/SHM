@@ -81,12 +81,12 @@ jobs:
         run: |
           mkdir -p prod-browser-models dev-browser-models
           if gh release view browser-models-stable --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release download browser-models-stable --repo "$GITHUB_REPOSITORY" --pattern "segformer_public_crack.onnx" --pattern "segformer_public_crack.json" --pattern "yolov8n_public_crack_seg.onnx" --pattern "yolov8n_public_crack_seg.json" --pattern "yolov8n_public_crack_seg.parity.png" --pattern "yolov8n_public_crack_seg.parity.json" --dir prod-browser-models --clobber
+            gh release download browser-models-stable --repo "$GITHUB_REPOSITORY" --pattern "segformer_public_crack.onnx" --pattern "segformer_public_crack.json" --pattern "yolov8n_public_crack_seg.onnx" --pattern "yolov8n_public_crack_seg.json" --pattern "yolov8n_public_crack_seg.parity.png" --pattern "yolov8n_public_crack_seg.parity.json" --pattern "crackenpy_public_crack.int8.onnx" --pattern "crackenpy_public_crack.int8.json" --pattern "crackenpy_public_crack.int8.parity.png" --pattern "crackenpy_public_crack.int8.parity.json" --pattern "crackenpy_public_crack.int8.parity-mask.png" --dir prod-browser-models --clobber
           else
             echo "Stable browser model release not available yet; production assets will be added on the next model workflow completion."
           fi
           if gh release view browser-models-dev --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release download browser-models-dev --repo "$GITHUB_REPOSITORY" --pattern "segformer_public_crack.onnx" --pattern "segformer_public_crack.json" --pattern "yolov8n_public_crack_seg.onnx" --pattern "yolov8n_public_crack_seg.json" --pattern "yolov8n_public_crack_seg.parity.png" --pattern "yolov8n_public_crack_seg.parity.json" --dir dev-browser-models --clobber
+            gh release download browser-models-dev --repo "$GITHUB_REPOSITORY" --pattern "segformer_public_crack.onnx" --pattern "segformer_public_crack.json" --pattern "yolov8n_public_crack_seg.onnx" --pattern "yolov8n_public_crack_seg.json" --pattern "yolov8n_public_crack_seg.parity.png" --pattern "yolov8n_public_crack_seg.parity.json" --pattern "crackenpy_public_crack.int8.onnx" --pattern "crackenpy_public_crack.int8.json" --pattern "crackenpy_public_crack.int8.parity.png" --pattern "crackenpy_public_crack.int8.parity.json" --pattern "crackenpy_public_crack.int8.parity-mask.png" --dir dev-browser-models --clobber
           else
             echo "Development browser model release not available."
           fi
@@ -122,8 +122,10 @@ jobs:
           test "$(node -p "require('./site/dev/build.json').branch")" = "dev"
           if test -f site/browser-models/segformer_public_crack.onnx; then test -f site/browser-models/segformer_public_crack.json; fi
           if test -f site/browser-models/yolov8n_public_crack_seg.onnx; then test -f site/browser-models/yolov8n_public_crack_seg.json; test -f site/browser-models/yolov8n_public_crack_seg.parity.png; test -f site/browser-models/yolov8n_public_crack_seg.parity.json; fi
+          if test -f site/browser-models/crackenpy_public_crack.int8.onnx; then test -f site/browser-models/crackenpy_public_crack.int8.json; test -f site/browser-models/crackenpy_public_crack.int8.parity.png; test -f site/browser-models/crackenpy_public_crack.int8.parity.json; test -f site/browser-models/crackenpy_public_crack.int8.parity-mask.png; fi
           if test -f site/dev/browser-models/segformer_public_crack.onnx; then test -f site/dev/browser-models/segformer_public_crack.json; fi
           if test -f site/dev/browser-models/yolov8n_public_crack_seg.onnx; then test -f site/dev/browser-models/yolov8n_public_crack_seg.json; test -f site/dev/browser-models/yolov8n_public_crack_seg.parity.png; test -f site/dev/browser-models/yolov8n_public_crack_seg.parity.json; fi
+          if test -f site/dev/browser-models/crackenpy_public_crack.int8.onnx; then test -f site/dev/browser-models/crackenpy_public_crack.int8.json; test -f site/dev/browser-models/crackenpy_public_crack.int8.parity.png; test -f site/dev/browser-models/crackenpy_public_crack.int8.parity.json; test -f site/dev/browser-models/crackenpy_public_crack.int8.parity-mask.png; fi
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

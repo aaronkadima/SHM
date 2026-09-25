@@ -8,7 +8,7 @@ from .schemas import CompareResponse,EngineInfo
 from .taxonomy import build_consensus
 from .spatial_consensus import build_spatial_consensus,render_spatial_consensus
 
-API_VERSION="0.10.0"
+API_VERSION="0.11.0"
 app=FastAPI(title="SHM Vision Lab API",version=API_VERSION)
 _default_origins="http://localhost:5173,https://aaronkadima.github.io"
 _origins=[x.strip().rstrip("/") for x in os.getenv("CORS_ORIGINS",_default_origins).split(",") if x.strip()]

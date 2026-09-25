@@ -255,6 +255,8 @@ jobs:
           node scripts/fetch-browser-model-assets.mjs --tag "$TAG" --repo "$GITHUB_REPOSITORY" --engine segformer_public_crack --dir public/browser-models
           node scripts/fetch-browser-model-assets.mjs --tag "$TAG" --repo "$GITHUB_REPOSITORY" --engine yolov8n_public_crack_seg --parity --dir public/browser-models
           node scripts/fetch-browser-model-assets.mjs --tag "$TAG" --repo "$GITHUB_REPOSITORY" --engine crackenpy_public_crack --variant int8 --parity --reference-mask --dir public/browser-models
+          CATALOG_VERSION="$(node -p "require('./src/engines.json').version")"
+          printf '{"channel":"development","branch":"dev","sha":"app-smoke","catalogVersion":"%s"}\n' "$CATALOG_VERSION" > public/build.json
 
           VITE_BASE_PATH=/ VITE_APP_CHANNEL=development VITE_BUILD_SHA=app-smoke npm run dev -- --host 127.0.0.1 --port 4181 > /tmp/shm-app-browser-vite.log 2>&1 &
           VITE_PID=$!

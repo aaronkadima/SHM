@@ -280,6 +280,22 @@ export function engineCodePackage(engine){
       ])+onnxBrowserSource
     };
   }
+  if(engine.id==="crackenpy_public_crack"){
+    return {
+      kind:"Código real · ONNX browser candidato",
+      language:"javascript",
+      fileName:"crackenpy-fpn-int8-onnx-browser.js",
+      repositoryPath:"frontend/src/onnxBrowser.js",
+      repositorySource:onnxBrowserSource,
+      source:commentHeader(engine,"runtime INT8 ONNX candidato no navegador",[
+        "Aplicar resize 416×416 e normalização ImageNet do CrackenPy.",
+        "Validar manifesto, tamanho e SHA-256 do modelo INT8 antes da sessão.",
+        "Executar FPN/ResNeXt50-32x4d via ONNX Runtime Web/WASM.",
+        "Aplicar argmax multiclasse e extrair a classe fissura (id 2).",
+        "Gerar máscara em espaço do modelo, overlay e métricas SHM preservando a paridade com PyTorch."
+      ])+onnxBrowserSource
+    };
+  }
   if(engine.id==="segformer_public_crack"){
     return {
       kind:"Código real · ONNX browser",

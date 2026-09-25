@@ -11,6 +11,7 @@ function arg(name, fallback=null){
 }
 const tag=arg("tag"),repo=arg("repo")||process.env.GITHUB_REPOSITORY,engine=arg("engine"),variant=arg("variant",""),outDir=path.resolve(arg("dir","public/browser-models"));
 const withParity=process.argv.includes("--parity");
+const withReferenceMask=process.argv.includes("--reference-mask");
 const attempts=Math.max(1,Number(arg("attempts","12")));
 const delayMs=Math.max(0,Number(arg("delay-ms","3000")));
 if(!tag||!repo||!engine)throw new Error("Usage: fetch-browser-model-assets.mjs --tag <tag> --repo <owner/repo> --engine <id> [--variant int8] [--parity] [--dir path]");
@@ -18,8 +19,8 @@ if(!tag||!repo||!engine)throw new Error("Usage: fetch-browser-model-assets.mjs -
 const stem=variant?engine+"."+variant:engine;
 const modelName=stem+".onnx",manifestName=stem+".json";
 const parityStem=variant?engine+"."+variant+".parity":engine+".parity";
-const parityJsonName=parityStem+".json",parityPngName=parityStem+".png";
-const patterns=[modelName,manifestName,...(withParity?[parityJsonName,parityPngName]:[])];
+const parityJsonName=parityStem+".json",parityPngName=parityStem+".png",parityMaskName=parityStem+"-mask.png";
+const patterns=[modelName,manifestName,...(withParity?[parityJsonName,parityPngName]:[]),...(withReferenceMask?[parityMaskName]:[])];
 
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 function sha256(file){return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex")}
@@ -38,6 +39,10 @@ function validate(dir){
     if(parity.engine_id!==engine)throw new Error("parity engine_id mismatch");
     const fixtureDigest=sha256(path.join(dir,parityPngName));
     if(String(parity.fixture_sha256||"").toLowerCase()!==fixtureDigest)throw new Error("parity fixture SHA-256 mismatch");
+    if(withReferenceMask){
+      const maskDigest=sha256(path.join(dir,parityMaskName));
+      if(String(parity.reference_mask_sha256||"").toLowerCase()!==maskDigest)throw new Error("parity reference-mask SHA-256 mismatch");
+    }
   }
   return{bytes:size,sha256:digest};
 }

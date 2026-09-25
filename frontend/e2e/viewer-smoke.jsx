@@ -506,8 +506,8 @@ function App(){
             const resetLock=document.querySelector(".layerLockState");
             const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
-            const resetDrawerOk=!compactOverlay||!document.querySelector(".editorLayers");
-            const resetLockControlOk=compactOverlay
+            const resetDrawerOk=!narrowSidebar||!document.querySelector(".editorLayers");
+            const resetLockControlOk=narrowSidebar
               ?Array.isArray(savedPrefs.pathologyLocked)&&savedPrefs.pathologyLocked.length===0
               :!resetLock&&!!resetLockButton;
             const resetPositionOk=compactOverlay

@@ -38,6 +38,7 @@ CAL_URL=(
 CAL_LICENSE="CC BY 4.0"
 CAL_ATTRIBUTION="Dataset Ninja · Concrete Crack Segmentation Dataset"
 PARITY_URL="https://raw.githubusercontent.com/amirrezaie1415/Concrete-Crack-Segmentation/master/docs/imgs/254_768_0.png"
+PARITY_MASK_URL="https://raw.githubusercontent.com/amirrezaie1415/Concrete-Crack-Segmentation/master/docs/imgs/254_768_0_mask.png"
 PARITY_LICENSE="CC BY 4.0 (source dataset)"
 PARITY_ATTRIBUTION="Concrete Crack Segmentation Dataset · Özgenel (2019); sample used by Rezaie et al. (2020)"
 MEAN=np.asarray([.485,.456,.406],dtype=np.float32).reshape(1,1,3)
@@ -125,6 +126,64 @@ def compare_models(fp32:Path,int8:Path,holdout:list[np.ndarray]):
         "cases":rows,
     }
     return summary
+
+
+def supervised_threshold_calibration(model_path:Path,image:Image.Image,mask_image:Image.Image):
+    """Measure direct vs inverted probability semantics against a labeled crack mask."""
+    session=ort.InferenceSession(str(model_path),providers=["CPUExecutionProvider"])
+    input_name=session.get_inputs()[0].name
+    prob=np.asarray(session.run(None,{input_name:preprocess(image)})[0],dtype=np.float32)[0,0]
+    gt_raw=np.asarray(mask_image.convert("L").resize((256,256),Image.Resampling.NEAREST),dtype=np.uint8)
+    white=gt_raw>=128
+    # Crack masks are sparse: use the minority binary region as the positive crack class.
+    gt=white if float(white.mean())<=.5 else np.logical_not(white)
+    gt_ratio=float(gt.mean())
+
+    def metrics(pred):
+        pred=np.asarray(pred,dtype=bool)
+        inter=int(np.logical_and(pred,gt).sum())
+        union=int(np.logical_or(pred,gt).sum())
+        tp=inter;fp=int(np.logical_and(pred,np.logical_not(gt)).sum());fn=int(np.logical_and(np.logical_not(pred),gt).sum())
+        iou=1.0 if union==0 else inter/union
+        dice=1.0 if (2*tp+fp+fn)==0 else (2*tp)/(2*tp+fp+fn)
+        return {
+            "iou":float(iou),
+            "dice":float(dice),
+            "prediction_area_ratio":float(pred.mean()),
+            "ground_truth_area_ratio":gt_ratio,
+            "area_ratio_abs_delta":abs(float(pred.mean())-gt_ratio),
+        }
+
+    thresholds=np.unique(np.concatenate([
+        np.linspace(.01,.25,25),
+        np.linspace(.26,.90,33),
+        np.linspace(.91,.999,46),
+    ])).astype(np.float32)
+    modes={}
+    for mode,foreground in (("direct",prob),("inverted",1.0-prob)):
+        best=None
+        for threshold in thresholds:
+            m=metrics(foreground>=float(threshold))
+            row={"threshold":float(threshold),**m}
+            if best is None or (row["iou"],row["dice"],-row["area_ratio_abs_delta"])>(best["iou"],best["dice"],-best["area_ratio_abs_delta"]):
+                best=row
+        modes[mode]=best
+
+    selected_mode=max(modes,key=lambda key:(modes[key]["iou"],modes[key]["dice"],-modes[key]["area_ratio_abs_delta"]))
+    selected=modes[selected_mode]
+    return {
+        "mask_foreground_rule":"minority-of-binary-mask",
+        "ground_truth_area_ratio":gt_ratio,
+        "raw_probability":{"min":float(prob.min()),"mean":float(prob.mean()),"max":float(prob.max())},
+        "direct":modes["direct"],
+        "inverted":modes["inverted"],
+        "selected_mode":selected_mode,
+        "selected_threshold":selected["threshold"],
+        "selected_iou":selected["iou"],
+        "selected_dice":selected["dice"],
+        "selected_area_ratio_abs_delta":selected["area_ratio_abs_delta"],
+        "passed":bool(selected["iou"]>=.50 and selected["dice"]>=.65 and selected["area_ratio_abs_delta"]<=.10),
+    }
 
 
 def backend_reference(image:Image.Image,parity_path:Path):
@@ -245,7 +304,13 @@ def main():
 
     parity_path=outdir/"parity.int8.png"
     parity_source=download_source(outdir/"parity-source.png",PARITY_URL)
+    parity_mask_source=download_source(outdir/"parity-mask.png",PARITY_MASK_URL)
+    supervised=supervised_threshold_calibration(fp32,Image.open(parity_source),Image.open(parity_mask_source))
     reference,quality_gate=backend_reference(Image.open(parity_source),parity_path)
+    quality_gate["supervised_calibration"]=supervised
+    quality_gate["passed"]=bool(quality_gate["passed"] and supervised["passed"])
+    if not supervised["passed"]:
+        quality_gate["reason"]="Checkpoint failed labeled real-image calibration; browser promotion remains blocked."
     parity={
         "schema":"shm-browser-parity-v1",
         "engine_id":ENGINE_ID,
@@ -255,6 +320,7 @@ def main():
         "image_width":Image.open(parity_path).width,
         "image_height":Image.open(parity_path).height,
         "fixture_source":PARITY_URL,
+        "fixture_mask_source":PARITY_MASK_URL,
         "fixture_source_license":PARITY_LICENSE,
         "fixture_source_attribution":PARITY_ATTRIBUTION,
         "backend":"pytorch-unet-adapter",
@@ -268,6 +334,7 @@ def main():
         },
         "quantization_consistency":consistency,
         "quality_gate":quality_gate,
+        "supervised_threshold_calibration":supervised,
         "reference":reference,
     }
     parity_json=outdir/"parity.int8.json"

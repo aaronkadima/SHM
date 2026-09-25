@@ -68,7 +68,7 @@ function App(){
             await sleep(50);
             runTimeRow=document.querySelector(".editorRunTime");
           }
-          const measuredRuntimeOk=runTimeRow?.textContent.replace(/\s+/g," ").trim()==="Tempo da análise 1.23 s";
+          const measuredRuntimeOk=runTimeRow?.querySelector(".editorMetricLabel")?.textContent.trim()==="Tempo da análise"&&runTimeRow?.querySelector(".editorMetricValue")?.textContent.trim()==="1.23 s";
           const dropViewport=document.querySelector(".editorViewport");
           const dt=new DataTransfer();
           dt.items.add(new File([svg],"drag-smoke.svg",{type:"image/svg+xml"}));

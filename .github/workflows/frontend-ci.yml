@@ -298,7 +298,7 @@ jobs:
 
           run_app_smoke "yolov8n_public_crack_seg" "/browser-models/yolov8n_public_crack_seg.parity.png" 9231
           run_app_smoke "segformer_public_crack" "/browser-models/yolov8n_public_crack_seg.parity.png" 9232
-          run_app_smoke "crackenpy_public_crack" "/browser-models/crackenpy_public_crack.int8.parity.png" 9233
+          run_app_smoke "crackenpy_public_crack" "/browser-models/crackenpy_public_crack.int8.parity.png" 9233\n          run_app_smoke "cdm_3" "/browser-models/yolov8n_public_crack_seg.parity.png" 9234
 
       - name: Browser viewer smoke
         working-directory: frontend

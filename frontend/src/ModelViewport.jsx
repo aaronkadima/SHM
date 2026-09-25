@@ -184,7 +184,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
           setPathologyStats(payload);
           setMode("pathology_3d");
           applyPointMode("pathology_3d");
-          setSpatialNotice("Segmentação espacial CDM-3 · "+Number(payload.matched_points||0).toLocaleString("pt-BR")+" pontos classificados entre "+Number(payload.in_frame_points||0).toLocaleString("pt-BR")+" pontos visíveis na fotografia registrada.");
+          setSpatialNotice("Segmentação espacial CDM-3 · "+Number(payload.matched_points||0).toLocaleString("pt-BR")+" pontos classificados entre "+Number(payload.visible_points??payload.in_frame_points??0).toLocaleString("pt-BR")+" pontos visíveis após teste de profundidade.");
         };
         points.userData.spatialAsset={
           extension,

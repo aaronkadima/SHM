@@ -495,14 +495,25 @@ function App(){
             const resetLock=document.querySelector(".layerLockState");
             const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
-            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&!resetLock&&!!resetLockButton&&savedPrefs.wipePosition===50&&savedPrefs.layersWidth===360&&savedPrefs.resultPanelOpen===true&&savedPrefs.resultPanelPosition?.x===0&&savedPrefs.resultPanelPosition?.y===0&&savedPrefs.resultPanelSize?.width===360&&savedPrefs.resultPanelSize?.height===null;
+            const resetDrawerOk=!compactOverlay||!document.querySelector(".editorLayers");
+            const resetLockControlOk=compactOverlay
+              ?Array.isArray(savedPrefs.pathologyLocked)&&savedPrefs.pathologyLocked.length===0
+              :!resetLock&&!!resetLockButton;
+            const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&resetLockControlOk&&resetDrawerOk&&savedPrefs.wipePosition===50&&savedPrefs.layersWidth===360&&savedPrefs.resultPanelOpen===true&&savedPrefs.resultPanelPosition?.x===0&&savedPrefs.resultPanelPosition?.y===0&&savedPrefs.resultPanelSize?.width===360&&savedPrefs.resultPanelSize?.height===null;
             let compactOverlayArbitrationToggle=true;
             if(compactOverlay){
               const layersToggle=[...document.querySelectorAll(".editorTools button")].find(button=>button.title==="Mostrar ou ocultar camadas");
+              const floatingAfterReset=document.querySelector(".editorFloating");
+              const resetShowsResults=!document.querySelector(".editorLayers")&&!!floatingAfterReset&&getComputedStyle(floatingAfterReset).visibility==="visible"&&getComputedStyle(floatingAfterReset).pointerEvents!=="none";
+              layersToggle?.click();
+              await sleep(50);
+              const floatingWithLayers=document.querySelector(".editorFloating");
+              const openHidesResults=!!document.querySelector(".editorLayers")&&!!floatingWithLayers&&getComputedStyle(floatingWithLayers).visibility==="hidden"&&getComputedStyle(floatingWithLayers).pointerEvents==="none";
               layersToggle?.click();
               await sleep(50);
               const floatingAfterLayersClose=document.querySelector(".editorFloating");
-              compactOverlayArbitrationToggle=!document.querySelector(".editorLayers")&&!!floatingAfterLayersClose&&getComputedStyle(floatingAfterLayersClose).visibility==="visible"&&getComputedStyle(floatingAfterLayersClose).pointerEvents!=="none";
+              const closeRestoresResults=!document.querySelector(".editorLayers")&&!!floatingAfterLayersClose&&getComputedStyle(floatingAfterLayersClose).visibility==="visible"&&getComputedStyle(floatingAfterLayersClose).pointerEvents!=="none";
+              compactOverlayArbitrationToggle=resetShowsResults&&openHidesResults&&closeRestoresResults;
             }
             const floatingPanel=document.querySelector(".editorFloating");
             const floatingHead=floatingPanel?.querySelector(".editorFloatMoveHandle");

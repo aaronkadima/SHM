@@ -57,21 +57,19 @@ export function projectSpatialPoints(parsed,registration,imageWidth,imageHeight)
     }
     uv[i*2]=u;uv[i*2+1]=v;
   }
-  const visible=new Uint8Array(count);
-  const pixelCount=Math.max(1,Math.floor(imageWidth)*Math.floor(imageHeight));
-  const nearest=new Float32Array(pixelCount);nearest.fill(Infinity);
+  const visible=new Uint8Array(count),nearest=new Map(),imageStride=Math.max(1,Math.floor(imageWidth));
   for(let i=0;i<count;i++){
     if(!inFrame[i])continue;
     const u=Math.max(0,Math.min(imageWidth-1,Math.round(uv[i*2])));
     const v=Math.max(0,Math.min(imageHeight-1,Math.round(uv[i*2+1])));
-    const p=v*Math.floor(imageWidth)+u;
-    if(depth[i]<nearest[p])nearest[p]=depth[i];
+    const p=v*imageStride+u,front=nearest.get(p);
+    if(front==null||depth[i]<front)nearest.set(p,depth[i]);
   }
   for(let i=0;i<count;i++){
     if(!inFrame[i])continue;
     const u=Math.max(0,Math.min(imageWidth-1,Math.round(uv[i*2])));
     const v=Math.max(0,Math.min(imageHeight-1,Math.round(uv[i*2+1])));
-    const p=v*Math.floor(imageWidth)+u,front=nearest[p];
+    const p=v*imageStride+u,front=nearest.get(p);
     const tolerance=Math.max(0.005,Math.abs(front)*0.015);
     if(depth[i]<=front+tolerance)visible[i]=1;
   }

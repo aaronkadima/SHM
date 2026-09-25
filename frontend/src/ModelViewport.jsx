@@ -8,7 +8,7 @@ import {STLLoader} from "three/addons/loaders/STLLoader.js";
 import {SVGRenderer} from "three/addons/renderers/SVGRenderer.js";
 import {standaloneGltfIssue} from "./modelAssetValidation.js";
 import {parseSpatialAsset,spatialExtension} from "./spatialAsset.js";
-import {registeredPointColors,projectPathologyToPoints,CDM3_PATHOLOGY_PRIORITY} from "./cdm3RegisteredProjection.js";
+import {registeredPointColors,projectPathologyToPoints,buildSpatialPathologyRecords,CDM3_PATHOLOGY_PRIORITY} from "./cdm3RegisteredProjection.js";
 
 const CLASS_COLORS={
   0:[.58,.62,.64],1:[.63,.66,.68],2:[.48,.37,.24],
@@ -93,7 +93,7 @@ async function imagePixels(file){
     return {width:canvas.width,height:canvas.height,data:ctx.getImageData(0,0,canvas.width,canvas.height).data};
   }finally{URL.revokeObjectURL(url)}
 }
-export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null}){
+export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,onSpatialPathologyRecords=null}){
   const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick);
   const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null);
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null);
@@ -245,20 +245,25 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     let cancelled=false;
     imagePixels(rgbReferenceFile)
       .then(pixels=>{
-        const registered=registeredPointColors(view.current?.parsed,registration,pixels);
+        const parsed=view.current?.parsed;
+        const registered=registeredPointColors(parsed,registration,pixels);
         const pathology=rgbPathologyAnalysis
-          ?projectPathologyToPoints(view.current?.parsed,registration,rgbPathologyAnalysis,pixels.width,pixels.height)
+          ?projectPathologyToPoints(parsed,registration,rgbPathologyAnalysis,pixels.width,pixels.height)
           :null;
-        return {registered,pathology};
+        const records=rgbPathologyAnalysis
+          ?buildSpatialPathologyRecords(parsed,registration,rgbPathologyAnalysis,pixels.width,pixels.height,{sourceImageName:rgbReferenceFile.name})
+          :[];
+        return {registered,pathology,records};
       })
-      .then(({registered,pathology})=>{
+      .then(({registered,pathology,records})=>{
         if(cancelled)return;
         if(registered)view.current?.setRegisteredColors?.(registered);
         if(pathology)view.current?.setPathologyProjection?.(pathology);
+        onSpatialPathologyRecords?.(records);
       })
       .catch(e=>{if(!cancelled)setError("Falha ao projetar RGB/patologias no 3D: "+(e?.message||String(e)))});
     return()=>{cancelled=true};
-  },[rgbReferenceFile,registration,rgbPathologyAnalysis,file]);
+  },[rgbReferenceFile,registration,rgbPathologyAnalysis,file,onSpatialPathologyRecords]);
   function setView(direction){
     const data=view.current;if(!data)return;
     const {camera,controls,center,radius}=data;

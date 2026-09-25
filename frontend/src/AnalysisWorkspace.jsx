@@ -186,6 +186,19 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   },[file,kind,imageDecoded,imageSize.width,imageSize.height,previewError]);
   useEffect(()=>()=>{if(statusTimer.current)clearTimeout(statusTimer.current);if(wipeDirectionTimer.current)clearTimeout(wipeDirectionTimer.current)},[]);
   useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});applyCanvasZoom(1);setCanvasPan({x:0,y:0});setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
+  useEffect(()=>{
+    const rows=Array.isArray(res?.results)?res.results:[];
+    if(!rows.length)return;
+    setSelectedDetection(null);
+    setActive(current=>current&&rows.some(row=>row.engine_id===current)?current:(rows[0]?.engine_id||null));
+    setVisible(current=>{
+      const next={...current};
+      for(const row of rows)next[row.engine_id]=true;
+      return next;
+    });
+    const hasResultOverlay=rows.some(row=>!!row?.overlay_png_base64||Number(row?.detections?.length||0)>0);
+    if(hasResultOverlay)setComparison(current=>(current==="original"||(current==="temporal"&&!referenceFile))?"overlay":current);
+  },[res,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
   useEffect(()=>{
     if(!resultOpen)return;

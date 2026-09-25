@@ -65,7 +65,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
     const browserComparable=!!pkg?.repositoryPath&&pkg?.repositorySource!=null;
     return <div className={"settingsEngineCard "+(owned?"settingsEngineCardOwned":"")}>
       <label className={"settingsEngine "+(owned?"settingsEnginePinned settingsOwnedEngine":"")}>
-        <span><b>{engine.name}{owned&&<em className="settingsOwnBadge">PRÓPRIO · BROWSER</em>}</b><small>{engine.family} · {engine.task.replaceAll("_"," ")}</small>{owned&&<small className="settingsEngineDescription">{engine.description}</small>}</span>
+        <span><b>{engine.name}{owned&&<em className="settingsOwnBadge">PRÓPRIO · BROWSER</em>}{!owned&&engine.browser_ready&&<em className="settingsOwnBadge">BROWSER</em>}{!owned&&!engine.browser_ready&&engine.browser_candidate&&<em className="settingsCandidateBadge">ONNX · CANDIDATO</em>}</b><small>{engine.family} · {engine.task.replaceAll("_"," ")}</small>{owned&&<small className="settingsEngineDescription">{engine.description}</small>}</span>
         <input type="checkbox" checked={selected.includes(engine.id)} onChange={()=>toggle(engine.id)}/><span className="settingsSwitch" aria-hidden="true"/>
       </label>
       <div className="settingsEngineCodeActions">
@@ -79,7 +79,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
         <div><span>ID</span><b>{engine.id}</b></div>
         <div><span>Família</span><b>{engine.family||"—"}</b></div>
         <div><span>Tarefa</span><b>{String(engine.task||"—").replaceAll("_"," ")}</b></div>
-        <div><span>Runtime</span><b>{engine.browser_ready?"Browser local":"Backend / modelo externo"}</b></div>
+        <div><span>Runtime</span><b>{engine.browser_ready?"Browser local":engine.browser_candidate?"Candidato browser · "+(engine.browser_target||"ONNX"):"Backend / modelo externo"}</b></div>{engine.browser_candidate&&<div><span>Estágio browser</span><b>{engine.browser_stage||"candidato"}</b></div>}{engine.browser_release_asset&&<div><span>Artefato ONNX</span><b>{engine.browser_release_asset}</b></div>}
         <div><span>Implementação</span><b>{pkg?.kind||"—"}</b></div>
         <div><span>Licença</span><b>{engine.license||"Não informada"}</b></div>
         {pkg?.repositoryPath&&<div><span>Arquivo no repositório</span><b>{pkg.repositoryPath}</b></div>}

@@ -57,7 +57,25 @@ export function projectSpatialPoints(parsed,registration,imageWidth,imageHeight)
     }
     uv[i*2]=u;uv[i*2+1]=v;
   }
-  return {uv,depth,inFrame,total:count};
+  const visible=new Uint8Array(count);
+  const pixelCount=Math.max(1,Math.floor(imageWidth)*Math.floor(imageHeight));
+  const nearest=new Float32Array(pixelCount);nearest.fill(Infinity);
+  for(let i=0;i<count;i++){
+    if(!inFrame[i])continue;
+    const u=Math.max(0,Math.min(imageWidth-1,Math.round(uv[i*2])));
+    const v=Math.max(0,Math.min(imageHeight-1,Math.round(uv[i*2+1])));
+    const p=v*Math.floor(imageWidth)+u;
+    if(depth[i]<nearest[p])nearest[p]=depth[i];
+  }
+  for(let i=0;i<count;i++){
+    if(!inFrame[i])continue;
+    const u=Math.max(0,Math.min(imageWidth-1,Math.round(uv[i*2])));
+    const v=Math.max(0,Math.min(imageHeight-1,Math.round(uv[i*2+1])));
+    const p=v*Math.floor(imageWidth)+u,front=nearest[p];
+    const tolerance=Math.max(0.005,Math.abs(front)*0.015);
+    if(depth[i]<=front+tolerance)visible[i]=1;
+  }
+  return {uv,depth,inFrame,visible,total:count};
 }
 
 export function registeredPointColors(parsed,registration,pixels){
@@ -67,7 +85,7 @@ export function registeredPointColors(parsed,registration,pixels){
   let colored=0;
   for(let i=0;i<projection.total;i++){
     let rr=fallback[i*3]*.45,gg=fallback[i*3+1]*.45,bb=fallback[i*3+2]*.45;
-    if(projection.inFrame[i]){
+    if(projection.visible[i]){
       const u=Math.round(projection.uv[i*2]),v=Math.round(projection.uv[i*2+1]);
       if(u>=0&&u<pixels.width&&v>=0&&v<pixels.height){
         const p=(v*pixels.width+u)*4;
@@ -135,7 +153,7 @@ export function projectPathologyToPoints(parsed,registration,analysis,sourceImag
   const sx=analysisWidth/Math.max(1,sourceImageWidth),sy=analysisHeight/Math.max(1,sourceImageHeight);
   for(let i=0;i<projection.total;i++){
     let color=[fallback[i*3]*.22,fallback[i*3+1]*.22,fallback[i*3+2]*.22];
-    if(projection.inFrame[i]){
+    if(projection.visible[i]){
       inFrame++;
       const x=projection.uv[i*2]*sx,y=projection.uv[i*2+1]*sy;
       for(let ci=0;ci<PATHOLOGY_PRIORITY.length;ci++){
@@ -148,7 +166,7 @@ export function projectPathologyToPoints(parsed,registration,analysis,sourceImag
     colors[i*3]=color[0];colors[i*3+1]=color[1];colors[i*3+2]=color[2];
   }
   return {
-    colors,pointClasses,counts,matched_points:matched,in_frame_points:inFrame,total_points:projection.total,
+    colors,pointClasses,counts,matched_points:matched,visible_points:inFrame,in_frame_points:Array.from(projection.inFrame).reduce((a,b)=>a+b,0),total_points:projection.total,
     labels:PATHOLOGY_PRIORITY.slice(),
     source_analysis_size:[analysisWidth,analysisHeight],
     source_image_size:[sourceImageWidth,sourceImageHeight],

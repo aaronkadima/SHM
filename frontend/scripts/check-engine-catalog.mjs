@@ -36,10 +36,11 @@ if(segformer){
 check(browserEngineSupported("segformer_public_crack")===true,"browserEngines must support SegFormer");
 check(!!yoloBrowser,"yolov8n_public_crack_seg must exist in engines.json");
 if(yoloBrowser){
-  check(yoloBrowser.browser_ready===false,"YOLOv8n candidate must remain browser_ready=false before parity validation");
-  check(yoloBrowser.browser_candidate===true,"YOLOv8n must remain a browser candidate");
-  check(yoloBrowser.browser_stage==="browser-smoke-validated","YOLOv8n browser stage mismatch");
-  check(yoloBrowser.browser_runtime_candidate==="onnxruntime-web-wasm-1.30.0","YOLOv8n candidate runtime mismatch");
+  check(yoloBrowser.browser_ready===true,"YOLOv8n crack segmentation must be browser_ready after parity validation");
+  check(yoloBrowser.browser_candidate===false,"YOLOv8n must no longer be marked as browser candidate");
+  check(yoloBrowser.browser_stage==="browser-ready","YOLOv8n browser stage mismatch");
+  check(yoloBrowser.browser_runtime==="onnxruntime-web-wasm-1.30.0","YOLOv8n browser runtime mismatch");
+  check(engineMatchesFilter(yoloBrowser,"browser"),"Browser filter must include YOLOv8n");
 }
 check(browserEngineSupported("yolov8n_public_crack_seg")===true,"browserEngines must expose YOLOv8n candidate runtime for smoke/parity tests");
 

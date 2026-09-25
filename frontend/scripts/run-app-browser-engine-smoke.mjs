@@ -8,13 +8,14 @@ const timeoutMs=Number(process.env.APP_SMOKE_TIMEOUT_MS||180000);
 const port=Number(process.env.APP_SMOKE_DEBUG_PORT||9231);
 const engineId=process.env.APP_SMOKE_ENGINE||"yolov8n_public_crack_seg";
 const fixtureUrl=process.env.APP_SMOKE_FIXTURE||"/browser-models/yolov8n_public_crack_seg.parity.png";
+const windowSize=process.env.APP_SMOKE_WINDOW_SIZE||"1280,800";
 if(!chrome)throw new Error("Chrome/Chromium executable was not provided.");
 
 const profile="/tmp/shm-app-browser-smoke-"+process.pid;
 const args=[
   "--headless=new","--no-sandbox","--disable-gpu","--disable-dev-shm-usage",
   "--remote-debugging-address=127.0.0.1","--remote-debugging-port="+port,
-  "--user-data-dir="+profile,"--window-size=1280,800",targetUrl
+  "--user-data-dir="+profile,"--window-size="+windowSize,targetUrl
 ];
 const child=spawn(chrome,args,{stdio:["ignore","ignore","pipe"]});
 let chromeErr="";

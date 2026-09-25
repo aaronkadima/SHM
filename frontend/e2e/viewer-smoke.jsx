@@ -503,6 +503,7 @@ function App(){
               ?Number.isFinite(Number(savedPrefs.resultPanelPosition?.x))&&Number.isFinite(Number(savedPrefs.resultPanelPosition?.y))
               :savedPrefs.resultPanelPosition?.x===0&&savedPrefs.resultPanelPosition?.y===0;
             const resetOk=resetMode==="Sobrepor"&&resetLayers===2&&resetOrder==="Corrosão>Fissuras"&&resetZoom==="100%"&&Math.abs(Number(resetOpacity)-0.75)<0.01&&resetLockControlOk&&resetDrawerOk&&savedPrefs.wipePosition===50&&savedPrefs.layersWidth===360&&savedPrefs.resultPanelOpen===true&&resetPositionOk&&savedPrefs.resultPanelSize?.width===360&&savedPrefs.resultPanelSize?.height===null;
+            const resetDiag=`reset(mode=${resetMode||"none"},layers=${resetLayers},order=${resetOrder||"none"},zoom=${resetZoom||"none"},opacity=${resetOpacity||"none"},lock=${resetLockControlOk},drawer=${resetDrawerOk},wipe=${savedPrefs.wipePosition},lw=${savedPrefs.layersWidth},ropen=${savedPrefs.resultPanelOpen},rpos=${savedPrefs.resultPanelPosition?.x}/${savedPrefs.resultPanelPosition?.y},rsize=${savedPrefs.resultPanelSize?.width}/${savedPrefs.resultPanelSize?.height})`;
             let compactOverlayArbitrationToggle=true;
             if(compactOverlay){
               const layersToggle=[...document.querySelectorAll(".editorTools button")].find(button=>button.title==="Mostrar ou ocultar camadas");
@@ -670,7 +671,7 @@ function App(){
             if(!failed.length){
               setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit camera=viewport-fit+escape overlays=compact-single-panel results=viewport-clamped+sticky-head+custom-resize+pointer-safe-move+persistent+collapse-state+busy-tab+persistence-phase sidebar=engines+all-names+short-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+short-collapse+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard+pointer no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
-              setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+" ["+responsiveDiag+"]"+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
+              setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+" ["+responsiveDiag+"]"+(failed.includes("resetOk")?" ["+resetDiag+"]":"")+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }
             return;
           }

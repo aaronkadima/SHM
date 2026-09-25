@@ -103,7 +103,31 @@ try{
   })()`);
   await request("Page.reload",{ignoreCache:true});
   await sleep(500);
-  await waitUntil(request,'document.readyState==="complete"&&!!document.querySelector(".analysisEditor")&&!!document.querySelector(\'.editorTopActions input[type="file"]\')',"reloaded analysis workspace",30000);
+  await waitUntil(request,'document.readyState==="complete"&&!!document.querySelector(".analysisEditor")',"reloaded analysis workspace",30000);
+
+  await evaluate(request,'(()=>{location.hash="#/settings";return true})()');
+  await waitUntil(request,'!!document.querySelector(".analysisSettings")&&!!document.querySelector(".settingsEngineCard input[type=\"checkbox\"]:checked")',"settings with selected engine",30000);
+  const updateState=await evaluate(request,`(async()=>{
+    const selected=document.querySelector('.settingsEngineCard input[type="checkbox"]:checked');
+    const card=selected?.closest(".settingsEngineCard");
+    if(!card)throw new Error("selected engine card not found");
+    const button=[...card.querySelectorAll("button")].find(x=>x.textContent?.includes("Atualização"));
+    if(!button)throw new Error("engine update button not found");
+    button.click();
+    const deadline=Date.now()+15000;
+    while(Date.now()<deadline){
+      const state=card.querySelector(".settingsSyncState");
+      if(state?.classList.contains("current"))return {status:"current",text:state.textContent?.trim()||""};
+      if(state?.classList.contains("error"))throw new Error("update check failed: "+(state.textContent?.trim()||"unknown"));
+      if(state?.classList.contains("different"))throw new Error("unexpected stale build in smoke: "+(state.textContent?.trim()||"unknown"));
+      await new Promise(r=>setTimeout(r,200));
+    }
+    throw new Error("timed out waiting for same-origin update check");
+  })()`);
+  console.log("APP_BROWSER_UPDATE_CHECK_PASS",JSON.stringify({engineId,...updateState}));
+
+  await evaluate(request,'(()=>{document.querySelector(".settingsTop button")?.click();return true})()');
+  await waitUntil(request,'!!document.querySelector(".analysisEditor")&&!!document.querySelector(\'.editorTopActions input[type="file"]\')',"analysis workspace after settings",30000);
 
   const injected=await evaluate(request,`(async()=>{
     const response=await fetch(${JSON.stringify(fixtureUrl)},{cache:"no-store"});

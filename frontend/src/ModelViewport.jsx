@@ -90,7 +90,7 @@ async function imagePixels(file){
     return {width:canvas.width,height:canvas.height,data:ctx.getImageData(0,0,canvas.width,canvas.height).data};
   }finally{URL.revokeObjectURL(url)}
 }
-function registeredPointColors(parsed,registration,pixels){
+export function registeredPointColors(parsed,registration,pixels){
   const pose=registration?.registration||registration;
   if(!pose?.camera_matrix||!pose?.rotation_matrix||!pose?.translation_vector)return null;
   const k=pose.camera_matrix,r=pose.rotation_matrix,t=pose.translation_vector,d=pose.distortion||[];

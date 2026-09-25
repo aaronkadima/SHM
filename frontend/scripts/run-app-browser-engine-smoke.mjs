@@ -116,7 +116,9 @@ try{
     button.click();
     const deadline=Date.now()+15000;
     while(Date.now()<deadline){
-      const state=card.querySelector(".settingsSyncState");
+      const liveSelected=document.querySelector('.settingsEngineCard input[type="checkbox"]:checked');
+      const liveCard=liveSelected?.closest(".settingsEngineCard");
+      const state=liveCard?.querySelector(".settingsSyncState");
       if(state?.classList.contains("current"))return {status:"current",text:state.textContent?.trim()||""};
       if(state?.classList.contains("error"))throw new Error("update check failed: "+(state.textContent?.trim()||"unknown"));
       if(state?.classList.contains("different"))throw new Error("unexpected stale build in smoke: "+(state.textContent?.trim()||"unknown"));

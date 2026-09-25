@@ -1,4 +1,6 @@
 import{runCdmBrowser}from"./cdmBrowser.js";
+import{runCdm3SpatialBrowser}from"./cdm3SpatialBrowser.js";
+import{spatialExtension}from"./spatialAsset.js";
 import{runCrackenPyBrowser,runSegformerBrowser,runUnetCrackBrowser,runYolov8nCrackSegBrowser}from"./onnxBrowser.js";
 function maxFilterHorizontal(src,w,h,r){
   const out=new Uint8Array(src.length);
@@ -127,6 +129,7 @@ export async function runBrowserEngine(engineId,file,options={},previousFile=nul
   if(engineId==="opencv_crack")return runOpenCVBaseline(file);
   if(engineId==="cdm_1")return runCdmBrowser(file,options,previousFile,control);
   if(engineId==="cdm_3"){
+    if(spatialExtension(file))return runCdm3SpatialBrowser(file,control);
     const payload=await runCdmBrowser(file,options,null,control);
     const result=payload.results?.[0];
     if(result){

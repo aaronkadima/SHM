@@ -72,18 +72,23 @@ async function sha256Hex(bytes){
 }
 async function getSession(engineId,control={}){
   const signal=control.signal,onProgress=control.onProgress,channel=control.channel;
-  const tag=control.releaseTag||activeReleaseTag(channel),base=modelBaseUrl(control),stem=control.assetStem||engineId,key=base+":"+stem;
-  if(sessionCache.has(key))return sessionCache.get(key);
+  const tag=control.releaseTag||activeReleaseTag(channel),base=modelBaseUrl(control),stem=control.assetStem||engineId;
   const label=engineId+" · ONNX";
   ensureActive(signal);progress(onProgress,3,label,"manifest");
-  const manifest=await fetchJson(assetUrl(base,stem+".json"),signal);
+  const manifestUrl=assetUrl(base,stem+".json")+"?build="+encodeURIComponent(String(control.buildSha||Date.now()));
+  const manifest=await fetchJson(manifestUrl,signal);
   if(manifest.engine_id!==engineId)throw new Error("Manifesto ONNX pertence a outro motor.");
+  const expectedSha=String(manifest.sha256||"").toLowerCase();
+  if(!/^[0-9a-f]{64}$/.test(expectedSha))throw new Error("Manifesto ONNX não contém SHA-256 válido.");
+  const key=base+":"+stem+":"+expectedSha;
+  if(sessionCache.has(key))return sessionCache.get(key);
   progress(onProgress,6,label,"runtime");
   const ort=await loadOrt();ensureActive(signal);
-  const bytes=await fetchBytes(assetUrl(base,stem+".onnx"),signal,onProgress,label,8,38);
+  const modelUrl=assetUrl(base,stem+".onnx")+"?sha256="+expectedSha;
+  const bytes=await fetchBytes(modelUrl,signal,onProgress,label,8,38);
   ensureActive(signal);progress(onProgress,40,label,"checksum");
   const digest=await sha256Hex(bytes);
-  if(String(manifest.sha256||"").toLowerCase()!==digest)throw new Error("Checksum SHA-256 do modelo ONNX não confere.");
+  if(expectedSha!==digest)throw new Error("Checksum SHA-256 do modelo ONNX não confere. Atualize a página para carregar a versão publicada.");
   if(Number(manifest.bytes||0)!==bytes.byteLength)throw new Error("Tamanho do modelo ONNX difere do manifesto.");
   progress(onProgress,45,label,"session");
   const session=await ort.InferenceSession.create(bytes,{executionProviders:["wasm"],graphOptimizationLevel:"all"});

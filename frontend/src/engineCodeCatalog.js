@@ -250,12 +250,12 @@ export function engineCodePackage(engine){
   }
   if(engine.id==="yolov8n_public_crack_seg"){
     return {
-      kind:"Código real · ONNX browser candidato",
+      kind:"Código real · ONNX browser",
       language:"javascript",
       fileName:"yolov8n-crack-seg-onnx-browser.js",
       repositoryPath:"frontend/src/onnxBrowser.js",
       repositorySource:onnxBrowserSource,
-      source:commentHeader(engine,"runtime candidato ONNX no navegador",[
+      source:commentHeader(engine,"runtime real ONNX no navegador",[
         "Aplicar letterbox 640×640 e normalização RGB/CHW do checkpoint.",
         "Validar manifesto, tamanho e SHA-256 do modelo antes da sessão.",
         "Executar YOLOv8n-Seg via ONNX Runtime Web/WASM.",

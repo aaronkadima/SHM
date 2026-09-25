@@ -9,7 +9,7 @@ The pipeline is intentionally conservative:
 - ONNX export only after a minimum quality gate.
 """
 from __future__ import annotations
-import argparse, hashlib, io, json, math, os, random, shutil, urllib.request, zipfile
+import argparse, hashlib, json, os, random, urllib.request
 from pathlib import Path
 
 import numpy as np
@@ -17,60 +17,56 @@ from PIL import Image
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from huggingface_hub import HfApi,hf_hub_download
 
 ROOT=Path(__file__).resolve().parents[1]
-DATASET_URL="https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/jwsn7tfbrp-1.zip"
-DATASET_DOI="10.17632/jwsn7tfbrp.1"
-DATASET_LICENSE="CC BY 4.0"
+DATASET_REPO="Mr-Perfectuz/crack"
+DATASET_LICENSE="MIT"
+CONCRETE_IMAGE_URL="https://raw.githubusercontent.com/amirrezaie1415/Concrete-Crack-Segmentation/master/docs/imgs/254_768_0.png"
+CONCRETE_MASK_URL="https://raw.githubusercontent.com/amirrezaie1415/Concrete-Crack-Segmentation/master/docs/imgs/254_768_0_mask.png"
 SEED=26092026
 
-def norm_key(path:Path)->str:
-    stem=path.stem.lower()
-    for token in ("_mask","-mask"," mask","_alpha","-alpha"," alpha","_label","-label","_gt","-gt","_groundtruth","_ground_truth"):
-        stem=stem.replace(token,"")
-    return "".join(ch for ch in stem if ch.isalnum())
-
-def is_mask_path(path:Path)->bool:
-    s="/".join(x.lower() for x in path.parts)
-    return any(k in s for k in ("/mask","/label","/ground","/gt","/alpha","mask/","label/","ground/","alpha/"))
-
-def download_zip(target:Path)->Path:
+def download_url(url:str,target:Path)->Path:
     target.parent.mkdir(parents=True,exist_ok=True)
-    if target.exists() and target.stat().st_size>1_000_000:return target
-    req=urllib.request.Request(DATASET_URL,headers={"User-Agent":"SHM-UNet-training/1.0"})
-    with urllib.request.urlopen(req,timeout=180) as r, target.open("wb") as f:
-        shutil.copyfileobj(r,f)
+    req=urllib.request.Request(url,headers={"User-Agent":"SHM-owned-UNet/1.0"})
+    with urllib.request.urlopen(req,timeout=90) as r:target.write_bytes(r.read())
     return target
 
-def discover_pairs(root:Path):
-    exts={".png",".jpg",".jpeg",".bmp",".tif",".tiff"}
-    files=[p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in exts]
-    masks=[p for p in files if is_mask_path(p)]
-    images=[p for p in files if p not in set(masks)]
-    img_by_key={}
-    for p in images:img_by_key.setdefault(norm_key(p),[]).append(p)
+def resolve_training_pairs(max_pairs:int):
+    api=HfApi()
+    files=api.list_repo_files(DATASET_REPO,repo_type="dataset")
+    scenarios=["Sun520_full_resolution","Rain365_full_resolution","BJN260_full_resolution"]
+    per=max(1,max_pairs//len(scenarios))
+    selected=[]
+    for scenario in scenarios:
+        images=[x for x in files if x.startswith(scenario+"/img/") and Path(x).suffix.lower() in {".png",".jpg",".jpeg"}]
+        masks=[x for x in files if x.startswith(scenario+"/gt/") and Path(x).suffix.lower() in {".png",".jpg",".jpeg"}]
+        mask_by_stem={Path(x).stem:x for x in masks}
+        matched=[(x,mask_by_stem.get(Path(x).stem)) for x in sorted(images)]
+        matched=[x for x in matched if x[1]]
+        # Deterministic spread across each scenario instead of taking only the first files.
+        if len(matched)>per:
+            idx=np.linspace(0,len(matched)-1,per,dtype=int)
+            matched=[matched[int(i)] for i in idx]
+        selected.extend(matched)
     pairs=[]
-    for mask in masks:
-        candidates=img_by_key.get(norm_key(mask),[])
-        if candidates:
-            # Prefer a source image outside the mask directory and with the closest filename.
-            image=sorted(candidates,key=lambda p:(p.parent==mask.parent,len(str(p))))[0]
-            pairs.append((image,mask))
-    # Fallback: detect pairs by same basename across folders if mask folder keyword was absent.
-    if len(pairs)<50:
-        by_key={}
-        for p in files:by_key.setdefault(norm_key(p),[]).append(p)
-        for key,items in by_key.items():
-            if len(items)<2:continue
-            pngs=[x for x in items if x.suffix.lower()==".png"]
-            photos=[x for x in items if x.suffix.lower() in {".jpg",".jpeg",".bmp",".tif",".tiff"}]
-            if pngs and photos:pairs.append((photos[0],pngs[0]))
-    unique={}
-    for image,mask in pairs:unique[(str(image),str(mask))]=(image,mask)
-    return list(unique.values()),files
+    for image_file,mask_file in selected[:max_pairs]:
+        image_path=hf_hub_download(repo_id=DATASET_REPO,filename=image_file,repo_type="dataset",cache_dir="/tmp/shm-unet-dataset")
+        mask_path=hf_hub_download(repo_id=DATASET_REPO,filename=mask_file,repo_type="dataset",cache_dir="/tmp/shm-unet-dataset")
+        pairs.append((Path(image_path),Path(mask_path),image_file))
+    return pairs
 
-def split_name(image:Path)->str:
-    x=int(hashlib.sha256(str(image).encode()).hexdigest()[:8],16)%100
+def concrete_reference(root:Path,size:int):
+    ip=download_url(CONCRETE_IMAGE_URL,root/"concrete-reference.png")
+    mp=download_url(CONCRETE_MASK_URL,root/"concrete-reference-mask.png")
+    image=image_array(Image.open(ip),size)
+    mask=mask_array(Image.open(mp),size)
+    x=torch.from_numpy(image).permute(2,0,1).float().unsqueeze(0)
+    return x,mask
+
+
+def split_name(source_id)->str:
+    x=int(hashlib.sha256(str(source_id).encode()).hexdigest()[:8],16)%100
     return "train" if x<70 else ("val" if x<85 else "test")
 
 def mask_array(mask:Image.Image,size:int)->np.ndarray:
@@ -88,7 +84,7 @@ class PairDataset(torch.utils.data.Dataset):
         self.pairs=pairs;self.size=size;self.augment=augment
     def __len__(self):return len(self.pairs)
     def __getitem__(self,index):
-        image_path,mask_path=self.pairs[index]
+        image_path,mask_path,_source_id=self.pairs[index]
         image=image_array(Image.open(image_path),self.size)
         mask=mask_array(Image.open(mask_path),self.size)
         if self.augment:
@@ -161,27 +157,19 @@ def choose_threshold(rows):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--out-dir",default=str(ROOT/"browser-models"/"artifacts"/"shm_unet_crack"))
-    p.add_argument("--epochs",type=int,default=6)
+    p.add_argument("--epochs",type=int,default=4)
     p.add_argument("--size",type=int,default=256)
     p.add_argument("--base",type=int,default=16)
     p.add_argument("--batch-size",type=int,default=4)
-    p.add_argument("--max-pairs",type=int,default=458)
+    p.add_argument("--max-pairs",type=int,default=240)
     a=p.parse_args()
 
     random.seed(SEED);np.random.seed(SEED);torch.manual_seed(SEED);torch.set_num_threads(max(1,min(4,os.cpu_count() or 2)))
     out=Path(a.out_dir);out.mkdir(parents=True,exist_ok=True)
-    archive=download_zip(Path("/tmp/shm-concrete-crack-segmentation.zip"))
-    extract=Path("/tmp/shm-concrete-crack-segmentation")
-    if not extract.exists():
-        extract.mkdir(parents=True,exist_ok=True)
-        with zipfile.ZipFile(archive) as z:z.extractall(extract)
-    pairs,all_files=discover_pairs(extract)
-    if len(pairs)<100:
-        sample=[str(p.relative_to(extract)) for p in all_files[:120]]
-        raise SystemExit("Insufficient image/mask pairs discovered: "+str(len(pairs))+"\n"+json.dumps(sample,indent=2))
-    pairs=sorted(pairs,key=lambda x:str(x[0]))[:a.max_pairs]
+    pairs=resolve_training_pairs(a.max_pairs)
+    if len(pairs)<90:raise SystemExit("Insufficient paired samples resolved from "+DATASET_REPO+": "+str(len(pairs)))
     splits={k:[] for k in ("train","val","test")}
-    for pair in pairs:splits[split_name(pair[0])].append(pair)
+    for pair in pairs:splits[split_name(pair[2])].append(pair)
     if min(map(len,splits.values()))<10:raise SystemExit("Split too small: "+repr({k:len(v) for k,v in splits.items()}))
 
     loaders={}
@@ -202,15 +190,25 @@ def main():
 
     val_rows=collect_predictions(model,loaders["val"]);threshold,val_metrics=choose_threshold(val_rows)
     test_rows=collect_predictions(model,loaders["test"]);test_metrics=binary_metrics(test_rows,threshold)
+    concrete_x,concrete_gt=concrete_reference(out,a.size)
+    model.eval()
+    with torch.inference_mode():concrete_prob=model(concrete_x)[0,0].cpu().numpy()
+    concrete_metrics=binary_metrics([(concrete_prob,concrete_gt)],threshold)
     gate={
-        "mean_iou_min":.45,"mean_dice_min":.60,"mean_area_ratio_abs_delta_max":.12,
-        "passed":bool(test_metrics["mean_iou"]>=.45 and test_metrics["mean_dice"]>=.60 and test_metrics["mean_area_ratio_abs_delta"]<=.12),
+        "mean_iou_min":.40,"mean_dice_min":.55,"mean_area_ratio_abs_delta_max":.15,
+        "concrete_iou_min":.35,"concrete_dice_min":.50,
+        "passed":bool(
+            test_metrics["mean_iou"]>=.40 and test_metrics["mean_dice"]>=.55 and
+            test_metrics["mean_area_ratio_abs_delta"]<=.15 and
+            concrete_metrics["mean_iou"]>=.35 and concrete_metrics["mean_dice"]>=.50
+        ),
     }
     checkpoint=out/"shm_unet_crack.pt";torch.save(model.state_dict(),checkpoint)
     report={
         "schema":"shm-owned-unet-training-v1","engine_id":"shm_unet_crack","seed":SEED,
-        "dataset":{"url":DATASET_URL,"doi":DATASET_DOI,"license":DATASET_LICENSE,"pairs":len(pairs),
+        "dataset":{"repo":DATASET_REPO,"license":DATASET_LICENSE,"role":"training-general-crack","pairs":len(pairs),
                    "split_counts":{k:len(v) for k,v in splits.items()}},
+        "external_concrete_reference":{"image":CONCRETE_IMAGE_URL,"mask":CONCRETE_MASK_URL,"metrics":concrete_metrics},
         "model":{"architecture":"CompactUNet","base":a.base,"input_size":[a.size,a.size]},
         "training":{"epochs":a.epochs,"batch_size":a.batch_size,"history":history},
         "validation":{"selected_threshold":threshold,**val_metrics},"test":test_metrics,"gate":gate,

@@ -486,7 +486,7 @@ function App(){
             const originalStacks=document.querySelectorAll(".editorOverlayStack").length;
             const zoomAfterOriginal=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             let reset=document.querySelector(".viewerReset");
-            if(!reset&&compactOverlay){
+            if(!reset&&narrowSidebar){
               const layersToggleForReset=[...document.querySelectorAll(".editorTools button")].find(button=>button.title==="Mostrar ou ocultar camadas");
               layersToggleForReset?.click();
               await sleep(50);

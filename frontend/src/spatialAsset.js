@@ -7,7 +7,21 @@ export function spatialExtension(file){
   return SPATIAL_EXTENSIONS.has(ext)?ext:null;
 }
 
-function finishPositions(raw,metadata={}){
+function normalizedRgb(values){
+  if(!values?.length)return null;
+  let max=0,nonZero=0;
+  for(const value of values){
+    const n=Number(value);
+    if(Number.isFinite(n)){if(n>max)max=n;if(n>0)nonZero++}
+  }
+  if(!nonZero)return null;
+  const divisor=max<=1?1:max<=255?255:65535;
+  const out=new Float32Array(values.length);
+  for(let i=0;i<values.length;i++)out[i]=Math.max(0,Math.min(1,(Number(values[i])||0)/divisor));
+  return out;
+}
+
+function finishPositions(raw,metadata={},attributes={}){
   if(!raw.length)throw new Error("Nenhuma coordenada espacial válida foi encontrada.");
   let minX=Infinity,minY=Infinity,minZ=Infinity,maxX=-Infinity,maxY=-Infinity,maxZ=-Infinity;
   for(let i=0;i<raw.length;i+=3){
@@ -22,6 +36,9 @@ function finishPositions(raw,metadata={}){
   }
   return {
     positions:centered,
+    colors:attributes.colors||null,
+    intensities:attributes.intensities||null,
+    classifications:attributes.classifications||null,
     sampled_points:raw.length/3,
     bounds:{min:[minX,minY,minZ],max:[maxX,maxY,maxZ],center:[cx,cy,cz]},
     metadata
@@ -32,25 +49,49 @@ export async function parseXyzFile(file,{maxPoints=250000}={}){
   const text=await file.text();
   const lines=text.split(/\r?\n/);
   const stride=Math.max(1,Math.ceil(lines.length/maxPoints));
-  const raw=[];
-  let valid=0,skipped=0;
+  const raw=[],rgb=[],intensity=[];
+  let valid=0,skipped=0,sampled=0,rgbSamples=0,intensitySamples=0;
   for(let i=0;i<lines.length;i++){
     const line=lines[i].trim();
     if(!line||line.startsWith("#")||line.startsWith("//"))continue;
     const parts=line.split(/[\s,;]+/).filter(Boolean);
     if(parts.length<3){skipped++;continue}
-    const x=Number(parts[0]),y=Number(parts[1]),z=Number(parts[2]);
+    const values=parts.map(Number);
+    const x=values[0],y=values[1],z=values[2];
     if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z)){skipped++;continue}
     valid++;
-    if(valid%stride===0||raw.length===0)raw.push(x,y,z);
+    if(!(valid%stride===0||raw.length===0))continue;
+    raw.push(x,y,z);sampled++;
+    const hasRgb=values.length>=6&&values.slice(3,6).every(Number.isFinite);
+    if(hasRgb){
+      rgb.push(values[3],values[4],values[5]);rgbSamples++;
+      const candidate=values[6];
+      intensity.push(Number.isFinite(candidate)?candidate:0);
+      if(Number.isFinite(candidate))intensitySamples++;
+    }else{
+      rgb.push(0,0,0);
+      const candidate=values[3];
+      intensity.push(Number.isFinite(candidate)?candidate:0);
+      if(Number.isFinite(candidate))intensitySamples++;
+    }
   }
+  const colors=rgbSamples===sampled?normalizedRgb(rgb):null;
+  const intensities=intensitySamples===sampled?Float32Array.from(intensity):null;
   return finishPositions(raw,{
     format:"xyz",
     total_valid_points:valid,
     invalid_or_skipped_lines:skipped,
     source_lines:lines.length,
-    sampled:valid>raw.length/3
-  });
+    sampled:valid>sampled,
+    has_rgb:!!colors,
+    has_intensity:!!intensities,
+    visual_channels:[
+      ...(colors?["rgb"]:[]),
+      ...(intensities?["intensity"]:[]),
+      "elevation"
+    ],
+    rgb_semantics:colors?"per_point_color":"absent"
+  },{colors,intensities});
 }
 
 function lasPointCount(view,versionMinor){
@@ -60,6 +101,13 @@ function lasPointCount(view,versionMinor){
     if(Number.isSafeInteger(extended)&&extended>0)return extended;
   }
   return legacy;
+}
+
+function lasRgbOffset(pointFormat){
+  if(pointFormat===2)return 20;
+  if(pointFormat===3||pointFormat===5)return 28;
+  if(pointFormat===7||pointFormat===8||pointFormat===10)return 30;
+  return null;
 }
 
 export async function parseLasFile(file,{maxPoints=250000}={}){
@@ -83,21 +131,38 @@ export async function parseLasFile(file,{maxPoints=250000}={}){
   const sx=view.getFloat64(131,true),sy=view.getFloat64(139,true),sz=view.getFloat64(147,true);
   const ox=view.getFloat64(155,true),oy=view.getFloat64(163,true),oz=view.getFloat64(171,true);
   const stride=Math.max(1,Math.ceil(count/maxPoints));
-  const raw=[];
+  const raw=[],rgb=[],intensity=[],classification=[];
   const classes={};
+  const rgbOffset=lasRgbOffset(pointFormat);
+  let rgbSamples=0,intensityNonZero=0;
   for(let index=0;index<count;index+=stride){
     const p=pointDataOffset+index*recordLength;
     if(p+12>view.byteLength)break;
     const x=view.getInt32(p,true)*sx+ox;
     const y=view.getInt32(p+4,true)*sy+oy;
     const z=view.getInt32(p+8,true)*sz+oz;
-    if(Number.isFinite(x)&&Number.isFinite(y)&&Number.isFinite(z))raw.push(x,y,z);
+    if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z))continue;
+    raw.push(x,y,z);
+    const signal=p+14<=view.byteLength?view.getUint16(p+12,true):0;
+    intensity.push(signal);if(signal>0)intensityNonZero++;
     const classOffset=pointFormat<=5?15:16;
+    let code=0;
     if(p+classOffset<view.byteLength){
-      const code=view.getUint8(p+classOffset);
+      code=view.getUint8(p+classOffset);
+      if(pointFormat<=5)code&=0x1f;
       classes[code]=(classes[code]||0)+1;
     }
+    classification.push(code);
+    if(rgbOffset!=null&&p+rgbOffset+6<=view.byteLength){
+      const r=view.getUint16(p+rgbOffset,true),g=view.getUint16(p+rgbOffset+2,true),b=view.getUint16(p+rgbOffset+4,true);
+      rgb.push(r,g,b);
+      if(r||g||b)rgbSamples++;
+    }else rgb.push(0,0,0);
   }
+  const sampledPoints=raw.length/3;
+  const colors=rgbOffset!=null&&rgbSamples>0?normalizedRgb(rgb):null;
+  const intensities=intensityNonZero>0?Uint16Array.from(intensity):null;
+  const classifications=classification.length===sampledPoints?Uint8Array.from(classification):null;
   return finishPositions(raw,{
     format:"las",
     las_version:`${versionMajor}.${versionMinor}`,
@@ -109,8 +174,21 @@ export async function parseLasFile(file,{maxPoints=250000}={}){
     sample_stride:stride,
     scale:[sx,sy,sz],
     offset:[ox,oy,oz],
-    sampled_classification_counts:classes
-  });
+    sampled_classification_counts:classes,
+    has_rgb:!!colors,
+    has_intensity:!!intensities,
+    has_classification:!!classifications,
+    visual_channels:[
+      ...(colors?["rgb"]:[]),
+      ...(intensities?["intensity"]:[]),
+      ...(classifications?["classification"]:[]),
+      "elevation"
+    ],
+    rgb_semantics:colors?"per_point_color":"absent",
+    segmentation_guidance:colors
+      ?"RGB por ponto disponível: apto para visualização fotométrica e fusão com os descritores geométricos do CDM-3."
+      :"RGB ausente no LAS: limitar segmentação browser a geometria/intensidade/classificação; patologias visuais exigem imagem registrada ou nuvem colorizada."
+  },{colors,intensities,classifications});
 }
 
 function ifcSchema(text){
@@ -140,8 +218,6 @@ export async function parseIfcFile(file,{maxPoints=250000}={}){
     raw.push(values[0],values[1],Number.isFinite(values[2])?values[2]:0);
   }
   if(!raw.length){
-    // Some IFC4 files rely on IfcCartesianPointList3D. Extract a bounded preview
-    // without attempting to implement a complete STEP parser.
     const listRe=/IFCCARTESIANPOINTLIST3D\s*\(\s*\((.*?)\)\s*\)/gis;
     const list=listRe.exec(text)?.[1]||"";
     const tripleRe=/\(\s*(-?\d+(?:\.\d+)?(?:[Ee][+-]?\d+)?)\s*,\s*(-?\d+(?:\.\d+)?(?:[Ee][+-]?\d+)?)\s*,\s*(-?\d+(?:\.\d+)?(?:[Ee][+-]?\d+)?)\s*\)/g;
@@ -161,6 +237,8 @@ export async function parseIfcFile(file,{maxPoints=250000}={}){
     cartesian_point_count:pointCount,
     top_entity_counts:Object.fromEntries(topEntities),
     structural_entity_counts:structural,
+    has_rgb:false,
+    visual_channels:["elevation"],
     preview_note:"Prévia browser baseada em pontos cartesianos IFC; resolução semântica/geometria final ocorre no pipeline CDM-3/IfcOpenShell."
   });
 }

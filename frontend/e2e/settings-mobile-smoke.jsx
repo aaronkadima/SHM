@@ -7,7 +7,14 @@ const engines=[
   {
     id:"cdm_1",name:"CDM-1",family:"Concrete Damage Morphology",task:"classical",
     description:"CDM 2.8.5: fissuras, desplacamento, armadura exposta, corrosão e eflorescência em camadas independentes; execução no navegador.",
-    browser_ready:true,license:"SHM project"
+    browser_ready:true,license:"SHM project",catalog_owned:true,catalog_visibility:"always",
+    browser_runtime:"browser-js-cdm-v285"
+  },
+  {
+    id:"cdm_3",name:"CDM-3",family:"Concrete Damage Morphology / Spatial AI",task:"semantic_segmentation",
+    description:"Motor próprio espacial 2D/3D para LAS, XYZ e IFC.",
+    browser_ready:true,license:"SHM project",catalog_owned:true,catalog_visibility:"always",
+    browser_runtime:"browser-js-cdm3-spatial-dev",input_modalities:["image","las","xyz","ifc"]
   },
   ...Array.from({length:33},(_,i)=>({
     id:"engine_"+(i+1),

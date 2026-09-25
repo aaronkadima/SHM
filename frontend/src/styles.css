@@ -489,5 +489,26 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 }
 
 @media(max-width:560px){.editorDevStamp{margin-left:5px;padding:1px 4px;font-size:6.5px}.editorStatus{height:calc(34px + env(safe-area-inset-bottom,0px));padding:0 max(10px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(10px,env(safe-area-inset-left,0px));gap:8px;font-size:9px}.editorStatusMeta{max-width:68%;padding-left:8px;gap:4px}.editorUpdateAvailable{flex:none;min-height:20px;padding:2px 5px;font-size:6.5px!important}.editorDevStamp{flex:none;max-width:78px;overflow:hidden;text-overflow:ellipsis}.editorStatusMessage{min-width:0}.analysisEditor{height:100%;min-height:0}}
+@media(max-width:560px){
+  .editorLayers.engineDensityUltra .editorLayersContent{padding-bottom:1px}
+  .editorLayers.engineDensityUltra .editorPanelTitle{padding:1px 2px;margin-bottom:0;font-size:8.5px}
+  .editorLayers.engineDensityUltra .layerRow{min-height:21px;padding:1px 3px;font-size:8.5px}
+  .editorLayers.engineDensityUltra .pathologyLayerGroup{margin:0 0 1px;padding-top:0}
+  .editorLayers.engineDensityUltra .pathologyLayerGroup>summary,.editorLayers.engineDensityUltra .temporalLayerGroup>summary{padding:1px 3px;font-size:7.5px}
+  .editorLayers.engineDensityUltra .pathologyLayerGroup .pathologyLayer{min-height:20px;padding-left:6px;font-size:8.5px}
+  .editorLayers.engineDensityUltra .layerGroupActions{padding:0 3px 1px}
+  .editorLayers.engineDensityUltra .layerGroupActions button{padding:1px 4px;font-size:6px}
+  .editorLayers.engineDensityUltra .layerInspector{margin:1px 0 2px;padding:3px;gap:1px}
+  .editorLayers.engineDensityUltra .layerInspectorHeader b{font-size:8px}
+  .editorLayers.engineDensityUltra .layerInspectorHeader small,.editorLayers.engineDensityUltra .layerInspector label>span,.editorLayers.engineDensityUltra .layerInspector label>b{font-size:6.5px}
+  .editorLayers.engineDensityUltra .layerInspectorActions button{min-height:17px;padding:1px 4px;font-size:6px}
+  .editorLayers.engineDensityUltra .editorAssetMeta{grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 5px;margin:2px 0 3px;padding:3px}
+  .editorLayers.engineDensityUltra .editorAssetMeta>div{grid-template-columns:36px minmax(0,1fr);gap:3px}
+  .editorLayers.engineDensityUltra .editorAssetMeta span{font-size:5.8px}
+  .editorLayers.engineDensityUltra .editorAssetMeta b{font-size:6.8px}
+  .editorLayers.engineDensityUltra p{margin:1px 0;font-size:8px;line-height:1.1}
+  .editorLayers.engineDensityUltra input[type=range]{height:11px}
+  .editorLayers.engineDensityUltra .viewerReset{margin:1px 0 0;padding:2px 5px;font-size:7px;line-height:1.1}
+}
 @media(max-width:380px){.editorStatus{padding-inline:8px;gap:6px}.editorStatusMeta{max-width:72%;padding-left:6px}.editorDevStamp{max-width:60px;margin-left:2px}.editorUpdateAvailable{padding-inline:4px}.editorUpdateAvailable svg{display:none}}
 @media(max-width:340px){.editorTop{padding-inline:6px;gap:4px}.editorBrand{gap:5px}.editorTop>.editorBrand{gap:5px}.editorBrand strong{max-width:62px;font-size:11px}.editorMark{width:27px;height:27px;font-size:14px}.editorTopActions{gap:3px}.editorTopActions button{width:30px;min-width:30px;height:30px;min-height:30px;padding:5px}.editorTopActions svg{width:16px;height:16px}.editorTools{width:50px;padding-inline:4px}.editorTools button{width:38px;height:38px}.editorLayers{left:50px!important;width:min(230px,calc(100% - 50px))!important;max-width:calc(100% - 50px)}.editorLayersScrim{left:50px!important}.editorCameraEntry,.editorTypeBadge{max-width:calc(50% - 15px);padding-inline:7px;font-size:9px}.editorCameraEntry{right:8px}.editorTypeBadge{left:8px}.editorResultsTab{right:8px;max-width:132px}.editorZoom{bottom:calc(10px + env(safe-area-inset-bottom,0px));height:36px;gap:6px}.editorZoom span{min-width:36px;font-size:10px}.editorZoom button{width:26px;min-width:26px;height:26px;min-height:26px}}

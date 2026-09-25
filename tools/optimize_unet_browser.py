@@ -138,10 +138,13 @@ def backend_reference(crops:list[Image.Image],parity_path:Path):
     for idx,image in enumerate(crops):
         result=adapter.predict(image)
         metrics=dict(result.metrics or {})
-        ranked.append((float(metrics.get("crack_area_ratio",0.0)),idx,result))
-    # Prefer a nontrivial real-image result; otherwise keep the largest area response.
-    ranked.sort(reverse=True,key=lambda x:x[0])
-    _,idx,result=ranked[0]
+        ratio=float(metrics.get("crack_area_ratio",0.0))
+        ranked.append((ratio,idx,result))
+    # Prefer an informative, non-saturated response near a typical crack-area scale.
+    informative=[item for item in ranked if 0.002<=item[0]<=0.25]
+    pool=informative or [item for item in ranked if 0.0<item[0]<0.95] or ranked
+    ratio,idx,result=min(pool,key=lambda item:abs(item[0]-.03))
+    print(json.dumps({"parity_candidate_ratios":[round(x[0],6) for x in ranked],"selected_ratio":round(ratio,6),"selected_index":idx},ensure_ascii=False))
     chosen=crops[idx].convert("RGB")
     parity_path.parent.mkdir(parents=True,exist_ok=True)
     chosen.save(parity_path,optimize=True)

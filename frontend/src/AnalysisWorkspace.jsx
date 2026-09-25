@@ -338,7 +338,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const boxes=(chosen?.detections||[]).filter(d=>Array.isArray(d.box)&&d.box.length>=4&&(!pathologyLayers.length||visible["cdm_1:"+d.label]!==false));
   const detail=selectedDetection&&chosen&&selectedDetection.engineId===chosen.engine_id?boxes[selectedDetection.index]:null;
   const panes=comparison==="side"||comparison==="temporal"?2:1;
-  const safeViewport={width:Math.max(1,Number(viewportSize.width)||1),height:Math.max(1,Number(viewportSize.height)||1)};
+  const liveViewportWidth=Number(surface.current?.clientWidth)||Number(viewportSize.width)||1;
+  const liveViewportHeight=Number(surface.current?.clientHeight)||Number(viewportSize.height)||1;
+  const safeViewport={width:Math.max(1,liveViewportWidth),height:Math.max(1,liveViewportHeight)};
   const safeImage={width:Math.max(1,Number(imageSize.width)||1),height:Math.max(1,Number(imageSize.height)||1)};
   const fit=Math.min(safeViewport.width*.83/(safeImage.width*panes),safeViewport.height*.8/safeImage.height);
   const displaySize={width:Math.max(96,safeImage.width*fit*panes),height:Math.max(72,safeImage.height*fit)};

@@ -115,7 +115,7 @@ function App(){
             ?visibleEngineNames.length===Math.min(12,expectedEngineCount)&&getComputedStyle(engineOverflow).display!=="none"
             :visibleEngineNames.length===expectedEngineCount&&getComputedStyle(engineOverflow).display==="none";
           const engineNameFontMin=compactUltraEngineFooter?4.5:5.5;
-          const multiEngineFooterOk=document.querySelector(".editorLayers")?.dataset.engineCount===String(expectedEngineCount)&&engineNames.length===expectedEngineCount&&engineNames[0]==="CDM-1"&&engineOverflow?.textContent.trim()==="+22 motores"&&engineFooterVisibilityOk&&sidebarEngines?.title.includes("FastFlow")&&getComputedStyle(document.querySelector(".editorSidebarEngineList")).overflow==="hidden"&&document.querySelector(".editorLayers")?.classList.contains("engineDensityUltra")&&parseFloat(getComputedStyle(document.querySelector(".editorSidebarEngineName")).fontSize)>=engineNameFontMin;
+          const multiEngineFooterOk=document.querySelector(".editorLayers")?.dataset.engineCount===String(expectedEngineCount)&&engineNames.length===expectedEngineCount&&engineNames[0]==="CDM-1"&&engineOverflow?.textContent.trim()===`+${Math.max(0,expectedEngineCount-Math.min(12,expectedEngineCount))} motores`&&engineFooterVisibilityOk&&sidebarEngines?.title.includes("FastFlow")&&getComputedStyle(document.querySelector(".editorSidebarEngineList")).overflow==="hidden"&&document.querySelector(".editorLayers")?.classList.contains("engineDensityUltra")&&parseFloat(getComputedStyle(document.querySelector(".editorSidebarEngineName")).fontSize)>=engineNameFontMin;
           const sidebarStyle=getComputedStyle(document.querySelector(".editorLayers"));
           const sidebarResizeStyle=getComputedStyle(document.querySelector(".editorLayerResizeHandle"));
           const phoneSidebar=window.matchMedia("(max-width: 560px)").matches;
@@ -628,7 +628,7 @@ function App(){
             collapseDuringBusy?.click();
             await sleep(60);
             const busyTab=document.querySelector(".editorResultsTab");
-            const busyCollapsedTabOk=prefBeforeBusy.resultPanelOpen===false&&!!busyTab&&busyTab.classList.contains("busy")&&busyTab.querySelector("span")?.textContent.trim()==="Resultados"&&busyTab.querySelector("strong")?.textContent.trim()==="3/34"&&!busyTab.textContent.includes("CDM-1")&&busyTab.getAttribute("aria-label")==="Reabrir resultados · análise em andamento"&&!!busyTab.querySelector("i>b");
+            const busyCollapsedTabOk=prefBeforeBusy.resultPanelOpen===false&&!!busyTab&&busyTab.classList.contains("busy")&&busyTab.querySelector("span")?.textContent.trim()==="Resultados"&&busyTab.querySelector("strong")?.textContent.trim()===`3/${expectedEngineCount}`&&!busyTab.textContent.includes("CDM-1")&&busyTab.getAttribute("aria-label")==="Reabrir resultados · análise em andamento"&&!!busyTab.querySelector("i>b");
             setAnalysisRes(fakeResult);
             setRunProgress({completed:100,total:100,state:"persisting",current_engine:"Salvando histórico local"});
             await sleep(100);

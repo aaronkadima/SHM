@@ -2,7 +2,7 @@ name: Backend syntax check
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main","dev"]
     paths:
       - "backend/**"
       - ".github/workflows/backend-ci.yml"

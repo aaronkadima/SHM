@@ -77,15 +77,15 @@ async function sha256Hex(bytes){
 }
 async function getSession(engineId,control={}){
   const signal=control.signal,onProgress=control.onProgress,channel=control.channel;
-  const tag=control.releaseTag||activeReleaseTag(channel),base=modelBaseUrl(control),key=base+":"+engineId;
+  const tag=control.releaseTag||activeReleaseTag(channel),base=modelBaseUrl(control),stem=control.assetStem||engineId,key=base+":"+stem;
   if(sessionCache.has(key))return sessionCache.get(key);
   const label=engineId+" · ONNX";
   ensureActive(signal);progress(onProgress,3,label,"manifest");
-  const manifest=await fetchJson(assetUrl(base,engineId+".json"),signal);
+  const manifest=await fetchJson(assetUrl(base,stem+".json"),signal);
   if(manifest.engine_id!==engineId)throw new Error("Manifesto ONNX pertence a outro motor.");
   progress(onProgress,6,label,"runtime");
   const ort=await loadOrt();ensureActive(signal);
-  const bytes=await fetchBytes(assetUrl(base,engineId+".onnx"),signal,onProgress,label,8,38);
+  const bytes=await fetchBytes(assetUrl(base,stem+".onnx"),signal,onProgress,label,8,38);
   ensureActive(signal);progress(onProgress,40,label,"checksum");
   const digest=await sha256Hex(bytes);
   if(String(manifest.sha256||"").toLowerCase()!==digest)throw new Error("Checksum SHA-256 do modelo ONNX não confere.");
@@ -134,6 +134,65 @@ function bilinear(data,base,w,h,x,y){
   return a*(1-ty)+b*ty;
 }
 function canvasBase64(canvas){return canvas.toDataURL("image/png").split(",")[1]}
+
+
+export async function runUnetCrackBrowser(file,control={}){
+  const started=performance.now(),signal=control.signal,onProgress=control.onProgress;
+  ensureActive(signal);progress(onProgress,1,"U-Net Crack · preparando","start");
+  const loaded=await getSession("unet_public_crack",{...control,assetStem:control.assetStem||"unet_public_crack.int8"});
+  const{ort,session,manifest}=loaded;
+  progress(onProgress,53,"U-Net · preparando imagem","preprocess");
+  const prepared=await prepareRgbTensor(file,manifest,signal);ensureActive(signal);
+  const inputName=manifest.inputs?.[0]?.name||session.inputNames?.[0]||"images";
+  const tensor=new ort.Tensor("float32",prepared.data,[1,3,prepared.inputHeight,prepared.inputWidth]);
+  progress(onProgress,60,"U-Net · inferência INT8 ONNX/WASM","inference");
+  const outputs=await session.run({[inputName]:tensor});ensureActive(signal);
+  progress(onProgress,80,"U-Net · pós-processamento","postprocess");
+  const outputName=manifest.outputs?.[0]?.name||session.outputNames?.[0],out=outputs[outputName]||outputs[Object.keys(outputs)[0]];
+  if(!out?.data||!Array.isArray(out.dims)||out.dims.length!==4)throw new Error("Saída U-Net ONNX inesperada.");
+  const oh=Number(out.dims[2]),ow=Number(out.dims[3]),threshold=Number(manifest.threshold??.5);
+  const canvas=prepared.source,ctx=canvas.getContext("2d",{willReadFrequently:true}),img=ctx.getImageData(0,0,prepared.width,prepared.height);
+  let area=0,sumMask=0,sumAll=0,maxProb=0;
+  for(let y=0;y<prepared.height;y++){
+    const sy=(y+.5)*oh/prepared.height-.5;
+    for(let x=0;x<prepared.width;x++){
+      const sx=(x+.5)*ow/prepared.width-.5;
+      const probability=clamp(bilinear(out.data,0,ow,oh,sx,sy),0,1);
+      sumAll+=probability;if(probability>maxProb)maxProb=probability;
+      if(probability<threshold)continue;
+      area++;sumMask+=probability;
+      const p=(y*prepared.width+x)*4;
+      img.data[p]=Math.round(.55*img.data[p]+.45*255);
+      img.data[p+1]=Math.round(.55*img.data[p+1]+.45*70);
+      img.data[p+2]=Math.round(.55*img.data[p+2]+.45*30);
+    }
+  }
+  ctx.putImageData(img,0,0);
+  const pixels=prepared.width*prepared.height,score=area?sumMask/area:maxProb;
+  const detections=area?[{label:"crack",canonical_label:"crack",score,area_px:area}]:[];
+  progress(onProgress,100,"U-Net · concluído","done");
+  return{
+    image_width:prepared.width,image_height:prepared.height,
+    results:[{
+      engine_id:"unet_public_crack",name:"U-Net Concrete Crack · navegador INT8",task:"semantic_segmentation",status:"ok",
+      latency_ms:performance.now()-started,detections,overlay_png_base64:canvasBase64(canvas),
+      metrics:{
+        crack_area_ratio:Number((area/Math.max(1,pixels)).toFixed(6)),
+        mean_probability:Number((sumAll/Math.max(1,pixels)).toFixed(6)),
+        max_probability:Number(maxProb.toFixed(6)),
+        threshold,source_repo:manifest.source_repo,runtime:"onnxruntime-web-wasm",runtime_version:ORT_VERSION,
+        model_sha256:loaded.digest,model_bytes:Number(manifest.bytes||0),precision:manifest.optimization?.precision||"int8",
+        quantization:manifest.optimization?.quantization||"static-qdq",processed_scale:Number(prepared.processedScale.toFixed(4))
+      },
+      message:"U-Net INT8 executada integralmente no navegador; variante candidata em validação de paridade antes da promoção browser_ready."
+    }],
+    consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,
+    metadata:{
+      analysis_id:"browser-"+crypto.randomUUID(),api_version:"browser-onnx-1.0",generated_at:new Date().toISOString(),
+      mode:"browser",engine_ids:["unet_public_crack"],implementation:"unet-int8-onnxruntime-web-v1",model_release:loaded.tag
+    }
+  };
+}
 
 export async function runSegformerBrowser(file,control={}){
   const started=performance.now(),signal=control.signal,onProgress=control.onProgress;

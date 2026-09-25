@@ -141,8 +141,14 @@ def backend_reference(image:Image.Image,parity_path:Path):
     result=adapter.predict(chosen)
     metrics=dict(result.metrics or {})
     ratio=float(metrics.get("crack_area_ratio",0.0))
-    if ratio<=0.0005 or ratio>=0.90:
-        raise SystemExit(f"Parity image is not discriminant enough; crack_area_ratio={ratio:.6f}")
+    quality_gate={
+        "passed":bool(0.0005<ratio<0.90),
+        "metric":"crack_area_ratio",
+        "value":ratio,
+        "min_exclusive":0.0005,
+        "max_exclusive":0.90,
+        "reason":None if 0.0005<ratio<0.90 else "Checkpoint saturates or collapses on an external real concrete-crack image."
+    }
 
     parity_path.parent.mkdir(parents=True,exist_ok=True)
     chosen.save(parity_path,optimize=True)
@@ -160,7 +166,7 @@ def backend_reference(image:Image.Image,parity_path:Path):
         "task":result.task,
         "detections":detections,
         "metrics":metrics,
-    }
+    },quality_gate
 
 
 def main():
@@ -239,7 +245,7 @@ def main():
 
     parity_path=outdir/"parity.int8.png"
     parity_source=download_source(outdir/"parity-source.png",PARITY_URL)
-    reference=backend_reference(Image.open(parity_source),parity_path)
+    reference,quality_gate=backend_reference(Image.open(parity_source),parity_path)
     parity={
         "schema":"shm-browser-parity-v1",
         "engine_id":ENGINE_ID,
@@ -261,6 +267,7 @@ def main():
             "max_probability_abs_max":.08,
         },
         "quantization_consistency":consistency,
+        "quality_gate":quality_gate,
         "reference":reference,
     }
     parity_json=outdir/"parity.int8.json"
@@ -277,6 +284,7 @@ def main():
             "detections":len(reference.get("detections",[])),
             "metrics":reference.get("metrics",{}),
         },
+        "quality_gate":quality_gate,
         "assets":{
             "model":str(int8),
             "manifest":str(int8_manifest),

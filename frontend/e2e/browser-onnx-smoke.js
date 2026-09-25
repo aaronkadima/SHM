@@ -14,8 +14,7 @@ async function syntheticFile(){
   return new File([blob],"segformer-browser-smoke.png",{type:"image/png"});
 }
 
-(async()=>{
-  try{
+try{
     if(!browserEngineSupported("segformer_public_crack"))throw new Error("dispatcher does not support SegFormer");
     const progress=[];
     const result=await runBrowserEngine("segformer_public_crack",await syntheticFile(),{},null,{
@@ -32,5 +31,4 @@ async function syntheticFile(){
     if(!row.overlay_png_base64||row.overlay_png_base64.length<100)throw new Error("overlay not produced");
     if(!progress.some(p=>p?.stage==="checksum")||!progress.some(p=>p?.stage==="inference")||!progress.some(p=>p?.stage==="done"))throw new Error("progress stages incomplete");
     pass("SegFormer ONNX/WASM · "+Math.round(row.latency_ms)+" ms · "+metrics.model_sha256.slice(0,12));
-  }catch(error){console.error(error);fail(error?.stack||error?.message||String(error))}
-})();
+}catch(error){console.error(error);fail(error?.stack||error?.message||String(error))}

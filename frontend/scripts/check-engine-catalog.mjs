@@ -8,6 +8,7 @@ const engines=Array.isArray(catalog.engines)?catalog.engines:[];
 const cdm=engines.find(e=>e.id==="cdm_1");
 const segformer=engines.find(e=>e.id==="segformer_public_crack");
 const yoloBrowser=engines.find(e=>e.id==="yolov8n_public_crack_seg");
+const unetBrowser=engines.find(e=>e.id==="unet_public_crack");
 const failures=[];
 const check=(ok,msg)=>{if(!ok)failures.push(msg)};
 
@@ -44,6 +45,21 @@ if(yoloBrowser){
 }
 check(browserEngineSupported("yolov8n_public_crack_seg")===true,"browserEngines must expose YOLOv8n candidate runtime for smoke/parity tests");
 
+check(!!unetBrowser,"unet_public_crack must exist in engines.json");
+if(unetBrowser){
+  check(unetBrowser.browser_ready===false,"U-Net must remain browser_ready=false while quality gate is blocked");
+  check(unetBrowser.browser_candidate===true,"U-Net must remain a browser candidate");
+  check(unetBrowser.browser_stage==="browser-runtime-validated-quality-gate-blocked","U-Net browser stage mismatch");
+  check(unetBrowser.browser_runtime_candidate==="onnxruntime-web-wasm-1.30.0","U-Net candidate runtime mismatch");
+  check(unetBrowser.browser_release_asset==="unet_public_crack.int8.onnx","U-Net optimized asset mismatch");
+  check(unetBrowser.browser_manifest_asset==="unet_public_crack.int8.json","U-Net optimized manifest mismatch");
+  check(unetBrowser.browser_precision==="int8","U-Net optimized precision mismatch");
+  check(unetBrowser.browser_quality_gate==="external-real-image-saturation","U-Net quality-gate reason mismatch");
+  check(unetBrowser.recommended===false,"Quality-blocked U-Net must not be recommended");
+  check(!engineMatchesFilter(unetBrowser,"browser"),"Browser filter must exclude quality-blocked U-Net");
+}
+check(browserEngineSupported("unet_public_crack")===true,"browserEngines must expose U-Net candidate runtime for smoke/parity tests");
+
 
 check(new Set(engines.map(e=>e.id)).size===engines.length,"engine ids must be unique");
 const sorted=sortEngines(engines);
@@ -60,4 +76,4 @@ if(failures.length){
   failures.forEach(x=>console.error(" - "+x));
   process.exit(1);
 }
-console.log("Engine catalog passed:",{count:engines.length,version:catalog.version,cdm:{id:cdm.id,browser_ready:cdm.browser_ready},segformer:{id:segformer.id,browser_ready:segformer.browser_ready,browser_runtime:segformer.browser_runtime},yoloBrowser:{id:yoloBrowser.id,browser_ready:yoloBrowser.browser_ready,browser_stage:yoloBrowser.browser_stage}});
+console.log("Engine catalog passed:",{count:engines.length,version:catalog.version,cdm:{id:cdm.id,browser_ready:cdm.browser_ready},segformer:{id:segformer.id,browser_ready:segformer.browser_ready,browser_runtime:segformer.browser_runtime},yoloBrowser:{id:yoloBrowser.id,browser_ready:yoloBrowser.browser_ready,browser_stage:yoloBrowser.browser_stage},unetBrowser:{id:unetBrowser.id,browser_ready:unetBrowser.browser_ready,browser_stage:unetBrowser.browser_stage}});

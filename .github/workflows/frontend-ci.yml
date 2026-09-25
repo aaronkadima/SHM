@@ -152,6 +152,48 @@ jobs:
             exit 1
           }
 
+      - name: U-Net INT8 browser ONNX candidate smoke
+        working-directory: frontend
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p public/browser-models
+          gh release download browser-models-dev --repo "$GITHUB_REPOSITORY" --pattern "unet_public_crack.int8.onnx" --pattern "unet_public_crack.int8.json" --pattern "unet_public_crack.int8.parity.png" --pattern "unet_public_crack.int8.parity.json" --dir public/browser-models --clobber
+          VITE_BASE_PATH=/ VITE_APP_CHANNEL=development npm run dev -- --host 127.0.0.1 --port 4179 > /tmp/shm-unet-vite.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
+
+          READY=0
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4179/e2e/browser-unet-smoke.html >/dev/null; then
+              READY=1
+              break
+            fi
+            sleep 0.5
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/shm-unet-vite.log
+            exit 1
+          fi
+
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chromium-compatible browser found on runner."
+            exit 1
+          fi
+
+          CHROME_BIN="$CHROME" \
+          SMOKE_URL="http://127.0.0.1:4179/e2e/browser-unet-smoke.html" \
+          SMOKE_TIMEOUT_MS=180000 \
+          SMOKE_DEBUG_PORT=9229 \
+          SMOKE_PASS_TOKEN="BROWSER_UNET_SMOKE_PASS" \
+          SMOKE_FAIL_TOKEN="BROWSER_UNET_SMOKE_FAIL" \
+          node scripts/run-browser-onnx-smoke.mjs || {
+            cat /tmp/shm-unet-vite.log
+            exit 1
+          }
+
       - name: Browser viewer smoke
         working-directory: frontend
         shell: bash

@@ -69,3 +69,15 @@ pip install -r backend/requirements-cdm3.txt
 - [ ] Frontend DEV compila e `/SHM/dev/` carrega o catálogo atualizado.
 - [ ] Testes/CI do branch `dev` passam.
 - [ ] Somente após esses gates: PR/merge de `dev` para `main`.
+
+### Textura/cor da nuvem de pontos
+
+O visualizador DEV preserva os atributos visuais da nuvem em vez de reduzir o ativo a coordenadas XYZ:
+
+- **LAS com RGB** (formatos de ponto 2, 3, 5, 7, 8 e 10): renderização por cor RGB de cada ponto.
+- **LAS sem RGB**: modos alternativos por intensidade, classificação ASPRS e elevação Z.
+- **XYZ**: aceita `X Y Z R G B` quando as três colunas de cor estão presentes; `X Y Z` continua válido para geometria.
+- O canvas permite alternar entre os canais disponíveis: **RGB / Intensidade / Classificação / Elevação Z**.
+
+Regra de segmentação CDM-3: geometria, intensidade e classes são adequadas para segmentação de componentes, terreno, tabuleiro, água/vegetação e priors espaciais. Elas **não substituem informação fotométrica** para detecção visual fina de fissuras, corrosão, manchas, eflorescência ou desplacamento superficial. Para estas manifestações, o pipeline deve usar RGB por ponto ou imagens RGB/IRT calibradas e registradas na mesma referência espacial da nuvem/IFC. A interface sinaliza explicitamente quando o ativo não possui RGB, evitando atribuir confiança visual a uma nuvem sem textura.
+

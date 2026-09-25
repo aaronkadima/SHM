@@ -71,6 +71,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-result-export.mjs
 
+      - name: Browser networking and result reveal
+        working-directory: frontend
+        run: node scripts/check-browser-networking.mjs
+
       - name: SegFormer browser ONNX smoke
         working-directory: frontend
         shell: bash

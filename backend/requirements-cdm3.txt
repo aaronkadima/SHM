@@ -1,0 +1,7 @@
+# Optional CDM-3 dev stack. Install this file on the development backend.
+-r requirements.txt
+scipy>=1.14,<2
+laspy[lazrs]>=2.5,<3
+trimesh>=4.4,<5
+ifcopenshell==0.8.5
+svgwrite>=1.4,<2

@@ -8,9 +8,9 @@ A camada browser permite que motores compactos sejam executados diretamente pelo
 - `cdm_1`: **funcional no navegador**, pipeline determinístico CDM 2.8.5.
 - `yolov8n_public_crack_seg`: candidato ONNX Runtime Web; exportação e validação automatizadas.
 - `unet_public_crack`: candidato ONNX Runtime Web; exportação e validação automatizadas.
-- `segformer_public_crack`: candidato ONNX Runtime Web; exportação e validação automatizadas.
+- `segformer_public_crack`: **funcional no navegador**, ONNX Runtime Web/WASM com manifesto, SHA-256 e smoke test em Chrome.
 
-Os candidatos permanecem com `browser_ready: false` até que o runtime Web, o pré/pós-processamento e a paridade numérica com o backend sejam validados.
+Os candidatos ainda não promovidos permanecem com `browser_ready: false` até que o runtime Web, o pré/pós-processamento e a paridade com o backend sejam validados. O SegFormer já passou pela primeira promoção browser e usa os assets same-origin publicados junto ao GitHub Pages.
 
 ## Pipeline de artefatos
 

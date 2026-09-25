@@ -129,7 +129,7 @@ export async function runBrowserEngine(engineId,file,options={},previousFile=nul
   if(engineId==="opencv_crack")return runOpenCVBaseline(file);
   if(engineId==="cdm_1")return runCdmBrowser(file,options,previousFile,control);
   if(engineId==="cdm_3"){
-    if(spatialExtension(file))return runCdm3SpatialBrowser(file,control);
+    if(spatialExtension(file))return runCdm3SpatialBrowser(file,{...control,rgbReferenceFile:options?.rgbReferenceFile||null});
     const payload=await runCdmBrowser(file,options,null,control);
     const result=payload.results?.[0];
     if(result){

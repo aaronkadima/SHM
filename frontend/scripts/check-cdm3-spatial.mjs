@@ -15,7 +15,10 @@ const xyzParsed=await parseXyzFile(xyz,{maxPoints:100});
 assert.equal(xyzParsed.metadata.total_valid_points,3);
 assert.equal(xyzParsed.sampled_points,3);
 assert.deepEqual(xyzParsed.bounds.min,[100,200,10]);
-assert.deepEqual(xyzParsed.bounds.max,[102,202,12]);\nassert.equal(xyzParsed.metadata.has_rgb,true);\nassert.equal(xyzParsed.colors.length,9);\nassert.ok(xyzParsed.colors[0]>.99);
+assert.deepEqual(xyzParsed.bounds.max,[102,202,12]);
+assert.equal(xyzParsed.metadata.has_rgb,true);
+assert.equal(xyzParsed.colors.length,9);
+assert.ok(xyzParsed.colors[0]>.99);
 
 const ifcText=`ISO-10303-21;
 HEADER;
@@ -52,7 +55,11 @@ view.setFloat64(155,1000,true);view.setFloat64(163,2000,true);view.setFloat64(17
 const pts=[[0,0,0,2],[100,200,300,17],[-100,50,25,9]];
 pts.forEach((p,index)=>{
   const o=pointOffset+index*recordLength;
-  view.setInt32(o,p[0],true);view.setInt32(o+4,p[1],true);view.setInt32(o+8,p[2],true);view.setUint16(o+12,1000+index*500,true);view.setUint8(o+15,p[3]);\n  view.setUint16(o+28,index===0?65535:12000,true);view.setUint16(o+30,index===1?65535:16000,true);view.setUint16(o+32,index===2?65535:20000,true);
+  view.setInt32(o,p[0],true);view.setInt32(o+4,p[1],true);view.setInt32(o+8,p[2],true);
+  view.setUint16(o+12,1000+index*500,true);view.setUint8(o+15,p[3]);
+  view.setUint16(o+28,index===0?65535:12000,true);
+  view.setUint16(o+30,index===1?65535:16000,true);
+  view.setUint16(o+32,index===2?65535:20000,true);
 });
 const las=binaryFile("bridge.las",buffer);
 assert.equal(spatialExtension(las),"las");
@@ -60,7 +67,13 @@ const lasParsed=await parseLasFile(las,{maxPoints:100});
 assert.equal(lasParsed.metadata.declared_point_count,3);
 assert.equal(lasParsed.metadata.point_format,3);
 assert.equal(lasParsed.sampled_points,3);
-assert.equal(lasParsed.metadata.sampled_classification_counts["17"],1);\nassert.equal(lasParsed.metadata.has_rgb,true);\nassert.equal(lasParsed.metadata.has_intensity,true);\nassert.equal(lasParsed.metadata.has_classification,true);\nassert.equal(lasParsed.colors.length,9);\nassert.equal(lasParsed.intensities.length,3);\nassert.equal(lasParsed.classifications.length,3);
+assert.equal(lasParsed.metadata.sampled_classification_counts["17"],1);
+assert.equal(lasParsed.metadata.has_rgb,true);
+assert.equal(lasParsed.metadata.has_intensity,true);
+assert.equal(lasParsed.metadata.has_classification,true);
+assert.equal(lasParsed.colors.length,9);
+assert.equal(lasParsed.intensities.length,3);
+assert.equal(lasParsed.classifications.length,3);
 
 const generic=await parseSpatialAsset(xyz);
 assert.equal(generic.metadata.format,"xyz");
@@ -70,13 +83,17 @@ assert.equal(result.results[0].engine_id,"cdm_3");
 assert.equal(result.results[0].status,"ok");
 assert.equal(result.results[0].metrics.runtime_mode,"spatial_browser_ingestion");
 assert.equal(result.results[0].metrics.source_format,"xyz");
+assert.equal(result.results[0].metrics.spatial_asset.has_rgb,true);
+assert.equal(result.results[0].metrics.capabilities.rgb_point_rendering,true);
 assert.equal(result.metadata.engine_ids[0],"cdm_3");
 assert.equal(progress.at(-1)?.completed,100);
 
 console.log("CDM3_SPATIAL_PASS",{
   xyz:xyzParsed.sampled_points,
+  xyz_rgb:xyzParsed.metadata.has_rgb,
   ifc_schema:ifcParsed.metadata.schema,
   ifc_points:ifcParsed.sampled_points,
   las_points:lasParsed.sampled_points,
+  las_rgb:lasParsed.metadata.has_rgb,
   las_version:lasParsed.metadata.las_version
 });

@@ -271,7 +271,7 @@ export function engineCodePackage(engine){
       fileName:"unet-crack-int8-onnx-browser.js",
       repositoryPath:"frontend/src/onnxBrowser.js",
       repositorySource:onnxBrowserSource,
-      source:commentHeader(engine,"runtime INT8 ONNX candidato no navegador",[
+      source:commentHeader(engine,"runtime INT8 ONNX validado no navegador",[
         "Aplicar resize 256×256 e normalização ImageNet idênticos ao inference.py original.",
         "Carregar a variante INT8 QDQ (~39,5 MB) e validar tamanho/SHA-256 antes da sessão.",
         "Executar a U-Net via ONNX Runtime Web/WASM e reconstruir o mapa probabilístico.",
@@ -282,7 +282,7 @@ export function engineCodePackage(engine){
   }
   if(engine.id==="crackenpy_public_crack"){
     return {
-      kind:"Código real · ONNX browser candidato",
+      kind:"Código real · ONNX browser",
       language:"javascript",
       fileName:"crackenpy-fpn-int8-onnx-browser.js",
       repositoryPath:"frontend/src/onnxBrowser.js",

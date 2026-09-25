@@ -429,6 +429,7 @@ function App(){
             const sideCanvasRect=document.querySelector(".editorImage")?.getBoundingClientRect();
             const sideViewportRect=document.querySelector(".editorViewport")?.getBoundingClientRect();
             const sideWithinViewportOk=!phoneSidebar||(!!sideCanvasRect&&!!sideViewportRect&&sideCanvasRect.left>=sideViewportRect.left-1&&sideCanvasRect.right<=sideViewportRect.right+1&&sideCanvasRect.top>=sideViewportRect.top-1&&sideCanvasRect.bottom<=sideViewportRect.bottom+1);
+            const sideDiag=sideCanvasRect&&sideViewportRect?`side(canvas=${Math.round(sideCanvasRect.left)}/${Math.round(sideCanvasRect.top)}/${Math.round(sideCanvasRect.right)}/${Math.round(sideCanvasRect.bottom)},viewport=${Math.round(sideViewportRect.left)}/${Math.round(sideViewportRect.top)}/${Math.round(sideViewportRect.right)}/${Math.round(sideViewportRect.bottom)},transform=${document.querySelector(".editorImage")?.style.transform||"none"})`:"side(no-rect)";
             const zoomAfterSide=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const overlay=document.querySelector('button[aria-label="Sobrepor"]');
             overlay?.click();
@@ -677,7 +678,7 @@ function App(){
             if(!failed.length){
               setResult("VIEWER_SMOKE_PASS natural=320x180 status=transient-image+dev-build topbar=mobile-fit camera=viewport-fit+escape overlays=compact-single-panel results=viewport-clamped+sticky-head+custom-resize+pointer-safe-move+persistent+collapse-state+busy-tab+persistence-phase sidebar=engines+all-names+short-summary+fixed+responsive+short-fit layers=min340+mobile-overlay+short-collapse+nowrap+touch-actions+toggle+solo+order+opacity+lock+resize+persistent-width+keyboard+pointer no-floating-layer-button controls=icons export=unified results=static-guarded wipe=compact+keyboard-direction-68 zoom=visible original=1 overlay=1 side=2 temporal=2 reset=ok fit=button+viewport+100% pan=middle-drag");
             }else{
-              setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+" ["+responsiveDiag+"]"+(failed.includes("resetOk")?" ["+resetDiag+"]":"")+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
+              setResult("VIEWER_SMOKE_FAIL "+failed.join(",")+" ["+responsiveDiag+"]"+(failed.includes("resetOk")?" ["+resetDiag+"]":"")+(failed.includes("sideWithinViewportOk")?" ["+sideDiag+"]":"")+(failed.some(name=>name.startsWith("floating"))?" ["+floatingClampDiag+"]":""));
             }
             return;
           }

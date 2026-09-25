@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {registeredPointColors} from "../src/ModelViewport.jsx";
+import {registeredPointColors} from "../src/cdm3RegisteredProjection.js";
 
 const width=101,height=101;
 const data=new Uint8ClampedArray(width*height*4);

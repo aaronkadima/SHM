@@ -92,3 +92,14 @@ O registro exige pelo menos 6 correspondências 2D–3D. Intrínsecos de câmera
 
 Ao trocar o ativo espacial principal, a imagem RGB auxiliar é removida automaticamente para impedir associação acidental entre arquivos de campanhas ou modelos diferentes.
 
+Fluxo interativo atual no DEV:
+
+- Anexe a fotografia pelo botão **Imagem RGB** sem substituir o LAS/XYZ/IFC.
+- Clique em **Registrar**. Selecione primeiro um ponto na fotografia e depois o ponto correspondente na nuvem.
+- O visualizador converte o ponto clicado da coordenada recentrada do Three.js de volta para a coordenada absoluta original da nuvem antes de formar o par.
+- Repita até obter pelo menos 6 pares 2D–3D distribuídos espacialmente; em seguida, use **Resolver pose**.
+- Após uma pose válida, o canvas adiciona o modo **RGB registrado** e reprojeta a fotografia sobre os pontos amostrados. Pontos fora do enquadramento permanecem com um fallback geométrico, em vez de receber cor inventada.
+- A interface exibe número de inliers, RMSE de reprojeção e se a pose é métrica. Sem intrínsecos calibrados, a projeção permanece explicitamente como prévia não métrica.
+
+A etapa atual usa correspondências manuais para garantir rastreabilidade geométrica. Correspondência automática por características pode ser adicionada depois como auxílio, mas não deve substituir a validação da pose nem habilitar quantificação métrica sem calibração adequada.
+

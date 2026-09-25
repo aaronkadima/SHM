@@ -194,6 +194,90 @@ export async function runUnetCrackBrowser(file,control={}){
   };
 }
 
+
+export async function runCrackenPyBrowser(file,control={}){
+  const started=performance.now(),signal=control.signal,onProgress=control.onProgress;
+  ensureActive(signal);progress(onProgress,1,"CrackenPy · preparando","start");
+  const loaded=await getSession("crackenpy_public_crack",{...control,assetStem:control.assetStem||"crackenpy_public_crack.int8"});
+  const{ort,session,manifest}=loaded;
+  progress(onProgress,53,"CrackenPy · preparando imagem","preprocess");
+  const prepared=await prepareRgbTensor(file,manifest,signal);ensureActive(signal);
+  const inputName=manifest.inputs?.[0]?.name||session.inputNames?.[0]||"images";
+  const tensor=new ort.Tensor("float32",prepared.data,[1,3,prepared.inputHeight,prepared.inputWidth]);
+  progress(onProgress,60,"CrackenPy · inferência INT8 ONNX/WASM","inference");
+  const outputs=await session.run({[inputName]:tensor});ensureActive(signal);
+  progress(onProgress,78,"CrackenPy · pós-processamento","postprocess");
+  const outputName=manifest.outputs?.[0]?.name||session.outputNames?.[0],out=outputs[outputName]||outputs[Object.keys(outputs)[0]];
+  if(!out?.data||!Array.isArray(out.dims)||out.dims.length!==4)throw new Error("Saída CrackenPy ONNX inesperada.");
+  const classes=Number(out.dims[1]),oh=Number(out.dims[2]),ow=Number(out.dims[3]),plane=oh*ow;
+  const crackId=Math.max(0,Math.min(classes-1,Number(manifest.crack_id??2)));
+  const modelMask=new Uint8Array(plane),crackProb=new Float32Array(plane);
+  let modelArea=0,sumProb=0,maxProb=0;
+  for(let i=0;i<plane;i++){
+    let maxLog=-Infinity,best=0,crackLog=-Infinity;
+    for(let cls=0;cls<classes;cls++){
+      const v=Number(out.data[cls*plane+i]);
+      if(v>maxLog){maxLog=v;best=cls}
+      if(cls===crackId)crackLog=v;
+    }
+    let denom=0;
+    for(let cls=0;cls<classes;cls++)denom+=Math.exp(Number(out.data[cls*plane+i])-maxLog);
+    const p=Math.exp(crackLog-maxLog)/Math.max(denom,1e-12);
+    crackProb[i]=p;sumProb+=p;if(p>maxProb)maxProb=p;
+    if(best===crackId){modelMask[i]=1;modelArea++}
+  }
+
+  const maskCanvas=document.createElement("canvas");maskCanvas.width=ow;maskCanvas.height=oh;
+  const maskCtx=maskCanvas.getContext("2d",{willReadFrequently:true}),maskImg=maskCtx.createImageData(ow,oh);
+  for(let i=0,j=0;i<plane;i++,j+=4){
+    const v=modelMask[i]?255:0;maskImg.data[j]=v;maskImg.data[j+1]=v;maskImg.data[j+2]=v;maskImg.data[j+3]=255;
+  }
+  maskCtx.putImageData(maskImg,0,0);
+
+  const canvas=prepared.source,ctx=canvas.getContext("2d",{willReadFrequently:true}),img=ctx.getImageData(0,0,prepared.width,prepared.height);
+  let displayArea=0,displayProb=0;
+  for(let y=0;y<prepared.height;y++){
+    const my=Math.min(oh-1,Math.max(0,Math.floor((y+.5)*oh/prepared.height)));
+    for(let x=0;x<prepared.width;x++){
+      const mx=Math.min(ow-1,Math.max(0,Math.floor((x+.5)*ow/prepared.width))),mi=my*ow+mx;
+      if(!modelMask[mi])continue;
+      displayArea++;displayProb+=crackProb[mi];
+      const p=(y*prepared.width+x)*4;
+      img.data[p]=Math.round(.56*img.data[p]+.44*255);
+      img.data[p+1]=Math.round(.56*img.data[p+1]+.44*58);
+      img.data[p+2]=Math.round(.56*img.data[p+2]+.44*30);
+    }
+  }
+  ctx.putImageData(img,0,0);
+  const modelPixels=Math.max(1,plane),displayPixels=Math.max(1,prepared.width*prepared.height);
+  const score=modelArea?displayProb/Math.max(1,displayArea):maxProb;
+  const detections=modelArea?[{label:"crack",canonical_label:"crack",score,area_px:displayArea}]:[];
+  progress(onProgress,100,"CrackenPy · concluído","done");
+  return{
+    image_width:prepared.width,image_height:prepared.height,
+    results:[{
+      engine_id:"crackenpy_public_crack",name:"CrackenPy FPN Crack Segmentation · navegador INT8",task:"semantic_segmentation",status:"ok",
+      latency_ms:performance.now()-started,detections,overlay_png_base64:canvasBase64(canvas),model_mask_png_base64:canvasBase64(maskCanvas),
+      metrics:{
+        crack_area_ratio:Number((displayArea/displayPixels).toFixed(6)),
+        model_crack_area_ratio:Number((modelArea/modelPixels).toFixed(6)),
+        mean_crack_probability:Number((sumProb/modelPixels).toFixed(6)),
+        max_crack_probability:Number(maxProb.toFixed(6)),
+        model_width:ow,model_height:oh,crack_class_id:crackId,
+        source_repo:manifest.source_repo,runtime:"onnxruntime-web-wasm",runtime_version:ORT_VERSION,
+        model_sha256:loaded.digest,model_bytes:Number(manifest.bytes||0),precision:manifest.optimization?.precision||"int8",
+        quantization:manifest.optimization?.quantization||"static-qdq-minmax",processed_scale:Number(prepared.processedScale.toFixed(4))
+      },
+      message:"CrackenPy INT8 executado integralmente no navegador com artefato verificado por SHA-256."
+    }],
+    consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,
+    metadata:{
+      analysis_id:"browser-"+crypto.randomUUID(),api_version:"browser-onnx-1.0",generated_at:new Date().toISOString(),
+      mode:"browser",engine_ids:["crackenpy_public_crack"],implementation:"crackenpy-fpn-int8-onnxruntime-web-v1",model_release:loaded.tag
+    }
+  };
+}
+
 export async function runSegformerBrowser(file,control={}){
   const started=performance.now(),signal=control.signal,onProgress=control.onProgress;
   ensureActive(signal);progress(onProgress,1,"SegFormer · preparando","start");

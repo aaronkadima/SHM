@@ -37,6 +37,9 @@ CAL_URL=(
 )
 CAL_LICENSE="CC BY 4.0"
 CAL_ATTRIBUTION="Dataset Ninja · Concrete Crack Segmentation Dataset"
+PARITY_URL="https://raw.githubusercontent.com/amirrezaie1415/Concrete-Crack-Segmentation/master/docs/imgs/254_768_0.png"
+PARITY_LICENSE="CC BY 4.0 (source dataset)"
+PARITY_ATTRIBUTION="Concrete Crack Segmentation Dataset · Özgenel (2019); sample used by Rezaie et al. (2020)"
 MEAN=np.asarray([.485,.456,.406],dtype=np.float32).reshape(1,1,3)
 STD=np.asarray([.229,.224,.225],dtype=np.float32).reshape(1,1,3)
 
@@ -49,9 +52,9 @@ def sha256(path:Path)->str:
     return h.hexdigest()
 
 
-def download_source(path:Path)->Path:
+def download_source(path:Path,url:str=CAL_URL)->Path:
     path.parent.mkdir(parents=True,exist_ok=True)
-    req=urllib.request.Request(CAL_URL,headers={"User-Agent":"SHM-browser-model-export/1.0"})
+    req=urllib.request.Request(url,headers={"User-Agent":"SHM-browser-model-export/1.0"})
     with urllib.request.urlopen(req,timeout=60) as response:
         path.write_bytes(response.read())
     return path
@@ -124,7 +127,7 @@ def compare_models(fp32:Path,int8:Path,holdout:list[np.ndarray]):
     return summary
 
 
-def backend_reference(crops:list[Image.Image],parity_path:Path):
+def backend_reference(image:Image.Image,parity_path:Path):
     os.environ.setdefault("SHM_COMPACT_MODEL_CACHE","/tmp/shm-compact-model-cache")
     os.environ.setdefault("SHM_UNLOAD_AFTER_INFERENCE","0")
     sys.path.insert(0,str(ROOT/"backend"))
@@ -134,18 +137,13 @@ def backend_reference(crops:list[Image.Image],parity_path:Path):
     if adapter is None:
         raise RuntimeError(f"{ENGINE_ID} adapter not found")
 
-    ranked=[]
-    for idx,image in enumerate(crops):
-        result=adapter.predict(image)
-        metrics=dict(result.metrics or {})
-        ratio=float(metrics.get("crack_area_ratio",0.0))
-        ranked.append((ratio,idx,result))
-    # Prefer an informative, non-saturated response near a typical crack-area scale.
-    informative=[item for item in ranked if 0.002<=item[0]<=0.25]
-    pool=informative or [item for item in ranked if 0.0<item[0]<0.95] or ranked
-    ratio,idx,result=min(pool,key=lambda item:abs(item[0]-.03))
-    print(json.dumps({"parity_candidate_ratios":[round(x[0],6) for x in ranked],"selected_ratio":round(ratio,6),"selected_index":idx},ensure_ascii=False))
-    chosen=crops[idx].convert("RGB")
+    chosen=image.convert("RGB")
+    result=adapter.predict(chosen)
+    metrics=dict(result.metrics or {})
+    ratio=float(metrics.get("crack_area_ratio",0.0))
+    if ratio<=0.0005 or ratio>=0.90:
+        raise SystemExit(f"Parity image is not discriminant enough; crack_area_ratio={ratio:.6f}")
+
     parity_path.parent.mkdir(parents=True,exist_ok=True)
     chosen.save(parity_path,optimize=True)
     detections=[]
@@ -156,12 +154,12 @@ def backend_reference(crops:list[Image.Image],parity_path:Path):
             "box":[float(v) for v in (d.box or [])],
             "area_px":None if d.area_px is None else float(d.area_px),
         })
-    return idx,{
+    return {
         "engine_id":result.engine_id,
         "status":result.status,
         "task":result.task,
         "detections":detections,
-        "metrics":dict(result.metrics or {}),
+        "metrics":metrics,
     }
 
 
@@ -240,7 +238,8 @@ def main():
     int8_manifest.write_text(json.dumps(manifest,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
 
     parity_path=outdir/"parity.int8.png"
-    parity_index,reference=backend_reference(holdout_images,parity_path)
+    parity_source=download_source(outdir/"parity-source.png",PARITY_URL)
+    reference=backend_reference(Image.open(parity_source),parity_path)
     parity={
         "schema":"shm-browser-parity-v1",
         "engine_id":ENGINE_ID,
@@ -249,10 +248,9 @@ def main():
         "fixture_sha256":sha256(parity_path),
         "image_width":Image.open(parity_path).width,
         "image_height":Image.open(parity_path).height,
-        "fixture_holdout_index":parity_index,
-        "fixture_source":CAL_URL,
-        "fixture_source_license":CAL_LICENSE,
-        "fixture_source_attribution":CAL_ATTRIBUTION,
+        "fixture_source":PARITY_URL,
+        "fixture_source_license":PARITY_LICENSE,
+        "fixture_source_attribution":PARITY_ATTRIBUTION,
         "backend":"pytorch-unet-adapter",
         "threshold":.5,
         "tolerances":{

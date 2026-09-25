@@ -224,7 +224,7 @@ function openCvStandaloneSource(){
   // O arquivo browserEngines.js contém o OpenCV e o despachante compartilhado.
   // Para exportação isolada removemos apenas a dependência do CDM e o despachante final,
   // preservando literalmente os helpers e runOpenCVBaseline usados pela plataforma.
-  const withoutBrowserImports=browserEnginesSource.replace(/^import\{runCdmBrowser\}from"\.\/cdmBrowser\.js";\s*/,"").replace(/^import\{runSegformerBrowser\}from"\.\/onnxBrowser\.js";\s*/,"");
+  const withoutBrowserImports=browserEnginesSource.replace(/^import\{runCdmBrowser\}from"\.\/cdmBrowser\.js";\s*/,"").replace(/^import\{[^\n]*\}from"\.\/onnxBrowser\.js";\s*/,"");
   const dispatcher=withoutBrowserImports.indexOf("export function browserEngineSupported");
   const implementation=dispatcher>=0?withoutBrowserImports.slice(0,dispatcher):withoutBrowserImports;
   return implementation+"\nexport {runOpenCVBaseline};\n";
@@ -261,6 +261,22 @@ export function engineCodePackage(engine){
         "Executar YOLOv8n-Seg via ONNX Runtime Web/WASM.",
         "Aplicar confiança, NMS e reconstrução de máscara a partir dos 32 protótipos.",
         "Mapear caixas/máscaras para a imagem original e serializar o contrato SHM."
+      ])+onnxBrowserSource
+    };
+  }
+  if(engine.id==="unet_public_crack"){
+    return {
+      kind:"Código real · ONNX browser candidato · quality gate bloqueado",
+      language:"javascript",
+      fileName:"unet-crack-int8-onnx-browser.js",
+      repositoryPath:"frontend/src/onnxBrowser.js",
+      repositorySource:onnxBrowserSource,
+      source:commentHeader(engine,"runtime INT8 ONNX candidato no navegador",[
+        "Aplicar resize 256×256 e normalização ImageNet idênticos ao inference.py original.",
+        "Carregar a variante INT8 QDQ (~39,5 MB) e validar tamanho/SHA-256 antes da sessão.",
+        "Executar a U-Net via ONNX Runtime Web/WASM e reconstruir o mapa probabilístico.",
+        "Aplicar limiar 0,5, overlay e métricas preservando o contrato SHM.",
+        "Manter browser_ready bloqueado enquanto o checkpoint saturar em imagens reais externas."
       ])+onnxBrowserSource
     };
   }

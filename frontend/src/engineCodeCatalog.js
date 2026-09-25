@@ -248,6 +248,22 @@ export function engineCodePackage(engine){
       ])+cdmBrowserSource
     };
   }
+  if(engine.id==="yolov8n_public_crack_seg"){
+    return {
+      kind:"Código real · ONNX browser candidato",
+      language:"javascript",
+      fileName:"yolov8n-crack-seg-onnx-browser.js",
+      repositoryPath:"frontend/src/onnxBrowser.js",
+      repositorySource:onnxBrowserSource,
+      source:commentHeader(engine,"runtime candidato ONNX no navegador",[
+        "Aplicar letterbox 640×640 e normalização RGB/CHW do checkpoint.",
+        "Validar manifesto, tamanho e SHA-256 do modelo antes da sessão.",
+        "Executar YOLOv8n-Seg via ONNX Runtime Web/WASM.",
+        "Aplicar confiança, NMS e reconstrução de máscara a partir dos 32 protótipos.",
+        "Mapear caixas/máscaras para a imagem original e serializar o contrato SHM."
+      ])+onnxBrowserSource
+    };
+  }
   if(engine.id==="segformer_public_crack"){
     return {
       kind:"Código real · ONNX browser",

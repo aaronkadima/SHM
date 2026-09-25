@@ -107,18 +107,29 @@ try{
   await waitUntil(request,'document.readyState==="complete"&&!!document.querySelector(".analysisEditor")',"reloaded analysis workspace",30000);
 
   await evaluate(request,'(()=>{location.hash="#/settings";return true})()');
-  await waitUntil(request,`!!document.querySelector(".analysisSettings")&&!!document.querySelector('.settingsEngineCard input[type="checkbox"]:checked')`,"settings with selected engine",30000);
+  await waitUntil(request,`!!document.querySelector(".analysisSettings")&&!!document.querySelector('.settingsEngineCard[data-engine-id="${engineId}"]')`,"settings engine card",30000);
+  await evaluate(request,`(async()=>{
+    const card=document.querySelector('.settingsEngineCard[data-engine-id="${engineId}"]');
+    const input=card?.querySelector('input[type="checkbox"]');
+    if(!card||!input)throw new Error("target engine card/input not found");
+    if(!input.checked)input.click();
+    const deadline=Date.now()+8000;
+    while(Date.now()<deadline){
+      const live=document.querySelector('.settingsEngineCard[data-engine-id="${engineId}"] input[type="checkbox"]');
+      if(live?.checked)return true;
+      await new Promise(r=>setTimeout(r,100));
+    }
+    throw new Error("target engine did not become selected");
+  })()`);
   const updateState=await evaluate(request,`(async()=>{
-    const selected=document.querySelector('.settingsEngineCard input[type="checkbox"]:checked');
-    const card=selected?.closest(".settingsEngineCard");
-    if(!card)throw new Error("selected engine card not found");
+    const card=document.querySelector('.settingsEngineCard[data-engine-id="${engineId}"]');
+    if(!card)throw new Error("target engine card not found");
     const button=[...card.querySelectorAll("button")].find(x=>x.textContent?.includes("Atualização"));
     if(!button)throw new Error("engine update button not found");
     button.click();
     const deadline=Date.now()+15000;
     while(Date.now()<deadline){
-      const liveSelected=document.querySelector('.settingsEngineCard input[type="checkbox"]:checked');
-      const liveCard=liveSelected?.closest(".settingsEngineCard");
+      const liveCard=document.querySelector('.settingsEngineCard[data-engine-id="${engineId}"]');
       const state=liveCard?.querySelector(".settingsSyncState");
       if(state?.classList.contains("current"))return {status:"current",text:state.textContent?.trim()||""};
       if(state?.classList.contains("error"))throw new Error("update check failed: "+(state.textContent?.trim()||"unknown"));

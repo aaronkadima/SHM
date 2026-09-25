@@ -504,6 +504,7 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
   .editorLayers.engineDensityUltra .layerInspectorHeader small,.editorLayers.engineDensityUltra .layerInspector label>span,.editorLayers.engineDensityUltra .layerInspector label>b{font-size:6.5px}
   .editorLayers.engineDensityUltra .layerInspectorActions button{min-height:17px;padding:1px 4px;font-size:6px}
   .editorLayers.engineDensityUltra .editorAssetMeta{grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 5px;margin:2px 0 3px;padding:3px}
+  .editorLayers.engineDensityUltra .editorAssetMeta{display:none}
   .editorLayers.engineDensityUltra .editorAssetMeta>div{grid-template-columns:36px minmax(0,1fr);gap:3px}
   .editorLayers.engineDensityUltra .editorAssetMeta span{font-size:5.8px}
   .editorLayers.engineDensityUltra .editorAssetMeta b{font-size:6.8px}

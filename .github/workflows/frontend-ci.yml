@@ -310,6 +310,12 @@ jobs:
           APP_SMOKE_DEBUG_PORT=9235 \
           node scripts/run-app-cdm3-spatial-smoke.mjs
           echo "::endgroup::"
+          echo "::group::Full app CDM-3 external RGB registration"
+          CHROME_BIN="$CHROME" \
+          APP_SMOKE_URL="http://127.0.0.1:4181/#/analysis" \
+          APP_SMOKE_DEBUG_PORT=9236 \
+          node scripts/run-app-cdm3-rgb-registration-smoke.mjs
+          echo "::endgroup::"
 
       - name: Browser viewer smoke
         working-directory: frontend

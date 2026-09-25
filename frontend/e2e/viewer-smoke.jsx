@@ -484,7 +484,13 @@ function App(){
             const originalImages=document.querySelectorAll(".editorBaseImage").length;
             const originalStacks=document.querySelectorAll(".editorOverlayStack").length;
             const zoomAfterOriginal=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
-            const reset=document.querySelector(".viewerReset");
+            let reset=document.querySelector(".viewerReset");
+            if(!reset&&compactOverlay){
+              const layersToggleForReset=[...document.querySelectorAll(".editorTools button")].find(button=>button.title==="Mostrar ou ocultar camadas");
+              layersToggleForReset?.click();
+              await sleep(50);
+              reset=document.querySelector(".viewerReset");
+            }
             reset?.click();
             await sleep(80);
             const resetMode=document.querySelector(".editorViewActions button.active")?.getAttribute("aria-label")||document.querySelector(".editorViewActions button.active")?.textContent?.trim();

@@ -40,8 +40,8 @@
       "recommended": false,
       "cloud_verified": false,
       "domain_mode": "shm_checkpoint",
-      "browser_ready": false,
-      "browser_runtime": null,
+      "browser_ready": true,
+      "browser_runtime": "browser-js-cdm3-dev-bootstrap",
       "catalog_visibility": "always",
       "catalog_group": "CDM / espacial 3D",
       "catalog_owned": true,
@@ -64,6 +64,12 @@
         "Sentinel-2",
         "Sentinel-1",
         "Sen1Floods11"
+      ],
+      "browser_stage": "dev-bootstrap",
+      "browser_limitations": [
+        "2D morphology bootstrap only",
+        "Stage-C AI requires configured backend checkpoint",
+        "LAS/LAZ and IFC tools require CDM-3 backend"
       ]
     },
     {
@@ -521,4 +527,4 @@
       "browser_runtime": null
     }
   ]
-}\n
+}

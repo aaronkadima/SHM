@@ -7,9 +7,11 @@ from .registry import REGISTRY
 from .schemas import CompareResponse,EngineInfo
 from .taxonomy import build_consensus
 from .spatial_consensus import build_spatial_consensus,render_spatial_consensus
+from .cdm3.api import router as cdm3_router
 
 API_VERSION="0.11.0"
 app=FastAPI(title="SHM Vision Lab API",version=API_VERSION)
+app.include_router(cdm3_router)
 _default_origins="http://localhost:5173,https://aaronkadima.github.io"
 _origins=[x.strip().rstrip("/") for x in os.getenv("CORS_ORIGINS",_default_origins).split(",") if x.strip()]
 app.add_middleware(CORSMiddleware,allow_origins=_origins,allow_credentials=False,allow_methods=["GET","POST","OPTIONS"],allow_headers=["*"])

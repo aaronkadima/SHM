@@ -33,7 +33,8 @@
   .settingsEngine{min-height:55px;padding:8px 10px}
   .settingsEngineCodeActions{padding:4px 6px;gap:4px;flex-wrap:wrap}
   .settingsEngineCodeActions button{padding:4px 6px;font-size:8px}
-  .settingsEngines{display:flex;flex-direction:column;align-items:stretch;align-content:normal;min-height:96px;max-height:min(34dvh,220px);margin-top:6px;gap:6px}
+  .settingsEngines{display:flex;flex-direction:column;align-items:stretch;align-content:normal}
+  .settingsEngines{min-height:96px;max-height:min(34dvh,220px);margin-top:6px;gap:6px}
   .settingsBottom{min-height:calc(34px + env(safe-area-inset-bottom,0px));gap:8px;font-size:9px}
   .settingsBottom .settingsApply{min-height:26px;padding:4px 8px;font-size:9px}
 }

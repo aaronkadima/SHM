@@ -9,7 +9,7 @@ on:
       - ".github/workflows/evaluate-crackenpy.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: evaluate-crackenpy-dev
@@ -47,6 +47,26 @@ jobs:
           python tools/export_crackenpy_browser.py \
             --evaluation browser-models/artifacts/crackenpy_public_crack/evaluation.json \
             --out-dir browser-models/artifacts/crackenpy_public_crack
+
+      - name: Publish browser candidate assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="browser-models/artifacts/crackenpy_public_crack"
+          mkdir -p browser-models/release-crackenpy
+          cp "$SRC/model.int8.onnx" browser-models/release-crackenpy/crackenpy_public_crack.int8.onnx
+          cp "$SRC/manifest.int8.json" browser-models/release-crackenpy/crackenpy_public_crack.int8.json
+          cp "$SRC/parity.png" browser-models/release-crackenpy/crackenpy_public_crack.int8.parity.png
+          cp "$SRC/parity-mask.png" browser-models/release-crackenpy/crackenpy_public_crack.int8.parity-mask.png
+          cp "$SRC/parity.int8.json" browser-models/release-crackenpy/crackenpy_public_crack.int8.parity.json
+          cp "$SRC/evaluation.json" browser-models/release-crackenpy/crackenpy_public_crack.evaluation.json
+          TAG="browser-models-dev"
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "SHM browser models · development" --notes "Validated ONNX assets for SHM browser inference." --prerelease
+          fi
+          gh release upload "$TAG" browser-models/release-crackenpy/* --repo "$GITHUB_REPOSITORY" --clobber
 
       - name: Show gate summary
         run: |

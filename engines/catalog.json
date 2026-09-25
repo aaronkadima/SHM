@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "engines": [
     {
       "id": "opencv_crack",
@@ -18,12 +18,18 @@
       "name": "CDM-1",
       "family": "Concrete Damage Morphology",
       "task": "classical",
-      "description": "CDM 2.8.5: fissuras, desplacamento, armadura exposta, corrosão e eflorescência em camadas independentes.",
-      "recommended": false,
+      "description": "CDM 2.8.5: fissuras, desplacamento, armadura exposta, corrosão e eflorescência em camadas independentes; execução no navegador, comparação t0→t1 com registro translacional automático, gate de qualidade temporal e exportação vetorial/BIM.",
+      "recommended": true,
       "cloud_verified": false,
       "domain_mode": "classical",
-      "browser_ready": false,
-      "browser_runtime": null
+      "browser_ready": true,
+      "browser_runtime": "browser-js-cdm-v285",
+      "temporal_registration": "translation_auto",
+      "temporal_registration_fallback": "resize",
+      "temporal_quality_gate": "cdm_temporal_quality_v1",
+      "catalog_visibility": "always",
+      "catalog_group": "CDM / determinístico",
+      "catalog_owned": true
     },
     {
       "id": "yolov8_public_crack",

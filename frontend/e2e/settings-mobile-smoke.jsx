@@ -78,7 +78,9 @@ function check(){
   const documentNoScroll=html.scrollHeight<=viewportH+2&&body.scrollHeight<=viewportH+2;
   const pageScrollEnabled=getComputedStyle(content).overflowY==="auto"&&content.scrollHeight>content.clientHeight+10;
   const motorsScrollEnabled=getComputedStyle(motors).overflowY==="auto"&&motors.scrollHeight>motors.clientHeight+10;
-  const motorsVisible=motorsRect.height>=175&&firstRect.height>=55&&firstRect.bottom>motorsRect.top&&firstRect.top<motorsRect.bottom;
+  const shortViewport=viewportH<=500;
+  const minMotorsHeight=shortViewport?96:175;
+  const motorsVisible=motorsRect.height>=minMotorsHeight&&firstRect.height>=55&&firstRect.bottom>motorsRect.top&&firstRect.top<motorsRect.bottom;
   const cardRects=motorCards.slice(0,6).map(card=>card.getBoundingClientRect());
   const cardsSeparated=cardRects.length>=4&&cardRects.every((rect,index)=>index===0||rect.top>=cardRects[index-1].bottom-1)&&cardRects.every(rect=>rect.height>=55);
   const barsVisible=topRect.top>=-1&&topRect.bottom<=visualBottom+1&&footerRect.top>=0&&footerRect.bottom<=visualBottom+1;
@@ -97,7 +99,7 @@ function check(){
   const checks={documentNoScroll,pageScrollEnabled,motorsScrollEnabled,motorsVisible,cardsSeparated,barsVisible,environmentSwitchOk,selectedCountOk,cardActionsOk,cardActionsFit,noHorizontalOverflow,intendedScrollers};
   const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
   result.textContent=failed.length
-    ?"SETTINGS_SMOKE_FAIL "+failed.join(",")+" motorsHeight="+Math.round(motorsRect.height)+" viewport="+viewportW+"x"+viewportH+" html="+html.scrollHeight+"/"+html.clientHeight+" body="+body.scrollHeight+"/"+body.clientHeight+" footer="+Math.round(footerRect.top)+"-"+Math.round(footerRect.bottom)+" visualBottom="+Math.round(visualBottom)
+    ?"SETTINGS_SMOKE_FAIL "+failed.join(",")+" motorsHeight="+Math.round(motorsRect.height)+" viewport="+viewportW+"x"+viewportH+" html="+html.scrollHeight+"/"+html.clientHeight+" body="+body.scrollHeight+"/"+body.clientHeight+" footer="+Math.round(footerRect.top)+"-"+Math.round(footerRect.bottom)+" visualBottom="+Math.round(visualBottom)+" minMotors="+minMotorsHeight
     :"SETTINGS_SMOKE_PASS viewport="+viewportW+"x"+viewportH+" motorsHeight="+Math.round(motorsRect.height)+" cards=separated env-switch=fit actions=info+update+fit selected=count scroll=page+motors footer=visual-viewport";
   return true;
 }

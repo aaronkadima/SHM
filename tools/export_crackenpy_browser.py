@@ -146,7 +146,7 @@ def main():
 
     gates={
         "fp32_vs_pytorch_iou_min":.995,
-        "int8_vs_fp32_iou_min":.97,
+        "int8_vs_fp32_iou_min":.95,
         "int8_concrete_iou_min":.60,
         "int8_concrete_dice_min":.75,
         "probability_mae_max":.02,

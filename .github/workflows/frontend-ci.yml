@@ -96,7 +96,7 @@ jobs:
             exit 1
           fi
 
-          timeout 30s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-background-networking --user-data-dir="/tmp/shm-chrome-$RANDOM" --virtual-time-budget=15000 --dump-dom http://127.0.0.1:4173/e2e/viewer-smoke.html > /tmp/shm-viewer-dom.html 2>/tmp/shm-chrome.log || {
+          timeout 30s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-background-networking --user-data-dir="/tmp/shm-chrome-$RANDOM" --window-size=1280,800 --virtual-time-budget=15000 --dump-dom http://127.0.0.1:4173/e2e/viewer-smoke.html > /tmp/shm-viewer-dom.html 2>/tmp/shm-chrome.log || {
               cat /tmp/shm-chrome.log
               exit 1
             }

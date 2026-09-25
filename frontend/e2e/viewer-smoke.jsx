@@ -674,7 +674,7 @@ function App(){
       />
     </div>
     <span id="drop-received" hidden>{droppedName}</span>
-    <pre id="viewer-smoke-state">{result}</pre>
+    <pre id="viewer-smoke-state" hidden>{result}</pre>
   </>;
 }
 createRoot(document.getElementById("root")).render(<App/>);

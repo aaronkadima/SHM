@@ -120,6 +120,14 @@ jobs:
           grep -q "/SHM/dev/assets/" site/dev/index.html
           test "$(node -p "require('./site/build.json').branch")" = "main"
           test "$(node -p "require('./site/dev/build.json').branch")" = "dev"
+          test -f site/ort/ort-wasm-simd-threaded.wasm
+          test -f site/ort/ort-wasm-simd-threaded.mjs
+          test -f site/ort/ort-wasm-simd-threaded.jsep.wasm
+          test -f site/ort/ort-wasm-simd-threaded.jsep.mjs
+          test -f site/dev/ort/ort-wasm-simd-threaded.wasm
+          test -f site/dev/ort/ort-wasm-simd-threaded.mjs
+          test -f site/dev/ort/ort-wasm-simd-threaded.jsep.wasm
+          test -f site/dev/ort/ort-wasm-simd-threaded.jsep.mjs
           if test -f site/browser-models/segformer_public_crack.onnx; then test -f site/browser-models/segformer_public_crack.json; fi
           if test -f site/browser-models/yolov8n_public_crack_seg.onnx; then test -f site/browser-models/yolov8n_public_crack_seg.json; test -f site/browser-models/yolov8n_public_crack_seg.parity.png; test -f site/browser-models/yolov8n_public_crack_seg.parity.json; fi
           if test -f site/browser-models/crackenpy_public_crack.int8.onnx; then test -f site/browser-models/crackenpy_public_crack.int8.json; test -f site/browser-models/crackenpy_public_crack.int8.parity.png; test -f site/browser-models/crackenpy_public_crack.int8.parity.json; test -f site/browser-models/crackenpy_public_crack.int8.parity-mask.png; fi

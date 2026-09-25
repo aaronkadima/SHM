@@ -7,6 +7,7 @@ const repositoryCatalog=JSON.parse(fs.readFileSync(new URL("../../engines/catalo
 const engines=Array.isArray(catalog.engines)?catalog.engines:[];
 const cdm=engines.find(e=>e.id==="cdm_1");
 const segformer=engines.find(e=>e.id==="segformer_public_crack");
+const yoloBrowser=engines.find(e=>e.id==="yolov8n_public_crack_seg");
 const failures=[];
 const check=(ok,msg)=>{if(!ok)failures.push(msg)};
 
@@ -33,6 +34,15 @@ if(segformer){
   check(engineMatchesFilter(segformer,"browser"),"Browser filter must include SegFormer");
 }
 check(browserEngineSupported("segformer_public_crack")===true,"browserEngines must support SegFormer");
+check(!!yoloBrowser,"yolov8n_public_crack_seg must exist in engines.json");
+if(yoloBrowser){
+  check(yoloBrowser.browser_ready===false,"YOLOv8n candidate must remain browser_ready=false before parity validation");
+  check(yoloBrowser.browser_candidate===true,"YOLOv8n must remain a browser candidate");
+  check(yoloBrowser.browser_stage==="browser-smoke-validated","YOLOv8n browser stage mismatch");
+  check(yoloBrowser.browser_runtime_candidate==="onnxruntime-web-wasm-1.30.0","YOLOv8n candidate runtime mismatch");
+}
+check(browserEngineSupported("yolov8n_public_crack_seg")===true,"browserEngines must expose YOLOv8n candidate runtime for smoke/parity tests");
+
 
 check(new Set(engines.map(e=>e.id)).size===engines.length,"engine ids must be unique");
 const sorted=sortEngines(engines);
@@ -49,4 +59,4 @@ if(failures.length){
   failures.forEach(x=>console.error(" - "+x));
   process.exit(1);
 }
-console.log("Engine catalog passed:",{count:engines.length,version:catalog.version,cdm:{id:cdm.id,browser_ready:cdm.browser_ready},segformer:{id:segformer.id,browser_ready:segformer.browser_ready,browser_runtime:segformer.browser_runtime}});
+console.log("Engine catalog passed:",{count:engines.length,version:catalog.version,cdm:{id:cdm.id,browser_ready:cdm.browser_ready},segformer:{id:segformer.id,browser_ready:segformer.browser_ready,browser_runtime:segformer.browser_runtime},yoloBrowser:{id:yoloBrowser.id,browser_ready:yoloBrowser.browser_ready,browser_stage:yoloBrowser.browser_stage}});

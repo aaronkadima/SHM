@@ -1,4 +1,5 @@
-const MODEL_EXT=/\.(glb|gltf|obj|ply|stl)$/i;
+const MODEL_EXT=/\.(glb|gltf|obj|ply|stl|las|xyz|ifc)$/i;
+const SPATIAL_EXT=/\.(las|xyz|ifc)$/i;
 const IMAGE_EXT=/\.(png|jpe?g|webp|bmp|svg|avif)$/i;
 const IMAGE_MIME=new Set([
   "image/png",
@@ -19,5 +20,10 @@ export function detectAsset(file){
   return "unknown";
 }
 
+export function isCdm3SpatialAsset(file){
+  return !!file&&SPATIAL_EXT.test(String(file.name||"").toLowerCase());
+}
+
 export const SUPPORTED_IMAGE_EXTENSIONS=["png","jpg","jpeg","webp","bmp","svg","avif"];
-export const SUPPORTED_MODEL_EXTENSIONS=["glb","gltf","obj","ply","stl"];
+export const SUPPORTED_MODEL_EXTENSIONS=["glb","gltf","obj","ply","stl","las","xyz","ifc"];
+export const CDM3_SPATIAL_EXTENSIONS=["las","xyz","ifc"];

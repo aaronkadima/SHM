@@ -244,6 +244,50 @@ jobs:
             exit 1
           }
 
+      - name: Full application browser-engine result smoke
+        working-directory: frontend
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="browser-models-dev"
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then TAG="browser-models-stable"; fi
+          node scripts/fetch-browser-model-assets.mjs --tag "$TAG" --repo "$GITHUB_REPOSITORY" --engine yolov8n_public_crack_seg --parity --dir public/browser-models
+
+          VITE_BASE_PATH=/ VITE_APP_CHANNEL=development VITE_BUILD_SHA=app-smoke npm run dev -- --host 127.0.0.1 --port 4181 > /tmp/shm-app-browser-vite.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
+
+          READY=0
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4181/ >/dev/null; then
+              READY=1
+              break
+            fi
+            sleep 0.5
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/shm-app-browser-vite.log
+            exit 1
+          fi
+
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chromium-compatible browser found on runner."
+            exit 1
+          fi
+
+          CHROME_BIN="$CHROME" \
+          APP_SMOKE_URL="http://127.0.0.1:4181/#/analysis" \
+          APP_SMOKE_ENGINE="yolov8n_public_crack_seg" \
+          APP_SMOKE_FIXTURE="/browser-models/yolov8n_public_crack_seg.parity.png" \
+          APP_SMOKE_TIMEOUT_MS=180000 \
+          APP_SMOKE_DEBUG_PORT=9231 \
+          node scripts/run-app-browser-engine-smoke.mjs || {
+            cat /tmp/shm-app-browser-vite.log
+            exit 1
+          }
+
       - name: Browser viewer smoke
         working-directory: frontend
         shell: bash

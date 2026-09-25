@@ -62,7 +62,12 @@ function App(){
           const devStampOk=devStamp?.textContent.replace(/\s+/g," ").trim()==="DEV · abc12345 !"&&devStamp?.classList.contains("divergent")&&devStamp?.title.includes("catálogo v1.2.0")&&devStamp?.title.includes("deploy divergent")&&deployState?.getAttribute("aria-label")==="Deploy divergent"&&!statusBar?.textContent?.includes("CDM-1");
           const staleUpdateVisible=!!updateButton&&updateButton.textContent.includes("Atualizar");
           const statusBarFit=!!statusBar&&!!statusMeta&&statusBar.scrollWidth<=statusBar.clientWidth+1&&statusMeta.scrollWidth<=statusMeta.clientWidth+1;
-          const runTimeRow=document.querySelector(".editorRunTime");
+          let runTimeRow=document.querySelector(".editorRunTime");
+          if(!runTimeRow){
+            document.querySelector(".editorResultsTab")?.click();
+            await sleep(50);
+            runTimeRow=document.querySelector(".editorRunTime");
+          }
           const measuredRuntimeOk=runTimeRow?.textContent.replace(/\s+/g," ").trim()==="Tempo da análise 1.23 s";
           const dropViewport=document.querySelector(".editorViewport");
           const dt=new DataTransfer();
@@ -104,7 +109,9 @@ function App(){
           const expectedEngineCount=engineCatalog.engines.length;
           const engineOverflow=document.querySelector(".editorSidebarEngineOverflow");
           const shortViewport=window.innerHeight<=620;
-          const engineFooterVisibilityOk=shortViewport
+          const compactUltraEngineFooter=expectedEngineCount>=24&&window.innerHeight<=820;
+          const engineFooterCollapsed=shortViewport||compactUltraEngineFooter;
+          const engineFooterVisibilityOk=engineFooterCollapsed
             ?visibleEngineNames.length===Math.min(12,expectedEngineCount)&&getComputedStyle(engineOverflow).display!=="none"
             :visibleEngineNames.length===expectedEngineCount&&getComputedStyle(engineOverflow).display==="none";
           const multiEngineFooterOk=document.querySelector(".editorLayers")?.dataset.engineCount===String(expectedEngineCount)&&engineNames.length===expectedEngineCount&&engineNames[0]==="CDM-1"&&engineOverflow?.textContent.trim()==="+22 motores"&&engineFooterVisibilityOk&&sidebarEngines?.title.includes("FastFlow")&&getComputedStyle(document.querySelector(".editorSidebarEngineList")).overflow==="hidden"&&document.querySelector(".editorLayers")?.classList.contains("engineDensityUltra")&&parseFloat(getComputedStyle(document.querySelector(".editorSidebarEngineName")).fontSize)>=5.5;

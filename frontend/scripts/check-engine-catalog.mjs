@@ -3,10 +3,14 @@ import {browserEngineSupported} from "../src/browserEngines.js";
 import {sortEngines,engineMatchesFilter,engineMatchesQuery} from "../src/engineCatalog.js";
 
 const catalog=JSON.parse(fs.readFileSync(new URL("../src/engines.json",import.meta.url),"utf8"));
+const repositoryCatalog=JSON.parse(fs.readFileSync(new URL("../../engines/catalog.json",import.meta.url),"utf8"));
 const engines=Array.isArray(catalog.engines)?catalog.engines:[];
 const cdm=engines.find(e=>e.id==="cdm_1");
 const failures=[];
 const check=(ok,msg)=>{if(!ok)failures.push(msg)};
+
+check(repositoryCatalog.version===catalog.version,"repository and frontend catalog versions must match");
+check(JSON.stringify(repositoryCatalog)===JSON.stringify(catalog),"engines/catalog.json and frontend/src/engines.json must be identical");
 
 check(!!cdm,"cdm_1 must exist in engines.json");
 if(cdm){

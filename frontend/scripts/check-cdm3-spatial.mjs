@@ -88,6 +88,17 @@ assert.equal(result.results[0].metrics.capabilities.rgb_point_rendering,true);
 assert.equal(result.metadata.engine_ids[0],"cdm_3");
 assert.equal(progress.at(-1)?.completed,100);
 
+const xyzNoRgb=textFile("bridge-no-rgb.xyz","0 0 0\n1 0 0\n1 1 0\n");
+const rgbReference={name:"bridge-frame.jpg",size:123456,type:"image/jpeg"};
+const linked=await runCdm3SpatialBrowser(xyzNoRgb,{rgbReferenceFile:rgbReference});
+assert.equal(linked.results[0].metrics.spatial_asset.has_rgb,false);
+assert.equal(linked.results[0].metrics.image_registration.state,"rgb_source_attached_pose_required");
+assert.equal(linked.results[0].metrics.image_registration.source.name,"bridge-frame.jpg");
+assert.equal(linked.results[0].metrics.image_registration.minimum_correspondences,6);
+assert.equal(linked.results[0].metrics.capabilities.external_rgb_source,true);
+assert.equal(linked.results[0].metrics.capabilities.pathology_projection_ready,false);
+assert.match(linked.results[0].message,/aguardando registro 2D→3D/i);
+
 console.log("CDM3_SPATIAL_PASS",{
   xyz:xyzParsed.sampled_points,
   xyz_rgb:xyzParsed.metadata.has_rgb,

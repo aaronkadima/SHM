@@ -5,7 +5,7 @@ function progress(cb,value,label,stage){
 }
 
 export async function runCdm3SpatialBrowser(file,control={}){
-  const started=performance.now(),signal=control?.signal,onProgress=control?.onProgress;
+  const started=performance.now(),signal=control?.signal,onProgress=control?.onProgress,rgbReferenceFile=control?.rgbReferenceFile||null;
   if(signal?.aborted)throw new DOMException("Análise cancelada.","AbortError");
   const ext=spatialExtension(file);
   if(!ext)throw new Error("CDM-3 espacial aceita .las, .xyz e .ifc.");
@@ -29,22 +29,39 @@ export async function runCdm3SpatialBrowser(file,control={}){
       has_classification:!!parsed.classifications,
       ...parsed.metadata
     },
+    image_registration:{
+      state:rgbReferenceFile?"rgb_source_attached_pose_required":"not_attached",
+      source:rgbReferenceFile?{name:rgbReferenceFile.name,size_bytes:rgbReferenceFile.size,type:rgbReferenceFile.type||null}:null,
+      method:"2d_3d_correspondences_pnp_ransac",
+      minimum_correspondences:6,
+      calibrated_intrinsics_required_for_metric_projection:true,
+      endpoints:{
+        solve_pose:"/cdm3/registration/pnp",
+        project_world_points:"/cdm3/registration/project"
+      }
+    },
     capabilities:{
       browser_preview:true,
       point_cloud_ingestion:ext==="las"||ext==="xyz",
       rgb_point_rendering:!!parsed.colors,
       geometry_only_segmentation:!parsed.colors&&(ext==="las"||ext==="xyz"),
       ifc_preview:ext==="ifc",
+      external_rgb_source:!!rgbReferenceFile,
+      image_spatial_registration:!!rgbReferenceFile,
       pathology_projection_ready:false,
       note:parsed.colors
         ?"A nuvem contém RGB por ponto. O CDM-3 pode combinar cor, geometria, intensidade e classes na preparação da segmentação."
-        :"A nuvem não contém RGB. O CDM-3 deve limitar o browser a geometria/intensidade/classificação; fissuras, corrosão e manchas exigem imagem registrada ou nuvem colorizada."
+        :rgbReferenceFile
+          ?"Imagem RGB externa anexada. A projeção patológica aguarda registro 2D→3D por correspondências e PnP/RANSAC."
+          :"A nuvem não contém RGB. O CDM-3 deve limitar o browser a geometria/intensidade/classificação; fissuras, corrosão e manchas exigem imagem registrada ou nuvem colorizada."
     },
     spatial_backend:{
       status:"optional_for_ingestion_required_for_deep_pipeline",
       las_summary:"/cdm3/las/summary",
       ifc_resolve:"/cdm3/ifc/resolve",
-      ifc_export:"/cdm3/ifc/export"
+      ifc_export:"/cdm3/ifc/export",
+      image_register:"/cdm3/registration/pnp",
+      world_to_image:"/cdm3/registration/project"
     }
   };
   progress(onProgress,100,"CDM-3 · ativo espacial carregado","done");
@@ -55,7 +72,9 @@ export async function runCdm3SpatialBrowser(file,control={}){
       ?"CDM-3 DEV: IFC carregado no canvas e indexado para o pipeline espacial; a prévia browser usa coordenadas IFC, enquanto a resolução semântica final usa IfcOpenShell."
       :parsed.colors
         ?"CDM-3 DEV: "+ext.toUpperCase()+" carregado com RGB por ponto e preparado para fusão cor + geometria."
-        :"CDM-3 DEV: "+ext.toUpperCase()+" carregado sem RGB; visualização por intensidade/classificação/elevação disponível, mas patologia visual requer textura/imagem registrada."
+        :rgbReferenceFile
+          ?"CDM-3 DEV: "+ext.toUpperCase()+" sem RGB interno; imagem externa "+rgbReferenceFile.name+" anexada e aguardando registro 2D→3D."
+          :"CDM-3 DEV: "+ext.toUpperCase()+" carregado sem RGB; visualização por intensidade/classificação/elevação disponível, mas patologia visual requer textura/imagem registrada."
   };
   return {
     image_width:1,image_height:1,results:[result],consensus:{},spatial_consensus:[],

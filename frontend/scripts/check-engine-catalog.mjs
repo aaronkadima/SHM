@@ -9,6 +9,7 @@ const cdm=engines.find(e=>e.id==="cdm_1");
 const segformer=engines.find(e=>e.id==="segformer_public_crack");
 const yoloBrowser=engines.find(e=>e.id==="yolov8n_public_crack_seg");
 const unetBrowser=engines.find(e=>e.id==="unet_public_crack");
+const crackenpyBrowser=engines.find(e=>e.id==="crackenpy_public_crack");
 const failures=[];
 const check=(ok,msg)=>{if(!ok)failures.push(msg)};
 
@@ -60,6 +61,23 @@ if(unetBrowser){
 }
 check(browserEngineSupported("unet_public_crack")===true,"browserEngines must expose U-Net candidate runtime for smoke/parity tests");
 
+check(!!crackenpyBrowser,"crackenpy_public_crack must exist in engines.json");
+if(crackenpyBrowser){
+  check(crackenpyBrowser.browser_ready===false,"CrackenPy must remain browser_ready=false before final promotion");
+  check(crackenpyBrowser.browser_candidate===true,"CrackenPy must be marked as browser candidate");
+  check(crackenpyBrowser.browser_stage==="browser-smoke-validated","CrackenPy browser stage mismatch");
+  check(crackenpyBrowser.browser_runtime_candidate==="onnxruntime-web-wasm-1.30.0","CrackenPy candidate runtime mismatch");
+  check(crackenpyBrowser.browser_release_asset==="crackenpy_public_crack.int8.onnx","CrackenPy asset mismatch");
+  check(crackenpyBrowser.browser_manifest_asset==="crackenpy_public_crack.int8.json","CrackenPy manifest mismatch");
+  check(crackenpyBrowser.browser_precision==="int8","CrackenPy precision mismatch");
+  check(crackenpyBrowser.license==="BSD","CrackenPy license must remain BSD");
+  check(Number(crackenpyBrowser.browser_quality_iou)>=.60,"CrackenPy labeled-concrete IoU must stay >= 0.60");
+  check(Number(crackenpyBrowser.browser_quality_dice)>=.75,"CrackenPy labeled-concrete Dice must stay >= 0.75");
+  check(crackenpyBrowser.recommended===false,"CrackenPy must not be recommended before final promotion");
+  check(!engineMatchesFilter(crackenpyBrowser,"browser"),"Browser filter must exclude CrackenPy until final promotion");
+}
+check(browserEngineSupported("crackenpy_public_crack")===true,"browserEngines must expose CrackenPy candidate runtime for smoke/parity tests");
+
 
 check(new Set(engines.map(e=>e.id)).size===engines.length,"engine ids must be unique");
 const sorted=sortEngines(engines);
@@ -76,4 +94,4 @@ if(failures.length){
   failures.forEach(x=>console.error(" - "+x));
   process.exit(1);
 }
-console.log("Engine catalog passed:",{count:engines.length,version:catalog.version,cdm:{id:cdm.id,browser_ready:cdm.browser_ready},segformer:{id:segformer.id,browser_ready:segformer.browser_ready,browser_runtime:segformer.browser_runtime},yoloBrowser:{id:yoloBrowser.id,browser_ready:yoloBrowser.browser_ready,browser_stage:yoloBrowser.browser_stage},unetBrowser:{id:unetBrowser.id,browser_ready:unetBrowser.browser_ready,browser_stage:unetBrowser.browser_stage}});
+console.log("Engine catalog passed:",{count:engines.length,version:catalog.version,cdm:{id:cdm.id,browser_ready:cdm.browser_ready},segformer:{id:segformer.id,browser_ready:segformer.browser_ready,browser_runtime:segformer.browser_runtime},yoloBrowser:{id:yoloBrowser.id,browser_ready:yoloBrowser.browser_ready,browser_stage:yoloBrowser.browser_stage},unetBrowser:{id:unetBrowser.id,browser_ready:unetBrowser.browser_ready,browser_stage:unetBrowser.browser_stage},crackenpyBrowser:{id:crackenpyBrowser.id,browser_ready:crackenpyBrowser.browser_ready,browser_stage:crackenpyBrowser.browser_stage}});

@@ -5,12 +5,14 @@ on:
     branches: ["dev","main"]
     paths:
       - "backend/app/cdm3/registration.py"
+      - "backend/app/cdm3/auto_registration.py"
       - "backend/app/cdm3/api.py"
       - "backend/tests/check_cdm3_registration.py"
       - ".github/workflows/cdm3-registration-ci.yml"
   pull_request:
     paths:
       - "backend/app/cdm3/registration.py"
+      - "backend/app/cdm3/auto_registration.py"
       - "backend/app/cdm3/api.py"
       - "backend/tests/check_cdm3_registration.py"
       - ".github/workflows/cdm3-registration-ci.yml"

@@ -48,6 +48,7 @@ def status():
             "ifc_component_resolution",
             "svg_ifc_pathology_export",
             "image_to_spatial_pnp_registration",
+            "automatic_multiview_pose_propagation",
             "world_to_image_projection",
         ],
     }
@@ -119,6 +120,44 @@ async def register_image_to_spatial(
         "correspondence_count": len(correspondences),
         "ready_for_metric_pathology_projection": bool(result.metric_projection_valid),
     }
+
+
+
+
+@router.post("/registration/propagate")
+async def propagate_registered_view(
+    anchor_image: UploadFile = File(...),
+    target_image: UploadFile = File(...),
+    anchor_pose_json: str = Form(...),
+    points_json: str = Form(...),
+    target_intrinsics_json: str | None = Form(None),
+    target_distortion_json: str | None = Form(None),
+    association_radius_px: float = Form(10.0),
+    reprojection_error_px: float = Form(5.0),
+):
+    """Propagate a trusted anchor pose to another photograph using ORB + PnP/RANSAC."""
+    from .auto_registration import decode_image_bytes, propagate_camera_pose
+    try:
+        anchor_pose=json.loads(anchor_pose_json)
+        points=json.loads(points_json)
+        if isinstance(points,dict): points=points.get("points",[])
+        target_intrinsics=json.loads(target_intrinsics_json) if target_intrinsics_json else None
+        target_distortion=json.loads(target_distortion_json) if target_distortion_json else None
+        if not isinstance(anchor_pose,dict): raise ValueError("anchor_pose_json must be an object")
+        if not isinstance(points,list): raise ValueError("points_json must be a list")
+        if len(points)>50000: raise ValueError("At most 50000 spatial points can be used for automatic registration.")
+        result=propagate_camera_pose(
+            decode_image_bytes(await anchor_image.read()),
+            decode_image_bytes(await target_image.read()),
+            anchor_pose,points,target_intrinsics,target_distortion,
+            association_radius_px,reprojection_error_px,
+        )
+    except ValueError as exc:
+        raise HTTPException(400,f"Invalid automatic registration input: {exc}") from exc
+    except Exception as exc:
+        raise HTTPException(422,f"Automatic camera registration failed: {type(exc).__name__}: {exc}") from exc
+    payload=result.as_dict()
+    return {"engine_id":"cdm_3",**payload,"ready_for_metric_pathology_projection":bool(payload["registration"]["metric_projection_valid"])}
 
 
 @router.post("/registration/project")

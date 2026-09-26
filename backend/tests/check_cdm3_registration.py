@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.cdm3.registration import solve_camera_pose, project_world_points
+from app.cdm3.auto_registration import propagate_camera_pose
 
 
 def main():
@@ -82,6 +83,34 @@ def main():
     assert approximate.metric_projection_valid is False
     assert approximate.calibration_source == "estimated_from_image_dimensions"
 
+
+    rng=np.random.default_rng(42)
+    texture=rng.integers(0,256,size=(height,width),dtype=np.uint8)
+    texture=cv2.GaussianBlur(texture,(3,3),0)
+    for yy in range(60,height-40,45):
+        for xx in range(60,width-40,45):
+            cv2.circle(texture,(xx,yy),5,int((xx*13+yy*7)%220+20),-1)
+            cv2.line(texture,(xx-7,yy),(xx+7,yy),255,1)
+            cv2.line(texture,(xx,yy-7),(xx,yy+7),0,1)
+    anchor_image=cv2.cvtColor(texture,cv2.COLOR_GRAY2BGR)
+    plane_points=[[float(xx),float(yy),0.0] for yy in np.linspace(-2.0,2.0,31) for xx in np.linspace(-3.0,3.0,41)]
+    anchor_rvec=np.zeros((3,1),dtype=np.float64);anchor_tvec=np.array([[0.0],[0.0],[8.0]],dtype=np.float64)
+    anchor_rot,_=cv2.Rodrigues(anchor_rvec)
+    anchor_pose={"rotation_matrix":anchor_rot.tolist(),"translation_vector":anchor_tvec.reshape(3).tolist(),"camera_matrix":camera_matrix.tolist(),"distortion":[0,0,0,0,0],"metric_projection_valid":True}
+    target_rvec=np.array([[0.025],[-0.055],[0.018]],dtype=np.float64);target_tvec=np.array([[0.22],[-0.08],[8.25]],dtype=np.float64)
+    corners=np.array([[-3,-2,0],[3,-2,0],[3,2,0],[-3,2,0]],dtype=np.float64)
+    auv,_=cv2.projectPoints(corners,anchor_rvec,anchor_tvec,camera_matrix,np.zeros((5,1)))
+    tuv,_=cv2.projectPoints(corners,target_rvec,target_tvec,camera_matrix,np.zeros((5,1)))
+    H=cv2.getPerspectiveTransform(auv.reshape(4,2).astype(np.float32),tuv.reshape(4,2).astype(np.float32))
+    target_image=cv2.warpPerspective(anchor_image,H,(width,height),flags=cv2.INTER_LINEAR)
+    auto=propagate_camera_pose(anchor_image,target_image,anchor_pose,plane_points,target_intrinsics=intrinsics,target_distortion=[0,0,0,0,0],association_radius_px=12.0,reprojection_error_px=6.0)
+    assert auto.correspondence_count>=8
+    assert len(auto.pose.inlier_indices)>=6
+    assert auto.pnp_inlier_ratio>=0.35
+    assert auto.pose.reprojection_rmse_px<8.0
+    assert auto.pose.metric_projection_valid is True
+    assert auto.pose.calibration_source=="auto_propagated_from_calibrated_anchor"
+
     print(
         "CDM3_PNP_REGISTRATION_PASS",
         {
@@ -89,6 +118,9 @@ def main():
             "rmse_px": round(result.reprojection_rmse_px, 8),
             "camera_center_world": [round(float(v), 6) for v in result.camera_center_world],
             "approximate_metric_valid": approximate.metric_projection_valid,
+            "auto_correspondences": auto.correspondence_count,
+            "auto_inliers": len(auto.pose.inlier_indices),
+            "auto_rmse_px": round(auto.pose.reprojection_rmse_px, 4),
         },
     )
 

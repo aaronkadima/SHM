@@ -94,11 +94,12 @@ async function imagePixels(file){
   }finally{URL.revokeObjectURL(url)}
 }
 export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,onSpatialPathologyRecords=null}){
-  const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick);
+  const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords);
   const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null);
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null);
   useEffect(()=>{pickEnabledRef.current=pickEnabled},[pickEnabled]);
   useEffect(()=>{onPointPickRef.current=onPointPick},[onPointPick]);
+  useEffect(()=>{onSpatialPathologyRecordsRef.current=onSpatialPathologyRecords},[onSpatialPathologyRecords]);
   useEffect(()=>{
     if(!file||!mount.current)return;
     setError("");setFallback(false);setLoading(true);setLoadProgress(null);setModes([]);setSpatialNotice("");setPathologyStats(null);
@@ -259,11 +260,11 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         if(cancelled)return;
         if(registered)view.current?.setRegisteredColors?.(registered);
         if(pathology)view.current?.setPathologyProjection?.(pathology);
-        onSpatialPathologyRecords?.(records);
+        onSpatialPathologyRecordsRef.current?.(records);
       })
       .catch(e=>{if(!cancelled)setError("Falha ao projetar RGB/patologias no 3D: "+(e?.message||String(e)))});
     return()=>{cancelled=true};
-  },[rgbReferenceFile,registration,rgbPathologyAnalysis,file,onSpatialPathologyRecords]);
+  },[rgbReferenceFile,registration,rgbPathologyAnalysis,file]);
   function setView(direction){
     const data=view.current;if(!data)return;
     const {camera,controls,center,radius}=data;

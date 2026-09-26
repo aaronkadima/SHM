@@ -11,6 +11,7 @@ import {parseSpatialAsset,spatialExtension} from "./spatialAsset.js";
 import {registeredPointColors,projectPathologyToPoints,buildSpatialPathologyRecords,CDM3_PATHOLOGY_PRIORITY} from "./cdm3RegisteredProjection.js";
 import {buildGeometricSegmentation,CDM3_GEOMETRY_CLASSES} from "./cdm3GeometrySegmentation.js";
 import {fusePhotometricViews} from "./cdm3PhotometricFusion.js";
+import {buildMultiViewPathologyProjection} from "./cdm3MultiViewPathology.js";
 
 const CLASS_COLORS={
   0:[.58,.62,.64],1:[.63,.66,.68],2:[.48,.37,.24],
@@ -206,7 +207,9 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
           setPathologyStats(payload);
           setMode("pathology_3d");
           applyPointMode("pathology_3d");
-          setSpatialNotice("Segmentação espacial CDM-3 · "+Number(payload.matched_points||0).toLocaleString("pt-BR")+" pontos classificados entre "+Number(payload.visible_points??payload.in_frame_points??0).toLocaleString("pt-BR")+" pontos visíveis após teste de profundidade.");
+          setSpatialNotice(payload?.multi_view
+            ?"Consenso patológico multivista · "+Number(payload.confirmed_points||0).toLocaleString("pt-BR")+" pontos confirmados de "+Number(payload.matched_points||0).toLocaleString("pt-BR")+" candidatos · "+Number(payload.views_used||0)+" vistas."
+            :"Segmentação espacial CDM-3 · "+Number(payload.matched_points||0).toLocaleString("pt-BR")+" pontos classificados entre "+Number(payload.visible_points??payload.in_frame_points??0).toLocaleString("pt-BR")+" pontos visíveis após teste de profundidade.");
         };
         points.userData.spatialAsset={
           extension,
@@ -296,6 +299,12 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       .catch(e=>{if(!cancelled)setError("Falha na fusão fotométrica: "+(e?.message||String(e)))});
     return()=>{cancelled=true};
   },[photometricViews,file]);
+  useEffect(()=>{
+    const eligible=(photometricViews||[]).filter(v=>v?.registration?.registration&&v?.analysis&&Array.isArray(v?.source_size));
+    if(eligible.length<2||!view.current?.parsed||!view.current?.setPathologyProjection)return;
+    const consensus=buildMultiViewPathologyProjection(view.current.parsed,eligible,{confirmedViews:2});
+    if(consensus)view.current.setPathologyProjection(consensus);
+  },[photometricViews,file,registration,rgbPathologyAnalysis]);
   function setView(direction){
     const data=view.current;if(!data)return;
     const {camera,controls,center,radius}=data;
@@ -312,7 +321,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     {loading&&<div className="modelLoading" role="status" aria-live="polite"><b>Carregando ativo espacial / 3D</b><span>{loadProgress==null?"Preparando geometria…":loadProgress+"%"}</span>{loadProgress!=null&&<i><b style={{width:loadProgress+"%"}}/></i>}</div>}
     {error&&<div className="modelError" role="alert">{error}</div>}
     <div className="modelViews" aria-label="Vistas do modelo 3D"><button disabled={loading||!!error} onClick={()=>setView("perspective")}>Perspectiva</button><button disabled={loading||!!error} onClick={()=>setView("front")}>Frontal</button><button disabled={loading||!!error} onClick={()=>setView("top")}>Superior</button><button disabled={loading||!!error} onClick={()=>setView("side")}>Lateral</button></div>
-    {modes.length>0&&<div className="pointCloudModes" aria-label="Canal visual da nuvem de pontos"><label htmlFor="point-cloud-mode">Visual</label><select id="point-cloud-mode" value={mode} onChange={e=>setPointMode(e.target.value)}>{modes.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select><span>{spatialNotice}</span></div>}{photometricStats&&(mode==="photometric_rgb"||mode==="photometric_confidence")&&<div className="pointPathologyLegend pointGeometryLegend" aria-label="Resumo fotométrico"><b>CDM-3 · fotometria</b><span>Vistas registradas <strong>{Number(photometricStats.registered_views||0)}</strong></span><span>Cobertura <strong>{(Number(photometricStats.coverage_ratio||0)*100).toFixed(1)}%</strong></span><span>Vistas/ponto <strong>{Number(photometricStats.mean_views_per_colored_point||0).toFixed(2)}</strong></span></div>}{geometryStats&&mode==="geometry_local"&&<div className="pointPathologyLegend pointGeometryLegend" aria-label="Resumo da classificação geométrica local"><b>CDM-3 · geometria local</b>{CDM3_GEOMETRY_CLASSES.filter(cls=>Number(geometryStats.counts?.[cls.key]||0)>0).map(cls=><span key={cls.key}>{cls.label} <strong>{Number(geometryStats.counts?.[cls.key]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}{pathologyStats&&<div className="pointPathologyLegend" aria-label="Resumo da segmentação patológica 3D"><b>CDM-3 · pontos patológicos</b>{CDM3_PATHOLOGY_PRIORITY.filter(cls=>Number(pathologyStats.counts?.[cls]||0)>0).map(cls=><span key={cls}><i data-pathology={cls}/>{cls.replace("spalling_dark","desplacamento").replace("exposed_rebar","armadura exposta").replace("corrosion_rust","corrosão").replace("efflorescence_white","eflorescência").replace("cracks","fissuras")} <strong>{Number(pathologyStats.counts?.[cls]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}
+    {modes.length>0&&<div className="pointCloudModes" aria-label="Canal visual da nuvem de pontos"><label htmlFor="point-cloud-mode">Visual</label><select id="point-cloud-mode" value={mode} onChange={e=>setPointMode(e.target.value)}>{modes.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select><span>{spatialNotice}</span></div>}{photometricStats&&(mode==="photometric_rgb"||mode==="photometric_confidence")&&<div className="pointPathologyLegend pointGeometryLegend" aria-label="Resumo fotométrico"><b>CDM-3 · fotometria</b><span>Vistas registradas <strong>{Number(photometricStats.registered_views||0)}</strong></span><span>Cobertura <strong>{(Number(photometricStats.coverage_ratio||0)*100).toFixed(1)}%</strong></span><span>Vistas/ponto <strong>{Number(photometricStats.mean_views_per_colored_point||0).toFixed(2)}</strong></span></div>}{geometryStats&&mode==="geometry_local"&&<div className="pointPathologyLegend pointGeometryLegend" aria-label="Resumo da classificação geométrica local"><b>CDM-3 · geometria local</b>{CDM3_GEOMETRY_CLASSES.filter(cls=>Number(geometryStats.counts?.[cls.key]||0)>0).map(cls=><span key={cls.key}>{cls.label} <strong>{Number(geometryStats.counts?.[cls.key]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}{pathologyStats&&<div className="pointPathologyLegend" aria-label="Resumo da segmentação patológica 3D"><b>{pathologyStats.multi_view?"CDM-3 · consenso multivista":"CDM-3 · pontos patológicos"}</b>{pathologyStats.multi_view&&<span>Confirmados <strong>{Number(pathologyStats.confirmed_points||0).toLocaleString("pt-BR")}</strong> / {Number(pathologyStats.matched_points||0).toLocaleString("pt-BR")} · {Number(pathologyStats.views_used||0)} vistas</span>}{CDM3_PATHOLOGY_PRIORITY.filter(cls=>Number(pathologyStats.counts?.[cls]||0)>0).map(cls=><span key={cls}><i data-pathology={cls}/>{cls.replace("spalling_dark","desplacamento").replace("exposed_rebar","armadura exposta").replace("corrosion_rust","corrosão").replace("efflorescence_white","eflorescência").replace("cracks","fissuras")} <strong>{Number(pathologyStats.counts?.[cls]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}
     {pickEnabled&&<div className="modelPickHint">Selecione na nuvem o ponto correspondente ao pixel marcado</div>}
     {fallback&&<div className="modelFallback">Visualização vetorial · WebGL indisponível</div>}
     <div className="modelHint">3D · arraste para orbitar · roda para ampliar · botão direito para deslocar</div>

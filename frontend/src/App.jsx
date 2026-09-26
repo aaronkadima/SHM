@@ -498,7 +498,7 @@ export default function App(){
       if(rgbAnalysis?.results?.[0])rgbAnalysis.results[0].metrics={...(rgbAnalysis.results[0].metrics||{}),photometric_preprocessing:{enabled:true,source_name:spatialRgbFile.name,normalized_size:[enhanced.width,enhanced.height],stats:enhanced.stats}};
     }
     setSpatialRegistration(solved);setSpatialRgbAnalysis(rgbAnalysis);
-    setSpatialPhotoViews(current=>current.map(view=>view.id===activeSpatialPhotoId?{...view,registration:solved,analysis:rgbAnalysis,photometric_stats:photometricStats}:view));
+    setSpatialPhotoViews(current=>current.map(view=>view.id===activeSpatialPhotoId?{...view,registration:solved,analysis:rgbAnalysis,photometric_stats:photometricStats,source_size:spatialRgbFile?[enhanced.originalWidth,enhanced.originalHeight]:null}:view));
     setPhotometricSummary(null);
     return solved;
   }

@@ -158,5 +158,5 @@ export async function createPhotometricDetectionFile(file){
   }
   ctx.putImageData(image,0,0);
   const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("Falha ao gerar imagem fotométrica.")),"image/png"));
-  return {file:new File([blob],file.name.replace(/\.[^.]+$/,"")+"-photometric.png",{type:"image/png",lastModified:Date.now()}),stats,target,width:pixels.width,height:pixels.height};
+  return {file:new File([blob],file.name.replace(/\.[^.]+$/,"")+"-photometric.png",{type:"image/png",lastModified:Date.now()}),stats,target,width:pixels.width,height:pixels.height,originalWidth:pixels.originalWidth,originalHeight:pixels.originalHeight};
 }

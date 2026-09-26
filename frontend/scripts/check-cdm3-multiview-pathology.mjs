@@ -1,0 +1,22 @@
+import assert from "node:assert/strict";
+import{fusePathologyVotes}from"../src/cdm3MultiViewPathology.js";
+
+const a=new Int8Array([0,0,-1,3,2,-1]);
+const b=new Int8Array([0,1,-1,3,-1,4]);
+const c=new Int8Array([0,-1,-1,3,2,4]);
+const fused=fusePathologyVotes([{pointClasses:a,weight:1},{pointClasses:b,weight:.8},{pointClasses:c,weight:.9}],6,{confirmedViews:2});
+assert.equal(fused.views_used,3);
+assert.equal(fused.pointClasses[0],0);
+assert.equal(fused.supportCounts[0],3);
+assert.equal(fused.pointClasses[3],3);
+assert.equal(fused.supportCounts[3],3);
+assert.equal(fused.confirmed_points,4);
+assert.equal(fused.matched_points,5);
+assert.equal(fused.confirmed_counts.cracks,1);
+assert.equal(fused.confirmed_counts.corrosion_rust,1);
+assert.equal(fused.confirmed_counts.exposed_rebar,1);
+assert.equal(fused.confirmed_counts.efflorescence_white,1);
+assert.equal(fused.pointClasses[1],0,"weighted vote should keep crack when crack weight exceeds competing spalling vote");
+assert.equal(fused.supportCounts[1],1);
+assert.ok(fused.confidence[0]>.99);
+console.log("CDM3_MULTIVIEW_PATHOLOGY_PASS",{matched:fused.matched_points,confirmed:fused.confirmed_points,views:fused.views_used});

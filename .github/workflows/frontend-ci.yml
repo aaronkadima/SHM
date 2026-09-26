@@ -67,6 +67,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-cdm3-photometric.mjs
 
+      - name: CDM-3 multiview pathology consensus
+        working-directory: frontend
+        run: node scripts/check-cdm3-multiview-pathology.mjs
+
       - name: 3D model asset validation
         working-directory: frontend
         run: node scripts/check-model-asset-validation.mjs

@@ -97,6 +97,9 @@ const planarGeometry=buildGeometricSegmentation(planarParsed);
 assert.equal(planarGeometry.summary.point_count,441);
 assert.ok(planarGeometry.summary.counts.planar_surface>300,"planar cloud should be predominantly planar");
 assert.equal(planarGeometry.colors.length,441*3);
+assert.equal(planarGeometry.normals.length,441*3);
+let planarAbsZ=0,planarNormalCount=0;for(let i=0;i<441;i++){const x=planarGeometry.normals[i*3],y=planarGeometry.normals[i*3+1],z=planarGeometry.normals[i*3+2],n=Math.hypot(x,y,z);if(n>.5){planarAbsZ+=Math.abs(z/n);planarNormalCount++}}
+assert.ok(planarNormalCount>300&&planarAbsZ/planarNormalCount>.9,"planar cloud normals should be predominantly surface-normal to Z");
 
 const linearLines=[];
 for(let x=0;x<120;x++)linearLines.push(x+" 0 0");

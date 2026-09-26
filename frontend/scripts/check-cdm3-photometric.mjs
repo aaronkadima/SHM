@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import{imagePhotometricStats,canonicalPhotometricTarget,normalizePhotometricRgb,photometricViewWeight}from"../src/cdm3PhotometricFusion.js";
+import{imagePhotometricStats,canonicalPhotometricTarget,normalizePhotometricRgb,photometricViewWeight,photometricIncidenceWeight}from"../src/cdm3PhotometricFusion.js";
 
 const dark={width:4,height:1,data:new Uint8ClampedArray([
   20,20,20,255, 30,28,25,255, 40,38,35,255, 50,48,45,255
@@ -18,5 +18,7 @@ assert.ok(normalizedLum>ds.luminanceMean,"dark view should be lifted toward mult
 const good={registration:{reprojection_rmse_px:1.2,inlier_count:18,correspondence_count:20}};
 const poor={registration:{reprojection_rmse_px:9,inlier_count:7,correspondence_count:20}};
 assert.ok(photometricViewWeight(ds,good)>photometricViewWeight(ds,poor));
+assert.ok(photometricIncidenceWeight([0,0,1],[0,0,0],[0,0,5])>.95);
+assert.ok(photometricIncidenceWeight([0,0,1],[0,0,0],[5,0,.4])<.2);
 for(const v of normalized)assert.ok(v>=0&&v<=1);
-console.log("CDM3_PHOTOMETRIC_PASS",{dark:ds.luminanceMean,bright:bs.luminanceMean,target:target.luminanceMean,good:photometricViewWeight(ds,good),poor:photometricViewWeight(ds,poor)});
+console.log("CDM3_PHOTOMETRIC_PASS",{dark:ds.luminanceMean,bright:bs.luminanceMean,target:target.luminanceMean,good:photometricViewWeight(ds,good),poor:photometricViewWeight(ds,poor),frontal:photometricIncidenceWeight([0,0,1],[0,0,0],[0,0,5]),oblique:photometricIncidenceWeight([0,0,1],[0,0,0],[5,0,.4])});

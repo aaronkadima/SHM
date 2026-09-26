@@ -170,6 +170,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         const extension=spatialExtension(file);
         const geometrySegmentation=(extension==="las"||extension==="xyz")?buildGeometricSegmentation(parsed):null;
         const geometryColors=geometrySegmentation?.colors||null;
+        if(geometrySegmentation?.normals)parsed.surfaceNormals=geometrySegmentation.normals;
         if(geometrySegmentation)setGeometryStats(geometrySegmentation.summary);
         const available=pointModes(parsed,false,false,!!geometryColors);
         const preferred=parsed.colors?"rgb":geometryColors?"geometry_local":parsed.intensities?"intensity":parsed.classifications?"classification":"elevation";

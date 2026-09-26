@@ -98,6 +98,20 @@ export function photometricViewWeight(stats,registration){
   const sharp=clamp((Number(stats?.sharpness)||0)/.08,.25,1.25);
   return clamp(registrationQuality*exposure*sharp,.03,1.4);
 }
+export function photometricIncidenceWeight(normal,point,cameraCenter){
+  if(!normal||!cameraCenter)return 1;
+  const nx=Number(normal[0]),ny=Number(normal[1]),nz=Number(normal[2]),nmag=Math.hypot(nx,ny,nz);
+  const vx=Number(cameraCenter[0])-Number(point[0]),vy=Number(cameraCenter[1])-Number(point[1]),vz=Number(cameraCenter[2])-Number(point[2]),vmag=Math.hypot(vx,vy,vz);
+  if(nmag<.5||vmag<=1e-9)return 1;
+  const cosine=Math.abs((nx*vx+ny*vy+nz*vz)/(nmag*vmag));
+  return Math.pow(clamp((cosine-.08)/.92,.08,1),1.35);
+}
+function relativeDepthWeight(depth,referenceDepth){
+  if(!(depth>0)||!(referenceDepth>0))return 1;
+  const ratio=depth/referenceDepth;
+  return clamp(1/(1+.7*(ratio-1)*(ratio-1)),.2,1);
+}
+
 function scaledRegistration(registration,sx,sy){
   const outer=registration?.registration?{...registration,registration:{...registration.registration}}:{registration:{...(registration||{})}};
   const pose=outer.registration,k=pose.camera_matrix;
@@ -128,16 +142,21 @@ export async function fusePhotometricViews(parsed,views,{maxViews=8,maxDimension
     const reg=scaledRegistration(row.view.registration,pixels.scaleX,pixels.scaleY);
     const projection=projectSpatialPoints(parsed,reg,pixels.width,pixels.height);
     if(!projection)continue;
-    const globalWeight=photometricViewWeight(row.stats,row.view.registration);let contributed=0;
+    const globalWeight=photometricViewWeight(row.stats,row.view.registration),pose=row.view.registration?.registration||row.view.registration||{},cameraCenter=pose.camera_center_world||null;
+    const visibleDepths=[];for(let i=0;i<count;i+=Math.max(1,Math.floor(count/4000))){if(projection.visible[i]&&projection.depth[i]>0)visibleDepths.push(Number(projection.depth[i]))}
+    const referenceDepth=median(visibleDepths)||1,center=parsed.bounds?.center||[0,0,0],normals=parsed.surfaceNormals||null;let contributed=0,incidenceTotal=0;
     for(let i=0;i<count;i++){
       if(!projection.visible[i])continue;
       const u=Math.round(projection.uv[i*2]),v=Math.round(projection.uv[i*2+1]);
       if(u<0||v<0||u>=pixels.width||v>=pixels.height)continue;
       const q=(v*pixels.width+u)*4;
       const rgb=normalizePhotometricRgb([pixels.data[q]/255,pixels.data[q+1]/255,pixels.data[q+2]/255],row.stats,target);
-      const w=globalWeight;sumR[i]+=rgb[0]*w;sumG[i]+=rgb[1]*w;sumB[i]+=rgb[2]*w;sumW[i]+=w;coverage[i]=Math.min(255,coverage[i]+1);contributed++;
+      const point=[Number(parsed.positions[i*3])+Number(center[0]||0),Number(parsed.positions[i*3+1])+Number(center[1]||0),Number(parsed.positions[i*3+2])+Number(center[2]||0)];
+      const normal=normals?[normals[i*3],normals[i*3+1],normals[i*3+2]]:null;
+      const incidence=photometricIncidenceWeight(normal,point,cameraCenter),distanceWeight=relativeDepthWeight(Number(projection.depth[i]),referenceDepth),w=globalWeight*incidence*distanceWeight;
+      sumR[i]+=rgb[0]*w;sumG[i]+=rgb[1]*w;sumB[i]+=rgb[2]*w;sumW[i]+=w;coverage[i]=Math.min(255,coverage[i]+1);contributed++;incidenceTotal+=incidence;
     }
-    perView.push({id:row.view.id||row.view.file.name,name:row.view.file.name,weight:globalWeight,contributed_points:contributed,stats:row.stats});
+    perView.push({id:row.view.id||row.view.file.name,name:row.view.file.name,weight:globalWeight,contributed_points:contributed,mean_incidence_weight:contributed?incidenceTotal/contributed:0,reference_depth:referenceDepth,stats:row.stats});
   }
   const fallback=fallbackColors(parsed),colors=new Float32Array(count*3),confidenceColors=new Float32Array(count*3);
   let colored=0,totalCoverage=0,maxWeight=0,totalWeight=0;for(const w of sumW)if(w>maxWeight)maxWeight=w;
@@ -148,7 +167,7 @@ export async function fusePhotometricViews(parsed,views,{maxViews=8,maxDimension
     confidenceColors[i*3]=.12+.18*c;confidenceColors[i*3+1]=.18+.72*c;confidenceColors[i*3+2]=.30+.58*(1-c);
   }
   const coverageRatio=colored/Math.max(1,count),meanViews=colored?totalCoverage/colored:0,meanWeight=colored?totalWeight/colored:0;
-  return {colors,confidenceColors,coverage,summary:{registered_views:perView.length,colored_points:colored,total_points:count,coverage_ratio:coverageRatio,mean_views_per_colored_point:meanViews,mean_confidence_weight:meanWeight,target,views:perView,memory_strategy:"two_pass_sequential"}};
+  return {colors,confidenceColors,coverage,summary:{registered_views:perView.length,colored_points:colored,total_points:count,coverage_ratio:coverageRatio,mean_views_per_colored_point:meanViews,mean_confidence_weight:meanWeight,target,views:perView,memory_strategy:"two_pass_sequential",surface_weighting:normals?"camera_normal_incidence+relative_depth":"relative_depth_only"}};
 }
 export async function createPhotometricDetectionFile(file){
   const pixels=await decodePhotometricImage(file,{maxDimension:2048}),stats=imagePhotometricStats(pixels),target={mean:[.5,.5,.5],luminanceMean:.5,luminanceStd:.22};

@@ -40,18 +40,29 @@ function symmetricEigenvalues(a,b,c,d,e,f){
   const l2=3*q-l1-l3;
   return [l1,l2,l3].sort((x,y)=>y-x).map(v=>Math.max(0,v));
 }
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
+function smallestEigenvector(a,b,c,d,e,f,lambda){
+  const rows=[[a-lambda,b,c],[b,d-lambda,e],[c,e,f-lambda]];
+  const candidates=[cross(rows[0],rows[1]),cross(rows[0],rows[2]),cross(rows[1],rows[2])];
+  let best=[0,0,1],bestNorm=0;
+  for(const v of candidates){const n=Math.hypot(v[0],v[1],v[2]);if(n>bestNorm){best=v;bestNorm=n}}
+  if(bestNorm<=1e-12)return [0,0,1];
+  return [best[0]/bestNorm,best[1]/bestNorm,best[2]/bestNorm];
+}
+
 function classifyAggregate(local,minimumNeighbors){
-  if(local.n<minimumNeighbors)return 0;
+  if(local.n<minimumNeighbors)return {classId:0,normal:[0,0,0]};
   const n=local.n,mx=local.sx/n,my=local.sy/n,mz=local.sz/n;
   const xx=Math.max(0,local.sxx/n-mx*mx),yy=Math.max(0,local.syy/n-my*my),zz=Math.max(0,local.szz/n-mz*mz);
   const xy=local.sxy/n-mx*my,xz=local.sxz/n-mx*mz,yz=local.syz/n-my*mz;
   const [l1,l2,l3]=symmetricEigenvalues(xx,xy,xz,yy,yz,zz);
-  if(l1<=1e-14)return 0;
+  if(l1<=1e-14)return {classId:0,normal:[0,0,0]};
   const linearity=(l1-l2)/l1,planarity=(l2-l3)/l1,scattering=l3/l1;
-  if(scattering>=.16)return 3;
-  if(linearity>=.58&&planarity<.36)return 1;
-  if(planarity>=.38&&scattering<=.12)return 2;
-  return 4;
+  const normal=smallestEigenvector(xx,xy,xz,yy,yz,zz,l3);
+  if(scattering>=.16)return {classId:3,normal};
+  if(linearity>=.58&&planarity<.36)return {classId:1,normal};
+  if(planarity>=.38&&scattering<=.12)return {classId:2,normal};
+  return {classId:4,normal};
 }
 
 export function buildGeometricSegmentation(parsed,{minimumNeighbors=6,targetPointsPerVoxel=12}={}){
@@ -69,7 +80,7 @@ export function buildGeometricSegmentation(parsed,{minimumNeighbors=6,targetPoin
     const colors=new Float32Array(count*3),pointLabels=new Uint8Array(count);
     const c=GEOMETRY_CLASSES[0].color;
     for(let i=0;i<count;i++){colors[i*3]=c[0];colors[i*3+1]=c[1];colors[i*3+2]=c[2]}
-    return {colors,pointLabels,classes:GEOMETRY_CLASSES,summary:{method:"voxel_neighborhood_covariance",point_count:count,voxel_size:0,occupied_voxels:1,minimum_neighbors:minimumNeighbors,counts:{low_support:count,linear_edge:0,planar_surface:0,irregular_volume:0,transitional:0},fractions:{low_support:1,linear_edge:0,planar_surface:0,irregular_volume:0,transitional:0},interpretation:"Classificação geométrica local; não representa diagnóstico de patologia visual."}};
+    return {colors,pointLabels,normals:new Float32Array(count*3),classes:GEOMETRY_CLASSES,summary:{method:"voxel_neighborhood_covariance",point_count:count,voxel_size:0,occupied_voxels:1,minimum_neighbors:minimumNeighbors,normal_count:0,counts:{low_support:count,linear_edge:0,planar_surface:0,irregular_volume:0,transitional:0},fractions:{low_support:1,linear_edge:0,planar_surface:0,irregular_volume:0,transitional:0},interpretation:"Classificação geométrica local; não representa diagnóstico de patologia visual."}};
   }
   const bins=clamp(Math.round(Math.cbrt(Math.max(1,count/Math.max(1,targetPointsPerVoxel)))*2.6),8,72);
   const voxelSize=Math.max(diagonal/bins,1e-9),cells=new Map();
@@ -80,21 +91,23 @@ export function buildGeometricSegmentation(parsed,{minimumNeighbors=6,targetPoin
     if(!cell){cell=emptyAggregate(ix,iy,iz);cells.set(key,cell)}
     addPoint(cell,x,y,z,i);
   }
-  const pointLabels=new Uint8Array(count),colors=new Float32Array(count*3);
-  const counts=Object.fromEntries(GEOMETRY_CLASSES.map(row=>[row.key,0]));
+  const pointLabels=new Uint8Array(count),colors=new Float32Array(count*3),normals=new Float32Array(count*3);
+  const counts=Object.fromEntries(GEOMETRY_CLASSES.map(row=>[row.key,0]));let normalCount=0;
   for(const cell of cells.values()){
     const local=emptyAggregate();
     for(let dz=-1;dz<=1;dz++)for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
       addAggregate(local,cells.get(voxelKey(cell.ix+dx,cell.iy+dy,cell.iz+dz)));
     }
-    const classId=classifyAggregate(local,minimumNeighbors),cls=GEOMETRY_CLASSES[classId];
+    const descriptor=classifyAggregate(local,minimumNeighbors),classId=descriptor.classId,cls=GEOMETRY_CLASSES[classId],normal=descriptor.normal||[0,0,0];
+    const validNormal=Math.hypot(normal[0],normal[1],normal[2])>.5;
     for(const index of cell.indices){
-      pointLabels[index]=classId;colors[index*3]=cls.color[0];colors[index*3+1]=cls.color[1];colors[index*3+2]=cls.color[2];counts[cls.key]++;
+      pointLabels[index]=classId;colors[index*3]=cls.color[0];colors[index*3+1]=cls.color[1];colors[index*3+2]=cls.color[2];
+      normals[index*3]=normal[0];normals[index*3+1]=normal[1];normals[index*3+2]=normal[2];if(validNormal)normalCount++;counts[cls.key]++;
     }
   }
   const fractions=Object.fromEntries(Object.entries(counts).map(([key,value])=>[key,value/Math.max(1,count)]));
   return {
-    colors,pointLabels,classes:GEOMETRY_CLASSES,
+    colors,pointLabels,normals,classes:GEOMETRY_CLASSES,
     summary:{
       method:"voxel_neighborhood_covariance",
       point_count:count,
@@ -102,6 +115,7 @@ export function buildGeometricSegmentation(parsed,{minimumNeighbors=6,targetPoin
       occupied_voxels:cells.size,
       neighborhood_radius_voxels:1,
       minimum_neighbors:minimumNeighbors,
+      normal_count:normalCount,
       counts,fractions,
       interpretation:"Classificação geométrica local de forma/superfície; não representa diagnóstico de fissura, corrosão, manchas ou outra patologia visual."
     }

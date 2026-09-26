@@ -1,4 +1,5 @@
 import{parseSpatialAsset,spatialExtension}from"./spatialAsset.js";
+import{buildGeometricSegmentation}from"./cdm3GeometrySegmentation.js";
 
 function progress(cb,value,label,stage){
   cb?.({state:value>=100?"done":"running",completed:value,total:100,current_engine:label,stage});
@@ -12,7 +13,10 @@ export async function runCdm3SpatialBrowser(file,control={}){
   progress(onProgress,5,"CDM-3 · lendo "+ext.toUpperCase(),"spatial_decode");
   const parsed=await parseSpatialAsset(file,{maxPoints:250000});
   if(signal?.aborted)throw new DOMException("Análise cancelada.","AbortError");
-  progress(onProgress,80,"CDM-3 · estruturando ativo espacial","spatial_index");
+  progress(onProgress,72,"CDM-3 · estruturando ativo espacial","spatial_index");
+  const geometrySegmentation=(ext==="las"||ext==="xyz")?buildGeometricSegmentation(parsed):null;
+  if(signal?.aborted)throw new DOMException("Análise cancelada.","AbortError");
+  progress(onProgress,88,"CDM-3 · classificando geometria local","geometry_local");
   const metrics={
     implementation:"CDM-3 3.0.0-dev",
     runtime_mode:"spatial_browser_ingestion",
@@ -23,10 +27,11 @@ export async function runCdm3SpatialBrowser(file,control={}){
     spatial_asset:{
       sampled_points:parsed.sampled_points,
       bounds:parsed.bounds,
-      visual_channels:parsed.metadata?.visual_channels||["elevation"],
+      visual_channels:[...new Set([...(parsed.metadata?.visual_channels||["elevation"]),...(geometrySegmentation?["geometry_local"]:[])])],
       has_rgb:!!parsed.colors,
       has_intensity:!!parsed.intensities,
       has_classification:!!parsed.classifications,
+      geometry_segmentation:geometrySegmentation?.summary||null,
       ...parsed.metadata
     },
     image_registration:{
@@ -44,7 +49,8 @@ export async function runCdm3SpatialBrowser(file,control={}){
       browser_preview:true,
       point_cloud_ingestion:ext==="las"||ext==="xyz",
       rgb_point_rendering:!!parsed.colors,
-      geometry_only_segmentation:!parsed.colors&&(ext==="las"||ext==="xyz"),
+      local_geometry_segmentation:!!geometrySegmentation,
+      geometry_only_segmentation:!parsed.colors&&!!geometrySegmentation,
       ifc_preview:ext==="ifc",
       external_rgb_source:!!rgbReferenceFile,
       image_spatial_registration:!!rgbReferenceFile,
@@ -53,7 +59,7 @@ export async function runCdm3SpatialBrowser(file,control={}){
         ?"A nuvem contém RGB por ponto. O CDM-3 pode combinar cor, geometria, intensidade e classes na preparação da segmentação."
         :rgbReferenceFile
           ?"Imagem RGB externa anexada. A projeção patológica aguarda registro 2D→3D por correspondências e PnP/RANSAC."
-          :"A nuvem não contém RGB. O CDM-3 deve limitar o browser a geometria/intensidade/classificação; fissuras, corrosão e manchas exigem imagem registrada ou nuvem colorizada."
+          :"A nuvem não contém RGB. O CDM-3 executa classificação geométrica local (planar/linear/irregular/transição), mas fissuras, corrosão e manchas continuam exigindo imagem registrada ou nuvem colorizada."
     },
     spatial_backend:{
       status:"optional_for_ingestion_required_for_deep_pipeline",
@@ -74,7 +80,7 @@ export async function runCdm3SpatialBrowser(file,control={}){
         ?"CDM-3 DEV: "+ext.toUpperCase()+" carregado com RGB por ponto e preparado para fusão cor + geometria."
         :rgbReferenceFile
           ?"CDM-3 DEV: "+ext.toUpperCase()+" sem RGB interno; imagem externa "+rgbReferenceFile.name+" anexada e aguardando registro 2D→3D."
-          :"CDM-3 DEV: "+ext.toUpperCase()+" carregado sem RGB; visualização por intensidade/classificação/elevação disponível, mas patologia visual requer textura/imagem registrada."
+          :"CDM-3 DEV: "+ext.toUpperCase()+" carregado sem RGB; Geometria local segmenta forma/superfície sem inventar patologia visual. Fissuras, corrosão e manchas requerem textura/imagem registrada."
   };
   return {
     image_width:1,image_height:1,results:[result],consensus:{},spatial_consensus:[],

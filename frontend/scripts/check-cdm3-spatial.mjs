@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {parseSpatialAsset,parseLasFile,parseXyzFile,parseIfcFile,spatialExtension} from "../src/spatialAsset.js";
 import {runCdm3SpatialBrowser} from "../src/cdm3SpatialBrowser.js";
+import {buildGeometricSegmentation} from "../src/cdm3GeometrySegmentation.js";
 
 function textFile(name,text,type="text/plain"){
   return {name,size:Buffer.byteLength(text),type,text:async()=>text};
@@ -88,6 +89,22 @@ assert.equal(result.results[0].metrics.capabilities.rgb_point_rendering,true);
 assert.equal(result.metadata.engine_ids[0],"cdm_3");
 assert.equal(progress.at(-1)?.completed,100);
 
+
+const planarLines=[];
+for(let y=0;y<21;y++)for(let x=0;x<21;x++)planarLines.push(x+" "+y+" 0");
+const planarParsed=await parseXyzFile(textFile("planar.xyz",planarLines.join("\n")),{maxPoints:1000});
+const planarGeometry=buildGeometricSegmentation(planarParsed);
+assert.equal(planarGeometry.summary.point_count,441);
+assert.ok(planarGeometry.summary.counts.planar_surface>300,"planar cloud should be predominantly planar");
+assert.equal(planarGeometry.colors.length,441*3);
+
+const linearLines=[];
+for(let x=0;x<120;x++)linearLines.push(x+" 0 0");
+const linearParsed=await parseXyzFile(textFile("linear.xyz",linearLines.join("\n")),{maxPoints:1000});
+const linearGeometry=buildGeometricSegmentation(linearParsed);
+assert.ok(linearGeometry.summary.counts.linear_edge>90,"linear cloud should be predominantly linear");
+assert.match(linearGeometry.summary.interpretation,/não representa diagnóstico/i);
+
 const xyzNoRgb=textFile("bridge-no-rgb.xyz","0 0 0\n1 0 0\n1 1 0\n");
 const rgbReference={name:"bridge-frame.jpg",size:123456,type:"image/jpeg"};
 const linked=await runCdm3SpatialBrowser(xyzNoRgb,{rgbReferenceFile:rgbReference});
@@ -96,6 +113,10 @@ assert.equal(linked.results[0].metrics.image_registration.state,"rgb_source_atta
 assert.equal(linked.results[0].metrics.image_registration.source.name,"bridge-frame.jpg");
 assert.equal(linked.results[0].metrics.image_registration.minimum_correspondences,6);
 assert.equal(linked.results[0].metrics.capabilities.external_rgb_source,true);
+assert.equal(linked.results[0].metrics.capabilities.local_geometry_segmentation,true);
+assert.equal(linked.results[0].metrics.capabilities.geometry_only_segmentation,true);
+assert.equal(linked.results[0].metrics.spatial_asset.geometry_segmentation.point_count,3);
+assert.equal(linked.results[0].metrics.spatial_asset.geometry_segmentation.counts.low_support,3);
 assert.equal(linked.results[0].metrics.capabilities.pathology_projection_ready,false);
 assert.match(linked.results[0].message,/aguardando registro 2D→3D/i);
 
@@ -106,5 +127,7 @@ console.log("CDM3_SPATIAL_PASS",{
   ifc_points:ifcParsed.sampled_points,
   las_points:lasParsed.sampled_points,
   las_rgb:lasParsed.metadata.has_rgb,
-  las_version:lasParsed.metadata.las_version
+  las_version:lasParsed.metadata.las_version,
+  planar_points:planarGeometry.summary.counts.planar_surface,
+  linear_points:linearGeometry.summary.counts.linear_edge
 });

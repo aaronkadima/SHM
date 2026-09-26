@@ -9,6 +9,7 @@ import {SVGRenderer} from "three/addons/renderers/SVGRenderer.js";
 import {standaloneGltfIssue} from "./modelAssetValidation.js";
 import {parseSpatialAsset,spatialExtension} from "./spatialAsset.js";
 import {registeredPointColors,projectPathologyToPoints,buildSpatialPathologyRecords,CDM3_PATHOLOGY_PRIORITY} from "./cdm3RegisteredProjection.js";
+import {buildGeometricSegmentation,CDM3_GEOMETRY_CLASSES} from "./cdm3GeometrySegmentation.js";
 
 const CLASS_COLORS={
   0:[.58,.62,.64],1:[.63,.66,.68],2:[.48,.37,.24],
@@ -53,17 +54,19 @@ function elevationColors(positions){
   }
   return out;
 }
-function visualColors(parsed,mode,registeredColors=null,pathologyColors=null){
+function visualColors(parsed,mode,registeredColors=null,pathologyColors=null,geometryColors=null){
   if(mode==="pathology_3d"&&pathologyColors)return pathologyColors;
+  if(mode==="geometry_local"&&geometryColors)return geometryColors;
   if(mode==="registered_rgb"&&registeredColors)return registeredColors;
   if(mode==="rgb"&&parsed.colors)return parsed.colors;
   if(mode==="intensity"&&parsed.intensities)return intensityColors(parsed.intensities);
   if(mode==="classification"&&parsed.classifications)return classificationColors(parsed.classifications);
   return elevationColors(parsed.positions);
 }
-function pointModes(parsed,hasRegistered=false,hasPathology=false){
+function pointModes(parsed,hasRegistered=false,hasPathology=false,hasGeometry=false){
   return [
     ...(hasPathology?[{id:"pathology_3d",label:"Patologias 3D"}]:[]),
+    ...(hasGeometry?[{id:"geometry_local",label:"Geometria local"}]:[]),
     ...(hasRegistered?[{id:"registered_rgb",label:"RGB registrado"}]:[]),
     ...(parsed.colors?[{id:"rgb",label:"RGB"}]:[]),
     ...(parsed.intensities?[{id:"intensity",label:"Intensidade"}]:[]),
@@ -96,13 +99,13 @@ async function imagePixels(file){
 export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,onSpatialPathologyRecords=null}){
   const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords);
   const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null);
-  const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null);
+  const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null),[geometryStats,setGeometryStats]=useState(null);
   useEffect(()=>{pickEnabledRef.current=pickEnabled},[pickEnabled]);
   useEffect(()=>{onPointPickRef.current=onPointPick},[onPointPick]);
   useEffect(()=>{onSpatialPathologyRecordsRef.current=onSpatialPathologyRecords},[onSpatialPathologyRecords]);
   useEffect(()=>{
     if(!file||!mount.current)return;
-    setError("");setFallback(false);setLoading(true);setLoadProgress(null);setModes([]);setSpatialNotice("");setPathologyStats(null);
+    setError("");setFallback(false);setLoading(true);setLoadProgress(null);setModes([]);setSpatialNotice("");setPathologyStats(null);setGeometryStats(null);
     const el=mount.current,scene=new THREE.Scene();scene.background=new THREE.Color(0xdce4e7);
     const camera=new THREE.PerspectiveCamera(45,1,.01,100000);
     const pickMarkers=new THREE.Group();scene.add(pickMarkers);
@@ -141,19 +144,24 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         const parsed=await parseSpatialAsset(file,{maxPoints:250000});
         if(disposed)return;
         let registeredColors=null,pathologyColors=null;
-        const available=pointModes(parsed,false,false);
-        const preferred=parsed.colors?"rgb":parsed.intensities?"intensity":parsed.classifications?"classification":"elevation";
-        setModes(available);setMode(preferred);
         const extension=spatialExtension(file);
+        const geometrySegmentation=(extension==="las"||extension==="xyz")?buildGeometricSegmentation(parsed):null;
+        const geometryColors=geometrySegmentation?.colors||null;
+        if(geometrySegmentation)setGeometryStats(geometrySegmentation.summary);
+        const available=pointModes(parsed,false,false,!!geometryColors);
+        const preferred=parsed.colors?"rgb":geometryColors?"geometry_local":parsed.intensities?"intensity":parsed.classifications?"classification":"elevation";
+        setModes(available);setMode(preferred);
         setSpatialNotice(parsed.colors
-          ?"RGB por ponto ativo · segmentação visual pode combinar cor + geometria."
+          ?"RGB por ponto ativo · use Geometria local para inspecionar forma/superfície ou RGB para informação fotométrica."
           :extension==="ifc"
             ?"IFC sem textura raster no preview · use geometria/semântica; patologias visuais exigem imagem ou nuvem RGB registrada."
-            :"Nuvem sem RGB · geometria/intensidade/classificação não substituem textura para fissuras, corrosão e manchas."
+            :geometryColors
+              ?"Sem RGB · Geometria local classifica forma/superfície (planar, linear, irregular e transição). Isto não diagnostica fissuras, corrosão ou manchas."
+              :"Nuvem sem RGB · intensidade/classificação/elevação não substituem textura para fissuras, corrosão e manchas."
         );
         const geometry=new THREE.BufferGeometry();
         geometry.setAttribute("position",new THREE.BufferAttribute(parsed.positions,3));
-        const initialColors=visualColors(parsed,preferred,registeredColors,pathologyColors);
+        const initialColors=visualColors(parsed,preferred,registeredColors,pathologyColors,geometryColors);
         if(initialColors)geometry.setAttribute("color",new THREE.BufferAttribute(initialColors,3));
         geometry.computeBoundingSphere();
         const radius=Math.max(Number(geometry.boundingSphere?.radius)||1,1e-6);
@@ -161,7 +169,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         const material=new THREE.PointsMaterial({size:pointSize,sizeAttenuation:true,vertexColors:!!initialColors,color:0xffffff});
         const points=new THREE.Points(geometry,material);
         const applyPointMode=nextMode=>{
-          const colors=visualColors(parsed,nextMode,registeredColors,pathologyColors);
+          const colors=visualColors(parsed,nextMode,registeredColors,pathologyColors,geometryColors);
           if(colors){
             geometry.setAttribute("color",new THREE.BufferAttribute(colors,3));
             geometry.attributes.color.needsUpdate=true;material.vertexColors=true;
@@ -173,7 +181,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         const setRegisteredColors=payload=>{
           registeredColors=payload?.colors||null;
           if(!registeredColors)return;
-          setModes(pointModes(parsed,true,!!pathologyColors));
+          setModes(pointModes(parsed,true,!!pathologyColors,!!geometryColors));
           setMode("registered_rgb");
           applyPointMode("registered_rgb");
           setSpatialNotice("RGB externo projetado pela pose registrada · "+Number(payload.colored||0).toLocaleString("pt-BR")+"/"+Number(payload.total||0).toLocaleString("pt-BR")+" pontos receberam cor da imagem.");
@@ -181,7 +189,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         const setPathologyProjection=payload=>{
           pathologyColors=payload?.colors||null;
           if(!pathologyColors)return;
-          setModes(pointModes(parsed,!!registeredColors,true));
+          setModes(pointModes(parsed,!!registeredColors,true,!!geometryColors));
           setPathologyStats(payload);
           setMode("pathology_3d");
           applyPointMode("pathology_3d");
@@ -192,7 +200,8 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
           ...parsed.metadata,
           bounds:parsed.bounds,
           sampled_points:parsed.sampled_points,
-          active_visual_channel:preferred
+          active_visual_channel:preferred,
+          geometry_segmentation:geometrySegmentation?.summary||null
         };
         fit(points,{setPointMode:applyPointMode,setRegisteredColors,setPathologyProjection,parsed,points,pointModes:available});
       }catch(e){fail(e)}
@@ -281,7 +290,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     {loading&&<div className="modelLoading" role="status" aria-live="polite"><b>Carregando ativo espacial / 3D</b><span>{loadProgress==null?"Preparando geometria…":loadProgress+"%"}</span>{loadProgress!=null&&<i><b style={{width:loadProgress+"%"}}/></i>}</div>}
     {error&&<div className="modelError" role="alert">{error}</div>}
     <div className="modelViews" aria-label="Vistas do modelo 3D"><button disabled={loading||!!error} onClick={()=>setView("perspective")}>Perspectiva</button><button disabled={loading||!!error} onClick={()=>setView("front")}>Frontal</button><button disabled={loading||!!error} onClick={()=>setView("top")}>Superior</button><button disabled={loading||!!error} onClick={()=>setView("side")}>Lateral</button></div>
-    {modes.length>0&&<div className="pointCloudModes" aria-label="Canal visual da nuvem de pontos"><label htmlFor="point-cloud-mode">Visual</label><select id="point-cloud-mode" value={mode} onChange={e=>setPointMode(e.target.value)}>{modes.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select><span>{spatialNotice}</span></div>}{pathologyStats&&<div className="pointPathologyLegend" aria-label="Resumo da segmentação patológica 3D"><b>CDM-3 · pontos patológicos</b>{CDM3_PATHOLOGY_PRIORITY.filter(cls=>Number(pathologyStats.counts?.[cls]||0)>0).map(cls=><span key={cls}><i data-pathology={cls}/>{cls.replace("spalling_dark","desplacamento").replace("exposed_rebar","armadura exposta").replace("corrosion_rust","corrosão").replace("efflorescence_white","eflorescência").replace("cracks","fissuras")} <strong>{Number(pathologyStats.counts?.[cls]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}
+    {modes.length>0&&<div className="pointCloudModes" aria-label="Canal visual da nuvem de pontos"><label htmlFor="point-cloud-mode">Visual</label><select id="point-cloud-mode" value={mode} onChange={e=>setPointMode(e.target.value)}>{modes.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select><span>{spatialNotice}</span></div>}{geometryStats&&mode==="geometry_local"&&<div className="pointPathologyLegend pointGeometryLegend" aria-label="Resumo da classificação geométrica local"><b>CDM-3 · geometria local</b>{CDM3_GEOMETRY_CLASSES.filter(cls=>Number(geometryStats.counts?.[cls.key]||0)>0).map(cls=><span key={cls.key}>{cls.label} <strong>{Number(geometryStats.counts?.[cls.key]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}{pathologyStats&&<div className="pointPathologyLegend" aria-label="Resumo da segmentação patológica 3D"><b>CDM-3 · pontos patológicos</b>{CDM3_PATHOLOGY_PRIORITY.filter(cls=>Number(pathologyStats.counts?.[cls]||0)>0).map(cls=><span key={cls}><i data-pathology={cls}/>{cls.replace("spalling_dark","desplacamento").replace("exposed_rebar","armadura exposta").replace("corrosion_rust","corrosão").replace("efflorescence_white","eflorescência").replace("cracks","fissuras")} <strong>{Number(pathologyStats.counts?.[cls]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}
     {pickEnabled&&<div className="modelPickHint">Selecione na nuvem o ponto correspondente ao pixel marcado</div>}
     {fallback&&<div className="modelFallback">Visualização vetorial · WebGL indisponível</div>}
     <div className="modelHint">3D · arraste para orbitar · roda para ampliar · botão direito para deslocar</div>

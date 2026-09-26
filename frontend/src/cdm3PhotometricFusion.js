@@ -110,42 +110,45 @@ function scaledRegistration(registration,sx,sy){
   }
   return outer;
 }
-export async function fusePhotometricViews(parsed,views,{maxViews=8,maxDimension=2048}={}){
+export async function fusePhotometricViews(parsed,views,{maxViews=8,maxDimension=1600}={}){
   const eligible=(views||[]).filter(v=>v?.file&&v?.registration?.registration).slice(0,maxViews);
   if(!eligible.length)return null;
-  const decoded=[];
+  const statsRows=[];
+  // First pass computes only radiometric targets. Pixel buffers are released between views.
   for(const view of eligible){
     const pixels=await decodePhotometricImage(view.file,{maxDimension});
-    decoded.push({view,pixels,stats:imagePhotometricStats(pixels)});
+    statsRows.push({view,stats:imagePhotometricStats(pixels)});
   }
-  const target=canonicalPhotometricTarget(decoded.map(x=>x.stats)),count=Math.floor((parsed?.positions?.length||0)/3);
+  const target=canonicalPhotometricTarget(statsRows.map(x=>x.stats)),count=Math.floor((parsed?.positions?.length||0)/3);
   const sumR=new Float64Array(count),sumG=new Float64Array(count),sumB=new Float64Array(count),sumW=new Float64Array(count),coverage=new Uint8Array(count);
   const perView=[];
-  for(const row of decoded){
-    const reg=scaledRegistration(row.view.registration,row.pixels.scaleX,row.pixels.scaleY);
-    const projection=projectSpatialPoints(parsed,reg,row.pixels.width,row.pixels.height);
+  // Second pass decodes, projects and releases one view at a time to bound mobile memory use.
+  for(const row of statsRows){
+    const pixels=await decodePhotometricImage(row.view.file,{maxDimension});
+    const reg=scaledRegistration(row.view.registration,pixels.scaleX,pixels.scaleY);
+    const projection=projectSpatialPoints(parsed,reg,pixels.width,pixels.height);
     if(!projection)continue;
     const globalWeight=photometricViewWeight(row.stats,row.view.registration);let contributed=0;
     for(let i=0;i<count;i++){
       if(!projection.visible[i])continue;
       const u=Math.round(projection.uv[i*2]),v=Math.round(projection.uv[i*2+1]);
-      if(u<0||v<0||u>=row.pixels.width||v>=row.pixels.height)continue;
-      const p=(v*row.pixels.width+u)*4;
-      const rgb=normalizePhotometricRgb([row.pixels.data[p]/255,row.pixels.data[p+1]/255,row.pixels.data[p+2]/255],row.stats,target);
+      if(u<0||v<0||u>=pixels.width||v>=pixels.height)continue;
+      const q=(v*pixels.width+u)*4;
+      const rgb=normalizePhotometricRgb([pixels.data[q]/255,pixels.data[q+1]/255,pixels.data[q+2]/255],row.stats,target);
       const w=globalWeight;sumR[i]+=rgb[0]*w;sumG[i]+=rgb[1]*w;sumB[i]+=rgb[2]*w;sumW[i]+=w;coverage[i]=Math.min(255,coverage[i]+1);contributed++;
     }
     perView.push({id:row.view.id||row.view.file.name,name:row.view.file.name,weight:globalWeight,contributed_points:contributed,stats:row.stats});
   }
   const fallback=fallbackColors(parsed),colors=new Float32Array(count*3),confidenceColors=new Float32Array(count*3);
-  let colored=0,totalCoverage=0,maxWeight=0;for(const w of sumW)if(w>maxWeight)maxWeight=w;
+  let colored=0,totalCoverage=0,maxWeight=0,totalWeight=0;for(const w of sumW)if(w>maxWeight)maxWeight=w;
   for(let i=0;i<count;i++){
-    if(sumW[i]>0){colors[i*3]=sumR[i]/sumW[i];colors[i*3+1]=sumG[i]/sumW[i];colors[i*3+2]=sumB[i]/sumW[i];colored++;totalCoverage+=coverage[i]}
+    if(sumW[i]>0){colors[i*3]=sumR[i]/sumW[i];colors[i*3+1]=sumG[i]/sumW[i];colors[i*3+2]=sumB[i]/sumW[i];colored++;totalCoverage+=coverage[i];totalWeight+=sumW[i]}
     else{colors[i*3]=fallback[i*3]*.55;colors[i*3+1]=fallback[i*3+1]*.55;colors[i*3+2]=fallback[i*3+2]*.55}
     const c=maxWeight>0?clamp(sumW[i]/maxWeight,0,1):0;
     confidenceColors[i*3]=.12+.18*c;confidenceColors[i*3+1]=.18+.72*c;confidenceColors[i*3+2]=.30+.58*(1-c);
   }
-  const coverageRatio=colored/Math.max(1,count),meanViews=colored?totalCoverage/colored:0,meanWeight=colored?Array.from(sumW).reduce((a,b)=>a+b,0)/colored:0;
-  return {colors,confidenceColors,coverage,summary:{registered_views:perView.length,colored_points:colored,total_points:count,coverage_ratio:coverageRatio,mean_views_per_colored_point:meanViews,mean_confidence_weight:meanWeight,target,views:perView}};
+  const coverageRatio=colored/Math.max(1,count),meanViews=colored?totalCoverage/colored:0,meanWeight=colored?totalWeight/colored:0;
+  return {colors,confidenceColors,coverage,summary:{registered_views:perView.length,colored_points:colored,total_points:count,coverage_ratio:coverageRatio,mean_views_per_colored_point:meanViews,mean_confidence_weight:meanWeight,target,views:perView,memory_strategy:"two_pass_sequential"}};
 }
 export async function createPhotometricDetectionFile(file){
   const pixels=await decodePhotometricImage(file,{maxDimension:2048}),stats=imagePhotometricStats(pixels),target={mean:[.5,.5,.5],luminanceMean:.5,luminanceStd:.22};

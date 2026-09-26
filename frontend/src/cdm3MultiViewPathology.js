@@ -6,8 +6,9 @@ export function fusePathologyVotes(rows,pointCount,{confirmedViews=2}={}){
   const supportCounts=new Uint8Array(pointCount),confidence=new Float32Array(pointCount);
   const counts=Object.fromEntries(CDM3_PATHOLOGY_PRIORITY.map(c=>[c,0])),confirmedCounts=Object.fromEntries(CDM3_PATHOLOGY_PRIORITY.map(c=>[c,0]));
   let matched=0,confirmed=0;
+  const weights=new Float64Array(classCount),supports=new Uint8Array(classCount);
   for(let i=0;i<pointCount;i++){
-    const weights=new Float64Array(classCount),supports=new Uint8Array(classCount);let totalPositive=0;
+    weights.fill(0);supports.fill(0);let totalPositive=0;
     for(const row of rows||[]){
       const ci=Number(row?.pointClasses?.[i]??-1);if(ci<0||ci>=classCount)continue;
       const w=Math.max(.001,Number(row.weight||1));weights[ci]+=w;supports[ci]++;totalPositive+=w;

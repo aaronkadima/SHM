@@ -124,6 +124,9 @@ export default function App(){
   const[spatialPhotoViews,setSpatialPhotoViews]=useState([]);
   const[activeSpatialPhotoId,setActiveSpatialPhotoId]=useState(null);
   const[photometricSummary,setPhotometricSummary]=useState(null);
+  const[spatialRegistrationSample,setSpatialRegistrationSample]=useState(null);
+  const[spatialAutoRegistrationBusy,setSpatialAutoRegistrationBusy]=useState(false);
+  const[spatialAutoRegistrationStatus,setSpatialAutoRegistrationStatus]=useState(null);
   const[referenceInspectionId,setReferenceInspectionId]=useState(null);
   const[referenceInspectionMeta,setReferenceInspectionMeta]=useState(null);
   const[referenceValidating,setReferenceValidating]=useState(false);
@@ -369,7 +372,7 @@ export default function App(){
     historyOpenSeq.current++;
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
     setSpatialRgbFile(null);
-    setSpatialRegistration(null);setSpatialRgbAnalysis(null);setSpatialPathologyRecords([]);setPhotometricSummary(null);
+    setSpatialRegistration(null);setSpatialRgbAnalysis(null);setSpatialPathologyRecords([]);setPhotometricSummary(null);setSpatialRegistrationSample(null);setSpatialAutoRegistrationStatus(null);
     for(const view of spatialPhotoViews)if(view?.preview)URL.revokeObjectURL(view.preview);
     setSpatialPhotoViews([]);setActiveSpatialPhotoId(null);setSpatialRgbPrev(null);
     if(f&&isCdm3SpatialAsset(f))setSel(new Set(["cdm_3"]));
@@ -479,11 +482,15 @@ export default function App(){
       downloadBinaryBlob("shm-cdm3-pathologies.ifc",await exportedResponse.blob());
     }catch(e){setErr("Exportação CDM-3: "+(e?.message||String(e)))}
   }
+  async function analyzeRegisteredSpatialPhoto(photoFile){
+    const enhanced=await createPhotometricDetectionFile(photoFile);
+    const analysis=await runBrowserEngine("cdm_3",enhanced.file,cdmOptions,null,{channel:APP_CHANNEL,buildSha:BUILD_SHA});
+    if(analysis?.results?.[0])analysis.results[0].metrics={...(analysis.results[0].metrics||{}),photometric_preprocessing:{enabled:true,source_name:photoFile.name,normalized_size:[enhanced.width,enhanced.height],stats:enhanced.stats}};
+    return {analysis,photometricStats:enhanced.stats,sourceSize:[enhanced.originalWidth,enhanced.originalHeight]};
+  }
   async function solveSpatialRegistration(payload){
-    const endpoint=individualEndpoint();
-    const fd=new FormData();
-    fd.append("image_width",String(payload.imageWidth));
-    fd.append("image_height",String(payload.imageHeight));
+    const endpoint=individualEndpoint(),fd=new FormData();
+    fd.append("image_width",String(payload.imageWidth));fd.append("image_height",String(payload.imageHeight));
     fd.append("correspondences_json",JSON.stringify(payload.correspondences||[]));
     if(payload.intrinsics)fd.append("intrinsics_json",JSON.stringify(payload.intrinsics));
     if(payload.distortion)fd.append("distortion_json",JSON.stringify(payload.distortion));
@@ -491,16 +498,48 @@ export default function App(){
     const response=await fetch(endpoint+"/cdm3/registration/pnp",{method:"POST",body:fd});
     if(!response.ok)throw new Error(await response.text());
     const solved=await response.json();
-    let rgbAnalysis=null,photometricStats=null;
-    if(spatialRgbFile){
-      const enhanced=await createPhotometricDetectionFile(spatialRgbFile);photometricStats=enhanced.stats;
-      rgbAnalysis=await runBrowserEngine("cdm_3",enhanced.file,cdmOptions,null,{channel:APP_CHANNEL,buildSha:BUILD_SHA});
-      if(rgbAnalysis?.results?.[0])rgbAnalysis.results[0].metrics={...(rgbAnalysis.results[0].metrics||{}),photometric_preprocessing:{enabled:true,source_name:spatialRgbFile.name,normalized_size:[enhanced.width,enhanced.height],stats:enhanced.stats}};
-    }
-    setSpatialRegistration(solved);setSpatialRgbAnalysis(rgbAnalysis);
-    setSpatialPhotoViews(current=>current.map(view=>view.id===activeSpatialPhotoId?{...view,registration:solved,analysis:rgbAnalysis,photometric_stats:photometricStats,source_size:spatialRgbFile?[enhanced.originalWidth,enhanced.originalHeight]:null}:view));
-    setPhotometricSummary(null);
+    const processed=spatialRgbFile?await analyzeRegisteredSpatialPhoto(spatialRgbFile):{analysis:null,photometricStats:null,sourceSize:null};
+    setSpatialRegistration(solved);setSpatialRgbAnalysis(processed.analysis);
+    setSpatialPhotoViews(current=>current.map(view=>view.id===activeSpatialPhotoId?{...view,registration:solved,analysis:processed.analysis,photometric_stats:processed.photometricStats,source_size:processed.sourceSize,auto_registration_error:null}:view));
+    setPhotometricSummary(null);setSpatialAutoRegistrationStatus(null);
     return solved;
+  }
+  async function autoRegisterSpatialPhotos(){
+    if(spatialAutoRegistrationBusy)return;
+    const anchor=spatialPhotoViews.find(view=>view.id===activeSpatialPhotoId&&view.registration?.registration);
+    const pending=spatialPhotoViews.filter(view=>!view.registration?.registration&&view.id!==anchor?.id);
+    if(!anchor){setErr("Auto-registro CDM-3: selecione e registre manualmente uma vista âncora primeiro.");return}
+    const points=spatialRegistrationSample?.points||[];
+    if(points.length<20){setErr("Auto-registro CDM-3: a amostra espacial ainda não está disponível no viewer.");return}
+    if(!pending.length){setSpatialAutoRegistrationStatus({success:0,failed:0,total:0,message:"Todas as vistas já possuem pose."});return}
+    setSpatialAutoRegistrationBusy(true);setSpatialAutoRegistrationStatus({success:0,failed:0,total:pending.length,message:"Correspondendo vistas…"});setErr("");
+    let next=spatialPhotoViews.map(view=>({...view})),success=0,failed=0;
+    try{
+      const endpoint=individualEndpoint();
+      for(const target of pending){
+        try{
+          const fd=new FormData();
+          fd.append("anchor_image",anchor.file);fd.append("target_image",target.file);
+          fd.append("anchor_pose_json",JSON.stringify(anchor.registration.registration));
+          fd.append("points_json",JSON.stringify({points}));
+          fd.append("association_radius_px","10");fd.append("reprojection_error_px","5");
+          const response=await fetch(endpoint+"/cdm3/registration/propagate",{method:"POST",body:fd});
+          if(!response.ok)throw new Error(await response.text());
+          const solved=await response.json(),processed=await analyzeRegisteredSpatialPhoto(target.file);
+          next=next.map(view=>view.id===target.id?{...view,registration:solved,analysis:processed.analysis,photometric_stats:processed.photometricStats,source_size:processed.sourceSize,auto_registration_error:null}:view);
+          success++;
+        }catch(e){
+          failed++;
+          const reason=(e?.message||String(e)).slice(0,500);
+          next=next.map(view=>view.id===target.id?{...view,auto_registration_error:reason}:view);
+        }
+        setSpatialAutoRegistrationStatus({success,failed,total:pending.length,message:"Auto-registro "+(success+failed)+"/"+pending.length});
+      }
+      setSpatialPhotoViews(next);setPhotometricSummary(null);
+      const active=next.find(view=>view.id===activeSpatialPhotoId);
+      if(active){setSpatialRegistration(active.registration||null);setSpatialRgbAnalysis(active.analysis||null)}
+      setSpatialAutoRegistrationStatus({success,failed,total:pending.length,message:failed?success+" registrada(s); "+failed+" requer(em) registro manual.":success+" vista(s) registrada(s) automaticamente."});
+    }finally{setSpatialAutoRegistrationBusy(false)}
   }
     function toggle(id){setErr("");setSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n})}
   function selectRecommended(){setSel(new Set(engines.filter(e=>e.recommended).map(e=>e.id)))}
@@ -663,7 +702,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} spatialRegistration={spatialRegistration} spatialRgbAnalysis={spatialRgbAnalysis} spatialPhotoViews={spatialPhotoViews} activeSpatialPhotoId={activeSpatialPhotoId} onAddSpatialPhotos={addSpatialPhotos} onSelectSpatialPhoto={selectSpatialPhoto} onRemoveSpatialPhoto={removeSpatialPhoto} photometricSummary={photometricSummary} onPhotometricSummary={setPhotometricSummary} spatialPathologyRecords={spatialPathologyRecords} onSpatialPathologyRecords={handleSpatialPathologyRecords} onSolveSpatialRegistration={solveSpatialRegistration} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)} onExportCdm3={exportSpatialPathologies}/>
+    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} spatialRegistration={spatialRegistration} spatialRgbAnalysis={spatialRgbAnalysis} spatialPhotoViews={spatialPhotoViews} activeSpatialPhotoId={activeSpatialPhotoId} onAddSpatialPhotos={addSpatialPhotos} onSelectSpatialPhoto={selectSpatialPhoto} onRemoveSpatialPhoto={removeSpatialPhoto} spatialAutoRegistrationBusy={spatialAutoRegistrationBusy} spatialAutoRegistrationStatus={spatialAutoRegistrationStatus} onAutoRegisterSpatialPhotos={autoRegisterSpatialPhotos} spatialRegistrationPointCount={Number(spatialRegistrationSample?.sampled_point_count||0)} photometricSummary={photometricSummary} onPhotometricSummary={setPhotometricSummary} onSpatialRegistrationSample={setSpatialRegistrationSample} spatialPathologyRecords={spatialPathologyRecords} onSpatialPathologyRecords={handleSpatialPathologyRecords} onSolveSpatialRegistration={solveSpatialRegistration} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)} onExportCdm3={exportSpatialPathologies}/>
     </>}
     {activeView==="engines"&&<EnginesView appInfo={APP_INFO} engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 

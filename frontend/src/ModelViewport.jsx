@@ -79,6 +79,21 @@ function pointModes(parsed,hasRegistered=false,hasPathology=false,hasGeometry=fa
     {id:"elevation",label:"Elevação Z"}
   ];
 }
+function spatialRegistrationSample(parsed,maxPoints=30000){
+  const positions=parsed?.positions||[],count=Math.floor(positions.length/3);
+  if(!count)return {points:[],source_point_count:0,sampled_point_count:0};
+  const center=parsed.bounds?.center||[0,0,0],step=Math.max(1,Math.ceil(count/maxPoints)),points=[];
+  for(let i=0;i<count;i+=step){
+    points.push([
+      Number(positions[i*3])+Number(center[0]||0),
+      Number(positions[i*3+1])+Number(center[1]||0),
+      Number(positions[i*3+2])+Number(center[2]||0)
+    ]);
+    if(points.length>=maxPoints)break;
+  }
+  return {points,source_point_count:count,sampled_point_count:points.length};
+}
+
 async function imagePixels(file){
   if(!file)throw new Error("Imagem RGB externa ausente.");
   if(typeof createImageBitmap==="function"){
@@ -101,14 +116,15 @@ async function imagePixels(file){
     return {width:canvas.width,height:canvas.height,data:ctx.getImageData(0,0,canvas.width,canvas.height).data};
   }finally{URL.revokeObjectURL(url)}
 }
-export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialPathologyRecords=null}){
-  const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary);
+export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null}){
+  const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary),onSpatialRegistrationSampleRef=useRef(onSpatialRegistrationSample);
   const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null);
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null),[geometryStats,setGeometryStats]=useState(null),[photometricStats,setPhotometricStats]=useState(null);
   useEffect(()=>{pickEnabledRef.current=pickEnabled},[pickEnabled]);
   useEffect(()=>{onPointPickRef.current=onPointPick},[onPointPick]);
   useEffect(()=>{onSpatialPathologyRecordsRef.current=onSpatialPathologyRecords},[onSpatialPathologyRecords]);
   useEffect(()=>{onPhotometricSummaryRef.current=onPhotometricSummary},[onPhotometricSummary]);
+  useEffect(()=>{onSpatialRegistrationSampleRef.current=onSpatialRegistrationSample},[onSpatialRegistrationSample]);
   useEffect(()=>{
     if(!file||!mount.current)return;
     setError("");setFallback(false);setLoading(true);setLoadProgress(null);setModes([]);setSpatialNotice("");setPathologyStats(null);setGeometryStats(null);setPhotometricStats(null);
@@ -149,6 +165,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       try{
         const parsed=await parseSpatialAsset(file,{maxPoints:250000});
         if(disposed)return;
+        onSpatialRegistrationSampleRef.current?.(spatialRegistrationSample(parsed));
         let registeredColors=null,pathologyColors=null,photometricColors=null,photometricConfidenceColors=null;
         const extension=spatialExtension(file);
         const geometrySegmentation=(extension==="las"||extension==="xyz")?buildGeometricSegmentation(parsed):null;

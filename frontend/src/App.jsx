@@ -11,6 +11,7 @@ import{sortEngines,engineMatchesFilter,engineMatchesQuery}from"./engineCatalog.j
 import{buildCdmSvg,buildCdmCsv,buildCdmCoco,buildCdmDxf,buildCdmBimJson,buildCdmIfc,buildCdmHtml}from"./cdmExports.js";
 import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
 import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,clearInspections,requestPersistentStorage,getStorageStatus}from"./historyStore.js";
+import{createPhotometricDetectionFile}from"./cdm3PhotometricFusion.js";
 
 const APP_CHANNEL=import.meta.env.VITE_APP_CHANNEL||((import.meta.env.BASE_URL||"").includes("/dev/")?"development":"production");
 const BUILD_SHA=import.meta.env.VITE_BUILD_SHA||"local";
@@ -120,6 +121,9 @@ export default function App(){
   const[spatialRegistration,setSpatialRegistration]=useState(null);
   const[spatialRgbAnalysis,setSpatialRgbAnalysis]=useState(null);
   const[spatialPathologyRecords,setSpatialPathologyRecords]=useState([]);
+  const[spatialPhotoViews,setSpatialPhotoViews]=useState([]);
+  const[activeSpatialPhotoId,setActiveSpatialPhotoId]=useState(null);
+  const[photometricSummary,setPhotometricSummary]=useState(null);
   const[referenceInspectionId,setReferenceInspectionId]=useState(null);
   const[referenceInspectionMeta,setReferenceInspectionMeta]=useState(null);
   const[referenceValidating,setReferenceValidating]=useState(false);
@@ -135,7 +139,7 @@ export default function App(){
   const[historyErr,setHistoryErr]=useState("");
   const[storageStatus,setStorageStatus]=useState(null);
   const[deploymentCheck,setDeploymentCheck]=useState(()=>({status:BUILD_SHA==="local"?"local":"checking",manifest:null}));
-  const activeRun=useRef(null),runSeq=useRef(0),referencePickSeq=useRef(0),historyOpenSeq=useRef(0);
+  const activeRun=useRef(null),runSeq=useRef(0),referencePickSeq=useRef(0),historyOpenSeq=useRef(0),spatialPhotoViewsRef=useRef([]);
   const[activeView,setActiveView]=useState(()=>{
     const v=window.location.hash.replace(/^#\//,"");
     return ["dashboard","cameras","analysis","alerts","reports","engines","settings"].includes(v)?v:"analysis";
@@ -143,7 +147,8 @@ export default function App(){
 
   useEffect(()=>()=>{if(prev)URL.revokeObjectURL(prev)},[prev]);
   useEffect(()=>()=>{if(referencePrev)URL.revokeObjectURL(referencePrev)},[referencePrev]);
-  useEffect(()=>()=>{if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev)},[spatialRgbPrev]);
+  useEffect(()=>{spatialPhotoViewsRef.current=spatialPhotoViews},[spatialPhotoViews]);
+  useEffect(()=>()=>{for(const view of spatialPhotoViewsRef.current)if(view?.preview)URL.revokeObjectURL(view.preview)},[]);
   useEffect(()=>()=>{activeRun.current?.controller?.abort()},[]);
   useEffect(()=>{localStorage.setItem("shmSelectedEngines",JSON.stringify([...sel]))},[sel]);
   useEffect(()=>{localStorage.setItem("shmInspectionMetaDraft",JSON.stringify(inspectionMeta))},[inspectionMeta]);
@@ -364,27 +369,54 @@ export default function App(){
     historyOpenSeq.current++;
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
     setSpatialRgbFile(null);
-    setSpatialRegistration(null);setSpatialRgbAnalysis(null);setSpatialPathologyRecords([]);
-    if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev);
-    setSpatialRgbPrev(null);
+    setSpatialRegistration(null);setSpatialRgbAnalysis(null);setSpatialPathologyRecords([]);setPhotometricSummary(null);
+    for(const view of spatialPhotoViews)if(view?.preview)URL.revokeObjectURL(view.preview);
+    setSpatialPhotoViews([]);setActiveSpatialPhotoId(null);setSpatialRgbPrev(null);
     if(f&&isCdm3SpatialAsset(f))setSel(new Set(["cdm_3"]));
     if(prev)URL.revokeObjectURL(prev);
     setPrev(f&&detectAsset(f)==="2d"?URL.createObjectURL(f):null);
   }
+  function activateSpatialPhoto(view){
+    setActiveSpatialPhotoId(view?.id||null);setSpatialRgbFile(view?.file||null);setSpatialRgbPrev(view?.preview||null);
+    setSpatialRegistration(view?.registration||null);setSpatialRgbAnalysis(view?.analysis||null);setSpatialPathologyRecords([]);
+  }
   async function pickSpatialRgb(f){
     if(!f){
-      setSpatialRgbFile(null);setSpatialRegistration(null);setSpatialRgbAnalysis(null);setSpatialPathologyRecords([]);setRes(null);setProgress(null);setJobId(null);setErr("");
-      if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev);
-      setSpatialRgbPrev(null);
+      for(const view of spatialPhotoViews)if(view?.preview)URL.revokeObjectURL(view.preview);
+      setSpatialPhotoViews([]);setActiveSpatialPhotoId(null);setPhotometricSummary(null);
+      setSpatialRgbFile(null);setSpatialRegistration(null);setSpatialRgbAnalysis(null);setSpatialPathologyRecords([]);setRes(null);setProgress(null);setJobId(null);setErr("");setSpatialRgbPrev(null);
       return;
     }
     setErr("");
     try{
       await validateReferenceImage(f);
-      const nextPreview=URL.createObjectURL(f);
-      if(spatialRgbPrev)URL.revokeObjectURL(spatialRgbPrev);
-      setSpatialRgbFile(f);setSpatialRegistration(null);setSpatialRgbAnalysis(null);setSpatialPathologyRecords([]);setSpatialRgbPrev(nextPreview);setRes(null);setProgress(null);setJobId(null);
+      const view={id:crypto.randomUUID(),file:f,preview:URL.createObjectURL(f),registration:null,analysis:null,photometric_stats:null};
+      for(const old of spatialPhotoViews)if(old?.preview)URL.revokeObjectURL(old.preview);
+      setSpatialPhotoViews([view]);setPhotometricSummary(null);activateSpatialPhoto(view);setRes(null);setProgress(null);setJobId(null);
     }catch(e){setErr("Imagem RGB espacial inválida: "+(e?.message||String(e)))}
+  }
+  async function addSpatialPhotos(files){
+    const incoming=[...(files||[])].slice(0,8);if(!incoming.length)return;
+    setErr("");
+    try{
+      const existing=new Set(spatialPhotoViews.map(v=>[v.file?.name,v.file?.size,v.file?.lastModified].join(":")));
+      const room=Math.max(0,8-spatialPhotoViews.length),added=[];
+      for(const f of incoming){
+        const key=[f.name,f.size,f.lastModified].join(":");if(existing.has(key)||added.length>=room)continue;
+        await validateReferenceImage(f);added.push({id:crypto.randomUUID(),file:f,preview:URL.createObjectURL(f),registration:null,analysis:null,photometric_stats:null});existing.add(key);
+      }
+      if(!added.length){setErr(room?"As imagens selecionadas já estão no conjunto fotométrico.":"Limite de 8 vistas fotométricas atingido.");return}
+      setSpatialPhotoViews(current=>[...current,...added].slice(0,8));setPhotometricSummary(null);setRes(null);setProgress(null);setJobId(null);
+      if(!activeSpatialPhotoId)activateSpatialPhoto(added[0]);
+    }catch(e){setErr("Conjunto fotométrico inválido: "+(e?.message||String(e)))}
+  }
+  function selectSpatialPhoto(id){
+    const view=spatialPhotoViews.find(v=>v.id===id);if(view)activateSpatialPhoto(view);
+  }
+  function removeSpatialPhoto(id){
+    const victim=spatialPhotoViews.find(v=>v.id===id);if(victim?.preview)URL.revokeObjectURL(victim.preview);
+    const next=spatialPhotoViews.filter(v=>v.id!==id);setSpatialPhotoViews(next);setPhotometricSummary(null);
+    if(id===activeSpatialPhotoId)activateSpatialPhoto(next[0]||null);
   }
   async function pickReference(f){
     historyOpenSeq.current++;
@@ -459,15 +491,15 @@ export default function App(){
     const response=await fetch(endpoint+"/cdm3/registration/pnp",{method:"POST",body:fd});
     if(!response.ok)throw new Error(await response.text());
     const solved=await response.json();
-    let rgbAnalysis=null;
+    let rgbAnalysis=null,photometricStats=null;
     if(spatialRgbFile){
-      rgbAnalysis=await runBrowserEngine(
-        "cdm_3",spatialRgbFile,cdmOptions,null,
-        {channel:APP_CHANNEL,buildSha:BUILD_SHA}
-      );
+      const enhanced=await createPhotometricDetectionFile(spatialRgbFile);photometricStats=enhanced.stats;
+      rgbAnalysis=await runBrowserEngine("cdm_3",enhanced.file,cdmOptions,null,{channel:APP_CHANNEL,buildSha:BUILD_SHA});
+      if(rgbAnalysis?.results?.[0])rgbAnalysis.results[0].metrics={...(rgbAnalysis.results[0].metrics||{}),photometric_preprocessing:{enabled:true,source_name:spatialRgbFile.name,normalized_size:[enhanced.width,enhanced.height],stats:enhanced.stats}};
     }
-    setSpatialRegistration(solved);
-    setSpatialRgbAnalysis(rgbAnalysis);
+    setSpatialRegistration(solved);setSpatialRgbAnalysis(rgbAnalysis);
+    setSpatialPhotoViews(current=>current.map(view=>view.id===activeSpatialPhotoId?{...view,registration:solved,analysis:rgbAnalysis,photometric_stats:photometricStats}:view));
+    setPhotometricSummary(null);
     return solved;
   }
     function toggle(id){setErr("");setSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n})}
@@ -483,7 +515,7 @@ export default function App(){
       updateProgress({state:"running",completed:0,total:100,current_engine:(meta.name||engineId)+" · preparando"});
       return await runBrowserEngine(
         engineId,sourceFile,
-        engineId==="cdm_1"?cdmOptions:engineId==="cdm_3"?{rgbReferenceFile:spatialRgbFile}:{},
+        engineId==="cdm_1"?cdmOptions:engineId==="cdm_3"?{rgbReferenceFile:spatialRgbFile,photometricViewCount:spatialPhotoViews.length}:{},
         engineId==="cdm_1"?sourceReference:null,
         {signal,onProgress:updateProgress,channel:APP_CHANNEL,buildSha:BUILD_SHA}
       );
@@ -631,7 +663,7 @@ export default function App(){
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} spatialRegistration={spatialRegistration} spatialRgbAnalysis={spatialRgbAnalysis} spatialPathologyRecords={spatialPathologyRecords} onSpatialPathologyRecords={handleSpatialPathologyRecords} onSolveSpatialRegistration={solveSpatialRegistration} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)} onExportCdm3={exportSpatialPathologies}/>
+    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} spatialRegistration={spatialRegistration} spatialRgbAnalysis={spatialRgbAnalysis} spatialPhotoViews={spatialPhotoViews} activeSpatialPhotoId={activeSpatialPhotoId} onAddSpatialPhotos={addSpatialPhotos} onSelectSpatialPhoto={selectSpatialPhoto} onRemoveSpatialPhoto={removeSpatialPhoto} photometricSummary={photometricSummary} onPhotometricSummary={setPhotometricSummary} spatialPathologyRecords={spatialPathologyRecords} onSpatialPathologyRecords={handleSpatialPathologyRecords} onSolveSpatialRegistration={solveSpatialRegistration} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)} onExportCdm3={exportSpatialPathologies}/>
     </>}
     {activeView==="engines"&&<EnginesView appInfo={APP_INFO} engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 

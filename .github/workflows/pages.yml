@@ -203,24 +203,31 @@ jobs:
         with:
           node-version: 22
 
-      - name: Wait for published production build
+      - name: Wait for published production and development builds
         shell: bash
         run: |
           set -euo pipefail
-          EXPECTED="$(git rev-parse --short HEAD)"
+          PROD_EXPECTED="$(git rev-parse --short HEAD)"
+          DEV_EXPECTED="$(git ls-remote origin refs/heads/dev | awk '{print substr($1,1,7)}')"
+          if [ -z "$DEV_EXPECTED" ]; then
+            echo "Could not resolve dev branch SHA"
+            exit 1
+          fi
           READY=0
-          for i in $(seq 1 40); do
-            BODY="$(curl -fsS "https://aaronkadima.github.io/SHM/build.json?ts=$(date +%s%N)" || true)"
-            SHA="$(printf '%s' "$BODY" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).sha||""))}catch{}})')"
-            if [ "$SHA" = "$EXPECTED" ]; then
+          for i in $(seq 1 50); do
+            PROD_BODY="$(curl -fsS "https://aaronkadima.github.io/SHM/build.json?ts=$(date +%s%N)" || true)"
+            DEV_BODY="$(curl -fsS "https://aaronkadima.github.io/SHM/dev/build.json?ts=$(date +%s%N)" || true)"
+            PROD_SHA="$(printf '%s' "$PROD_BODY" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).sha||""))}catch{}})')"
+            DEV_SHA="$(printf '%s' "$DEV_BODY" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).sha||""))}catch{}})')"
+            if [ "$PROD_SHA" = "$PROD_EXPECTED" ] && [ "$DEV_SHA" = "$DEV_EXPECTED" ]; then
               READY=1
               break
             fi
-            echo "Published SHA=$SHA; waiting for $EXPECTED"
+            echo "Published PROD=$PROD_SHA expected=$PROD_EXPECTED · DEV=$DEV_SHA expected=$DEV_EXPECTED"
             sleep 3
           done
           if [ "$READY" -ne 1 ]; then
-            echo "Production build.json did not converge to $EXPECTED"
+            echo "Published production/development manifests did not converge."
             exit 1
           fi
 
@@ -251,7 +258,7 @@ jobs:
         working-directory: frontend
         env:
           CHROME_BIN: ${{ steps.chrome.outputs.bin }}
-          APP_SMOKE_URL: https://aaronkadima.github.io/SHM/dev/#/analysis
+          APP_SMOKE_URL: https://aaronkadima.github.io/SHM/dev/?smoke=${{ github.run_id }}#/analysis
           APP_SMOKE_FIXTURE: https://aaronkadima.github.io/SHM/dev/browser-models/yolov8n_public_crack_seg.parity.png
           APP_SMOKE_ENGINE: yolov8n_public_crack_seg
           APP_SMOKE_WINDOW_SIZE: 412,915
@@ -275,7 +282,7 @@ jobs:
         working-directory: frontend
         env:
           CHROME_BIN: ${{ steps.chrome.outputs.bin }}
-          APP_SMOKE_URL: https://aaronkadima.github.io/SHM/dev/#/analysis
+          APP_SMOKE_URL: https://aaronkadima.github.io/SHM/dev/?smoke=${{ github.run_id }}#/analysis
           APP_SMOKE_FIXTURE: https://aaronkadima.github.io/SHM/dev/browser-models/yolov8n_public_crack_seg.parity.png
           APP_SMOKE_ENGINE: segformer_public_crack
           APP_SMOKE_WINDOW_SIZE: 412,915
@@ -299,7 +306,7 @@ jobs:
         working-directory: frontend
         env:
           CHROME_BIN: ${{ steps.chrome.outputs.bin }}
-          APP_SMOKE_URL: https://aaronkadima.github.io/SHM/dev/#/analysis
+          APP_SMOKE_URL: https://aaronkadima.github.io/SHM/dev/?smoke=${{ github.run_id }}#/analysis
           APP_SMOKE_FIXTURE: https://aaronkadima.github.io/SHM/dev/browser-models/crackenpy_public_crack.int8.parity.png
           APP_SMOKE_ENGINE: crackenpy_public_crack
           APP_SMOKE_WINDOW_SIZE: 412,915
@@ -323,7 +330,7 @@ jobs:
         working-directory: frontend
         env:
           CHROME_BIN: ${{ steps.chrome.outputs.bin }}
-          APP_SMOKE_URL: https://aaronkadima.github.io/SHM/dev/#/analysis
+          APP_SMOKE_URL: https://aaronkadima.github.io/SHM/dev/?smoke=${{ github.run_id }}#/analysis
           APP_SMOKE_FIXTURE: https://aaronkadima.github.io/SHM/dev/browser-models/yolov8n_public_crack_seg.parity.png
           APP_SMOKE_ENGINE: cdm_1
           APP_SMOKE_WINDOW_SIZE: 412,915

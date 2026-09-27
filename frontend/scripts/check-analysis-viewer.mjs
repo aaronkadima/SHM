@@ -217,6 +217,8 @@ check(engineCodeCatalog.includes('template de portabilidade Python')&&engineCode
 check(settingsStyles.includes(".settingsCodePanel pre{")&&settingsStyles.includes("max-height:360px;overflow:auto"),"engine source viewer must remain bounded and scrollable inside the card");
 check(settingsStyles.includes(".settingsEngineInfo{display:grid")&&settingsStyles.includes(".settingsSyncState.current")&&settingsStyles.includes(".settingsSyncButton.different"),"engine info and repository sync states must have dedicated compact styling");
 
+check(modelViewport.includes("model3dToolbar")&&modelViewport.includes("toggleProjection")&&modelViewport.includes("fitModel")&&modelViewport.includes('setView("iso")')&&modelViewport.includes('setView("top")')&&modelViewport.includes('setView("left")'),"3D canvas must expose compact infrastructure navigation, fit and perspective/orthographic controls");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));
@@ -224,4 +226,3 @@ if(failures.length){
 }
 console.log("Analysis viewer composition passed: original image remains under detection layers in overlay, side-by-side and temporal modes.");
 
-check(modelViewport.includes("model3dToolbar")&&modelViewport.includes("toggleProjection")&&modelViewport.includes("fitModel")&&modelViewport.includes('setView("iso")')&&modelViewport.includes('setView("top")')&&modelViewport.includes('setView("left")'),"3D canvas must expose compact infrastructure navigation, fit and perspective/orthographic controls");

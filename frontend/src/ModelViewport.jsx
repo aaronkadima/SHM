@@ -146,12 +146,14 @@ function flattenIfcTree(node,depth=0,out=[]){
   for(const child of node.children||[])flattenIfcTree(child,depth+1,out);
   return out;
 }
-export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,spatialTransform=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null,spatial4dRecords=[],timelineSnapshot=null,temporalTracks=[]}){
-  const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary),onSpatialRegistrationSampleRef=useRef(onSpatialRegistrationSample);
+export default function ModelViewport({file,pickEnabled=false,onPointPick=null,spatialFramePickMode=null,onSpatialFramePointPick=null,rgbReferenceFile=null,registration=null,spatialTransform=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null,spatial4dRecords=[],timelineSnapshot=null,temporalTracks=[]}){
+  const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),spatialFramePickModeRef=useRef(spatialFramePickMode),onSpatialFramePointPickRef=useRef(onSpatialFramePointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary),onSpatialRegistrationSampleRef=useRef(onSpatialRegistrationSample);
   const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null),[ifcInfo,setIfcInfo]=useState(null),[ifcFilter,setIfcFilter]=useState(""),[ifcExpanded,setIfcExpanded]=useState({}),[ifcDamageLinks,setIfcDamageLinks]=useState([]),[viewMenu,setViewMenu]=useState(false),[projection,setProjection]=useState("perspective"),[inspectMenu,setInspectMenu]=useState(false),[clipAxis,setClipAxis]=useState(""),[ghostMode,setGhostMode]=useState(false),[measureMode,setMeasureMode]=useState(false),[measurement,setMeasurement]=useState(null),[stationRatio,setStationRatio]=useState(.5),[guidesMenu,setGuidesMenu]=useState(false),[guideVisibility,setGuideVisibility]=useState({alignment:true,referents:true,damage:true}),[selectedDamage,setSelectedDamage]=useState(null),[temporalFilter,setTemporalFilter]=useState("all");
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null),[geometryStats,setGeometryStats]=useState(null),[photometricStats,setPhotometricStats]=useState(null);
   useEffect(()=>{pickEnabledRef.current=pickEnabled},[pickEnabled]);
   useEffect(()=>{onPointPickRef.current=onPointPick},[onPointPick]);
+  useEffect(()=>{spatialFramePickModeRef.current=spatialFramePickMode},[spatialFramePickMode]);
+  useEffect(()=>{onSpatialFramePointPickRef.current=onSpatialFramePointPick},[onSpatialFramePointPick]);
   useEffect(()=>{onSpatialPathologyRecordsRef.current=onSpatialPathologyRecords},[onSpatialPathologyRecords]);
   useEffect(()=>{onPhotometricSummaryRef.current=onPhotometricSummary},[onPhotometricSummary]);
   useEffect(()=>{onSpatialRegistrationSampleRef.current=onSpatialRegistrationSample},[onSpatialRegistrationSample]);
@@ -292,6 +294,13 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         }
       }
       const ifcHit=hits.find(item=>item.object?.isMesh&&item.object?.userData?.ifc?.expressID!=null);
+      if(spatialFramePickModeRef.current==="target"&&ifcHit&&onSpatialFramePointPickRef.current){
+        const xyz=ifcHit.point.toArray();onSpatialFramePointPickRef.current({role:"target",xyz,expressID:ifcHit.object.userData.ifc?.expressID??null});dirty=true;return;
+      }
+      if(spatialFramePickModeRef.current==="source"&&onSpatialFramePointPickRef.current){
+        const pointHit=hits.find(item=>item.object?.isPoints&&Number.isInteger(item.index));
+        if(pointHit){const attr=pointHit.object.geometry?.getAttribute("position");if(attr){const centered=[attr.getX(pointHit.index),attr.getY(pointHit.index),attr.getZ(pointHit.index)],origin=pointHit.object.userData?.spatialAsset?.bounds?.center||[0,0,0],xyz=[centered[0]+Number(origin[0]||0),centered[1]+Number(origin[1]||0),centered[2]+Number(origin[2]||0)];onSpatialFramePointPickRef.current({role:"source",xyz,index:pointHit.index});dirty=true;return}}
+      }
       if(ifcHit){
         const info=ifcHit.object.userData.ifc;
         model.traverse?.(node=>{if(!node.isMesh||!node.userData?.ifc)return;const selected=node.userData.ifc.expressID===info.expressID;if(node.material?.emissive){node.material.emissive.setHex(selected?0x245466:0x000000);node.material.emissiveIntensity=selected ? .22 : 0}});

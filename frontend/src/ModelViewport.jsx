@@ -117,6 +117,27 @@ async function imagePixels(file){
     return {width:canvas.width,height:canvas.height,data:ctx.getImageData(0,0,canvas.width,canvas.height).data};
   }finally{URL.revokeObjectURL(url)}
 }
+function bindPathologiesToIfcSurface(records,model,maxDistance){
+  if(!Array.isArray(records)||!records.length||!model)return records||[];
+  const meshes=[];model.traverse?.(node=>{if(node.isMesh&&node.userData?.ifc?.expressID!=null)meshes.push(node)});
+  if(!meshes.length)return records;
+  const raycaster=new THREE.Raycaster(),directions=[new THREE.Vector3(1,0,0),new THREE.Vector3(-1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,-1,0),new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1)];
+  return records.map(record=>{
+    const vertices=record?.geometry?.vertices_3d||[];if(!vertices.length)return record;
+    let best=null;
+    for(const xyz of vertices.slice(0,16)){
+      const origin=new THREE.Vector3(Number(xyz[0]),Number(xyz[1]),Number(xyz[2]));
+      for(const direction of directions){
+        raycaster.set(origin,direction);raycaster.far=maxDistance;
+        const hit=raycaster.intersectObjects(meshes,false)[0];
+        if(hit&&(!best||hit.distance<best.distance))best=hit;
+      }
+    }
+    if(!best)return {...record,brim:{status:"unbound",method:"six_axis_surface_raycast",max_distance:maxDistance}};
+    const info=best.object.userData.ifc||{};
+    return {...record,brim:{status:"bound",method:"six_axis_surface_raycast",distance:Number(best.distance||0),express_id:info.expressID,global_id:info.globalId||null,name:info.name||null,type:info.type||null,object_type:info.objectType||null}};
+  });
+}
 function flattenIfcTree(node,depth=0,out=[]){
   if(!node)return out;
   out.push({expressID:node.expressID,type:node.type||"IFC",depth,childrenCount:Array.isArray(node.children)?node.children.length:0});
@@ -331,7 +352,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         if(cancelled)return;
         if(registered)view.current?.setRegisteredColors?.(registered);
         if(pathology)view.current?.setPathologyProjection?.(pathology);
-        onSpatialPathologyRecordsRef.current?.(records);
+        const ifcModel=view.current?.ifc?view.current.model:null;\n        const linked=ifcModel?bindPathologiesToIfcSurface(records,ifcModel,Math.max((view.current?.radius||1)*.03,.01)):records;\n        onSpatialPathologyRecordsRef.current?.(linked);
       })
       .catch(e=>{if(!cancelled)setError("Falha ao projetar RGB/patologias no 3D: "+(e?.message||String(e)))});
     return()=>{cancelled=true};

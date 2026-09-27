@@ -361,3 +361,15 @@ export function matchTemporalDamageCampaigns(previousRecords=[],currentRecords=[
   }
   return matched;
 }
+
+export function buildDamageTimeline(campaigns=[]){
+  const ordered=(campaigns||[]).filter(item=>Array.isArray(item?.records)).slice().sort((a,b)=>String(a.observed_at||"").localeCompare(String(b.observed_at||"")));
+  const all=[],snapshots=[];let previous=[];
+  ordered.forEach((campaign,index)=>{
+    const records=index===0?campaign.records.map(record=>({...record,temporal:{...(record.temporal||{}),track_id:record.temporal?.track_id||("cdm3-track-"+String(record.id||index)),change_status:"baseline"}})):matchTemporalDamageCampaigns(previous,campaign.records);
+    snapshots.push({campaign_id:campaign.campaign_id||("campaign-"+(index+1)),observed_at:campaign.observed_at||null,records});
+    all.push(...records.map(record=>({...record,inspection:{...(record.inspection||{}),campaign_id:campaign.campaign_id||record.inspection?.campaign_id||("campaign-"+(index+1)),observed_at:campaign.observed_at||record.inspection?.observed_at||null}})));
+    previous=records;
+  });
+  return {snapshots,tracks:buildTemporalDamageTracks(all),campaign_count:snapshots.length};
+}

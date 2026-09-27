@@ -147,8 +147,8 @@ function flattenIfcTree(node,depth=0,out=[]){
   return out;
 }
 export default function ModelViewport({file,pickEnabled=false,onPointPick=null,spatialFramePickMode=null,onSpatialFramePointPick=null,rgbReferenceFile=null,registration=null,spatialTransform=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null,spatial4dRecords=[],timelineSnapshot=null,temporalTracks=[]}){
-  const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),spatialFramePickModeRef=useRef(spatialFramePickMode),onSpatialFramePointPickRef=useRef(onSpatialFramePointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary),onSpatialRegistrationSampleRef=useRef(onSpatialRegistrationSample);
-  const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null),[ifcInfo,setIfcInfo]=useState(null),[ifcFilter,setIfcFilter]=useState(""),[ifcExpanded,setIfcExpanded]=useState({}),[ifcDamageLinks,setIfcDamageLinks]=useState([]),[viewMenu,setViewMenu]=useState(false),[projection,setProjection]=useState("perspective"),[inspectMenu,setInspectMenu]=useState(false),[clipAxis,setClipAxis]=useState(""),[ghostMode,setGhostMode]=useState(false),[measureMode,setMeasureMode]=useState(false),[measurement,setMeasurement]=useState(null),[stationRatio,setStationRatio]=useState(.5),[guidesMenu,setGuidesMenu]=useState(false),[guideVisibility,setGuideVisibility]=useState({alignment:true,referents:true,damage:true}),[selectedDamage,setSelectedDamage]=useState(null),[temporalFilter,setTemporalFilter]=useState("all");
+  const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),spatialFramePickModeRef=useRef(spatialFramePickMode),onSpatialFramePointPickRef=useRef(onSpatialFramePointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary),onSpatialRegistrationSampleRef=useRef(onSpatialRegistrationSample),renderDirtyRef=useRef(true);
+  const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null),[ifcInfo,setIfcInfo]=useState(null),[ifcFilter,setIfcFilter]=useState(""),[ifcExpanded,setIfcExpanded]=useState({}),[ifcDamageLinks,setIfcDamageLinks]=useState([]),[viewMenu,setViewMenu]=useState(false),[projection,setProjection]=useState("perspective"),[inspectMenu,setInspectMenu]=useState(false),[clipAxis,setClipAxis]=useState(""),[ghostMode,setGhostMode]=useState(false),[measureMode,setMeasureMode]=useState(false),[panMode,setPanMode]=useState(false),[measurement,setMeasurement]=useState(null),[stationRatio,setStationRatio]=useState(.5),[guidesMenu,setGuidesMenu]=useState(false),[guideVisibility,setGuideVisibility]=useState({alignment:true,referents:true,damage:true}),[selectedDamage,setSelectedDamage]=useState(null),[temporalFilter,setTemporalFilter]=useState("all");
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null),[geometryStats,setGeometryStats]=useState(null),[photometricStats,setPhotometricStats]=useState(null);
   useEffect(()=>{pickEnabledRef.current=pickEnabled},[pickEnabled]);
   useEffect(()=>{onPointPickRef.current=onPointPick},[onPointPick]);
@@ -163,14 +163,14 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,s
     const el=mount.current,scene=new THREE.Scene();scene.background=new THREE.Color(0xdce4e7);
     const camera=new THREE.PerspectiveCamera(45,1,.01,100000);
     const pickMarkers=new THREE.Group(),measureMarkers=new THREE.Group(),infrastructureGuides=new THREE.Group();infrastructureGuides.name="IFC infrastructure guides";scene.add(pickMarkers);scene.add(measureMarkers);scene.add(infrastructureGuides);
-    let renderer,vectorFallback=false,dirty=true;
+    let renderer,vectorFallback=false;renderDirtyRef.current=true;
     try{renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.localClippingEnabled=true}
     catch{renderer=new SVGRenderer();vectorFallback=true;setFallback(true)}
     el.appendChild(renderer.domElement);
     const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
     scene.add(new THREE.HemisphereLight(0xffffff,0x8195a0,2));
     const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(3,5,7);scene.add(light);
-    const resize=()=>{const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight),active=view.current?.camera||camera,aspect=w/h;if(active.isPerspectiveCamera){active.aspect=aspect}else if(active.isOrthographicCamera){const centerX=(active.left+active.right)/2,centerY=(active.top+active.bottom)/2,halfHeight=Math.max((active.top-active.bottom)/2,.001),halfWidth=halfHeight*aspect;active.left=centerX-halfWidth;active.right=centerX+halfWidth;active.top=centerY+halfHeight;active.bottom=centerY-halfHeight}active.updateProjectionMatrix();renderer.setSize(w,h);dirty=true};
+    const resize=()=>{const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight),active=view.current?.camera||camera,aspect=w/h;if(active.isPerspectiveCamera){active.aspect=aspect}else if(active.isOrthographicCamera){const centerX=(active.left+active.right)/2,centerY=(active.top+active.bottom)/2,halfHeight=Math.max((active.top-active.bottom)/2,.001),halfWidth=halfHeight*aspect;active.left=centerX-halfWidth;active.right=centerX+halfWidth;active.top=centerY+halfHeight;active.bottom=centerY-halfHeight}active.updateProjectionMatrix();renderer.setSize(w,h);renderDirtyRef.current=true};
     const observer=new ResizeObserver(resize);observer.observe(el);resize();
     let disposed=false,model=null,urlRevoked=false;const url=URL.createObjectURL(file),ext=file.name.split(".").pop().toLowerCase();
     const releaseUrl=()=>{if(!urlRevoked){URL.revokeObjectURL(url);urlRevoked=true}};
@@ -189,7 +189,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,s
       if(!Number.isFinite(size.length())||size.length()===0){scene.remove(obj);fail(new Error("Geometria vazia."));return}
       const radius=Math.max(size.length(),.01)*1.35;
       view.current={camera,controls,center:center.clone(),radius,model:obj,...extras};
-      controls.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(radius,radius*.65,radius));camera.near=Math.max(.001,size.length()/10000);camera.far=Math.max(100,size.length()*100);camera.updateProjectionMatrix();controls.update();dirty=true
+      controls.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(radius,radius*.65,radius));camera.near=Math.max(.001,size.length()/10000);camera.far=Math.max(100,size.length()*100);camera.updateProjectionMatrix();controls.update();renderDirtyRef.current=true
     };
     const fail=e=>{releaseUrl();if(!disposed){setLoading(false);setLoadProgress(null);setError("Não foi possível abrir o ativo espacial/3D: "+(e?.message||String(e)))} };
     const onProgress=event=>{if(disposed)return;const total=Number(event?.total)||0,loaded=Number(event?.loaded)||0;setLoadProgress(total>0?Math.max(0,Math.min(99,Math.round(loaded/total*100))):null)};
@@ -232,7 +232,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,s
           }else{
             geometry.deleteAttribute("color");material.vertexColors=false;material.color.setHex(0x6f858e);
           }
-          material.needsUpdate=true;dirty=true;
+          material.needsUpdate=true;renderDirtyRef.current=true;
         };
         const setRegisteredColors=payload=>{
           registeredColors=payload?.colors||null;
@@ -280,9 +280,9 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,s
       const raycaster=new THREE.Raycaster();raycaster.params.Points.threshold=Math.max((view.current?.radius||1)/180,.002);raycaster.setFromCamera(mouse,view.current?.camera||camera);
       const guideHits=raycaster.intersectObjects(infrastructureGuides.children,true);
       const referentHit=guideHits.find(item=>item.object?.userData?.ifcReferent);
-      if(referentHit){navigateReferent(referentHit.object.userData.ifcReferent);dirty=true;return}
+      if(referentHit){navigateReferent(referentHit.object.userData.ifcReferent);renderDirtyRef.current=true;return}
       const damageHit=guideHits.find(item=>item.object?.userData?.cdm3Damage);
-      if(damageHit){const record=damageHit.object.userData.cdm3Damage;setSelectedDamage(record);if(record?.brim?.express_id!=null)selectIfcElement(record.brim.express_id);const center=new THREE.Box3().setFromObject(damageHit.object).getCenter(new THREE.Vector3());view.current.controls.target.copy(center);view.current.controls.update();dirty=true;return}
+      if(damageHit){const record=damageHit.object.userData.cdm3Damage;setSelectedDamage(record);if(record?.brim?.express_id!=null)selectIfcElement(record.brim.express_id);const center=new THREE.Box3().setFromObject(damageHit.object).getCenter(new THREE.Vector3());view.current.controls.target.copy(center);view.current.controls.update();renderDirtyRef.current=true;return}
       const hits=raycaster.intersectObject(model,true);
       if(measureMode){
         const surfaceHit=hits.find(item=>item.object?.isMesh||item.object?.isPoints);
@@ -290,21 +290,21 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,s
           const point=surfaceHit.point.clone(),data=view.current;
           if(!data.measureStart){data.measureStart=point;setMeasurement({start:point.toArray(),end:null,distance:null});}
           else{const start=data.measureStart.clone(),distance=start.distanceTo(point);setMeasurement({start:start.toArray(),end:point.toArray(),distance});data.measureStart=null;setMeasureMode(false);}
-          const radius=Math.max((data?.radius||1)/180,.003),marker=new THREE.Mesh(new THREE.SphereGeometry(radius,10,8),new THREE.MeshBasicMaterial({color:0x0d766e}));marker.position.copy(point);measureMarkers.add(marker);dirty=true;return;
+          const radius=Math.max((data?.radius||1)/180,.003),marker=new THREE.Mesh(new THREE.SphereGeometry(radius,10,8),new THREE.MeshBasicMaterial({color:0x0d766e}));marker.position.copy(point);measureMarkers.add(marker);renderDirtyRef.current=true;return;
         }
       }
       const ifcHit=hits.find(item=>item.object?.isMesh&&item.object?.userData?.ifc?.expressID!=null);
       if(spatialFramePickModeRef.current==="target"&&ifcHit&&onSpatialFramePointPickRef.current){
-        const xyz=ifcHit.point.toArray();onSpatialFramePointPickRef.current({role:"target",xyz,expressID:ifcHit.object.userData.ifc?.expressID??null});dirty=true;return;
+        const xyz=ifcHit.point.toArray();onSpatialFramePointPickRef.current({role:"target",xyz,expressID:ifcHit.object.userData.ifc?.expressID??null});renderDirtyRef.current=true;return;
       }
       if(spatialFramePickModeRef.current==="source"&&onSpatialFramePointPickRef.current){
         const pointHit=hits.find(item=>item.object?.isPoints&&Number.isInteger(item.index));
-        if(pointHit){const attr=pointHit.object.geometry?.getAttribute("position");if(attr){const centered=[attr.getX(pointHit.index),attr.getY(pointHit.index),attr.getZ(pointHit.index)],origin=pointHit.object.userData?.spatialAsset?.bounds?.center||[0,0,0],xyz=[centered[0]+Number(origin[0]||0),centered[1]+Number(origin[1]||0),centered[2]+Number(origin[2]||0)];onSpatialFramePointPickRef.current({role:"source",xyz,index:pointHit.index});dirty=true;return}}
+        if(pointHit){const attr=pointHit.object.geometry?.getAttribute("position");if(attr){const centered=[attr.getX(pointHit.index),attr.getY(pointHit.index),attr.getZ(pointHit.index)],origin=pointHit.object.userData?.spatialAsset?.bounds?.center||[0,0,0],xyz=[centered[0]+Number(origin[0]||0),centered[1]+Number(origin[1]||0),centered[2]+Number(origin[2]||0)];onSpatialFramePointPickRef.current({role:"source",xyz,index:pointHit.index});renderDirtyRef.current=true;return}}
       }
       if(ifcHit){
         const info=ifcHit.object.userData.ifc;
         model.traverse?.(node=>{if(!node.isMesh||!node.userData?.ifc)return;const selected=node.userData.ifc.expressID===info.expressID;if(node.material?.emissive){node.material.emissive.setHex(selected?0x245466:0x000000);node.material.emissiveIntensity=selected ? .22 : 0}});
-        setIfcSelection(info);dirty=true;return;
+        setIfcSelection(info);renderDirtyRef.current=true;return;
       }
       if(!pickEnabledRef.current||!onPointPickRef.current)return;
       const hit=hits.find(item=>item.object?.isPoints&&Number.isInteger(item.index));
@@ -315,7 +315,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,s
       const xyz=[centered[0]+Number(origin[0]||0),centered[1]+Number(origin[1]||0),centered[2]+Number(origin[2]||0)];
       const markerRadius=Math.max((view.current?.radius||1)/120,.004);
       const marker=new THREE.Mesh(new THREE.SphereGeometry(markerRadius,10,8),new THREE.MeshBasicMaterial({color:0xf0a93c}));
-      marker.position.set(...centered);pickMarkers.add(marker);dirty=true;
+      marker.position.set(...centered);pickMarkers.add(marker);renderDirtyRef.current=true;
       onPointPickRef.current({xyz,index:hit.index,distance:Number(hit.distance||0)});
     };
     renderer.domElement.addEventListener("click",handlePointPick);
@@ -344,7 +344,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,s
         const center=points.reduce((sum,p)=>sum.add(p),new THREE.Vector3()).multiplyScalar(1/points.length),marker=new THREE.Mesh(new THREE.SphereGeometry(Math.max(radius/150,.006),10,8),new THREE.MeshBasicMaterial({color:0xc74b43,depthTest:false}));
         marker.position.copy(center);marker.renderOrder=23;marker.visible=guideVisibility.damage;marker.userData.infrastructureGuide="damage";marker.userData.cdm3Damage=record;infrastructureGuides.add(marker);
       }
-      dirty=true;
+      renderDirtyRef.current=true;
     };
     const buildInfrastructureGuides=(info,radius)=>{
       infrastructureGuides.clear();
@@ -370,8 +370,8 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,s
         const info=group.userData?.ifc||{};
         setIfcInfo(info);
         setSpatialNotice("IFC4.3 renderizado · "+Number(info.geometryCount||0).toLocaleString("pt-BR")+" geometrias · "+Number(info.triangleCount||0).toLocaleString("pt-BR")+" triângulos"+(info.alignmentCount?" · "+info.alignmentCount+" alinhamento(s)":"")+".");
-        fit(group,{ifc:true,ifcInfo:info,infrastructureGuides,setDamageGuides,setDamageGuideVisibility:visible=>{infrastructureGuides.traverse(node=>{if(node.userData?.infrastructureGuide==="damage")node.visible=visible});dirty=true}});
-        requestAnimationFrame(()=>{if(view.current?.ifc){buildInfrastructureGuides(info,view.current.radius);dirty=true}});
+        fit(group,{ifc:true,ifcInfo:info,infrastructureGuides,setDamageGuides,setDamageGuideVisibility:visible=>{infrastructureGuides.traverse(node=>{if(node.userData?.infrastructureGuide==="damage")node.visible=visible});renderDirtyRef.current=true}});
+        requestAnimationFrame(()=>{if(view.current?.ifc){buildInfrastructureGuides(info,view.current.radius);renderDirtyRef.current=true}});
       }catch(e){fail(e)}
     };
     try{
@@ -384,8 +384,8 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,s
         loader.load(url,g=>{g.computeVertexNormals();fit(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0x8aaeb3,side:THREE.DoubleSide})))},onProgress,fail)
       }else fail(new Error("Formato 3D não suportado pelo visualizador."));
     }catch(e){fail(e)}
-    controls.addEventListener("change",()=>{dirty=true});
-    let animation;const draw=()=>{animation=requestAnimationFrame(draw);controls.update();if(!vectorFallback||dirty){renderer.render(scene,view.current?.camera||camera);dirty=false}};draw();
+    controls.addEventListener("change",()=>{renderDirtyRef.current=true});
+    let animation;const draw=()=>{animation=requestAnimationFrame(draw);controls.update();if(!vectorFallback||renderDirtyRef.current){renderer.render(scene,view.current?.camera||camera);renderDirtyRef.current=false}};draw();
     return()=>{disposed=true;view.current=null;cancelAnimationFrame(animation);observer.disconnect();controls.dispose();renderer.domElement.removeEventListener("click",handlePointPick);scene.remove(model);model?.traverse?.(n=>{n.geometry?.dispose();if(n.material){const materials=Array.isArray(n.material)?n.material:[n.material];materials.forEach(disposeMaterial)}});pickMarkers.traverse(n=>{n.geometry?.dispose?.();disposeMaterial(n.material)});renderer.dispose?.();renderer.domElement.remove();releaseUrl()}
   },[file]);
   useEffect(()=>{
@@ -438,7 +438,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,s
     for(const child of [...guides.children])if(child.userData?.infrastructureGuide==="temporal_vector"){guides.remove(child);child.geometry?.dispose?.();disposeMaterial(child.material)}
     for(const record of spatial4dRecords){if(!spatialFrameCompatible(spatialTransform))continue;const a=record?.temporal?.previous_centroid_3d,b=record?.temporal?.current_centroid_3d;if(!a||!b)continue;const status=record.temporal.change_status,color=statusColor[status]??0x7e748d,geometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]),line=new THREE.Line(geometry,new THREE.LineDashedMaterial({color,dashSize:Math.max((view.current?.radius||1)/80,.01),gapSize:Math.max((view.current?.radius||1)/130,.006),transparent:true,opacity:.82,depthTest:false}));line.computeLineDistances();line.renderOrder=24;line.userData.infrastructureGuide="temporal_vector";line.userData.temporalRecord=record;guides.add(line)}
     guides.traverse(node=>{const record=node.userData?.cdm3Damage;if(!record)return;const matched=spatial4dRecords.find(item=>item.id===record.id),status=matched?.temporal?.change_status,color=statusColor[status];if(color!=null&&node.material?.color)node.material.color.setHex(color);node.userData.temporalStatus=status||null;node.visible=guideVisibility.damage&&(temporalFilter==="all"||status===temporalFilter)});
-    dirty=true;
+    renderDirtyRef.current=true;
   },[spatial4dRecords,temporalFilter,guideVisibility.damage]);
   function setView(direction){
     const data=view.current;if(!data)return;
@@ -564,7 +564,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,s
     {loading&&<div className="modelLoading" role="status" aria-live="polite"><b>Carregando ativo espacial / 3D</b><span>{loadProgress==null?"Preparando geometria…":loadProgress+"%"}</span>{loadProgress!=null&&<i><b style={{width:loadProgress+"%"}}/></i>}</div>}
     {error&&<div className="modelError" role="alert">{error}</div>}
     <div className="model3dToolbar" aria-label="Controles do canvas 3D">
-      <button disabled={loading||!!error} onClick={fitModel} title="Enquadrar modelo" aria-label="Enquadrar modelo">⌂</button>
+      <button disabled={loading||!!error} onClick={fitModel} title="Enquadrar modelo" aria-label="Enquadrar modelo">⌂</button><button disabled={loading||!!error} className={panMode?"active":""} onClick={()=>{const next=!panMode;setPanMode(next);if(view.current?.controls){view.current.controls.enableRotate=!next;view.current.controls.enablePan=true}}} title="Mão · deslocar vista" aria-label="Mão Pan">✋</button>
       <div className="model3dViewControl"><button disabled={loading||!!error} className={viewMenu?"active":""} onClick={()=>setViewMenu(v=>!v)} title="Orientação da câmera" aria-label="Orientação da câmera">◇</button>{viewMenu&&<div className="model3dViewMenu"><b>Orientação</b><div><button onClick={()=>setView("iso")}>ISO</button><button onClick={()=>setView("top")}>Topo</button><button onClick={()=>setView("bottom")}>Base</button><button onClick={()=>setView("front")}>Frente</button><button onClick={()=>setView("back")}>Trás</button><button onClick={()=>setView("left")}>Esq.</button><button onClick={()=>setView("right")}>Dir.</button></div></div>}</div>
       <button disabled={loading||!!error} className={projection==="orthographic"?"active":""} onClick={toggleProjection} title={projection==="perspective"?"Mudar para projeção ortográfica":"Mudar para perspectiva"} aria-label="Alternar projeção">{projection==="perspective"?"P":"O"}</button>
       <div className="model3dInspectControl"><button disabled={loading||!!error} className={inspectMenu||clipAxis||ghostMode||measureMode?"active":""} onClick={()=>setInspectMenu(v=>!v)} title="Ferramentas de inspeção 3D" aria-label="Ferramentas de inspeção 3D">⌁</button>{inspectMenu&&<div className="model3dInspectMenu"><b>Inspeção 3D</b><span>Corte</span><div className="model3dClipAxes">{["x","y","z"].map(axis=><button key={axis} className={clipAxis===axis?"active":""} onClick={()=>setClip(axis)}>{axis.toUpperCase()}</button>)}</div><button className={ghostMode?"active":""} onClick={toggleGhost}>Ghost · {ghostMode?"ativo":"inativo"}</button><button className={measureMode?"active":""} onClick={()=>{setMeasureMode(v=>!v);view.current&&(view.current.measureStart=null)}}>Medir distância</button><button onClick={resetInspection}>Restaurar inspeção</button></div>}</div>

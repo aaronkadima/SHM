@@ -105,7 +105,8 @@ try{
   const analysisUrl=new URL(targetUrl);analysisUrl.hash="#/analysis";
   await request("Page.navigate",{url:analysisUrl.toString()});
   await waitUntil(request,`document.readyState==="complete"&&location.hash==="#/analysis"`,"analysis route navigation",45000);
-  await waitUntil(request,'!!document.querySelector(".analysisEditor")',"analysis workspace after explicit navigation",45000);
+  try{await waitUntil(request,'!!document.querySelector(".analysisEditor")',"analysis workspace after explicit navigation",45000)}
+  catch(error){const diagnostic=await evaluate(request,'JSON.stringify({href:location.href,hash:location.hash,title:document.title,ready:document.readyState,text:(document.body?.innerText||"").slice(0,1200),html:(document.body?.innerHTML||"").slice(0,1200)})');throw new Error(error.message+" Diagnostic: "+diagnostic)}
 
   await evaluate(request,'(()=>{location.hash="#/settings";return true})()');
   await waitUntil(request,`!!document.querySelector(".analysisSettings")&&!!document.querySelector('.settingsEngineCard[data-engine-id="${engineId}"]')`,"settings engine card",30000);

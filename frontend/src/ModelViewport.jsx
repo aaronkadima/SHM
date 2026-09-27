@@ -424,25 +424,41 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     const data=view.current;if(!data?.model)return;setClipAxis("");setGhostMode(false);setMeasureMode(false);setMeasurement(null);measureMarkers.clear();
     data.model.traverse?.(node=>{if(!node.material)return;(Array.isArray(node.material)?node.material:[node.material]).forEach(mat=>{mat.clippingPlanes=[];if(mat.userData._baseOpacity!=null){mat.opacity=mat.userData._baseOpacity;mat.transparent=mat.opacity<1}mat.depthWrite=true;mat.needsUpdate=true})});
   }
+  function alignmentFrameAt(ratio){
+    const alignment=ifcInfo?.alignments?.find(item=>item?.hasSampledCurve&&item.points?.length>1);if(!alignment)return null;
+    const points=alignment.points,total=alignment.sampledLength||0;if(!(total>0))return null;
+    const target=total*Math.max(0,Math.min(1,ratio));let walked=0;
+    for(let i=1;i<points.length;i++){const a=new THREE.Vector3(...points[i-1]),b=new THREE.Vector3(...points[i]),segment=b.distanceTo(a);if(walked+segment>=target||i===points.length-1){const t=segment?Math.max(0,Math.min(1,(target-walked)/segment)):0,point=a.clone().lerp(b,t),tangent=b.clone().sub(a).normalize();return {point,tangent,length:total,distance:target,source:"ifc_alignment_sampled"}}walked+=segment}
+    return null
+  }
   function setLongitudinalStation(value){
     const data=view.current;if(!data?.ifc||!data.model)return;
     const ratio=Math.max(0,Math.min(1,Number(value)));setStationRatio(ratio);
-    const box=new THREE.Box3().setFromObject(data.model),size=new THREE.Vector3();box.getSize(size);
-    const axis=size.x>=size.z?"x":"z",min=box.min[axis],max=box.max[axis],station=min+(max-min)*ratio;
+    const frame=alignmentFrameAt(ratio);
+    if(frame){
+      const plane=new THREE.Plane(frame.tangent.clone().negate(),frame.point.dot(frame.tangent));
+      data.model.traverse?.(node=>{if(!node.material)return;(Array.isArray(node.material)?node.material:[node.material]).forEach(mat=>{mat.clippingPlanes=[plane];mat.clipShadows=true;mat.needsUpdate=true})});
+      setClipAxis("station");data.alignmentFrame=frame;data.station=frame.distance;data.stationSource=frame.source;return;
+    }
+    const box=new THREE.Box3().setFromObject(data.model),size=new THREE.Vector3();box.getSize(size),axis=size.x>=size.z?"x":"z",min=box.min[axis],max=box.max[axis],station=min+(max-min)*ratio;
     const normal=axis==="x"?new THREE.Vector3(-1,0,0):new THREE.Vector3(0,0,-1),plane=new THREE.Plane(normal,station);
     data.model.traverse?.(node=>{if(!node.material)return;(Array.isArray(node.material)?node.material:[node.material]).forEach(mat=>{mat.clippingPlanes=[plane];mat.clipShadows=true;mat.needsUpdate=true})});
-    setClipAxis("station");data.longitudinalAxis=axis;data.station=station;
+    setClipAxis("station");data.longitudinalAxis=axis;data.station=station;data.stationSource="model_extent_relative";
   }
   function stepLongitudinalStation(delta){
     setLongitudinalStation(Math.max(0,Math.min(1,stationRatio+delta)));
   }
   function viewCrossSection(){
     const data=view.current;if(!data?.ifc||!data.model)return;
+    const frame=alignmentFrameAt(stationRatio);
+    if(frame){
+      const up=new THREE.Vector3(0,1,0),side=new THREE.Vector3().crossVectors(up,frame.tangent).normalize();
+      if(side.lengthSq()<.01)side.set(1,0,0);
+      data.camera.position.copy(frame.point).add(side.multiplyScalar(data.radius*1.45));data.camera.up.copy(up);data.controls.target.copy(frame.point);data.camera.lookAt(frame.point);data.controls.update();return;
+    }
     const box=new THREE.Box3().setFromObject(data.model),size=new THREE.Vector3();box.getSize(size);
-    const axis=data.longitudinalAxis||(size.x>=size.z?"x":"z"),target=data.center.clone(),distance=data.radius*1.45;
-    if(data.station!=null)target[axis]=data.station;
-    const offset=axis==="x"?new THREE.Vector3(0,0,distance):new THREE.Vector3(distance,0,0);
-    data.camera.position.copy(target).add(offset);data.camera.up.set(0,1,0);data.controls.target.copy(target);data.camera.lookAt(target);data.controls.update();
+    const axis=data.longitudinalAxis||(size.x>=size.z?"x":"z"),target=data.center.clone(),distance=data.radius*1.45;if(data.station!=null)target[axis]=data.station;
+    const offset=axis==="x"?new THREE.Vector3(0,0,distance):new THREE.Vector3(distance,0,0);data.camera.position.copy(target).add(offset);data.camera.up.set(0,1,0);data.controls.target.copy(target);data.camera.lookAt(target);data.controls.update();
   }
   function selectIfcElement(expressID){
     const data=view.current;if(!data?.ifc)return;

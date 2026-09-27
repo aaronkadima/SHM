@@ -68,6 +68,9 @@ jobs:
           test -f publish/dev/index.html
           grep -q '/SHM/assets/' publish/index.html
           grep -q '/SHM/dev/assets/' publish/dev/index.html
+          grep -R -q 'CDM-3' publish/dev/assets
+          grep -R -q 'Timeline 4D' publish/dev/assets
+          grep -R -q 'IFC' publish/dev/assets
       - name: Publish combined snapshot branch
         shell: bash
         env:

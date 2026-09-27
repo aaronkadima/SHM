@@ -119,7 +119,7 @@ async function imagePixels(file){
 }
 export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null}){
   const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary),onSpatialRegistrationSampleRef=useRef(onSpatialRegistrationSample);
-  const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null);
+  const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null);
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null),[geometryStats,setGeometryStats]=useState(null),[photometricStats,setPhotometricStats]=useState(null);
   useEffect(()=>{pickEnabledRef.current=pickEnabled},[pickEnabled]);
   useEffect(()=>{onPointPickRef.current=onPointPick},[onPointPick]);
@@ -128,7 +128,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
   useEffect(()=>{onSpatialRegistrationSampleRef.current=onSpatialRegistrationSample},[onSpatialRegistrationSample]);
   useEffect(()=>{
     if(!file||!mount.current)return;
-    setError("");setFallback(false);setLoading(true);setLoadProgress(null);setModes([]);setSpatialNotice("");setPathologyStats(null);setGeometryStats(null);setPhotometricStats(null);
+    setError("");setFallback(false);setLoading(true);setLoadProgress(null);setModes([]);setIfcSelection(null);setSpatialNotice("");setPathologyStats(null);setGeometryStats(null);setPhotometricStats(null);
     const el=mount.current,scene=new THREE.Scene();scene.background=new THREE.Color(0xdce4e7);
     const camera=new THREE.PerspectiveCamera(45,1,.01,100000);
     const pickMarkers=new THREE.Group();scene.add(pickMarkers);
@@ -247,7 +247,14 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       if(rect.width<1||rect.height<1)return;
       const mouse=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height*2-1));
       const raycaster=new THREE.Raycaster();raycaster.params.Points.threshold=Math.max((view.current?.radius||1)/180,.002);raycaster.setFromCamera(mouse,camera);
-      const hit=raycaster.intersectObject(model,true).find(item=>item.object?.isPoints&&Number.isInteger(item.index));
+      const hits=raycaster.intersectObject(model,true);
+      const ifcHit=hits.find(item=>item.object?.isMesh&&item.object?.userData?.ifc?.expressID!=null);
+      if(ifcHit){
+        const info=ifcHit.object.userData.ifc;
+        model.traverse?.(node=>{if(!node.isMesh||!node.userData?.ifc)return;const selected=node.userData.ifc.expressID===info.expressID;if(node.material?.emissive){node.material.emissive.setHex(selected?0x245466:0x000000);node.material.emissiveIntensity=selected?.22:0}});
+        setIfcSelection(info);dirty=true;return;
+      }
+      const hit=hits.find(item=>item.object?.isPoints&&Number.isInteger(item.index));
       if(!hit)return;
       const attr=hit.object.geometry?.getAttribute("position");if(!attr)return;
       const centered=[attr.getX(hit.index),attr.getY(hit.index),attr.getZ(hit.index)];
@@ -349,6 +356,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     setMode(next);view.current?.setPointMode?.(next);
   }
   return <div className={"modelViewport "+(pickEnabled?"pointPickMode":"")} ref={mount} role="region" aria-label={pickEnabled?"Visualizador espacial 3D; selecione o ponto correspondente":"Visualizador espacial 3D do arquivo importado"} aria-busy={loading}>
+    {ifcSelection&&<div className="ifcSelectionCard"><strong>{ifcSelection.name||ifcSelection.objectType||"Elemento IFC"}</strong><span>{ifcSelection.type||"IFC"} · #{ifcSelection.expressID}</span>{ifcSelection.globalId&&<span>GlobalID · {ifcSelection.globalId}</span>}{ifcSelection.description&&<small>{ifcSelection.description}</small>}</div>}
     {loading&&<div className="modelLoading" role="status" aria-live="polite"><b>Carregando ativo espacial / 3D</b><span>{loadProgress==null?"Preparando geometria…":loadProgress+"%"}</span>{loadProgress!=null&&<i><b style={{width:loadProgress+"%"}}/></i>}</div>}
     {error&&<div className="modelError" role="alert">{error}</div>}
     <div className="modelViews" aria-label="Vistas do modelo 3D"><button disabled={loading||!!error} onClick={()=>setView("perspective")}>Perspectiva</button><button disabled={loading||!!error} onClick={()=>setView("front")}>Frontal</button><button disabled={loading||!!error} onClick={()=>setView("top")}>Superior</button><button disabled={loading||!!error} onClick={()=>setView("side")}>Lateral</button></div>

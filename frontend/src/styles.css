@@ -528,3 +528,6 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 @media(max-width:560px){.ifcBrimPanel{left:8px;top:52px;width:min(220px,62%);max-height:48%}.ifcSelectionCard{left:8px;bottom:30px;max-width:68%}}
 
 .ifcTreeRow{display:flex;align-items:stretch;min-width:0}.ifcTreeRow>.ifcTreeToggle{flex:0 0 18px;width:18px;padding:0;border:0;background:transparent;color:#6f858d;font-size:13px;cursor:pointer}.ifcTreeRow>button:last-child{min-width:0;flex:1}.ifcTreeRow>.ifcTreeToggle:hover{color:#0d766e;background:transparent}
+
+
+.ifcDamageLinks{display:flex;flex-direction:column;gap:2px;padding-top:5px;border-top:1px solid #dbe6e8}.ifcDamageLinks>b{font-size:7px;letter-spacing:.2px;color:#607780}.ifcDamageLinks>button{display:grid;grid-template-columns:minmax(58px,.8fr) minmax(0,1.2fr);gap:5px;align-items:center;width:100%;padding:4px 5px;border:0;border-radius:4px;background:#f7fafb;text-align:left;cursor:pointer}.ifcDamageLinks>button:hover{background:#eaf5f2}.ifcDamageLinks span{font-size:7px;color:#8a5c20;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ifcDamageLinks small{font-size:6.5px;color:#607780;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

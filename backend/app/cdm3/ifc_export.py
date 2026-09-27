@@ -17,6 +17,12 @@ PSET_FIELD_MAP = {
     "InspectionDate": ("provenance", "inspection_date"),
     "EngineVersion": ("engine_version",),
     "ConfidenceCalibrated": ("provenance", "detector_confidence_calibrated"),
+    "HostExpressID": ("host", "express_id"),
+    "HostGlobalID": ("host", "global_id"),
+    "HostIfcType": ("host", "ifc_type"),
+    "AssociationStatus": ("association", "status"),
+    "AssociationMethod": ("association", "method"),
+    "AssociationDistance": ("association", "distance"),
 }
 
 
@@ -85,6 +91,11 @@ def _properties(record):
     return out
 
 
+def _host_global_id(record):
+    return (_dig(record, ("host", "global_id"))
+            or _dig(record, ("host_element", "ifc_global_id")))
+
+
 def _find_host(ifc_file, global_id):
     try:
         return ifc_file.by_guid(global_id)
@@ -122,7 +133,7 @@ def _export_svg(record, svg_dir: Path):
     path.attribs["data-damage-class"] = record.get("damage_class", "")
     path.attribs["data-coord-frame"] = geometry.get("coord_frame", "")
     path.attribs["data-mm-per-px"] = str(geometry.get("mm_per_px", ""))
-    path.attribs["data-ifc-global-id"] = _dig(record, ("host_element", "ifc_global_id")) or ""
+    path.attribs["data-ifc-global-id"] = _host_global_id(record) or ""
     dwg.add(path)
     dwg.save()
     return out
@@ -136,7 +147,7 @@ def export_records(ifc_in: Path, records: list[dict], svg_dir: Path, ifc_out: Pa
     context = _ensure_annotation_context(ifc_file)
     stats = ExportStats(total_records=len(records))
     for record in records:
-        host_id = _dig(record, ("host_element", "ifc_global_id"))
+        host_id = _host_global_id(record)
         host = _find_host(ifc_file, host_id) if host_id else None
         if host is None:
             stats.skipped_missing_host += 1

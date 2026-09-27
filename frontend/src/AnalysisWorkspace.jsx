@@ -1,7 +1,8 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,RefreshCw,Settings2,Unlock,X} from "lucide-react";
 import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint}from"./viewerPreferences.js";
-import{detectAsset,isCdm3SpatialAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./assetDetection.js";\nimport{buildDamageTimeline,matchTemporalDamageCampaigns}from"./cdm3RegisteredProjection.js";
+import{detectAsset,isCdm3SpatialAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./assetDetection.js";
+import{buildDamageTimeline,matchTemporalDamageCampaigns}from"./cdm3RegisteredProjection.js";
 const IMAGE_ACCEPT=SUPPORTED_IMAGE_EXTENSIONS.map(ext=>"."+ext).join(",");
 const ASSET_ACCEPT=[...SUPPORTED_IMAGE_EXTENSIONS,...SUPPORTED_MODEL_EXTENSIONS].map(ext=>"."+ext).join(",");
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));

@@ -493,7 +493,9 @@ jobs:
               cat "/tmp/shm-model-$TAG-chrome.log"
               exit 1
             }
-            echo "Responsive 3D smoke [$TAG]:"\n            grep -o 'MODEL_SMOKE_[^<]*' "/tmp/shm-model-$TAG-dom.html" || true\n            if ! grep -q "MODEL_SMOKE_PASS" "/tmp/shm-model-$TAG-dom.html"; then
+            echo "Responsive 3D smoke [$TAG]:"
+            grep -o 'MODEL_SMOKE_[^<]*' "/tmp/shm-model-$TAG-dom.html" || true
+            if ! grep -q "MODEL_SMOKE_PASS" "/tmp/shm-model-$TAG-dom.html"; then
               cat /tmp/shm-model-vite.log
               cat "/tmp/shm-model-$TAG-chrome.log"
               cat "/tmp/shm-model-$TAG-dom.html"

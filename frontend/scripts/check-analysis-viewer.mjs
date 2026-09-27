@@ -225,6 +225,8 @@ check(modelViewport.includes("stepLongitudinalStation")&&modelViewport.includes(
 
 check(ifcGeometry.includes("hasSampledCurve")&&ifcGeometry.includes("sampledLength")&&modelViewport.includes("alignmentFrameAt")&&modelViewport.includes('source:"ifc_alignment_sampled"'),"IFC bridge station navigation must use sampled alignment geometry when available and retain an explicit fallback source");
 
+check(modelViewport.includes('infrastructureGuides=new THREE.Group()')&&modelViewport.includes('infrastructureGuide="alignment"')&&modelViewport.includes("ifcReferent=referent")&&modelViewport.includes("intersectObjects(infrastructureGuides.children,true)"),"IFC infrastructure canvas must render alignment and positioned referents as a separate directly navigable 3D guide layer");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

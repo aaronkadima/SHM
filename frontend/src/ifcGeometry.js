@@ -93,7 +93,9 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       }
       if(i%25===0)onProgress?.({loaded:18+Math.round(72*(i+1)/Math.max(meshCount,1)),total:100});
     }
-    let alignments=[];\n    try{alignments=api.GetAllAlignments?.(modelID)||[]}catch{}\n    const alignmentInfo=(Array.isArray(alignments)?alignments:[]).map((alignment,index)=>{
+    let alignments=[];
+    try{alignments=api.GetAllAlignments?.(modelID)||[]}catch{}
+    const alignmentInfo=(Array.isArray(alignments)?alignments:[]).map((alignment,index)=>{
       const curves=alignment?.Absolute?.curves||alignment?.Horizontal?.curves||[];
       const points=curves.flatMap(curve=>(curve?.points||[]).map(point=>[Number(point.x)||0,Number(point.z??point.y)||0,Number(point.y??point.z)||0]));
       const sampled=[];for(const point of points){const previous=sampled[sampled.length-1];if(!previous||previous.some((v,i)=>Math.abs(v-point[i])>1e-9))sampled.push(point)}
@@ -130,7 +132,11 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       meshCount,
       geometryCount,
       triangleCount,
-      alignmentCount:alignmentInfo.length,\n      alignments:alignmentInfo,\n      lengthUnit,\n      referents,\n      referentCount:referents.length,
+      alignmentCount:alignmentInfo.length,
+      alignments:alignmentInfo,
+      lengthUnit,
+      referents,
+      referentCount:referents.length,
       coordinateToOrigin:true,
       elements:Object.values(elementIndex),
       elementCount:Object.keys(elementIndex).length,

@@ -45,6 +45,7 @@ def status():
             "image_pathology_segmentation",
             "las_environment_prior",
             "las_ifc_alignment",
+            "paired_point_spatial_frame_alignment",
             "ifc_component_resolution",
             "svg_ifc_pathology_export",
             "image_to_spatial_pnp_registration",

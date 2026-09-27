@@ -248,6 +248,8 @@ check(cdm3Projection.includes("buildDamageTimeline(campaigns=[])")&&cdm3Projecti
 
 check(workspace.includes("displaySpatial4dRecords=spatialTimelineSnapshot?.records||spatial4dRecords")&&workspace.includes("timelineSnapshot={spatialTimelineSnapshot}")&&modelViewport.includes("timelineSnapshot=null")&&modelViewport.includes("setDamageGuides(timelineSnapshot.records)")&&modelViewport.includes("timelineSnapshot?.campaign_id"),"moving the 4D timeline must drive the actual CDM-3 damage layer and active campaign label in the 3D canvas");
 
+check(workspace.includes("spatialTimelinePlaying")&&workspace.includes("setInterval(()=>setSpatialTimelineIndex")&&workspace.includes("Pausar timeline 4D")&&workspace.includes("Reproduzir timeline 4D")&&styles.includes(".spatial4dTimeline .timelinePlay"),"4D timeline must support explicit play pause playback while advancing real campaign snapshots");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

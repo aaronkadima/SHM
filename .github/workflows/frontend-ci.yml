@@ -285,6 +285,14 @@ jobs:
         working-directory: frontend
         run: CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)" APP_SMOKE_URL="http://127.0.0.1:4181/#/analysis" APP_SMOKE_ENGINE="yolov8n_public_crack_seg" APP_SMOKE_FIXTURE="/browser-models/yolov8n_public_crack_seg.parity.png" APP_SMOKE_TIMEOUT_MS=180000 APP_SMOKE_DEBUG_PORT=9231 node scripts/run-app-browser-engine-smoke.mjs
 
+      - name: Upload full app smoke diagnostic
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-app-smoke-diagnostic
+          path: frontend/app-smoke-diagnostic.json
+          if-no-files-found: ignore
+
       - name: Full app smoke · SegFormer
         working-directory: frontend
         run: CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)" APP_SMOKE_URL="http://127.0.0.1:4181/#/analysis" APP_SMOKE_ENGINE="segformer_public_crack" APP_SMOKE_FIXTURE="/browser-models/yolov8n_public_crack_seg.parity.png" APP_SMOKE_TIMEOUT_MS=180000 APP_SMOKE_DEBUG_PORT=9232 node scripts/run-app-browser-engine-smoke.mjs

@@ -2,7 +2,7 @@ name: Deploy SHM production + development preview to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main","dev"]
     paths:
       - "frontend/**"
       - ".github/workflows/pages.yml"

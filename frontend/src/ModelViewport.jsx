@@ -274,7 +274,12 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       if(rect.width<1||rect.height<1)return;
       const mouse=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height*2-1));
       const raycaster=new THREE.Raycaster();raycaster.params.Points.threshold=Math.max((view.current?.radius||1)/180,.002);raycaster.setFromCamera(mouse,view.current?.camera||camera);
-      const guideHits=raycaster.intersectObjects(infrastructureGuides.children,true);\n      const referentHit=guideHits.find(item=>item.object?.userData?.ifcReferent);\n      if(referentHit){navigateReferent(referentHit.object.userData.ifcReferent);dirty=true;return}\n      const damageHit=guideHits.find(item=>item.object?.userData?.cdm3Damage);\n      if(damageHit){const record=damageHit.object.userData.cdm3Damage;setSelectedDamage(record);if(record?.brim?.express_id!=null)selectIfcElement(record.brim.express_id);const center=new THREE.Box3().setFromObject(damageHit.object).getCenter(new THREE.Vector3());view.current.controls.target.copy(center);view.current.controls.update();dirty=true;return}\n      const hits=raycaster.intersectObject(model,true);
+      const guideHits=raycaster.intersectObjects(infrastructureGuides.children,true);
+      const referentHit=guideHits.find(item=>item.object?.userData?.ifcReferent);
+      if(referentHit){navigateReferent(referentHit.object.userData.ifcReferent);dirty=true;return}
+      const damageHit=guideHits.find(item=>item.object?.userData?.cdm3Damage);
+      if(damageHit){const record=damageHit.object.userData.cdm3Damage;setSelectedDamage(record);if(record?.brim?.express_id!=null)selectIfcElement(record.brim.express_id);const center=new THREE.Box3().setFromObject(damageHit.object).getCenter(new THREE.Vector3());view.current.controls.target.copy(center);view.current.controls.update();dirty=true;return}
+      const hits=raycaster.intersectObject(model,true);
       if(measureMode){
         const surfaceHit=hits.find(item=>item.object?.isMesh||item.object?.isPoints);
         if(surfaceHit){
@@ -354,7 +359,8 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         const info=group.userData?.ifc||{};
         setIfcInfo(info);
         setSpatialNotice("IFC4.3 renderizado · "+Number(info.geometryCount||0).toLocaleString("pt-BR")+" geometrias · "+Number(info.triangleCount||0).toLocaleString("pt-BR")+" triângulos"+(info.alignmentCount?" · "+info.alignmentCount+" alinhamento(s)":"")+".");
-        fit(group,{ifc:true,ifcInfo:info,infrastructureGuides,setDamageGuides,setDamageGuideVisibility:visible=>{infrastructureGuides.traverse(node=>{if(node.userData?.infrastructureGuide==="damage")node.visible=visible});dirty=true}});\n        requestAnimationFrame(()=>{if(view.current?.ifc){buildInfrastructureGuides(info,view.current.radius);dirty=true}});
+        fit(group,{ifc:true,ifcInfo:info,infrastructureGuides,setDamageGuides,setDamageGuideVisibility:visible=>{infrastructureGuides.traverse(node=>{if(node.userData?.infrastructureGuide==="damage")node.visible=visible});dirty=true}});
+        requestAnimationFrame(()=>{if(view.current?.ifc){buildInfrastructureGuides(info,view.current.radius);dirty=true}});
       }catch(e){fail(e)}
     };
     try{
@@ -390,7 +396,10 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         if(cancelled)return;
         if(registered)view.current?.setRegisteredColors?.(registered);
         if(pathology)view.current?.setPathologyProjection?.(pathology);
-        const ifcModel=view.current?.ifc?view.current.model:null;\n        const linked=ifcModel?bindPathologiesToIfcSurface(records,ifcModel,Math.max((view.current?.radius||1)*.03,.01)):records;\n        view.current?.setDamageGuides?.(linked);\n        onSpatialPathologyRecordsRef.current?.(linked);
+        const ifcModel=view.current?.ifc?view.current.model:null;
+        const linked=ifcModel?bindPathologiesToIfcSurface(records,ifcModel,Math.max((view.current?.radius||1)*.03,.01)):records;
+        view.current?.setDamageGuides?.(linked);
+        onSpatialPathologyRecordsRef.current?.(linked);
       })
       .catch(e=>{if(!cancelled)setError("Falha ao projetar RGB/patologias no 3D: "+(e?.message||String(e)))});
     return()=>{cancelled=true};
@@ -410,9 +419,13 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     const consensus=buildMultiViewPathologyProjection(view.current.parsed,eligible,{confirmedViews:2});
     if(consensus)view.current.setPathologyProjection(consensus);
   },[photometricViews,file,registration,rgbPathologyAnalysis]);
-  useEffect(()=>{if(timelineSnapshot?.records&&view.current?.setDamageGuides)view.current.setDamageGuides(timelineSnapshot.records)},[timelineSnapshot]);\n\n  useEffect(()=>{
+  useEffect(()=>{if(timelineSnapshot?.records&&view.current?.setDamageGuides)view.current.setDamageGuides(timelineSnapshot.records)},[timelineSnapshot]);
+
+  useEffect(()=>{
     const guides=view.current?.infrastructureGuides;if(!guides)return;
-    const statusColor={grown:0xd24a43,reduced:0x3d82a8,stable:0x738b72,unmatched:0xd39b3d,not_comparable:0x7e748d};\n    for(const child of [...guides.children])if(child.userData?.infrastructureGuide==="temporal_vector"){guides.remove(child);child.geometry?.dispose?.();disposeMaterial(child.material)}\n    for(const record of spatial4dRecords){const a=record?.temporal?.previous_centroid_3d,b=record?.temporal?.current_centroid_3d;if(!a||!b)continue;const status=record.temporal.change_status,color=statusColor[status]??0x7e748d,geometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]),line=new THREE.Line(geometry,new THREE.LineDashedMaterial({color,dashSize:Math.max((view.current?.radius||1)/80,.01),gapSize:Math.max((view.current?.radius||1)/130,.006),transparent:true,opacity:.82,depthTest:false}));line.computeLineDistances();line.renderOrder=24;line.userData.infrastructureGuide="temporal_vector";line.userData.temporalRecord=record;guides.add(line)}
+    const statusColor={grown:0xd24a43,reduced:0x3d82a8,stable:0x738b72,unmatched:0xd39b3d,not_comparable:0x7e748d};
+    for(const child of [...guides.children])if(child.userData?.infrastructureGuide==="temporal_vector"){guides.remove(child);child.geometry?.dispose?.();disposeMaterial(child.material)}
+    for(const record of spatial4dRecords){const a=record?.temporal?.previous_centroid_3d,b=record?.temporal?.current_centroid_3d;if(!a||!b)continue;const status=record.temporal.change_status,color=statusColor[status]??0x7e748d,geometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]),line=new THREE.Line(geometry,new THREE.LineDashedMaterial({color,dashSize:Math.max((view.current?.radius||1)/80,.01),gapSize:Math.max((view.current?.radius||1)/130,.006),transparent:true,opacity:.82,depthTest:false}));line.computeLineDistances();line.renderOrder=24;line.userData.infrastructureGuide="temporal_vector";line.userData.temporalRecord=record;guides.add(line)}
     guides.traverse(node=>{const record=node.userData?.cdm3Damage;if(!record)return;const matched=spatial4dRecords.find(item=>item.id===record.id),status=matched?.temporal?.change_status,color=statusColor[status];if(color!=null&&node.material?.color)node.material.color.setHex(color);node.userData.temporalStatus=status||null;node.visible=guideVisibility.damage&&(temporalFilter==="all"||status===temporalFilter)});
     dirty=true;
   },[spatial4dRecords,temporalFilter,guideVisibility.damage]);
@@ -519,7 +532,8 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     data.model?.traverse?.(node=>{if(!node.isMesh||!node.userData?.ifc)return;const active=node.userData.ifc.expressID===expressID;node.visible=true;if(node.material?.emissive){node.material.emissive.setHex(active?0x245466:0x000000);node.material.emissiveIntensity=active ? .22 : 0}if(active)selected=node.userData.ifc});
     if(selected)setIfcSelection(selected);
   }
-  function ifcBranchIds(expressID){const tree=ifcInfo?.spatialTree,ids=new Set([expressID]);const visit=node=>{if(!node)return false;const found=node.expressID===expressID||(node.children||[]).some(visit);if(found&&node.expressID===expressID){const collect=n=>{ids.add(n.expressID);(n.children||[]).forEach(collect)};collect(node)}return found};visit(tree);return ids}\n  function isolateIfcElement(expressID){const data=view.current;if(!data?.ifc)return;const ids=ifcBranchIds(expressID);data.model?.traverse?.(node=>{if(node.isMesh&&node.userData?.ifc)node.visible=ids.has(node.userData.ifc.expressID)})}
+  function ifcBranchIds(expressID){const tree=ifcInfo?.spatialTree,ids=new Set([expressID]);const visit=node=>{if(!node)return false;const found=node.expressID===expressID||(node.children||[]).some(visit);if(found&&node.expressID===expressID){const collect=n=>{ids.add(n.expressID);(n.children||[]).forEach(collect)};collect(node)}return found};visit(tree);return ids}
+  function isolateIfcElement(expressID){const data=view.current;if(!data?.ifc)return;const ids=ifcBranchIds(expressID);data.model?.traverse?.(node=>{if(node.isMesh&&node.userData?.ifc)node.visible=ids.has(node.userData.ifc.expressID)})}
   function restoreIfc(){const data=view.current;if(!data?.ifc)return;data.model?.traverse?.(node=>{if(node.isMesh&&node.userData?.ifc){node.visible=true;if(node.material?.emissive){node.material.emissive.setHex(0);node.material.emissiveIntensity=0}}});setIfcSelection(null)}
   function toggleGuide(kind){
     setGuideVisibility(current=>{
@@ -550,7 +564,9 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     </div>
     {modes.length>0&&<div className="pointCloudModes" aria-label="Canal visual da nuvem de pontos"><label htmlFor="point-cloud-mode">Visual</label><select id="point-cloud-mode" value={mode} onChange={e=>setPointMode(e.target.value)}>{modes.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select><span>{spatialNotice}</span></div>}{photometricStats&&(mode==="photometric_rgb"||mode==="photometric_confidence")&&<div className="pointPathologyLegend pointGeometryLegend" aria-label="Resumo fotométrico"><b>CDM-3 · fotometria</b><span>Vistas registradas <strong>{Number(photometricStats.registered_views||0)}</strong></span><span>Cobertura <strong>{(Number(photometricStats.coverage_ratio||0)*100).toFixed(1)}%</strong></span><span>Vistas/ponto <strong>{Number(photometricStats.mean_views_per_colored_point||0).toFixed(2)}</strong></span></div>}{geometryStats&&mode==="geometry_local"&&<div className="pointPathologyLegend pointGeometryLegend" aria-label="Resumo da classificação geométrica local"><b>CDM-3 · geometria local</b>{CDM3_GEOMETRY_CLASSES.filter(cls=>Number(geometryStats.counts?.[cls.key]||0)>0).map(cls=><span key={cls.key}>{cls.label} <strong>{Number(geometryStats.counts?.[cls.key]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}{pathologyStats&&<div className="pointPathologyLegend" aria-label="Resumo da segmentação patológica 3D"><b>{pathologyStats.multi_view?"CDM-3 · consenso multivista":"CDM-3 · pontos patológicos"}</b>{pathologyStats.multi_view&&<span>Confirmados <strong>{Number(pathologyStats.confirmed_points||0).toLocaleString("pt-BR")}</strong> / {Number(pathologyStats.matched_points||0).toLocaleString("pt-BR")} · {Number(pathologyStats.views_used||0)} vistas</span>}{CDM3_PATHOLOGY_PRIORITY.filter(cls=>Number(pathologyStats.counts?.[cls]||0)>0).map(cls=><span key={cls}><i data-pathology={cls}/>{cls.replace("spalling_dark","desplacamento").replace("exposed_rebar","armadura exposta").replace("corrosion_rust","corrosão").replace("efflorescence_white","eflorescência").replace("cracks","fissuras")} <strong>{Number(pathologyStats.counts?.[cls]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}
     {spatial4dRecords.length>0&&<div className="model4dLegend" aria-label="Legenda temporal CDM-3"><b>CDM-3 · evolução 4D{timelineSnapshot?.campaign_id?" · "+timelineSnapshot.campaign_id:""}</b><div>{[["all","Todos"],["grown","Crescentes"],["reduced","Reduzidos"],["stable","Estáveis"],["unmatched","Novos / sem par"],["not_comparable","Não comparáveis"]].map(([key,label])=><button key={key} className={temporalFilter===key?"active":""} data-status={key} onClick={()=>setTemporalFilter(key)}><i/>{label}<strong>{key==="all"?spatial4dRecords.length:spatial4dRecords.filter(item=>item.temporal?.change_status===key).length}</strong></button>)}</div></div>}
-    {measurement?.distance!=null&&<div className="modelMeasurement" role="status">Distância · <b>{measurement.distance.toFixed(3)}</b> u</div>}\n    {measureMode&&<div className="modelMeasureHint">Medição 3D · selecione dois pontos no modelo</div>}\n    {pickEnabled&&<div className="modelPickHint">Selecione na nuvem o ponto correspondente ao pixel marcado</div>}
+    {measurement?.distance!=null&&<div className="modelMeasurement" role="status">Distância · <b>{measurement.distance.toFixed(3)}</b> u</div>}
+    {measureMode&&<div className="modelMeasureHint">Medição 3D · selecione dois pontos no modelo</div>}
+    {pickEnabled&&<div className="modelPickHint">Selecione na nuvem o ponto correspondente ao pixel marcado</div>}
     {fallback&&<div className="modelFallback">Visualização vetorial · WebGL indisponível</div>}
     <div className="modelHint">3D · arraste para orbitar · roda para ampliar · botão direito para deslocar</div>
   </div>

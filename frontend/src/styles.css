@@ -626,3 +626,5 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 .modelViewCube{top:76px!important;right:18px!important}
 .model3dToolbar{max-width:min(520px,calc(100% - 150px))!important;overflow:visible!important}
 @media(max-width:900px){.editorCameraEntry{top:8px!important;right:8px!important}.modelViewCube{top:62px!important;right:10px!important}.model3dToolbar{max-width:calc(100% - 118px)!important}}
+
+.spatialFramePanel.collapsed{width:auto!important;max-height:none!important;overflow:visible!important;padding:0!important;background:rgba(250,252,252,.96)!important}.spatialFramePanel header{margin:0!important}.spatialFrameCollapse{display:flex;width:100%;align-items:center;gap:10px;padding:8px 10px;border:0;background:transparent;color:#536b74;text-align:left}.spatialFrameCollapse b{white-space:nowrap}.spatialFrameCollapse span{margin-left:auto;font-size:10px;color:#71858d}.spatialFrameCollapse i{font-style:normal;color:#0d766e}.spatialFramePanel:not(.collapsed) .spatialFrameCollapse{padding:0 0 8px}

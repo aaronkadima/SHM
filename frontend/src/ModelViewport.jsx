@@ -146,7 +146,7 @@ function flattenIfcTree(node,depth=0,out=[]){
 }
 export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null}){
   const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary),onSpatialRegistrationSampleRef=useRef(onSpatialRegistrationSample);
-  const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null),[ifcInfo,setIfcInfo]=useState(null),[ifcFilter,setIfcFilter]=useState(""),[ifcExpanded,setIfcExpanded]=useState({}),[ifcDamageLinks,setIfcDamageLinks]=useState([]),[viewMenu,setViewMenu]=useState(false),[projection,setProjection]=useState("perspective");
+  const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null),[ifcInfo,setIfcInfo]=useState(null),[ifcFilter,setIfcFilter]=useState(""),[ifcExpanded,setIfcExpanded]=useState({}),[ifcDamageLinks,setIfcDamageLinks]=useState([]),[viewMenu,setViewMenu]=useState(false),[projection,setProjection]=useState("perspective"),[inspectMenu,setInspectMenu]=useState(false),[clipAxis,setClipAxis]=useState(""),[ghostMode,setGhostMode]=useState(false),[measureMode,setMeasureMode]=useState(false),[measurement,setMeasurement]=useState(null);
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null),[geometryStats,setGeometryStats]=useState(null),[photometricStats,setPhotometricStats]=useState(null);
   useEffect(()=>{pickEnabledRef.current=pickEnabled},[pickEnabled]);
   useEffect(()=>{onPointPickRef.current=onPointPick},[onPointPick]);
@@ -155,12 +155,12 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
   useEffect(()=>{onSpatialRegistrationSampleRef.current=onSpatialRegistrationSample},[onSpatialRegistrationSample]);
   useEffect(()=>{
     if(!file||!mount.current)return;
-    setError("");setFallback(false);setLoading(true);setViewMenu(false);setProjection("perspective");setLoadProgress(null);setModes([]);setIfcSelection(null);setIfcInfo(null);setIfcFilter("");setIfcExpanded({});setIfcDamageLinks([]);setSpatialNotice("");setPathologyStats(null);setGeometryStats(null);setPhotometricStats(null);
+    setError("");setFallback(false);setLoading(true);setViewMenu(false);setProjection("perspective");setInspectMenu(false);setClipAxis("");setGhostMode(false);setMeasureMode(false);setMeasurement(null);setLoadProgress(null);setModes([]);setIfcSelection(null);setIfcInfo(null);setIfcFilter("");setIfcExpanded({});setIfcDamageLinks([]);setSpatialNotice("");setPathologyStats(null);setGeometryStats(null);setPhotometricStats(null);
     const el=mount.current,scene=new THREE.Scene();scene.background=new THREE.Color(0xdce4e7);
     const camera=new THREE.PerspectiveCamera(45,1,.01,100000);
-    const pickMarkers=new THREE.Group();scene.add(pickMarkers);
+    const pickMarkers=new THREE.Group(),measureMarkers=new THREE.Group();scene.add(pickMarkers);scene.add(measureMarkers);
     let renderer,vectorFallback=false,dirty=true;
-    try{renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2))}
+    try{renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.localClippingEnabled=true}
     catch{renderer=new SVGRenderer();vectorFallback=true;setFallback(true)}
     el.appendChild(renderer.domElement);
     const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
@@ -275,6 +275,15 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       const mouse=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height*2-1));
       const raycaster=new THREE.Raycaster();raycaster.params.Points.threshold=Math.max((view.current?.radius||1)/180,.002);raycaster.setFromCamera(mouse,camera);
       const hits=raycaster.intersectObject(model,true);
+      if(measureMode){
+        const surfaceHit=hits.find(item=>item.object?.isMesh||item.object?.isPoints);
+        if(surfaceHit){
+          const point=surfaceHit.point.clone(),data=view.current;
+          if(!data.measureStart){data.measureStart=point;setMeasurement({start:point.toArray(),end:null,distance:null});}
+          else{const start=data.measureStart.clone(),distance=start.distanceTo(point);setMeasurement({start:start.toArray(),end:point.toArray(),distance});data.measureStart=null;setMeasureMode(false);}
+          const radius=Math.max((data?.radius||1)/180,.003),marker=new THREE.Mesh(new THREE.SphereGeometry(radius,10,8),new THREE.MeshBasicMaterial({color:0x0d766e}));marker.position.copy(point);measureMarkers.add(marker);dirty=true;return;
+        }
+      }
       const ifcHit=hits.find(item=>item.object?.isMesh&&item.object?.userData?.ifc?.expressID!=null);
       if(ifcHit){
         const info=ifcHit.object.userData.ifc;
@@ -400,6 +409,21 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     }
     controls.update()
   }
+  function setClip(axis){
+    const data=view.current;if(!data?.model)return;
+    const next=clipAxis===axis?"":axis;setClipAxis(next);
+    const normals={x:new THREE.Vector3(-1,0,0),y:new THREE.Vector3(0,-1,0),z:new THREE.Vector3(0,0,-1)};
+    const plane=next?new THREE.Plane(normals[next],data.center[next]):null;
+    data.model.traverse?.(node=>{if(!node.material)return;(Array.isArray(node.material)?node.material:[node.material]).forEach(mat=>{mat.clippingPlanes=plane?[plane]:[];mat.clipShadows=true;mat.needsUpdate=true})});
+  }
+  function toggleGhost(){
+    const data=view.current;if(!data?.model)return;const next=!ghostMode;setGhostMode(next);
+    data.model.traverse?.(node=>{if(!node.material)return;(Array.isArray(node.material)?node.material:[node.material]).forEach(mat=>{if(mat.userData._baseOpacity==null)mat.userData._baseOpacity=mat.opacity??1;mat.transparent=next||mat.userData._baseOpacity<1;mat.opacity=next?.22:mat.userData._baseOpacity;mat.depthWrite=!next;mat.needsUpdate=true})});
+  }
+  function resetInspection(){
+    const data=view.current;if(!data?.model)return;setClipAxis("");setGhostMode(false);setMeasureMode(false);setMeasurement(null);measureMarkers.clear();
+    data.model.traverse?.(node=>{if(!node.material)return;(Array.isArray(node.material)?node.material:[node.material]).forEach(mat=>{mat.clippingPlanes=[];if(mat.userData._baseOpacity!=null){mat.opacity=mat.userData._baseOpacity;mat.transparent=mat.opacity<1}mat.depthWrite=true;mat.needsUpdate=true})});
+  }
   function selectIfcElement(expressID){
     const data=view.current;if(!data?.ifc)return;
     let selected=null;
@@ -420,10 +444,11 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       <button disabled={loading||!!error} onClick={fitModel} title="Enquadrar modelo" aria-label="Enquadrar modelo">⌂</button>
       <div className="model3dViewControl"><button disabled={loading||!!error} className={viewMenu?"active":""} onClick={()=>setViewMenu(v=>!v)} title="Orientação da câmera" aria-label="Orientação da câmera">◇</button>{viewMenu&&<div className="model3dViewMenu"><b>Orientação</b><div><button onClick={()=>setView("iso")}>ISO</button><button onClick={()=>setView("top")}>Topo</button><button onClick={()=>setView("bottom")}>Base</button><button onClick={()=>setView("front")}>Frente</button><button onClick={()=>setView("back")}>Trás</button><button onClick={()=>setView("left")}>Esq.</button><button onClick={()=>setView("right")}>Dir.</button></div></div>}</div>
       <button disabled={loading||!!error} className={projection==="orthographic"?"active":""} onClick={toggleProjection} title={projection==="perspective"?"Mudar para projeção ortográfica":"Mudar para perspectiva"} aria-label="Alternar projeção">{projection==="perspective"?"P":"O"}</button>
+      <div className="model3dInspectControl"><button disabled={loading||!!error} className={inspectMenu||clipAxis||ghostMode||measureMode?"active":""} onClick={()=>setInspectMenu(v=>!v)} title="Ferramentas de inspeção 3D" aria-label="Ferramentas de inspeção 3D">⌁</button>{inspectMenu&&<div className="model3dInspectMenu"><b>Inspeção 3D</b><span>Corte</span><div className="model3dClipAxes">{["x","y","z"].map(axis=><button key={axis} className={clipAxis===axis?"active":""} onClick={()=>setClip(axis)}>{axis.toUpperCase()}</button>)}</div><button className={ghostMode?"active":""} onClick={toggleGhost}>Ghost · {ghostMode?"ativo":"inativo"}</button><button className={measureMode?"active":""} onClick={()=>{setMeasureMode(v=>!v);view.current&&(view.current.measureStart=null)}}>Medir distância</button><button onClick={resetInspection}>Restaurar inspeção</button></div>}</div>
       {ifcInfo&&<button className="model3dBrimToggle active" title="BrIM IFC4.3 ativo" aria-label="BrIM IFC4.3 ativo">B</button>}
     </div>
     {modes.length>0&&<div className="pointCloudModes" aria-label="Canal visual da nuvem de pontos"><label htmlFor="point-cloud-mode">Visual</label><select id="point-cloud-mode" value={mode} onChange={e=>setPointMode(e.target.value)}>{modes.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select><span>{spatialNotice}</span></div>}{photometricStats&&(mode==="photometric_rgb"||mode==="photometric_confidence")&&<div className="pointPathologyLegend pointGeometryLegend" aria-label="Resumo fotométrico"><b>CDM-3 · fotometria</b><span>Vistas registradas <strong>{Number(photometricStats.registered_views||0)}</strong></span><span>Cobertura <strong>{(Number(photometricStats.coverage_ratio||0)*100).toFixed(1)}%</strong></span><span>Vistas/ponto <strong>{Number(photometricStats.mean_views_per_colored_point||0).toFixed(2)}</strong></span></div>}{geometryStats&&mode==="geometry_local"&&<div className="pointPathologyLegend pointGeometryLegend" aria-label="Resumo da classificação geométrica local"><b>CDM-3 · geometria local</b>{CDM3_GEOMETRY_CLASSES.filter(cls=>Number(geometryStats.counts?.[cls.key]||0)>0).map(cls=><span key={cls.key}>{cls.label} <strong>{Number(geometryStats.counts?.[cls.key]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}{pathologyStats&&<div className="pointPathologyLegend" aria-label="Resumo da segmentação patológica 3D"><b>{pathologyStats.multi_view?"CDM-3 · consenso multivista":"CDM-3 · pontos patológicos"}</b>{pathologyStats.multi_view&&<span>Confirmados <strong>{Number(pathologyStats.confirmed_points||0).toLocaleString("pt-BR")}</strong> / {Number(pathologyStats.matched_points||0).toLocaleString("pt-BR")} · {Number(pathologyStats.views_used||0)} vistas</span>}{CDM3_PATHOLOGY_PRIORITY.filter(cls=>Number(pathologyStats.counts?.[cls]||0)>0).map(cls=><span key={cls}><i data-pathology={cls}/>{cls.replace("spalling_dark","desplacamento").replace("exposed_rebar","armadura exposta").replace("corrosion_rust","corrosão").replace("efflorescence_white","eflorescência").replace("cracks","fissuras")} <strong>{Number(pathologyStats.counts?.[cls]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}
-    {pickEnabled&&<div className="modelPickHint">Selecione na nuvem o ponto correspondente ao pixel marcado</div>}
+    {measurement?.distance!=null&&<div className="modelMeasurement" role="status">Distância · <b>{measurement.distance.toFixed(3)}</b> u</div>}\n    {measureMode&&<div className="modelMeasureHint">Medição 3D · selecione dois pontos no modelo</div>}\n    {pickEnabled&&<div className="modelPickHint">Selecione na nuvem o ponto correspondente ao pixel marcado</div>}
     {fallback&&<div className="modelFallback">Visualização vetorial · WebGL indisponível</div>}
     <div className="modelHint">3D · arraste para orbitar · roda para ampliar · botão direito para deslocar</div>
   </div>

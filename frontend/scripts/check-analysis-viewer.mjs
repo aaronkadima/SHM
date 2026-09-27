@@ -256,7 +256,7 @@ check(!workspace.includes("useState(null);\\\\n  const [spatialBaseline"),"analy
 
 check(modelViewport.includes("active=view.current?.camera||camera")&&modelViewport.includes("active.isOrthographicCamera")&&modelViewport.includes("halfWidth=halfHeight*aspect"),"3D viewport resize must update the currently active perspective or orthographic camera");
 
-check(workspace.includes("Referencial LAS/XYZ ↔ IFC")&&workspace.includes("onSolveSpatialFrameAlignment")&&workspace.includes("Resolver referencial")&&modelViewport.includes("CDM3-SpatialTransform/1.0")&&modelViewport.includes("frame_unverified"),"CDM-3 spatial workflow must require an explicit verified point-cloud to IFC frame before BrIM binding and metric 4D guides");
+check(workspace.includes("Referencial LAS/XYZ ↔ IFC")&&workspace.includes("onSolveSpatialFrameAlignment")&&workspace.includes("Resolver referencial")&&workspace.includes("spatialFrameAssets?.source")&&workspace.includes("spatialFrameAssets?.target")&&modelViewport.includes("CDM3-SpatialTransform/1.0")&&modelViewport.includes("frame_unverified"),"CDM-3 spatial workflow must require bound source/IFC assets and an explicit verified frame before BrIM binding and metric 4D guides");
 
 if(failures.length){
   console.error("Analysis viewer composition failures:");

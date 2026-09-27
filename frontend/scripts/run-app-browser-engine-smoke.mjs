@@ -173,7 +173,7 @@ try{
       const overlay=document.querySelector(".engineOverlayImage");
       const pathologyOverlays=[...document.querySelectorAll(".pathologyOverlay")];
       const firstPathology=pathologyOverlays[0]||null;
-      const panel=document.querySelector(".editorFloating");
+      const panel=document.querySelector(".editorFloating");\n      const runtimeError=document.querySelector(".appRuntimeError")?.textContent?.trim()||"";
       const progress=document.querySelector(".editorProgress");
       return{
         error,
@@ -186,10 +186,10 @@ try{
         panel:!!panel,
         progress:!!progress,
         comparison:[...document.querySelectorAll(".editorPaneBadge")].map(x=>x.textContent?.trim()||""),
-        engine:document.querySelector(".editorEngineState")?.textContent?.trim()||""
+        engine:document.querySelector(".editorEngineState")?.textContent?.trim()||"",\n        runtimeError
       };
     })()`);
-    if(state.resultRows>0&&state.overlay&&state.panel&&!state.progress)break;
+    if(state.runtimeError)throw new Error("Application runtime error: "+JSON.stringify(state));\n    if(state.resultRows>0&&state.overlay&&state.panel&&!state.progress)break;
     if(/Checksum|Manifesto browser indisponível|Artefato ONNX indisponível|ONNX Runtime|Falha|Error/i.test(state.error)&&!state.progress){
       throw new Error("Application reported browser-engine failure: "+JSON.stringify(state));
     }

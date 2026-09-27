@@ -31,7 +31,8 @@ async function waitTarget(){
   const deadline=Date.now()+30000;
   let lastError=null;
   while(Date.now()<deadline){
-    if(child.exitCode!=null)throw new Error("Chrome exited before DevTools became ready.\n"+chromeErr);
+    if(child.exitCode!=null)throw new Error("Chrome exited before DevTools became ready.
+"+chromeErr);
     try{
       const list=await json("http://127.0.0.1:"+port+"/json/list");
       const wanted=new URL(targetUrl);
@@ -78,7 +79,8 @@ async function waitUntil(request,testExpression,label,timeout=30000){
   const deadline=Date.now()+timeout;
   let last=null;
   while(Date.now()<deadline){
-    if(child.exitCode!=null)throw new Error("Chrome exited while waiting for "+label+".\n"+chromeErr);
+    if(child.exitCode!=null)throw new Error("Chrome exited while waiting for "+label+".
+"+chromeErr);
     last=await evaluate(request,testExpression);
     if(last)return last;
     await sleep(300);
@@ -171,9 +173,11 @@ try{
       const error=document.querySelector(".editorStatusMessage")?.textContent?.trim()||"";
       const rows=[...document.querySelectorAll(".editorResultRow")];
       const overlay=document.querySelector(".engineOverlayImage");
-      const pathologyOverlays=[...document.querySelectorAll(".pathologyOverlay")];\n      const detectionBoxes=[...document.querySelectorAll(".editorDetection")];
+      const pathologyOverlays=[...document.querySelectorAll(".pathologyOverlay")];
+      const detectionBoxes=[...document.querySelectorAll(".editorDetection")];
       const firstPathology=pathologyOverlays[0]||null;
-      const panel=document.querySelector(".editorFloating");\n      const runtimeError=document.querySelector(".appRuntimeError")?.textContent?.trim()||"";
+      const panel=document.querySelector(".editorFloating");
+      const runtimeError=document.querySelector(".appRuntimeError")?.textContent?.trim()||"";
       const progress=document.querySelector(".editorProgress");
       return{
         error,
@@ -186,10 +190,12 @@ try{
         panel:!!panel,
         progress:!!progress,
         comparison:[...document.querySelectorAll(".editorPaneBadge")].map(x=>x.textContent?.trim()||""),
-        engine:document.querySelector(".editorEngineState")?.textContent?.trim()||"",\n        runtimeError
+        engine:document.querySelector(".editorEngineState")?.textContent?.trim()||"",
+        runtimeError
       };
     })()`);
-    if(state.runtimeError)throw new Error("Application runtime error: "+JSON.stringify(state));\n    if(state.resultRows>0&&state.overlay&&state.panel&&!state.progress)break;
+    if(state.runtimeError)throw new Error("Application runtime error: "+JSON.stringify(state));
+    if(state.resultRows>0&&state.overlay&&state.panel&&!state.progress)break;
     if(/Checksum|Manifesto browser indisponível|Artefato ONNX indisponível|ONNX Runtime|Falha|Error/i.test(state.error)&&!state.progress){
       throw new Error("Application reported browser-engine failure: "+JSON.stringify(state));
     }

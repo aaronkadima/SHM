@@ -556,3 +556,7 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 
 .model3dReferents{height:28px;display:flex;align-items:center;border-left:1px solid #d8e3e5;padding-left:4px}.model3dReferents select{max-width:92px;height:24px;border:0;border-radius:5px;background:#f3f7f7;color:#536b74;font-size:6.5px;padding:0 4px;outline:none}.model3dReferents select:focus{background:#e8f3f1;color:#0d766e}
 @media(max-width:720px){.model3dReferents select{max-width:58px}.model3dReferents{height:30px}}
+
+
+.model3dGuidesControl{position:relative}.model3dGuidesControl>button{width:28px;height:28px;border:0;background:transparent;color:#607780;font:700 8px/1 system-ui;cursor:pointer}.model3dGuidesControl>button.active{background:#e8f3f1;color:#0d766e}.model3dGuidesMenu{position:absolute;right:0;top:34px;z-index:8;display:grid;gap:3px;min-width:116px;padding:7px;border:1px solid #cfdcdf;border-radius:7px;background:rgba(250,252,252,.97);box-shadow:0 7px 20px rgba(45,68,76,.13)}.model3dGuidesMenu>b{font-size:7px;letter-spacing:.5px;text-transform:uppercase;color:#74888f;padding:2px 3px 4px}.model3dGuidesMenu>button{height:25px;border:0;border-radius:4px;background:#f3f7f7;color:#667b82;text-align:left;font-size:7px;padding:0 7px;cursor:pointer}.model3dGuidesMenu>button.active{background:#e4f2ef;color:#0d766e;font-weight:700}
+@media(max-width:720px){.model3dGuidesControl>button{height:30px}.model3dGuidesMenu{right:-28px}}

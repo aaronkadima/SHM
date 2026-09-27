@@ -366,7 +366,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     data.model?.traverse?.(node=>{if(!node.isMesh||!node.userData?.ifc)return;const active=node.userData.ifc.expressID===expressID;node.visible=true;if(node.material?.emissive){node.material.emissive.setHex(active?0x245466:0x000000);node.material.emissiveIntensity=active?.22:0}if(active)selected=node.userData.ifc});
     if(selected)setIfcSelection(selected);
   }
-  function isolateIfcElement(expressID){const data=view.current;if(!data?.ifc)return;data.model?.traverse?.(node=>{if(node.isMesh&&node.userData?.ifc)node.visible=node.userData.ifc.expressID===expressID})}
+  function ifcBranchIds(expressID){const tree=ifcInfo?.spatialTree,ids=new Set([expressID]);const visit=node=>{if(!node)return false;const found=node.expressID===expressID||(node.children||[]).some(visit);if(found&&node.expressID===expressID){const collect=n=>{ids.add(n.expressID);(n.children||[]).forEach(collect)};collect(node)}return found};visit(tree);return ids}\n  function isolateIfcElement(expressID){const data=view.current;if(!data?.ifc)return;const ids=ifcBranchIds(expressID);data.model?.traverse?.(node=>{if(node.isMesh&&node.userData?.ifc)node.visible=ids.has(node.userData.ifc.expressID)})}
   function restoreIfc(){const data=view.current;if(!data?.ifc)return;data.model?.traverse?.(node=>{if(node.isMesh&&node.userData?.ifc){node.visible=true;if(node.material?.emissive){node.material.emissive.setHex(0);node.material.emissiveIntensity=0}}});setIfcSelection(null)}
   function setPointMode(next){
     setMode(next);view.current?.setPointMode?.(next);

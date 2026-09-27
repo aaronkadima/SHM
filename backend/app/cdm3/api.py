@@ -74,6 +74,38 @@ async def las_summary(file: UploadFile = File(...)):
     return {"summary": summary.as_dict(), "environment": environment}
 
 
+@router.post("/alignment/paired-points")
+async def align_spatial_frames(
+    correspondences_json: str = Form(...),
+):
+    """Solve an auditable rigid point-cloud-world -> IFC-local transform from paired 3D controls."""
+    from .alignment import align_corresponding_points
+    try:
+        payload = json.loads(correspondences_json)
+        pairs = payload.get("correspondences", []) if isinstance(payload, dict) else payload
+        if not isinstance(pairs, list):
+            raise ValueError("correspondences must be a list")
+        source, target = [], []
+        for index, row in enumerate(pairs):
+            if not isinstance(row, dict):
+                raise ValueError(f"Correspondence {index} must be an object")
+            src = row.get("source_xyz") or row.get("point_cloud_xyz")
+            dst = row.get("target_xyz") or row.get("ifc_xyz")
+            if not isinstance(src, (list, tuple)) or len(src) != 3:
+                raise ValueError(f"Correspondence {index} requires source_xyz=[X,Y,Z]")
+            if not isinstance(dst, (list, tuple)) or len(dst) != 3:
+                raise ValueError(f"Correspondence {index} requires target_xyz=[X,Y,Z]")
+            source.append(src); target.append(dst)
+        result = align_corresponding_points(source, target)
+    except ValueError as exc:
+        raise HTTPException(400, f"Invalid spatial alignment input: {exc}") from exc
+    except Exception as exc:
+        raise HTTPException(422, f"Spatial alignment failed: {type(exc).__name__}: {exc}") from exc
+    contract = result.as_dict()
+    contract["control_point_count"] = len(source)
+    return {"engine_id": "cdm_3", "spatial_transform": contract}
+
+
 @router.post("/registration/pnp")
 async def register_image_to_spatial(
     image_width: int = Form(...),

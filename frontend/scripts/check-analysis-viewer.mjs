@@ -233,6 +233,8 @@ check(modelViewport.includes("setDamageGuides=(records=[])")&&modelViewport.incl
 
 check(modelViewport.includes("selectedDamage")&&modelViewport.includes("cdm3DamageCard")&&modelViewport.includes("damageStation(record)")&&modelViewport.includes("Posição longitudinal")&&modelViewport.includes("Erro reproj."),"Selectable CDM-3 damage must expose a factual technical inspection card and alignment-derived section navigation");
 
+check(cdm3Projection.includes('schema:"CDM3-BrIM-Damage/1.1"')&&cdm3Projection.includes("inspection:{campaign_id")&&cdm3Projection.includes("temporal:{track_id")&&cdm3Projection.includes("buildTemporalDamageTracks")&&modelViewport.includes("Track 4D"),"CDM-3 BrIM records must preserve factual inspection metadata and explicit opt-in temporal tracking without synthesizing severity");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

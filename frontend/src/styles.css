@@ -580,3 +580,6 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 @media(max-width:720px){.spatial4dTimeline{grid-template-columns:auto 22px 1fr 22px}.spatial4dTimeline>span,.spatial4dTimeline>small{grid-column:1/-1}}
 
 .spatial4dTimeline .timelinePlay{font-size:8px;font-weight:700;background:#0d766e;color:#fff}.spatial4dTimeline:has(.timelinePlay){grid-template-columns:auto 22px 22px minmax(70px,1fr) 22px auto auto}
+
+
+.cdm3TrackHistory{margin:6px 7px;padding:6px;border:1px solid #dce5e7;border-radius:6px;background:#f8fbfb;color:#527079}.cdm3TrackHistory>header{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}.cdm3TrackHistory>header b{font-size:7px;text-transform:uppercase;letter-spacing:.35px}.cdm3TrackHistory>header span,.cdm3TrackHistory>small{font-size:6.5px;color:#84969b}.cdm3TrackHistory svg{display:block;width:100%;height:54px;overflow:visible}.cdm3TrackHistory svg circle{fill:currentColor}.cdm3TrackHistory>div{display:flex;gap:5px;overflow-x:auto;padding-top:2px}.cdm3TrackHistory>div span{display:grid;grid-template-columns:5px auto;gap:1px 3px;min-width:max-content;font-size:6px}.cdm3TrackHistory>div span i{width:4px;height:4px;border-radius:50%;background:#0d766e;align-self:center}.cdm3TrackHistory>div span b{grid-column:2;font-size:6.5px}

@@ -102,11 +102,10 @@ try{
     localStorage.removeItem("shmInspectionMetaDraft");
     return true;
   })()`);
-  await request("Page.reload",{ignoreCache:true});
-  await sleep(500);
-  await waitUntil(request,'document.readyState==="complete"',"reloaded SHM document",30000);
-  await evaluate(request,'(()=>{if(!document.querySelector(".analysisEditor"))location.hash="#/analysis";return true})()');
-  await waitUntil(request,'!!document.querySelector(".analysisEditor")',"reloaded analysis workspace",45000);
+  const analysisUrl=new URL(targetUrl);analysisUrl.hash="#/analysis";
+  await request("Page.navigate",{url:analysisUrl.toString()});
+  await waitUntil(request,`document.readyState==="complete"&&location.hash==="#/analysis"`,"analysis route navigation",45000);
+  await waitUntil(request,'!!document.querySelector(".analysisEditor")',"analysis workspace after explicit navigation",45000);
 
   await evaluate(request,'(()=>{location.hash="#/settings";return true})()');
   await waitUntil(request,`!!document.querySelector(".analysisSettings")&&!!document.querySelector('.settingsEngineCard[data-engine-id="${engineId}"]')`,"settings engine card",30000);

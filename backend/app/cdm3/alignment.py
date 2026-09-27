@@ -11,6 +11,16 @@ class IcpResult:
     rmse_history: list[float]
     iterations: int
     converged: bool
+    source_frame: str = "point_cloud_world"
+    target_frame: str = "ifc_model_local"
+
+    @property
+    def rmse(self) -> float | None:
+        return float(self.rmse_history[-1]) if self.rmse_history else None
+
+    @property
+    def frame_compatible(self) -> bool:
+        return bool(self.converged and self.rmse is not None and np.isfinite(self.rmse))
 
     def apply(self, points: np.ndarray) -> np.ndarray:
         return points @ self.rotation.T + self.translation
@@ -20,6 +30,20 @@ class IcpResult:
         m[:3, :3] = self.rotation
         m[:3, 3] = self.translation
         return m
+
+    def as_dict(self) -> dict:
+        return {
+            "schema": "CDM3-SpatialTransform/1.0",
+            "method": "rigid_icp_kabsch",
+            "source_frame": self.source_frame,
+            "target_frame": self.target_frame,
+            "matrix4": self.as_matrix4().tolist(),
+            "rmse": self.rmse,
+            "rmse_history": [float(v) for v in self.rmse_history],
+            "iterations": int(self.iterations),
+            "converged": bool(self.converged),
+            "frame_compatible": self.frame_compatible,
+        }
 
 
 def _kabsch(source: np.ndarray, target: np.ndarray):

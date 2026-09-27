@@ -37,7 +37,7 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: CDM-3 BrIM IFC export contract\n        run: python backend/tests/check_cdm3_brim_ifc_export.py\n\n      - name: Engine catalog
+      - name: Engine catalog
         working-directory: frontend
         run: node scripts/check-engine-catalog.mjs
 

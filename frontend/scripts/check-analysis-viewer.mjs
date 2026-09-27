@@ -221,6 +221,8 @@ check(modelViewport.includes("model3dToolbar")&&modelViewport.includes("togglePr
 
 check(modelViewport.includes("setClip(axis)")&&modelViewport.includes("localClippingEnabled=true")&&modelViewport.includes("toggleGhost")&&modelViewport.includes("measureMode")&&modelViewport.includes("model3dInspectMenu"),"3D infrastructure canvas must expose clipping, ghost transparency and two-point measurement inspection tools");
 
+check(modelViewport.includes("stepLongitudinalStation")&&modelViewport.includes("viewCrossSection")&&modelViewport.includes("STA%")&&modelViewport.includes("Estação longitudinal relativa"),"IFC bridge navigation must expose explicit relative station stepping and transverse camera navigation without presenting inferred chainage as real");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

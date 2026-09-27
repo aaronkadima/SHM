@@ -158,7 +158,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     setError("");setFallback(false);setLoading(true);setViewMenu(false);setProjection("perspective");setInspectMenu(false);setClipAxis("");setGhostMode(false);setMeasureMode(false);setMeasurement(null);setStationRatio(.5);setLoadProgress(null);setModes([]);setIfcSelection(null);setIfcInfo(null);setIfcFilter("");setIfcExpanded({});setIfcDamageLinks([]);setSpatialNotice("");setPathologyStats(null);setGeometryStats(null);setPhotometricStats(null);
     const el=mount.current,scene=new THREE.Scene();scene.background=new THREE.Color(0xdce4e7);
     const camera=new THREE.PerspectiveCamera(45,1,.01,100000);
-    const pickMarkers=new THREE.Group(),measureMarkers=new THREE.Group();scene.add(pickMarkers);scene.add(measureMarkers);
+    const pickMarkers=new THREE.Group(),measureMarkers=new THREE.Group(),infrastructureGuides=new THREE.Group();infrastructureGuides.name="IFC infrastructure guides";scene.add(pickMarkers);scene.add(measureMarkers);scene.add(infrastructureGuides);
     let renderer,vectorFallback=false,dirty=true;
     try{renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.localClippingEnabled=true}
     catch{renderer=new SVGRenderer();vectorFallback=true;setFallback(true)}
@@ -274,7 +274,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       if(rect.width<1||rect.height<1)return;
       const mouse=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height*2-1));
       const raycaster=new THREE.Raycaster();raycaster.params.Points.threshold=Math.max((view.current?.radius||1)/180,.002);raycaster.setFromCamera(mouse,camera);
-      const hits=raycaster.intersectObject(model,true);
+      const guideHits=raycaster.intersectObjects(infrastructureGuides.children,true);\n      const referentHit=guideHits.find(item=>item.object?.userData?.ifcReferent);\n      if(referentHit){navigateReferent(referentHit.object.userData.ifcReferent);dirty=true;return}\n      const hits=raycaster.intersectObject(model,true);
       if(measureMode){
         const surfaceHit=hits.find(item=>item.object?.isMesh||item.object?.isPoints);
         if(surfaceHit){
@@ -316,6 +316,21 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       if(disposed){releaseUrl();return}
       new GLTFLoader().load(url,g=>fit(g.scene),onProgress,fail);
     };
+    const buildInfrastructureGuides=(info,radius)=>{
+      infrastructureGuides.clear();
+      const alignment=info?.alignments?.find(item=>item?.hasSampledCurve&&item.points?.length>1);
+      if(alignment){
+        const geometry=new THREE.BufferGeometry().setFromPoints(alignment.points.map(point=>new THREE.Vector3(...point)));
+        const line=new THREE.Line(geometry,new THREE.LineBasicMaterial({color:0x0d766e,transparent:true,opacity:.88,depthTest:false}));
+        line.renderOrder=20;line.userData.infrastructureGuide="alignment";infrastructureGuides.add(line);
+      }
+      for(const referent of info?.referents||[]){
+        if(!referent.hasExplicitPosition)continue;
+        const station=referentStation(referent);if(!station?.point)continue;
+        const marker=new THREE.Mesh(new THREE.SphereGeometry(Math.max(radius/115,.01),12,8),new THREE.MeshBasicMaterial({color:0xe29a32,depthTest:false}));
+        marker.position.copy(station.point);marker.renderOrder=21;marker.userData.ifcReferent=referent;marker.userData.station=station;infrastructureGuides.add(marker);
+      }
+    };
     const loadIfc=async()=>{
       try{
         setSpatialNotice("IFC · tesselação geométrica IFC4.3 em andamento…");
@@ -325,7 +340,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         const info=group.userData?.ifc||{};
         setIfcInfo(info);
         setSpatialNotice("IFC4.3 renderizado · "+Number(info.geometryCount||0).toLocaleString("pt-BR")+" geometrias · "+Number(info.triangleCount||0).toLocaleString("pt-BR")+" triângulos"+(info.alignmentCount?" · "+info.alignmentCount+" alinhamento(s)":"")+".");
-        fit(group,{ifc:true,ifcInfo:info});
+        fit(group,{ifc:true,ifcInfo:info});\n        requestAnimationFrame(()=>{if(view.current?.ifc){buildInfrastructureGuides(info,view.current.radius);dirty=true}});
       }catch(e){fail(e)}
     };
     try{

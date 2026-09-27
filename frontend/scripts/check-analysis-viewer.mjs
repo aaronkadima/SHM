@@ -254,6 +254,8 @@ check(workspace.includes("temporalTracks={spatialTimeline?.tracks||[]}")&&modelV
 
 check(!workspace.includes("useState(null);\\\\n  const [spatialBaseline"),"analysis workspace source must not contain a literal escaped newline before spatial 4D state");
 
+check(modelViewport.includes("active=view.current?.camera||camera")&&modelViewport.includes("active.isOrthographicCamera")&&modelViewport.includes("halfWidth=halfHeight*aspect"),"3D viewport resize must update the currently active perspective or orthographic camera");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

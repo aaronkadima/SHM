@@ -9,7 +9,8 @@ const engineCodeCatalog=fs.readFileSync(new URL("../src/engineCodeCatalog.js",im
 const pagesWorkflow=fs.readFileSync(new URL("../../.github/workflows/pages.yml",import.meta.url),"utf8");
 const modelViewport=fs.readFileSync(new URL("../src/ModelViewport.jsx",import.meta.url),"utf8");
 const modelAssetValidation=fs.readFileSync(new URL("../src/modelAssetValidation.js",import.meta.url),"utf8");
-const ifcGeometry=fs.readFileSync(new URL("../src/ifcGeometry.js",import.meta.url),"utf8");\nconst cdm3Projection=fs.readFileSync(new URL("../src/cdm3RegisteredProjection.js",import.meta.url),"utf8");
+const ifcGeometry=fs.readFileSync(new URL("../src/ifcGeometry.js",import.meta.url),"utf8");
+const cdm3Projection=fs.readFileSync(new URL("../src/cdm3RegisteredProjection.js",import.meta.url),"utf8");
 const failures=[];
 const check=(ok,msg)=>{if(!ok)failures.push(msg)};
 

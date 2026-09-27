@@ -90,10 +90,10 @@ async function waitUntil(request,testExpression,label,timeout=30000){
 
 let ws;
 try{
-  await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"chrome_spawned",targetUrl,fixtureUrl},null,2));
+  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"chrome_spawned",targetUrl,fixtureUrl},null,2));
   const target=await waitTarget();
   ws=await connect(target.webSocketDebuggerUrl);
-  await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"devtools_connected",target:{url:target.url}},null,2));
+  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"devtools_connected",target:{url:target.url}},null,2));
   const request=cdp(ws);
   await request("Runtime.enable");
   await request("Page.enable");
@@ -109,7 +109,7 @@ try{
   const analysisUrl=new URL(targetUrl);analysisUrl.hash="#/analysis";
   await request("Page.navigate",{url:analysisUrl.toString()});
   await waitUntil(request,`document.readyState==="complete"&&location.hash==="#/analysis"`,"analysis route navigation",45000);
-  await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"analysis_route_ready"},null,2));
+  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"analysis_route_ready"},null,2));
   try{await waitUntil(request,'!!document.querySelector(".analysisEditor")',"analysis workspace after explicit navigation",45000)}
   catch(error){const diagnostic=await evaluate(request,'JSON.stringify({href:location.href,hash:location.hash,title:document.title,ready:document.readyState,text:(document.body?.innerText||"").slice(0,1200),html:(document.body?.innerHTML||"").slice(0,1200)})');throw new Error(error.message+" Diagnostic: "+diagnostic)}
 
@@ -145,7 +145,7 @@ try{
     }
     throw new Error("timed out waiting for same-origin update check");
   })()`);
-  console.log("APP_BROWSER_UPDATE_CHECK_PASS",JSON.stringify({engineId,...updateState}));\n  await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"update_check_pass",updateState},null,2));
+  console.log("APP_BROWSER_UPDATE_CHECK_PASS",JSON.stringify({engineId,...updateState}));\n  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"update_check_pass",updateState},null,2));
 
   await evaluate(request,'(()=>{document.querySelector(".settingsTop button")?.click();return true})()');
   await waitUntil(request,'!!document.querySelector(".analysisEditor")&&!!document.querySelector(\'.editorTopActions input[type="file"]\')',"analysis workspace after settings",30000);
@@ -161,11 +161,11 @@ try{
     input.dispatchEvent(new Event("change",{bubbles:true}));
     return {bytes:blob.size,type:file.type};
   })()`);
-  console.log("APP_BROWSER_SMOKE_FIXTURE",JSON.stringify(injected));\n  await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"fixture_injected",injected},null,2));
+  console.log("APP_BROWSER_SMOKE_FIXTURE",JSON.stringify(injected));\n  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"fixture_injected",injected},null,2));
 
   await waitUntil(request,'(()=>{const b=document.querySelector(".editorPrimary");return !!b&&!b.disabled&&document.querySelector(".editorEngineState")?.textContent.includes("browser local")})()',"browser engine ready",30000);
   const before=await evaluate(request,'({engine:document.querySelector(".editorEngineState")?.textContent||"",status:document.querySelector(".editorStatusMessage")?.textContent||""})');
-  console.log("APP_BROWSER_SMOKE_READY",JSON.stringify(before));\n  await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"browser_ready",before},null,2));
+  console.log("APP_BROWSER_SMOKE_READY",JSON.stringify(before));\n  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"browser_ready",before},null,2));
 
   await evaluate(request,'(()=>{document.querySelector(".editorPrimary")?.click();return true})()');
 
@@ -197,15 +197,15 @@ try{
         runtimeError
       };
     })()`);
-    if(state.runtimeError){await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"runtime_error",state},null,2));throw new Error("Application runtime error: "+JSON.stringify(state));}
+    if(state.runtimeError){await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"runtime_error",state},null,2));throw new Error("Application runtime error: "+JSON.stringify(state));}
     if(state.resultRows>0&&state.overlay&&state.panel&&!state.progress)break;
     if(/Checksum|Manifesto browser indisponível|Artefato ONNX indisponível|ONNX Runtime|Falha|Error/i.test(state.error)&&!state.progress){
-      await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"engine_failure",state},null,2));\n      throw new Error("Application reported browser-engine failure: "+JSON.stringify(state));
+      await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"engine_failure",state},null,2));\n      throw new Error("Application reported browser-engine failure: "+JSON.stringify(state));
     }
     await sleep(500);
   }
   if(!(state?.resultRows>0&&state?.overlay&&state?.panel&&!state?.progress)){
-    await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,state},null,2));\n    throw new Error("Full application did not reveal browser result/overlay: "+JSON.stringify(state));
+    await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,state},null,2));\n    throw new Error("Full application did not reveal browser result/overlay: "+JSON.stringify(state));
   }
   if(state.overlayType!=="detections"&&!String(state.overlaySrc||"").startsWith("data:image/png;base64,"))throw new Error("Raster overlay is not an inline PNG result.");
   if(!state.comparison.some(x=>/camadas|detec/i.test(x)))throw new Error("Viewer did not switch to an overlay-capable comparison.");

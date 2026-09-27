@@ -223,3 +223,5 @@ if(failures.length){
   process.exit(1);
 }
 console.log("Analysis viewer composition passed: original image remains under detection layers in overlay, side-by-side and temporal modes.");
+
+check(modelViewport.includes("model3dToolbar")&&modelViewport.includes("toggleProjection")&&modelViewport.includes("fitModel")&&modelViewport.includes('setView("iso")')&&modelViewport.includes('setView("top")')&&modelViewport.includes('setView("left")'),"3D canvas must expose compact infrastructure navigation, fit and perspective/orthographic controls");

@@ -326,7 +326,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       }
       for(const referent of info?.referents||[]){
         if(!referent.hasExplicitPosition)continue;
-        const station=referentStation(referent);if(!station?.point)continue;
+        const station=referentStation(referent,info);if(!station?.point)continue;
         const marker=new THREE.Mesh(new THREE.SphereGeometry(Math.max(radius/115,.01),12,8),new THREE.MeshBasicMaterial({color:0xe29a32,depthTest:false}));
         marker.position.copy(station.point);marker.renderOrder=21;marker.userData.ifcReferent=referent;marker.userData.station=station;infrastructureGuides.add(marker);
       }
@@ -475,8 +475,8 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     const axis=data.longitudinalAxis||(size.x>=size.z?"x":"z"),target=data.center.clone(),distance=data.radius*1.45;if(data.station!=null)target[axis]=data.station;
     const offset=axis==="x"?new THREE.Vector3(0,0,distance):new THREE.Vector3(distance,0,0);data.camera.position.copy(target).add(offset);data.camera.up.set(0,1,0);data.controls.target.copy(target);data.camera.lookAt(target);data.controls.update();
   }
-  function referentStation(referent){
-    const alignment=ifcInfo?.alignments?.find(item=>item?.hasSampledCurve&&item.points?.length>1),coords=referent?.coordinates;
+  function referentStation(referent,info=ifcInfo){
+    const alignment=info?.alignments?.find(item=>item?.hasSampledCurve&&item.points?.length>1),coords=referent?.coordinates;
     if(!alignment||!coords?.length)return null;
     const target=new THREE.Vector3(Number(coords[0])||0,Number(coords[2]??0)||0,Number(coords[1]??0)||0),points=alignment.points,total=alignment.sampledLength||0;
     let walked=0,best=null;

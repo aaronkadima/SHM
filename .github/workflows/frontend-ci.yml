@@ -290,7 +290,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: full-app-smoke-diagnostic
-          path: frontend/app-smoke-diagnostic.json
+          path: /tmp/shm-app-smoke-diagnostic.json
           if-no-files-found: ignore
 
       - name: Full app smoke · SegFormer

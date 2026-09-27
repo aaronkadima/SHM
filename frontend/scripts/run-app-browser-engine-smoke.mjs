@@ -171,7 +171,7 @@ try{
       const error=document.querySelector(".editorStatusMessage")?.textContent?.trim()||"";
       const rows=[...document.querySelectorAll(".editorResultRow")];
       const overlay=document.querySelector(".engineOverlayImage");
-      const pathologyOverlays=[...document.querySelectorAll(".pathologyOverlay")];
+      const pathologyOverlays=[...document.querySelectorAll(".pathologyOverlay")];\n      const detectionBoxes=[...document.querySelectorAll(".editorDetection")];
       const firstPathology=pathologyOverlays[0]||null;
       const panel=document.querySelector(".editorFloating");\n      const runtimeError=document.querySelector(".appRuntimeError")?.textContent?.trim()||"";
       const progress=document.querySelector(".editorProgress");
@@ -179,9 +179,9 @@ try{
         error,
         resultRows:rows.length,
         resultText:rows.map(x=>x.textContent?.trim()||""),
-        overlay:!!overlay||pathologyOverlays.length>0,
-        overlayType:overlay?"engine":pathologyOverlays.length>0?"pathology":"none",
-        overlayCount:overlay?1:pathologyOverlays.length,
+        overlay:!!overlay||pathologyOverlays.length>0||detectionBoxes.length>0,
+        overlayType:overlay?"engine":pathologyOverlays.length>0?"pathology":detectionBoxes.length>0?"detections":"none",
+        overlayCount:overlay?1:pathologyOverlays.length||detectionBoxes.length,
         overlaySrc:overlay?.getAttribute("src")||firstPathology?.getAttribute("src")||"",
         panel:!!panel,
         progress:!!progress,
@@ -198,7 +198,7 @@ try{
   if(!(state?.resultRows>0&&state?.overlay&&state?.panel&&!state?.progress)){
     throw new Error("Full application did not reveal browser result/overlay: "+JSON.stringify(state));
   }
-  if(!String(state.overlaySrc||"").startsWith("data:image/png;base64,"))throw new Error("Overlay is not an inline PNG result.");
+  if(state.overlayType!=="detections"&&!String(state.overlaySrc||"").startsWith("data:image/png;base64,"))throw new Error("Raster overlay is not an inline PNG result.");
   if(!state.comparison.some(x=>/camadas|detec/i.test(x)))throw new Error("Viewer did not switch to an overlay-capable comparison.");
   if(engineId==="cdm_1"&&state.overlayType!=="pathology")throw new Error("CDM-1 did not render pathology layers.");
   console.log("APP_BROWSER_ENGINE_SMOKE_PASS",JSON.stringify(state));

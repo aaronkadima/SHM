@@ -350,14 +350,14 @@ export function matchTemporalDamageCampaigns(previousRecords=[],currentRecords=[
       if(used.has(index)||previous?.damage_class!==current?.damage_class)return null;
       const previousHost=previous?.brim?.global_id||previous?.brim?.express_id,currentHost=current?.brim?.global_id||current?.brim?.express_id;
       if(previousHost!=null&&currentHost!=null&&String(previousHost)!==String(currentHost))return null;
-      const p=damageCentroid(previous);if(!p)return null;return {previous,index,distance:Math.hypot(c[0]-p[0],c[1]-p[1],c[2]-p[2])}
+      const p=damageCentroid(previous);if(!p)return null;return {previous,index,previousCentroid:p,distance:Math.hypot(c[0]-p[0],c[1]-p[1],c[2]-p[2])}
     }).filter(Boolean).filter(item=>item.distance<=maxCentroidDistance).sort((a,b)=>a.distance-b.distance);
     const best=candidates[0];if(!best){matched.push({...current,temporal:{...(current.temporal||{}),change_status:"unmatched"}});continue}
     used.add(best.index);
-    const priorMetric=comparableDamageMetric(best.previous),metric=comparableDamageMetric(current);let change_status="not_comparable",change_ratio=null;
-    if(priorMetric&&metric&&priorMetric.kind===metric.kind&&priorMetric.value>0){change_ratio=(metric.value-priorMetric.value)/priorMetric.value;change_status=Math.abs(change_ratio)<=stableTolerance?"stable":change_ratio>0?"grown":"reduced"}
+    const priorMetric=comparableDamageMetric(best.previous),metric=comparableDamageMetric(current);let change_status="not_comparable",change_ratio=null,metric_delta=null,metric_kind=null;
+    if(priorMetric&&metric&&priorMetric.kind===metric.kind&&priorMetric.value>0){metric_kind=metric.kind;metric_delta=metric.value-priorMetric.value;change_ratio=metric_delta/priorMetric.value;change_status=Math.abs(change_ratio)<=stableTolerance?"stable":change_ratio>0?"grown":"reduced"}
     const track_id=best.previous?.temporal?.track_id||("cdm3-track-"+String(best.previous?.id||best.index));
-    matched.push({...current,temporal:{...(current.temporal||{}),track_id,previous_observation_id:best.previous?.id||null,change_status,change_ratio,match_distance_3d:best.distance,match_method:"class_host_centroid_nearest"}});
+    matched.push({...current,temporal:{...(current.temporal||{}),track_id,previous_observation_id:best.previous?.id||null,change_status,change_ratio,metric_kind,metric_delta,previous_metric_value:priorMetric?.value??null,current_metric_value:metric?.value??null,match_distance_3d:best.distance,previous_centroid_3d:best.previousCentroid,current_centroid_3d:c,match_method:"class_host_centroid_nearest"}});
   }
   return matched;
 }

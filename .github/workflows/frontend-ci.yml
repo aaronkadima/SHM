@@ -281,7 +281,11 @@ jobs:
           cat /tmp/shm-app-browser-vite.log
           exit 1
 
-      - name: Syntax check · full app browser smoke\n        working-directory: frontend\n        run: node --check scripts/run-app-browser-engine-smoke.mjs\n\n      - name: Full app smoke · YOLOv8n
+      - name: Syntax check · full app browser smoke
+        working-directory: frontend
+        run: node --check scripts/run-app-browser-engine-smoke.mjs
+
+      - name: Full app smoke · YOLOv8n
         working-directory: frontend
         run: CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)" APP_SMOKE_URL="http://127.0.0.1:4181/#/analysis" APP_SMOKE_ENGINE="yolov8n_public_crack_seg" APP_SMOKE_FIXTURE="/browser-models/yolov8n_public_crack_seg.parity.png" APP_SMOKE_TIMEOUT_MS=180000 APP_SMOKE_DEBUG_PORT=9231 node scripts/run-app-browser-engine-smoke.mjs
 

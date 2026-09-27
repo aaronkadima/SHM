@@ -95,6 +95,8 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
     }
     let alignments=[];
     try{alignments=api.GetAllAlignments?.(modelID)||[]}catch{}
+    let spatialTree=null;
+    try{spatialTree=api.GetSpatialStructure?.(modelID,false)||null}catch{}
     if(!root.children.length)throw new Error("O IFC foi lido, mas nenhuma geometria tessellável foi produzida.");
     root.userData.ifc={
       engine:"web-ifc",
@@ -105,7 +107,8 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       alignmentCount:Array.isArray(alignments)?alignments.length:0,
       coordinateToOrigin:true,
       elements:Object.values(elementIndex),
-      elementCount:Object.keys(elementIndex).length
+      elementCount:Object.keys(elementIndex).length,
+      spatialTree
     };
     onProgress?.({loaded:100,total:100});
     return root;

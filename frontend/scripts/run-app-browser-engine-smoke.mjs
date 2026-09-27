@@ -31,8 +31,7 @@ async function waitTarget(){
   const deadline=Date.now()+30000;
   let lastError=null;
   while(Date.now()<deadline){
-    if(child.exitCode!=null)throw new Error("Chrome exited before DevTools became ready.
-"+chromeErr);
+    if(child.exitCode!=null)throw new Error("Chrome exited before DevTools became ready.\n"+chromeErr);
     try{
       const list=await json("http://127.0.0.1:"+port+"/json/list");
       const wanted=new URL(targetUrl);
@@ -79,8 +78,7 @@ async function waitUntil(request,testExpression,label,timeout=30000){
   const deadline=Date.now()+timeout;
   let last=null;
   while(Date.now()<deadline){
-    if(child.exitCode!=null)throw new Error("Chrome exited while waiting for "+label+".
-"+chromeErr);
+    if(child.exitCode!=null)throw new Error("Chrome exited while waiting for "+label+".\n"+chromeErr);
     last=await evaluate(request,testExpression);
     if(last)return last;
     await sleep(300);
@@ -200,12 +198,14 @@ try{
     if(state.runtimeError){await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"runtime_error",state},null,2));throw new Error("Application runtime error: "+JSON.stringify(state));}
     if(state.resultRows>0&&state.overlay&&state.panel&&!state.progress)break;
     if(/Checksum|Manifesto browser indisponível|Artefato ONNX indisponível|ONNX Runtime|Falha|Error/i.test(state.error)&&!state.progress){
-      await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"engine_failure",state},null,2));\n      throw new Error("Application reported browser-engine failure: "+JSON.stringify(state));
+      await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"engine_failure",state},null,2));
+      throw new Error("Application reported browser-engine failure: "+JSON.stringify(state));
     }
     await sleep(500);
   }
   if(!(state?.resultRows>0&&state?.overlay&&state?.panel&&!state?.progress)){
-    await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,state},null,2));\n    throw new Error("Full application did not reveal browser result/overlay: "+JSON.stringify(state));
+    await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,state},null,2));
+    throw new Error("Full application did not reveal browser result/overlay: "+JSON.stringify(state));
   }
   if(state.overlayType!=="detections"&&!String(state.overlaySrc||"").startsWith("data:image/png;base64,"))throw new Error("Raster overlay is not an inline PNG result.");
   if(!state.comparison.some(x=>/camadas|detec/i.test(x)))throw new Error("Viewer did not switch to an overlay-capable comparison.");

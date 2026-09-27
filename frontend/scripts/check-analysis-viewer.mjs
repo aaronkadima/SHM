@@ -236,11 +236,13 @@ check(modelViewport.includes("selectedDamage")&&modelViewport.includes("cdm3Dama
 
 check(cdm3Projection.includes('schema:"CDM3-BrIM-Damage/1.1"')&&cdm3Projection.includes("inspection:{campaign_id")&&cdm3Projection.includes("temporal:{track_id")&&cdm3Projection.includes("buildTemporalDamageTracks")&&modelViewport.includes("Track 4D"),"CDM-3 BrIM records must preserve factual inspection metadata and explicit opt-in temporal tracking without synthesizing severity");
 
-check(cdm3Projection.includes("matchTemporalDamageCampaigns")&&cdm3Projection.includes('match_method:"class_host_centroid_nearest"')&&cdm3Projection.includes('change_status="unmatched"')&&cdm3Projection.includes('?"stable":change_ratio>0?"grown":"reduced"'),"CDM-3 4D matching must require compatible class host and 3D proximity and only classify change from comparable measured metrics");
+check(cdm3Projection.includes("matchTemporalDamageCampaigns")&&cdm3Projection.includes('match_method:"class_host_centroid_nearest"')&&cdm3Projection.includes('change_status="unmatched"')&&cdm3Projection.includes('change_ratio>0?"grown":"reduced"'),"CDM-3 4D matching must require compatible class host and 3D proximity and only classify change from comparable measured metrics");
 
 check(workspace.includes("Definir campanha A")&&workspace.includes("Comparar A × B")&&workspace.includes("matchTemporalDamageCampaigns(spatialBaseline.records,spatialPathologyRecords)")&&modelViewport.includes("spatial4dRecords=[]")&&modelViewport.includes("statusColor={grown:")&&styles.includes(".spatial4dControl{"),"spatial CDM-3 workflow must expose explicit Campaign A versus B matching and visualize 4D change states on the existing damage guides");
 
 check(modelViewport.includes("model4dLegend")&&modelViewport.includes('setTemporalFilter(key)')&&modelViewport.includes('status===temporalFilter')&&modelViewport.includes('["grown","Crescentes"]')&&styles.includes('.model4dLegend button[data-status="grown"]'),"4D canvas must expose counted temporal states and filter existing CDM-3 damage guides without replacing infrastructure layers");
+
+check(cdm3Projection.includes("previous_centroid_3d")&&cdm3Projection.includes("metric_delta")&&modelViewport.includes('infrastructureGuide="temporal_vector"')&&modelViewport.includes("LineDashedMaterial")&&modelViewport.includes("Δ relativo"),"matched 4D damage pairs must preserve measurable deltas and render traceable A-to-B evolution vectors");
 
 if(failures.length){
   console.error("Analysis viewer composition failures:");

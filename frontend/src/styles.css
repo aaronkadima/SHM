@@ -620,3 +620,9 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 .modelViewCube{position:absolute;z-index:13;right:18px;top:18px;width:72px;height:72px;filter:drop-shadow(0 5px 10px rgba(24,46,55,.14))}
 .modelViewCube button{position:absolute;border:1px solid #c9d7dc;background:rgba(250,252,252,.95);color:#536b74;font:700 8px/1 system-ui;cursor:pointer}.modelViewCube button:hover{background:#e8f3f1;color:#0d766e}.cubeIso{left:23px;top:23px;width:28px;height:28px;transform:rotate(45deg);border-radius:4px}.cubeIso::first-letter{transform:rotate(-45deg)}.cubeTop{left:22px;top:0;width:30px;height:20px;border-radius:5px 5px 2px 2px}.cubeFront{left:3px;top:26px;width:20px;height:28px;border-radius:5px 2px 2px 5px}.cubeRight{right:0;top:26px;width:20px;height:28px;border-radius:2px 5px 5px 2px}
 @media(max-width:900px){.model3dToolbar{left:8px;top:8px}.ifcBrimPanel{left:8px!important;top:50px!important;max-width:min(300px,calc(100% - 16px))!important}.spatialFramePanel{right:8px!important;bottom:8px!important;width:min(400px,calc(100% - 16px))!important}.modelViewCube{right:10px;top:10px;transform:scale(.86);transform-origin:top right}}
+
+/* Canvas chrome: reserve right rail for camera + ViewCube */
+.editorCameraEntry{top:16px!important;right:16px!important;z-index:16!important}
+.modelViewCube{top:76px!important;right:18px!important}
+.model3dToolbar{max-width:min(520px,calc(100% - 150px))!important;overflow:visible!important}
+@media(max-width:900px){.editorCameraEntry{top:8px!important;right:8px!important}.modelViewCube{top:62px!important;right:10px!important}.model3dToolbar{max-width:calc(100% - 118px)!important}}

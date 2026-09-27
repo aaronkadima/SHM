@@ -418,7 +418,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
   }
   function toggleGhost(){
     const data=view.current;if(!data?.model)return;const next=!ghostMode;setGhostMode(next);
-    data.model.traverse?.(node=>{if(!node.material)return;(Array.isArray(node.material)?node.material:[node.material]).forEach(mat=>{if(mat.userData._baseOpacity==null)mat.userData._baseOpacity=mat.opacity??1;mat.transparent=next||mat.userData._baseOpacity<1;mat.opacity=next?.22:mat.userData._baseOpacity;mat.depthWrite=!next;mat.needsUpdate=true})});
+    data.model.traverse?.(node=>{if(!node.material)return;(Array.isArray(node.material)?node.material:[node.material]).forEach(mat=>{if(mat.userData._baseOpacity==null)mat.userData._baseOpacity=mat.opacity??1;mat.transparent=next||mat.userData._baseOpacity<1;mat.opacity=next ? .22 : mat.userData._baseOpacity;mat.depthWrite=!next;mat.needsUpdate=true})});
   }
   function resetInspection(){
     const data=view.current;if(!data?.model)return;setClipAxis("");setGhostMode(false);setMeasureMode(false);setMeasurement(null);measureMarkers.clear();

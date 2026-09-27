@@ -67,6 +67,7 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       CIRCLE_SEGMENTS_HIGH:24
     });
     const root=new THREE.Group();
+    const elementIndex={};
     root.name=file.name;
     const meshes=api.LoadAllGeometry(modelID);
     const meshCount=meshes.size();
@@ -80,7 +81,12 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
         const mesh=new THREE.Mesh(geometry,materialFor(placed.color));
         mesh.matrixAutoUpdate=false;
         mesh.matrix.fromArray(placed.flatTransformation);
-        mesh.userData.ifc={expressID:flat.expressID,geometryExpressID:placed.geometryExpressID};
+        let line=null;
+        try{line=api.GetLine(modelID,flat.expressID,false)}catch{}
+        const info={expressID:flat.expressID,geometryExpressID:placed.geometryExpressID,type:line?.type||null,globalId:line?.GlobalId?.value||null,name:line?.Name?.value||null,description:line?.Description?.value||null,objectType:line?.ObjectType?.value||null};
+        mesh.userData.ifc=info;
+        if(!elementIndex[flat.expressID])elementIndex[flat.expressID]={...info,meshCount:0};
+        elementIndex[flat.expressID].meshCount++;
         root.add(mesh);
         geometryCount++;
         triangleCount+=Math.floor((geometry.index?.count||0)/3);
@@ -97,7 +103,9 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       geometryCount,
       triangleCount,
       alignmentCount:Array.isArray(alignments)?alignments.length:0,
-      coordinateToOrigin:true
+      coordinateToOrigin:true,
+      elements:Object.values(elementIndex),
+      elementCount:Object.keys(elementIndex).length
     };
     onProgress?.({loaded:100,total:100});
     return root;

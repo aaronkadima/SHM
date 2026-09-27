@@ -1,0 +1,78 @@
+name: Publish SHM development preview branch
+
+on:
+  push:
+    branches: ["dev"]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/dev-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "dev-preview-branch"
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout development source
+        uses: actions/checkout@v6
+        with:
+          ref: dev
+          path: dev-src
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: dev-src/frontend
+        run: npm ci
+
+      - name: Build development preview
+        working-directory: dev-src/frontend
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_BASE_PATH: /SHM/dev/
+          VITE_APP_CHANNEL: development
+        run: VITE_BUILD_SHA=$(git rev-parse --short HEAD) npm run build
+
+      - name: Write development manifest
+        shell: bash
+        run: |
+          DEV_SHA="$(git -C dev-src rev-parse --short HEAD)"
+          DEV_CATALOG="$(node -p "require('./dev-src/frontend/src/engines.json').version")"
+          printf '{"channel":"development","branch":"dev","sha":"%s","catalogVersion":"%s"}\n' "$DEV_SHA" "$DEV_CATALOG" > dev-src/frontend/dist/build.json
+          printf '%s\n' 'SHM development: dev' > dev-src/frontend/dist/DEPLOYMENT.txt
+          touch dev-src/frontend/dist/.nojekyll
+
+      - name: Publish preview snapshot branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf publish
+          mkdir publish
+          cp -a dev-src/frontend/dist/. publish/
+          cd publish
+          git init
+          git checkout -b gh-pages-dev
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "deploy(dev): ${GITHUB_SHA::7}"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin gh-pages-dev
+
+      - name: Verify branch manifest
+        shell: bash
+        run: |
+          EXPECTED="$(git -C dev-src rev-parse --short HEAD)"
+          ACTUAL="$(node -p "require('./publish/build.json').sha")"
+          test "$ACTUAL" = "$EXPECTED"

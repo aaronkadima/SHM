@@ -236,7 +236,7 @@ check(modelViewport.includes("selectedDamage")&&modelViewport.includes("cdm3Dama
 
 check(cdm3Projection.includes('schema:"CDM3-BrIM-Damage/1.1"')&&cdm3Projection.includes("inspection:{campaign_id")&&cdm3Projection.includes("temporal:{track_id")&&cdm3Projection.includes("buildTemporalDamageTracks")&&modelViewport.includes("Track 4D"),"CDM-3 BrIM records must preserve factual inspection metadata and explicit opt-in temporal tracking without synthesizing severity");
 
-check(cdm3Projection.includes("matchTemporalDamageCampaigns")&&cdm3Projection.includes('match_method:"class_host_centroid_nearest"')&&cdm3Projection.includes('change_status="unmatched"')&&cdm3Projection.includes('change_ratio>0?"grown":"reduced"'),"CDM-3 4D matching must require compatible class host and 3D proximity and only classify change from comparable measured metrics");
+check(cdm3Projection.includes("matchTemporalDamageCampaigns")&&cdm3Projection.includes('match_method:"class_host_centroid_nearest"')&&cdm3Projection.includes('change_status:"unmatched"')&&cdm3Projection.includes('change_ratio>0?"grown":"reduced"'),"CDM-3 4D matching must require compatible class host and 3D proximity and only classify change from comparable measured metrics");
 
 check(workspace.includes("Definir campanha A")&&workspace.includes("Comparar A × B")&&workspace.includes("matchTemporalDamageCampaigns(spatialBaseline.records,spatialPathologyRecords)")&&modelViewport.includes("spatial4dRecords=[]")&&modelViewport.includes("statusColor={grown:")&&styles.includes(".spatial4dControl{"),"spatial CDM-3 workflow must expose explicit Campaign A versus B matching and visualize 4D change states on the existing damage guides");
 

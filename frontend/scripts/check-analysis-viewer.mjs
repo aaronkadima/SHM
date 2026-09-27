@@ -250,6 +250,8 @@ check(workspace.includes("displaySpatial4dRecords=spatialTimelineSnapshot?.recor
 
 check(workspace.includes("spatialTimelinePlaying")&&workspace.includes("setInterval(()=>setSpatialTimelineIndex")&&workspace.includes("Pausar timeline 4D")&&workspace.includes("Reproduzir timeline 4D")&&styles.includes(".spatial4dTimeline .timelinePlay"),"4D timeline must support explicit play pause playback while advancing real campaign snapshots");
 
+check(workspace.includes("temporalTracks={spatialTimeline?.tracks||[]}")&&modelViewport.includes("temporalTracks=[]")&&modelViewport.includes("cdm3TrackHistory")&&modelViewport.includes("Histórico 4D")&&modelViewport.includes("sem série quantitativa comparável")&&styles.includes(".cdm3TrackHistory{"),"selected CDM-3 damage must expose its persistent 4D track history without synthesizing quantitative values");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

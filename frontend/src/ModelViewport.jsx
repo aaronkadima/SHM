@@ -12,6 +12,7 @@ import {registeredPointColors,projectPathologyToPoints,buildSpatialPathologyReco
 import {buildGeometricSegmentation,CDM3_GEOMETRY_CLASSES} from "./cdm3GeometrySegmentation.js";
 import {fusePhotometricViews} from "./cdm3PhotometricFusion.js";
 import {buildMultiViewPathologyProjection} from "./cdm3MultiViewPathology.js";
+import {loadIfcThreeModel} from "./ifcGeometry.js";
 
 const CLASS_COLORS={
   0:[.58,.62,.64],1:[.63,.66,.68],2:[.48,.37,.24],
@@ -271,8 +272,20 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       if(disposed){releaseUrl();return}
       new GLTFLoader().load(url,g=>fit(g.scene),onProgress,fail);
     };
+    const loadIfc=async()=>{
+      try{
+        setSpatialNotice("IFC · tesselação geométrica IFC4.3 em andamento…");
+        const group=await loadIfcThreeModel(file,{onProgress});
+        if(disposed){group.traverse?.(n=>{n.geometry?.dispose?.();if(n.material){const ms=Array.isArray(n.material)?n.material:[n.material];ms.forEach(disposeMaterial)}});return}
+        setModes([]);setMode("elevation");
+        const info=group.userData?.ifc||{};
+        setSpatialNotice("IFC4.3 renderizado · "+Number(info.geometryCount||0).toLocaleString("pt-BR")+" geometrias · "+Number(info.triangleCount||0).toLocaleString("pt-BR")+" triângulos"+(info.alignmentCount?" · "+info.alignmentCount+" alinhamento(s)":"")+".");
+        fit(group,{ifc:true,ifcInfo:info});
+      }catch(e){fail(e)}
+    };
     try{
-      if(spatialExtension(file))loadSpatial().catch(fail);
+      if(ext==="ifc")loadIfc().catch(fail);
+      else if(spatialExtension(file))loadSpatial().catch(fail);
       else if(ext==="glb"||ext==="gltf")loadGltf().catch(fail);
       else if(ext==="obj")new OBJLoader().load(url,fit,onProgress,fail);
       else if(ext==="stl"||ext==="ply"){

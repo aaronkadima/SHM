@@ -194,10 +194,10 @@ try{
         runtimeError
       };
     })()`);
-    if(state.runtimeError)throw new Error("Application runtime error: "+JSON.stringify(state));
+    if(state.runtimeError){await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"runtime_error",state},null,2));throw new Error("Application runtime error: "+JSON.stringify(state));}
     if(state.resultRows>0&&state.overlay&&state.panel&&!state.progress)break;
     if(/Checksum|Manifesto browser indisponível|Artefato ONNX indisponível|ONNX Runtime|Falha|Error/i.test(state.error)&&!state.progress){
-      throw new Error("Application reported browser-engine failure: "+JSON.stringify(state));
+      await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"engine_failure",state},null,2));\n      throw new Error("Application reported browser-engine failure: "+JSON.stringify(state));
     }
     await sleep(500);
   }

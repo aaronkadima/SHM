@@ -146,7 +146,7 @@ function flattenIfcTree(node,depth=0,out=[]){
 }
 export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null}){
   const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary),onSpatialRegistrationSampleRef=useRef(onSpatialRegistrationSample);
-  const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null),[ifcInfo,setIfcInfo]=useState(null),[ifcFilter,setIfcFilter]=useState(""),[ifcExpanded,setIfcExpanded]=useState({}),[ifcDamageLinks,setIfcDamageLinks]=useState([]);
+  const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null),[ifcInfo,setIfcInfo]=useState(null),[ifcFilter,setIfcFilter]=useState(""),[ifcExpanded,setIfcExpanded]=useState({}),[ifcDamageLinks,setIfcDamageLinks]=useState([]),[viewMenu,setViewMenu]=useState(false),[projection,setProjection]=useState("perspective");
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null),[geometryStats,setGeometryStats]=useState(null),[photometricStats,setPhotometricStats]=useState(null);
   useEffect(()=>{pickEnabledRef.current=pickEnabled},[pickEnabled]);
   useEffect(()=>{onPointPickRef.current=onPointPick},[onPointPick]);
@@ -155,7 +155,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
   useEffect(()=>{onSpatialRegistrationSampleRef.current=onSpatialRegistrationSample},[onSpatialRegistrationSample]);
   useEffect(()=>{
     if(!file||!mount.current)return;
-    setError("");setFallback(false);setLoading(true);setLoadProgress(null);setModes([]);setIfcSelection(null);setIfcInfo(null);setIfcFilter("");setIfcExpanded({});setIfcDamageLinks([]);setSpatialNotice("");setPathologyStats(null);setGeometryStats(null);setPhotometricStats(null);
+    setError("");setFallback(false);setLoading(true);setViewMenu(false);setProjection("perspective");setLoadProgress(null);setModes([]);setIfcSelection(null);setIfcInfo(null);setIfcFilter("");setIfcExpanded({});setIfcDamageLinks([]);setSpatialNotice("");setPathologyStats(null);setGeometryStats(null);setPhotometricStats(null);
     const el=mount.current,scene=new THREE.Scene();scene.background=new THREE.Color(0xdce4e7);
     const camera=new THREE.PerspectiveCamera(45,1,.01,100000);
     const pickMarkers=new THREE.Group();scene.add(pickMarkers);
@@ -375,11 +375,30 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
   function setView(direction){
     const data=view.current;if(!data)return;
     const {camera,controls,center,radius}=data;
-    const offsets={perspective:[1,.65,1],front:[0,0,1],top:[0,1,0],side:[1,0,0]};
-    const offset=new THREE.Vector3(...offsets[direction]).normalize().multiplyScalar(radius*1.7);
+    const offsets={iso:[1,.72,1],front:[0,0,1],back:[0,0,-1],top:[0,1,0],bottom:[0,-1,0],left:[-1,0,0],right:[1,0,0]};
+    const offset=new THREE.Vector3(...(offsets[direction]||offsets.iso)).normalize().multiplyScalar(radius*1.7);
     camera.position.copy(center).add(offset);camera.up.set(0,1,0);
-    if(direction==="top")camera.up.set(0,0,-1);
-    controls.target.copy(center);camera.lookAt(center);controls.update()
+    if(direction==="top")camera.up.set(0,0,-1);else if(direction==="bottom")camera.up.set(0,0,1);
+    controls.target.copy(center);camera.lookAt(center);controls.update();setViewMenu(false)
+  }
+  function fitModel(){
+    const data=view.current;if(!data)return;
+    data.controls.target.copy(data.center);data.camera.position.copy(data.center).add(new THREE.Vector3(data.radius,data.radius*.65,data.radius));data.camera.lookAt(data.center);data.controls.update()
+  }
+  function toggleProjection(){
+    const data=view.current;if(!data)return;
+    const {camera,controls,center,radius}=data;
+    if(camera.isPerspectiveCamera){
+      const aspect=Math.max(1e-3,mount.current?.clientWidth/(mount.current?.clientHeight||1)),half=radius*.75;
+      const ortho=new THREE.OrthographicCamera(-half*aspect,half*aspect,half,-half,.001,Math.max(100,radius*100));
+      ortho.position.copy(camera.position);ortho.up.copy(camera.up);ortho.lookAt(center);
+      controls.object=ortho;data.camera=ortho;setProjection("orthographic");
+    }else{
+      const perspectiveCamera=new THREE.PerspectiveCamera(45,Math.max(1e-3,mount.current?.clientWidth/(mount.current?.clientHeight||1)),.001,Math.max(100,radius*100));
+      perspectiveCamera.position.copy(camera.position);perspectiveCamera.up.copy(camera.up);perspectiveCamera.lookAt(center);
+      controls.object=perspectiveCamera;data.camera=perspectiveCamera;setProjection("perspective");
+    }
+    controls.update()
   }
   function selectIfcElement(expressID){
     const data=view.current;if(!data?.ifc)return;
@@ -397,7 +416,12 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     {ifcSelection&&<div className="ifcSelectionCard"><strong>{ifcSelection.name||ifcSelection.objectType||"Elemento IFC"}</strong><span>{ifcSelection.type||"IFC"} · #{ifcSelection.expressID}</span>{ifcSelection.globalId&&<span>GlobalID · {ifcSelection.globalId}</span>}{ifcSelection.description&&<small>{ifcSelection.description}</small>}</div>}
     {loading&&<div className="modelLoading" role="status" aria-live="polite"><b>Carregando ativo espacial / 3D</b><span>{loadProgress==null?"Preparando geometria…":loadProgress+"%"}</span>{loadProgress!=null&&<i><b style={{width:loadProgress+"%"}}/></i>}</div>}
     {error&&<div className="modelError" role="alert">{error}</div>}
-    <div className="modelViews" aria-label="Vistas do modelo 3D"><button disabled={loading||!!error} onClick={()=>setView("perspective")}>Perspectiva</button><button disabled={loading||!!error} onClick={()=>setView("front")}>Frontal</button><button disabled={loading||!!error} onClick={()=>setView("top")}>Superior</button><button disabled={loading||!!error} onClick={()=>setView("side")}>Lateral</button></div>
+    <div className="model3dToolbar" aria-label="Controles do canvas 3D">
+      <button disabled={loading||!!error} onClick={fitModel} title="Enquadrar modelo" aria-label="Enquadrar modelo">⌂</button>
+      <div className="model3dViewControl"><button disabled={loading||!!error} className={viewMenu?"active":""} onClick={()=>setViewMenu(v=>!v)} title="Orientação da câmera" aria-label="Orientação da câmera">◇</button>{viewMenu&&<div className="model3dViewMenu"><b>Orientação</b><div><button onClick={()=>setView("iso")}>ISO</button><button onClick={()=>setView("top")}>Topo</button><button onClick={()=>setView("bottom")}>Base</button><button onClick={()=>setView("front")}>Frente</button><button onClick={()=>setView("back")}>Trás</button><button onClick={()=>setView("left")}>Esq.</button><button onClick={()=>setView("right")}>Dir.</button></div></div>}</div>
+      <button disabled={loading||!!error} className={projection==="orthographic"?"active":""} onClick={toggleProjection} title={projection==="perspective"?"Mudar para projeção ortográfica":"Mudar para perspectiva"} aria-label="Alternar projeção">{projection==="perspective"?"P":"O"}</button>
+      {ifcInfo&&<button className="model3dBrimToggle active" title="BrIM IFC4.3 ativo" aria-label="BrIM IFC4.3 ativo">B</button>}
+    </div>
     {modes.length>0&&<div className="pointCloudModes" aria-label="Canal visual da nuvem de pontos"><label htmlFor="point-cloud-mode">Visual</label><select id="point-cloud-mode" value={mode} onChange={e=>setPointMode(e.target.value)}>{modes.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select><span>{spatialNotice}</span></div>}{photometricStats&&(mode==="photometric_rgb"||mode==="photometric_confidence")&&<div className="pointPathologyLegend pointGeometryLegend" aria-label="Resumo fotométrico"><b>CDM-3 · fotometria</b><span>Vistas registradas <strong>{Number(photometricStats.registered_views||0)}</strong></span><span>Cobertura <strong>{(Number(photometricStats.coverage_ratio||0)*100).toFixed(1)}%</strong></span><span>Vistas/ponto <strong>{Number(photometricStats.mean_views_per_colored_point||0).toFixed(2)}</strong></span></div>}{geometryStats&&mode==="geometry_local"&&<div className="pointPathologyLegend pointGeometryLegend" aria-label="Resumo da classificação geométrica local"><b>CDM-3 · geometria local</b>{CDM3_GEOMETRY_CLASSES.filter(cls=>Number(geometryStats.counts?.[cls.key]||0)>0).map(cls=><span key={cls.key}>{cls.label} <strong>{Number(geometryStats.counts?.[cls.key]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}{pathologyStats&&<div className="pointPathologyLegend" aria-label="Resumo da segmentação patológica 3D"><b>{pathologyStats.multi_view?"CDM-3 · consenso multivista":"CDM-3 · pontos patológicos"}</b>{pathologyStats.multi_view&&<span>Confirmados <strong>{Number(pathologyStats.confirmed_points||0).toLocaleString("pt-BR")}</strong> / {Number(pathologyStats.matched_points||0).toLocaleString("pt-BR")} · {Number(pathologyStats.views_used||0)} vistas</span>}{CDM3_PATHOLOGY_PRIORITY.filter(cls=>Number(pathologyStats.counts?.[cls]||0)>0).map(cls=><span key={cls}><i data-pathology={cls}/>{cls.replace("spalling_dark","desplacamento").replace("exposed_rebar","armadura exposta").replace("corrosion_rust","corrosão").replace("efflorescence_white","eflorescência").replace("cracks","fissuras")} <strong>{Number(pathologyStats.counts?.[cls]||0).toLocaleString("pt-BR")}</strong></span>)}</div>}
     {pickEnabled&&<div className="modelPickHint">Selecione na nuvem o ponto correspondente ao pixel marcado</div>}
     {fallback&&<div className="modelFallback">Visualização vetorial · WebGL indisponível</div>}

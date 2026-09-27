@@ -337,9 +337,9 @@ function damageCentroid(record){
   return valid.reduce((a,p)=>[a[0]+Number(p[0]),a[1]+Number(p[1]),a[2]+Number(p[2])],[0,0,0]).map(v=>v/valid.length);
 }
 function comparableDamageMetric(record){
-  const closed=record?.geometry?.source_record_closed,area=Number(record?.geometry?.source_area_px2),width=Number(record?.geometry?.source_width_px);
-  if(closed&&area>0)return {kind:"source_area_px2",value:area};
-  if(!closed&&width>0)return {kind:"source_width_px",value:width};
+  const metric=record?.geometry?.physical_metric||record?.measurement?.physical_metric||null;
+  const value=Number(metric?.value),unit=String(metric?.unit||"").trim(),kind=String(metric?.kind||"").trim();
+  if(metric?.comparable===true&&metric?.metric_valid===true&&Number.isFinite(value)&&value>0&&unit&&kind)return {kind,value,unit};
   return null;
 }
 export function matchTemporalDamageCampaigns(previousRecords=[],currentRecords=[],{maxCentroidDistance=0.5,stableTolerance=0.05}={}){
@@ -354,19 +354,19 @@ export function matchTemporalDamageCampaigns(previousRecords=[],currentRecords=[
     }).filter(Boolean).filter(item=>item.distance<=maxCentroidDistance).sort((a,b)=>a.distance-b.distance);
     const best=candidates[0];if(!best){matched.push({...current,temporal:{...(current.temporal||{}),change_status:"unmatched"}});continue}
     used.add(best.index);
-    const priorMetric=comparableDamageMetric(best.previous),metric=comparableDamageMetric(current);let change_status="not_comparable",change_ratio=null,metric_delta=null,metric_kind=null;
-    if(priorMetric&&metric&&priorMetric.kind===metric.kind&&priorMetric.value>0){metric_kind=metric.kind;metric_delta=metric.value-priorMetric.value;change_ratio=metric_delta/priorMetric.value;change_status=Math.abs(change_ratio)<=stableTolerance?"stable":change_ratio>0?"grown":"reduced"}
+    const priorMetric=comparableDamageMetric(best.previous),metric=comparableDamageMetric(current);let change_status="matched_not_quantified",change_ratio=null,metric_delta=null,metric_kind=null,metric_unit=null;
+    if(priorMetric&&metric&&priorMetric.kind===metric.kind&&priorMetric.value>0){metric_kind=metric.kind;metric_unit=metric.unit;metric_delta=metric.value-priorMetric.value;change_ratio=metric_delta/priorMetric.value;change_status=Math.abs(change_ratio)<=stableTolerance?"stable":change_ratio>0?"grown":"reduced"}
     const track_id=best.previous?.temporal?.track_id||("cdm3-track-"+String(best.previous?.id||best.index));
-    matched.push({...current,temporal:{...(current.temporal||{}),track_id,previous_observation_id:best.previous?.id||null,change_status,change_ratio,metric_kind,metric_delta,previous_metric_value:priorMetric?.value??null,current_metric_value:metric?.value??null,match_distance_3d:best.distance,previous_centroid_3d:best.previousCentroid,current_centroid_3d:c,match_method:"class_host_centroid_nearest"}});
+    matched.push({...current,temporal:{...(current.temporal||{}),track_id,previous_observation_id:best.previous?.id||null,change_status,change_ratio,metric_kind,metric_unit,metric_delta,previous_metric_value:priorMetric?.value??null,current_metric_value:metric?.value??null,match_distance_3d:best.distance,previous_centroid_3d:best.previousCentroid,current_centroid_3d:c,match_method:"class_host_centroid_nearest"}});
   }
   return matched;
 }
 
 export function buildDamageTimeline(campaigns=[]){
-  const ordered=(campaigns||[]).filter(item=>Array.isArray(item?.records)).slice().sort((a,b)=>String(a.observed_at||"").localeCompare(String(b.observed_at||"")));
+  const ordered=(campaigns||[]).filter(item=>Array.isArray(item?.records)).map((item,insertion_index)=>({...item,insertion_index})).sort((a,b)=>{const ad=String(a.observed_at||""),bd=String(b.observed_at||"");if(!ad&&!bd)return a.insertion_index-b.insertion_index;if(!ad)return 1;if(!bd)return -1;return ad.localeCompare(bd)||a.insertion_index-b.insertion_index});
   const all=[],snapshots=[];let previous=[];
   ordered.forEach((campaign,index)=>{
-    const records=index===0?campaign.records.map(record=>({...record,temporal:{...(record.temporal||{}),track_id:record.temporal?.track_id||("cdm3-track-"+String(record.id||index)),change_status:"baseline"}})):matchTemporalDamageCampaigns(previous,campaign.records);
+    const records=index===0?campaign.records.map((record,recordIndex)=>({...record,temporal:{...(record.temporal||{}),track_id:record.temporal?.track_id||("cdm3-track-"+String(record.id??recordIndex)),change_status:"baseline"}})):matchTemporalDamageCampaigns(previous,campaign.records);
     snapshots.push({campaign_id:campaign.campaign_id||("campaign-"+(index+1)),observed_at:campaign.observed_at||null,records});
     all.push(...records.map(record=>({...record,inspection:{...(record.inspection||{}),campaign_id:campaign.campaign_id||record.inspection?.campaign_id||("campaign-"+(index+1)),observed_at:campaign.observed_at||record.inspection?.observed_at||null}})));
     previous=records;

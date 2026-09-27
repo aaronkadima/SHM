@@ -246,6 +246,8 @@ check(cdm3Projection.includes("previous_centroid_3d")&&cdm3Projection.includes("
 
 check(cdm3Projection.includes("buildDamageTimeline(campaigns=[])")&&cdm3Projection.includes("snapshots")&&cdm3Projection.includes("tracks:buildTemporalDamageTracks(all)")&&workspace.includes("Timeline 4D")&&workspace.includes("Adicionar à timeline")&&workspace.includes("spatialTimelineIndex")&&styles.includes(".spatial4dTimeline{"),"CDM-3 4D workflow must preserve track identity across ordered campaigns and expose a navigable timeline");
 
+check(workspace.includes("displaySpatial4dRecords=spatialTimelineSnapshot?.records||spatial4dRecords")&&workspace.includes("timelineSnapshot={spatialTimelineSnapshot}")&&modelViewport.includes("timelineSnapshot=null")&&modelViewport.includes("setDamageGuides(timelineSnapshot.records)")&&modelViewport.includes("timelineSnapshot?.campaign_id"),"moving the 4D timeline must drive the actual CDM-3 damage layer and active campaign label in the 3D canvas");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

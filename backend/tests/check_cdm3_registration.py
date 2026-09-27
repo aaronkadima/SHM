@@ -11,10 +11,23 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.cdm3.registration import solve_camera_pose, project_world_points
+from app.cdm3.alignment import icp_align
 from app.cdm3.auto_registration import propagate_camera_pose
 
 
 def main():
+    source=np.array([[0.,0.,0.],[1.,0.,0.],[0.,1.,0.],[0.,0.,1.],[1.,1.,1.]],dtype=float)
+    target=source+np.array([2.5,-1.25,0.75])
+    alignment=icp_align(source,target,max_iterations=25,tolerance=1e-9,max_correspondence_distance=10.0)
+    contract=alignment.as_dict()
+    assert contract["schema"]=="CDM3-SpatialTransform/1.0"
+    assert contract["source_frame"]=="point_cloud_world"
+    assert contract["target_frame"]=="ifc_model_local"
+    assert contract["frame_compatible"] is True
+    assert contract["converged"] is True
+    assert contract["rmse"] is not None and contract["rmse"]<1e-8
+    assert np.max(np.abs(alignment.apply(source)-target))<1e-8
+
     width, height = 800, 600
     intrinsics = {"fx": 800.0, "fy": 800.0, "cx": 400.0, "cy": 300.0}
     camera_matrix = np.array(

@@ -227,6 +227,8 @@ check(ifcGeometry.includes("hasSampledCurve")&&ifcGeometry.includes("sampledLeng
 
 check(modelViewport.includes('infrastructureGuides=new THREE.Group()')&&modelViewport.includes('infrastructureGuide="alignment"')&&modelViewport.includes("ifcReferent=referent")&&modelViewport.includes("intersectObjects(infrastructureGuides.children,true)"),"IFC infrastructure canvas must render alignment and positioned referents as a separate directly navigable 3D guide layer");
 
+check(modelViewport.includes("guideVisibility")&&modelViewport.includes('toggleGuide("alignment")')&&modelViewport.includes('toggleGuide("referents")')&&modelViewport.includes('toggleGuide("damage")')&&modelViewport.includes("model3dGuidesMenu"),"3D Digital Twin canvas must expose independent Alignment Referents and CDM-3 Damage guide visibility controls");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

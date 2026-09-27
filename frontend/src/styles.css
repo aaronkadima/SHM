@@ -590,3 +590,5 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 @media(max-width:720px){.spatialFramePairInput{grid-template-columns:1fr}.spatialFramePanel{bottom:38px}}
 
 .spatialFramePickActions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 7px}.spatialFramePickActions button.active{outline:2px solid currentColor;outline-offset:1px}.spatialFramePickActions span{font-size:11px;opacity:.78}
+
+.spatialFrameAssets{display:flex;gap:6px;margin:0 0 7px}.spatialFrameAssets span{font-size:10px;padding:3px 6px;border:1px solid var(--line);border-radius:999px;opacity:.58}.spatialFrameAssets span.ready{opacity:1;font-weight:650}

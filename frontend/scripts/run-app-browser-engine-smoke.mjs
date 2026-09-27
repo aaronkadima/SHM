@@ -90,8 +90,10 @@ async function waitUntil(request,testExpression,label,timeout=30000){
 
 let ws;
 try{
+  await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"chrome_spawned",targetUrl,fixtureUrl},null,2));
   const target=await waitTarget();
   ws=await connect(target.webSocketDebuggerUrl);
+  await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"devtools_connected",target:{url:target.url}},null,2));
   const request=cdp(ws);
   await request("Runtime.enable");
   await request("Page.enable");
@@ -107,6 +109,7 @@ try{
   const analysisUrl=new URL(targetUrl);analysisUrl.hash="#/analysis";
   await request("Page.navigate",{url:analysisUrl.toString()});
   await waitUntil(request,`document.readyState==="complete"&&location.hash==="#/analysis"`,"analysis route navigation",45000);
+  await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"analysis_route_ready"},null,2));
   try{await waitUntil(request,'!!document.querySelector(".analysisEditor")',"analysis workspace after explicit navigation",45000)}
   catch(error){const diagnostic=await evaluate(request,'JSON.stringify({href:location.href,hash:location.hash,title:document.title,ready:document.readyState,text:(document.body?.innerText||"").slice(0,1200),html:(document.body?.innerHTML||"").slice(0,1200)})');throw new Error(error.message+" Diagnostic: "+diagnostic)}
 

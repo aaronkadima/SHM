@@ -278,7 +278,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       const ifcHit=hits.find(item=>item.object?.isMesh&&item.object?.userData?.ifc?.expressID!=null);
       if(ifcHit){
         const info=ifcHit.object.userData.ifc;
-        model.traverse?.(node=>{if(!node.isMesh||!node.userData?.ifc)return;const selected=node.userData.ifc.expressID===info.expressID;if(node.material?.emissive){node.material.emissive.setHex(selected?0x245466:0x000000);node.material.emissiveIntensity=selected?.22:0}});
+        model.traverse?.(node=>{if(!node.isMesh||!node.userData?.ifc)return;const selected=node.userData.ifc.expressID===info.expressID;if(node.material?.emissive){node.material.emissive.setHex(selected?0x245466:0x000000);node.material.emissiveIntensity=selected ? .22 : 0}});
         setIfcSelection(info);dirty=true;return;
       }
       if(!pickEnabledRef.current||!onPointPickRef.current)return;
@@ -384,7 +384,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
   function selectIfcElement(expressID){
     const data=view.current;if(!data?.ifc)return;
     let selected=null;
-    data.model?.traverse?.(node=>{if(!node.isMesh||!node.userData?.ifc)return;const active=node.userData.ifc.expressID===expressID;node.visible=true;if(node.material?.emissive){node.material.emissive.setHex(active?0x245466:0x000000);node.material.emissiveIntensity=active?.22:0}if(active)selected=node.userData.ifc});
+    data.model?.traverse?.(node=>{if(!node.isMesh||!node.userData?.ifc)return;const active=node.userData.ifc.expressID===expressID;node.visible=true;if(node.material?.emissive){node.material.emissive.setHex(active?0x245466:0x000000);node.material.emissiveIntensity=active ? .22 : 0}if(active)selected=node.userData.ifc});
     if(selected)setIfcSelection(selected);
   }
   function ifcBranchIds(expressID){const tree=ifcInfo?.spatialTree,ids=new Set([expressID]);const visit=node=>{if(!node)return false;const found=node.expressID===expressID||(node.children||[]).some(visit);if(found&&node.expressID===expressID){const collect=n=>{ids.add(n.expressID);(n.children||[]).forEach(collect)};collect(node)}return found};visit(tree);return ids}\n  function isolateIfcElement(expressID){const data=view.current;if(!data?.ifc)return;const ids=ifcBranchIds(expressID);data.model?.traverse?.(node=>{if(node.isMesh&&node.userData?.ifc)node.visible=ids.has(node.userData.ifc.expressID)})}

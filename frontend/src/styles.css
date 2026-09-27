@@ -578,3 +578,5 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 
 .spatial4dTimeline{display:grid;grid-template-columns:auto 22px minmax(70px,1fr) 22px auto auto;align-items:center;gap:4px;min-height:30px;padding:4px 6px;border:1px solid #d5e0e2;border-radius:6px;background:#f8fbfb;color:#687d84}.spatial4dTimeline>b{font-size:7px;letter-spacing:.4px;text-transform:uppercase;color:#0d766e}.spatial4dTimeline>button{width:22px;height:22px;border:0;border-radius:4px;background:#e8f2f1;color:#0d766e;cursor:pointer}.spatial4dTimeline>button:disabled{opacity:.35;cursor:default}.spatial4dTimeline>input{width:100%;accent-color:#0d766e}.spatial4dTimeline>span,.spatial4dTimeline>small{font-size:6.5px;white-space:nowrap}.spatial4dTimeline>small{color:#89999e}
 @media(max-width:720px){.spatial4dTimeline{grid-template-columns:auto 22px 1fr 22px}.spatial4dTimeline>span,.spatial4dTimeline>small{grid-column:1/-1}}
+
+.spatial4dTimeline .timelinePlay{font-size:8px;font-weight:700;background:#0d766e;color:#fff}.spatial4dTimeline:has(.timelinePlay){grid-template-columns:auto 22px 22px minmax(70px,1fr) 22px auto auto}

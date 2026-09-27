@@ -202,7 +202,7 @@ try{
     await sleep(500);
   }
   if(!(state?.resultRows>0&&state?.overlay&&state?.panel&&!state?.progress)){
-    throw new Error("Full application did not reveal browser result/overlay: "+JSON.stringify(state));
+    await writeFile("app-smoke-diagnostic.json",JSON.stringify({engineId,state},null,2));\n    throw new Error("Full application did not reveal browser result/overlay: "+JSON.stringify(state));
   }
   if(state.overlayType!=="detections"&&!String(state.overlaySrc||"").startsWith("data:image/png;base64,"))throw new Error("Raster overlay is not an inline PNG result.");
   if(!state.comparison.some(x=>/camadas|detec/i.test(x)))throw new Error("Viewer did not switch to an overlay-capable comparison.");

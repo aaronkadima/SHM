@@ -373,7 +373,7 @@ export default function App(){
     historyOpenSeq.current++;
     setFile(f);setRes(null);setProgress(null);setJobId(null);setErr("");
     setSpatialRgbFile(null);
-    setSpatialRegistration(null);setSpatialTransform(null);setSpatialRgbAnalysis(null);setSpatialPathologyRecords([]);setPhotometricSummary(null);setSpatialRegistrationSample(null);setSpatialAutoRegistrationStatus(null);
+    setSpatialRegistration(null);setSpatialRgbAnalysis(null);setSpatialPathologyRecords([]);setPhotometricSummary(null);setSpatialRegistrationSample(null);setSpatialAutoRegistrationStatus(null);
     for(const view of spatialPhotoViews)if(view?.preview)URL.revokeObjectURL(view.preview);
     setSpatialPhotoViews([]);setActiveSpatialPhotoId(null);setSpatialRgbPrev(null);
     if(f&&isCdm3SpatialAsset(f))setSel(new Set(["cdm_3"]));

@@ -330,3 +330,34 @@ export function buildTemporalDamageTracks(records=[]){
   for(const record of records){const key=record?.temporal?.track_id;if(!key)continue;const row=tracks.get(key)||[];row.push(record);tracks.set(key,row)}
   return Array.from(tracks,([track_id,observations])=>({track_id,observations:observations.slice().sort((a,b)=>String(a?.inspection?.observed_at||"").localeCompare(String(b?.inspection?.observed_at||""))),observation_count:observations.length}));
 }
+
+function damageCentroid(record){
+  const vertices=record?.geometry?.vertices_3d;if(!Array.isArray(vertices)||!vertices.length)return null;
+  const valid=vertices.filter(p=>Array.isArray(p)&&p.length>=3&&p.slice(0,3).every(v=>Number.isFinite(Number(v))));if(!valid.length)return null;
+  return valid.reduce((a,p)=>[a[0]+Number(p[0]),a[1]+Number(p[1]),a[2]+Number(p[2])],[0,0,0]).map(v=>v/valid.length);
+}
+function comparableDamageMetric(record){
+  const closed=record?.geometry?.source_record_closed,area=Number(record?.geometry?.source_area_px2),width=Number(record?.geometry?.source_width_px);
+  if(closed&&area>0)return {kind:"source_area_px2",value:area};
+  if(!closed&&width>0)return {kind:"source_width_px",value:width};
+  return null;
+}
+export function matchTemporalDamageCampaigns(previousRecords=[],currentRecords=[],{maxCentroidDistance=0.5,stableTolerance=0.05}={}){
+  const used=new Set(),matched=[];
+  for(const current of currentRecords){
+    const c=damageCentroid(current);if(!c){matched.push({...current,temporal:{...(current.temporal||{}),change_status:"not_comparable"}});continue}
+    const candidates=previousRecords.map((previous,index)=>{
+      if(used.has(index)||previous?.damage_class!==current?.damage_class)return null;
+      const previousHost=previous?.brim?.global_id||previous?.brim?.express_id,currentHost=current?.brim?.global_id||current?.brim?.express_id;
+      if(previousHost!=null&&currentHost!=null&&String(previousHost)!==String(currentHost))return null;
+      const p=damageCentroid(previous);if(!p)return null;return {previous,index,distance:Math.hypot(c[0]-p[0],c[1]-p[1],c[2]-p[2])}
+    }).filter(Boolean).filter(item=>item.distance<=maxCentroidDistance).sort((a,b)=>a.distance-b.distance);
+    const best=candidates[0];if(!best){matched.push({...current,temporal:{...(current.temporal||{}),change_status:"unmatched"}});continue}
+    used.add(best.index);
+    const priorMetric=comparableDamageMetric(best.previous),metric=comparableDamageMetric(current);let change_status="not_comparable",change_ratio=null;
+    if(priorMetric&&metric&&priorMetric.kind===metric.kind&&priorMetric.value>0){change_ratio=(metric.value-priorMetric.value)/priorMetric.value;change_status=Math.abs(change_ratio)<=stableTolerance?"stable":change_ratio>0?"grown":"reduced"}
+    const track_id=best.previous?.temporal?.track_id||("cdm3-track-"+String(best.previous?.id||best.index));
+    matched.push({...current,temporal:{...(current.temporal||{}),track_id,previous_observation_id:best.previous?.id||null,change_status,change_ratio,match_distance_3d:best.distance,match_method:"class_host_centroid_nearest"}});
+  }
+  return matched;
+}

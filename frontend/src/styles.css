@@ -628,3 +628,21 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 @media(max-width:900px){.editorCameraEntry{top:8px!important;right:8px!important}.modelViewCube{top:62px!important;right:10px!important}.model3dToolbar{max-width:calc(100% - 118px)!important}}
 
 .spatialFramePanel.collapsed{width:auto!important;max-height:none!important;overflow:visible!important;padding:0!important;background:rgba(250,252,252,.96)!important}.spatialFramePanel header{margin:0!important}.spatialFrameCollapse{display:flex;width:100%;align-items:center;gap:10px;padding:8px 10px;border:0;background:transparent;color:#536b74;text-align:left}.spatialFrameCollapse b{white-space:nowrap}.spatialFrameCollapse span{margin-left:auto;font-size:10px;color:#71858d}.spatialFrameCollapse i{font-style:normal;color:#0d766e}.spatialFramePanel:not(.collapsed) .spatialFrameCollapse{padding:0 0 8px}
+
+/* 3D canvas collision-free zoning */
+.ifcBrimPanel.collapsed{top:76px!important;left:16px!important;width:auto!important;max-height:none!important;padding:0!important;overflow:visible!important}
+.ifcBrimPanel.collapsed header{margin:0!important}
+.ifcBrimCollapse{display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;padding:8px 10px;color:#536b74;text-align:left}
+.ifcBrimCollapse span{font-size:10px;color:#71858d}.ifcBrimCollapse i{font-style:normal;color:#0d766e}
+.ifcBrimPanel.open{top:76px!important;left:16px!important}
+.ifcBrimPanel.open .ifcBrimCollapse{padding:0 0 8px}
+.model3dViewMenu,.model3dInspectMenu{top:calc(100% + 10px)!important;bottom:auto!important}
+.model3dViewMenu{left:0!important;right:auto!important}
+.model3dInspectMenu{left:0!important;right:auto!important}
+.model3dViewControl,.model3dInspectControl{position:relative}
+.spatialFramePanel.collapsed{right:16px!important;bottom:18px!important;box-shadow:0 6px 18px rgba(37,57,65,.10)!important;border-color:#d5e0e4!important}
+.spatialFramePanel.collapsed .spatialFrameCollapse{padding:7px 9px!important}
+.spatialFramePanel.collapsed .spatialFrameCollapse b{font-size:11px!important;font-weight:600!important}
+.spatialFramePanel.collapsed .spatialFrameCollapse span{display:none!important}
+.modelIfcSelection,.ifcSelectionCard{bottom:58px!important}
+@media(max-width:900px){.ifcBrimPanel.collapsed,.ifcBrimPanel.open{top:58px!important;left:8px!important}.spatialFramePanel.collapsed{right:8px!important;bottom:12px!important}}

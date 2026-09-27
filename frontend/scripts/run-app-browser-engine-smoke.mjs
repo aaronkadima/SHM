@@ -143,7 +143,8 @@ try{
     }
     throw new Error("timed out waiting for same-origin update check");
   })()`);
-  console.log("APP_BROWSER_UPDATE_CHECK_PASS",JSON.stringify({engineId,...updateState}));\n  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"update_check_pass",updateState},null,2));
+  console.log("APP_BROWSER_UPDATE_CHECK_PASS",JSON.stringify({engineId,...updateState}));
+  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"update_check_pass",updateState},null,2));
 
   await evaluate(request,'(()=>{document.querySelector(".settingsTop button")?.click();return true})()');
   await waitUntil(request,'!!document.querySelector(".analysisEditor")&&!!document.querySelector(\'.editorTopActions input[type="file"]\')',"analysis workspace after settings",30000);
@@ -159,11 +160,13 @@ try{
     input.dispatchEvent(new Event("change",{bubbles:true}));
     return {bytes:blob.size,type:file.type};
   })()`);
-  console.log("APP_BROWSER_SMOKE_FIXTURE",JSON.stringify(injected));\n  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"fixture_injected",injected},null,2));
+  console.log("APP_BROWSER_SMOKE_FIXTURE",JSON.stringify(injected));
+  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"fixture_injected",injected},null,2));
 
   await waitUntil(request,'(()=>{const b=document.querySelector(".editorPrimary");return !!b&&!b.disabled&&document.querySelector(".editorEngineState")?.textContent.includes("browser local")})()',"browser engine ready",30000);
   const before=await evaluate(request,'({engine:document.querySelector(".editorEngineState")?.textContent||"",status:document.querySelector(".editorStatusMessage")?.textContent||""})');
-  console.log("APP_BROWSER_SMOKE_READY",JSON.stringify(before));\n  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"browser_ready",before},null,2));
+  console.log("APP_BROWSER_SMOKE_READY",JSON.stringify(before));
+  await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"browser_ready",before},null,2));
 
   await evaluate(request,'(()=>{document.querySelector(".editorPrimary")?.click();return true})()');
 

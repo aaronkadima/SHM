@@ -1,4 +1,4 @@
-name: Publish SHM development preview branch
+name: Publish SHM combined static snapshot
 
 on:
   push:
@@ -19,61 +19,73 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout production source
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          path: prod-src
       - name: Checkout development source
         uses: actions/checkout@v6
         with:
           ref: dev
           path: dev-src
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Install dependencies
-        working-directory: dev-src/frontend
-        run: npm ci
-
-      - name: Build development preview
+      - name: Build production snapshot
+        working-directory: prod-src/frontend
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_BASE_PATH: /SHM/
+          VITE_APP_CHANNEL: production
+        run: npm ci && VITE_BUILD_SHA=$(git rev-parse --short HEAD) npm run build
+      - name: Build development snapshot
         working-directory: dev-src/frontend
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_BASE_PATH: /SHM/dev/
           VITE_APP_CHANNEL: development
-        run: VITE_BUILD_SHA=$(git rev-parse --short HEAD) npm run build
-
-      - name: Write development manifest
+        run: npm ci && VITE_BUILD_SHA=$(git rev-parse --short HEAD) npm run build
+      - name: Assemble combined static site
         shell: bash
         run: |
+          set -euo pipefail
+          rm -rf publish
+          mkdir -p publish/dev
+          cp -a prod-src/frontend/dist/. publish/
+          cp -a dev-src/frontend/dist/. publish/dev/
+          PROD_SHA="$(git -C prod-src rev-parse --short HEAD)"
           DEV_SHA="$(git -C dev-src rev-parse --short HEAD)"
+          PROD_CATALOG="$(node -p "require('./prod-src/frontend/src/engines.json').version")"
           DEV_CATALOG="$(node -p "require('./dev-src/frontend/src/engines.json').version")"
-          printf '{"channel":"development","branch":"dev","sha":"%s","catalogVersion":"%s"}\n' "$DEV_SHA" "$DEV_CATALOG" > dev-src/frontend/dist/build.json
-          printf '%s\n' 'SHM development: dev' > dev-src/frontend/dist/DEPLOYMENT.txt
-          touch dev-src/frontend/dist/.nojekyll
-          printf '%s\n' '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/SHM/dev/#/analysis"><title>SHM DEV</title><p><a href="/SHM/dev/#/analysis">Abrir SHM DEV</a></p>' > dev-src/frontend/dist/preview.html
-
-      - name: Publish preview snapshot branch
+          printf '{"channel":"production","branch":"main","sha":"%s","catalogVersion":"%s"}\n' "$PROD_SHA" "$PROD_CATALOG" > publish/build.json
+          printf '{"channel":"development","branch":"dev","sha":"%s","catalogVersion":"%s"}\n' "$DEV_SHA" "$DEV_CATALOG" > publish/dev/build.json
+          printf '%s\n' 'SHM production: main' > publish/DEPLOYMENT.txt
+          printf '%s\n' 'SHM development: dev' > publish/dev/DEPLOYMENT.txt
+          touch publish/.nojekyll
+          test -f publish/index.html
+          test -f publish/dev/index.html
+          grep -q '/SHM/assets/' publish/index.html
+          grep -q '/SHM/dev/assets/' publish/dev/index.html
+      - name: Publish combined snapshot branch
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          rm -rf publish
-          mkdir publish
-          cp -a dev-src/frontend/dist/. publish/
           cd publish
           git init
           git checkout -b gh-pages-dev
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "deploy(dev): ${GITHUB_SHA::7}"
+          git commit -m "deploy(combined): ${GITHUB_SHA::7}"
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin gh-pages-dev
-
-      - name: Verify branch manifest
+      - name: Verify combined manifests
         shell: bash
         run: |
-          EXPECTED="$(git -C dev-src rev-parse --short HEAD)"
-          ACTUAL="$(node -p "require('./publish/build.json').sha")"
-          test "$ACTUAL" = "$EXPECTED"
+          test "$(node -p "require('./publish/build.json').branch")" = "main"
+          test "$(node -p "require('./publish/dev/build.json').branch")" = "dev"
+          test "$(node -p "require('./publish/dev/build.json').sha")" = "$(git -C dev-src rev-parse --short HEAD)"

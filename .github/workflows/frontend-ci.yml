@@ -5,12 +5,16 @@ on:
     branches: ["main","dev"]
     paths:
       - "frontend/**"
+      - "backend/app/cdm3/ifc_export.py"
+      - "backend/tests/check_cdm3_brim_ifc_export.py"
       - "engines/catalog.json"
       - ".github/workflows/frontend-ci.yml"
       - ".github/workflows/pages.yml"
   pull_request:
     paths:
       - "frontend/**"
+      - "backend/app/cdm3/ifc_export.py"
+      - "backend/tests/check_cdm3_brim_ifc_export.py"
       - "engines/catalog.json"
       - ".github/workflows/frontend-ci.yml"
       - ".github/workflows/pages.yml"
@@ -37,7 +41,7 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Engine catalog
+      - name: CDM-3 BrIM IFC export contract\n        run: python backend/tests/check_cdm3_brim_ifc_export.py\n\n      - name: Engine catalog
         working-directory: frontend
         run: node scripts/check-engine-catalog.mjs
 

@@ -229,6 +229,8 @@ check(modelViewport.includes('infrastructureGuides=new THREE.Group()')&&modelVie
 
 check(modelViewport.includes("guideVisibility")&&modelViewport.includes('toggleGuide("alignment")')&&modelViewport.includes('toggleGuide("referents")')&&modelViewport.includes('toggleGuide("damage")')&&modelViewport.includes("model3dGuidesMenu"),"3D Digital Twin canvas must expose independent Alignment Referents and CDM-3 Damage guide visibility controls");
 
+check(modelViewport.includes("setDamageGuides=(records=[])")&&modelViewport.includes('infrastructureGuide="damage"')&&modelViewport.includes("cdm3Damage=record")&&modelViewport.includes("setDamageGuides?.(linked)")&&modelViewport.includes("record?.brim?.express_id"),"CDM-3 spatial pathology records must render as selectable 3D guide geometry and preserve BrIM host selection");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

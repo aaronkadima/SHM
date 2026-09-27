@@ -282,3 +282,43 @@ export function buildSpatialPathologyRecords(
   return out;
 }
 
+
+
+export function toBrimDamageRecord(record){
+  if(!record)return null;
+  const brim=record.brim||{},bound=brim.status==="bound";
+  return {
+    id:record.id,
+    schema:"CDM3-BrIM-Damage/1.0",
+    damage_class:record.damage_class,
+    host:bound?{
+      express_id:brim.express_id,
+      global_id:brim.global_id||null,
+      name:brim.name||null,
+      ifc_type:brim.type||null,
+      object_type:brim.object_type||null
+    }:null,
+    geometry:record.geometry||null,
+    association:{
+      status:brim.status||"not_evaluated",
+      method:brim.method||null,
+      distance:Number.isFinite(brim.distance)?brim.distance:null,
+      max_distance:Number.isFinite(brim.max_distance)?brim.max_distance:null
+    },
+    provenance:record.provenance||null
+  };
+}
+
+export function buildBrimDamageDataset(records,{assetName="",ifcEngine="web-ifc"}={}){
+  const items=(records||[]).map(toBrimDamageRecord).filter(Boolean);
+  return {
+    schema:"CDM3-BrIM-Dataset/1.0",
+    asset_name:assetName,
+    ifc_engine:ifcEngine,
+    generated_by:"CDM-3",
+    total:items.length,
+    bound:items.filter(item=>item.association.status==="bound").length,
+    unbound:items.filter(item=>item.association.status!=="bound").length,
+    damages:items
+  };
+}

@@ -115,7 +115,11 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
     let referents=[];
     try{
       const ids=vectorItems(api.GetLineIDsWithType?.(modelID,WebIFC.IFCREFERENT));
-      referents=ids.map(expressID=>{const line=api.GetLine(modelID,expressID,true);return {expressID,globalId:line?.GlobalId?.value||null,name:line?.Name?.value||null,predefinedType:line?.PredefinedType?.value||null}}).filter(item=>item.expressID!=null);
+      referents=ids.map(expressID=>{
+        const line=api.GetLine(modelID,expressID,true),placement=line?.ObjectPlacement?.RelativePlacement?.Location?.Coordinates;
+        const coordinates=Array.isArray(placement)?placement.map(value=>Number(value?.value??value)).filter(Number.isFinite):null;
+        return {expressID,globalId:line?.GlobalId?.value||null,name:line?.Name?.value||null,predefinedType:line?.PredefinedType?.value||null,coordinates:coordinates?.length>=2?coordinates:null,hasExplicitPosition:Boolean(coordinates?.length>=2)}
+      }).filter(item=>item.expressID!=null);
     }catch{}
     let spatialTree=null;
     try{spatialTree=api.GetSpatialStructure?.(modelID,false)||null}catch{}

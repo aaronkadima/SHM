@@ -244,6 +244,8 @@ check(modelViewport.includes("model4dLegend")&&modelViewport.includes('setTempor
 
 check(cdm3Projection.includes("previous_centroid_3d")&&cdm3Projection.includes("metric_delta")&&modelViewport.includes('infrastructureGuide="temporal_vector"')&&modelViewport.includes("LineDashedMaterial")&&modelViewport.includes("Δ relativo"),"matched 4D damage pairs must preserve measurable deltas and render traceable A-to-B evolution vectors");
 
+check(cdm3Projection.includes("buildDamageTimeline(campaigns=[])")&&cdm3Projection.includes("snapshots")&&cdm3Projection.includes("tracks:buildTemporalDamageTracks(all)")&&workspace.includes("Timeline 4D")&&workspace.includes("Adicionar à timeline")&&workspace.includes("spatialTimelineIndex")&&styles.includes(".spatial4dTimeline{"),"CDM-3 4D workflow must preserve track identity across ordered campaigns and expose a navigable timeline");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

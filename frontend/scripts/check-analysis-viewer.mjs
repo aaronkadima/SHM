@@ -231,6 +231,8 @@ check(modelViewport.includes("guideVisibility")&&modelViewport.includes('toggleG
 
 check(modelViewport.includes("setDamageGuides=(records=[])")&&modelViewport.includes('infrastructureGuide="damage"')&&modelViewport.includes("cdm3Damage=record")&&modelViewport.includes("setDamageGuides?.(linked)")&&modelViewport.includes("record?.brim?.express_id"),"CDM-3 spatial pathology records must render as selectable 3D guide geometry and preserve BrIM host selection");
 
+check(modelViewport.includes("selectedDamage")&&modelViewport.includes("cdm3DamageCard")&&modelViewport.includes("damageStation(record)")&&modelViewport.includes("Posição longitudinal")&&modelViewport.includes("Erro reproj."),"Selectable CDM-3 damage must expose a factual technical inspection card and alignment-derived section navigation");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

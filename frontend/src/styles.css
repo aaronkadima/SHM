@@ -552,3 +552,7 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 
 .model3dStationControl{grid-template-columns:auto 20px 62px 20px auto 24px}.model3dStationControl>button{display:grid;place-items:center;width:20px;height:22px;padding:0;border:0;border-radius:4px;background:#f3f7f7;color:#607780;font-size:11px;cursor:pointer}.model3dStationControl>button:hover{background:#e8f3f1;color:#0d766e}
 @media(max-width:720px){.model3dStationControl{grid-template-columns:auto 18px 42px 18px 22px}.model3dStationControl>button{width:18px}.model3dStationControl>small{display:none}}
+
+
+.model3dReferents{height:28px;display:flex;align-items:center;border-left:1px solid #d8e3e5;padding-left:4px}.model3dReferents select{max-width:92px;height:24px;border:0;border-radius:5px;background:#f3f7f7;color:#536b74;font-size:6.5px;padding:0 4px;outline:none}.model3dReferents select:focus{background:#e8f3f1;color:#0d766e}
+@media(max-width:720px){.model3dReferents select{max-width:58px}.model3dReferents{height:30px}}

@@ -286,10 +286,10 @@ export function buildSpatialPathologyRecords(
 
 export function toBrimDamageRecord(record){
   if(!record)return null;
-  const brim=record.brim||{},bound=brim.status==="bound";
+  const brim=record.brim||{},bound=brim.status==="bound",inspection=record.inspection||{};
   return {
     id:record.id,
-    schema:"CDM3-BrIM-Damage/1.0",
+    schema:"CDM3-BrIM-Damage/1.1",
     damage_class:record.damage_class,
     host:bound?{
       express_id:brim.express_id,
@@ -312,7 +312,7 @@ export function toBrimDamageRecord(record){
 export function buildBrimDamageDataset(records,{assetName="",ifcEngine="web-ifc"}={}){
   const items=(records||[]).map(toBrimDamageRecord).filter(Boolean);
   return {
-    schema:"CDM3-BrIM-Dataset/1.0",
+    schema:"CDM3-BrIM-Dataset/1.1",
     asset_name:assetName,
     ifc_engine:ifcEngine,
     generated_by:"CDM-3",
@@ -321,4 +321,10 @@ export function buildBrimDamageDataset(records,{assetName="",ifcEngine="web-ifc"
     unbound:items.filter(item=>item.association.status!=="bound").length,
     damages:items
   };
+}
+
+export function buildTemporalDamageTracks(records=[]){
+  const tracks=new Map();
+  for(const record of records){const key=record?.temporal?.track_id;if(!key)continue;const row=tracks.get(key)||[];row.push(record);tracks.set(key,row)}
+  return Array.from(tracks,([track_id,observations])=>({track_id,observations:observations.slice().sort((a,b)=>String(a?.inspection?.observed_at||"").localeCompare(String(b?.inspection?.observed_at||""))),observation_count:observations.length}));
 }

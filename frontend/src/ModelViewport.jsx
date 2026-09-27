@@ -144,7 +144,7 @@ function flattenIfcTree(node,depth=0,out=[]){
   for(const child of node.children||[])flattenIfcTree(child,depth+1,out);
   return out;
 }
-export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null}){
+export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null,spatial4dRecords=[]}){
   const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary),onSpatialRegistrationSampleRef=useRef(onSpatialRegistrationSample);
   const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null),[ifcInfo,setIfcInfo]=useState(null),[ifcFilter,setIfcFilter]=useState(""),[ifcExpanded,setIfcExpanded]=useState({}),[ifcDamageLinks,setIfcDamageLinks]=useState([]),[viewMenu,setViewMenu]=useState(false),[projection,setProjection]=useState("perspective"),[inspectMenu,setInspectMenu]=useState(false),[clipAxis,setClipAxis]=useState(""),[ghostMode,setGhostMode]=useState(false),[measureMode,setMeasureMode]=useState(false),[measurement,setMeasurement]=useState(null),[stationRatio,setStationRatio]=useState(.5),[guidesMenu,setGuidesMenu]=useState(false),[guideVisibility,setGuideVisibility]=useState({alignment:true,referents:true,damage:true}),[selectedDamage,setSelectedDamage]=useState(null);
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null),[geometryStats,setGeometryStats]=useState(null),[photometricStats,setPhotometricStats]=useState(null);
@@ -410,6 +410,12 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     const consensus=buildMultiViewPathologyProjection(view.current.parsed,eligible,{confirmedViews:2});
     if(consensus)view.current.setPathologyProjection(consensus);
   },[photometricViews,file,registration,rgbPathologyAnalysis]);
+  useEffect(()=>{
+    const guides=view.current?.infrastructureGuides;if(!guides)return;
+    const statusColor={grown:0xd24a43,reduced:0x3d82a8,stable:0x738b72,unmatched:0xd39b3d,not_comparable:0x7e748d};
+    guides.traverse(node=>{const record=node.userData?.cdm3Damage;if(!record)return;const matched=spatial4dRecords.find(item=>item.id===record.id),status=matched?.temporal?.change_status;color=statusColor[status];if(color!=null&&node.material?.color)node.material.color.setHex(color);node.userData.temporalStatus=status||null});
+    dirty=true;
+  },[spatial4dRecords]);
   function setView(direction){
     const data=view.current;if(!data)return;
     const {camera,controls,center,radius}=data;

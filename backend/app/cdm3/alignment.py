@@ -58,6 +58,38 @@ def _kabsch(source: np.ndarray, target: np.ndarray):
     return rotation, translation
 
 
+
+def align_corresponding_points(
+    source_points: np.ndarray,
+    target_points: np.ndarray,
+    source_frame: str = "point_cloud_world",
+    target_frame: str = "ifc_model_local",
+) -> IcpResult:
+    source = np.asarray(source_points, dtype=float)
+    target = np.asarray(target_points, dtype=float)
+    if source.ndim != 2 or target.ndim != 2 or source.shape[1:] != (3,) or target.shape[1:] != (3,):
+        raise ValueError("source_points and target_points must be N x 3 arrays.")
+    if len(source) != len(target) or len(source) < 3:
+        raise ValueError("Rigid alignment requires at least 3 paired source and target points.")
+    if not np.isfinite(source).all() or not np.isfinite(target).all():
+        raise ValueError("Alignment points must be finite.")
+    if np.linalg.matrix_rank(source - source.mean(axis=0)) < 2:
+        raise ValueError("Source control points are degenerate.")
+    if np.linalg.matrix_rank(target - target.mean(axis=0)) < 2:
+        raise ValueError("Target control points are degenerate.")
+    rotation, translation = _kabsch(source, target)
+    transformed = source @ rotation.T + translation
+    rmse = float(np.sqrt(np.mean(np.sum((transformed - target) ** 2, axis=1))))
+    return IcpResult(
+        rotation=rotation,
+        translation=translation,
+        rmse_history=[rmse],
+        iterations=1,
+        converged=True,
+        source_frame=source_frame,
+        target_frame=target_frame,
+    )
+
 def icp_align(
     source_points: np.ndarray,
     target_points: np.ndarray,

@@ -166,7 +166,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
     scene.add(new THREE.HemisphereLight(0xffffff,0x8195a0,2));
     const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(3,5,7);scene.add(light);
-    const resize=()=>{const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);dirty=true};
+    const resize=()=>{const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight),active=view.current?.camera||camera,aspect=w/h;if(active.isPerspectiveCamera){active.aspect=aspect}else if(active.isOrthographicCamera){const centerX=(active.left+active.right)/2,centerY=(active.top+active.bottom)/2,halfHeight=Math.max((active.top-active.bottom)/2,.001),halfWidth=halfHeight*aspect;active.left=centerX-halfWidth;active.right=centerX+halfWidth;active.top=centerY+halfHeight;active.bottom=centerY-halfHeight}active.updateProjectionMatrix();renderer.setSize(w,h);dirty=true};
     const observer=new ResizeObserver(resize);observer.observe(el);resize();
     let disposed=false,model=null,urlRevoked=false;const url=URL.createObjectURL(file),ext=file.name.split(".").pop().toLowerCase();
     const releaseUrl=()=>{if(!urlRevoked){URL.revokeObjectURL(url);urlRevoked=true}};

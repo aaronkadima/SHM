@@ -50,6 +50,7 @@ jobs:
           printf '{"channel":"development","branch":"dev","sha":"%s","catalogVersion":"%s"}\n' "$DEV_SHA" "$DEV_CATALOG" > dev-src/frontend/dist/build.json
           printf '%s\n' 'SHM development: dev' > dev-src/frontend/dist/DEPLOYMENT.txt
           touch dev-src/frontend/dist/.nojekyll
+          printf '%s\n' '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/SHM/dev/#/analysis"><title>SHM DEV</title><p><a href="/SHM/dev/#/analysis">Abrir SHM DEV</a></p>' > dev-src/frontend/dist/preview.html
 
       - name: Publish preview snapshot branch
         shell: bash

@@ -223,6 +223,8 @@ check(modelViewport.includes("setClip(axis)")&&modelViewport.includes("localClip
 
 check(modelViewport.includes("stepLongitudinalStation")&&modelViewport.includes("viewCrossSection")&&modelViewport.includes("STA%")&&modelViewport.includes("Estação longitudinal relativa"),"IFC bridge navigation must expose explicit relative station stepping and transverse camera navigation without presenting inferred chainage as real");
 
+check(ifcGeometry.includes("hasSampledCurve")&&ifcGeometry.includes("sampledLength")&&modelViewport.includes("alignmentFrameAt")&&modelViewport.includes('source:"ifc_alignment_sampled"'),"IFC bridge station navigation must use sampled alignment geometry when available and retain an explicit fallback source");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

@@ -548,3 +548,7 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 
 .model3dStationControl{display:grid;grid-template-columns:auto 62px auto;align-items:center;gap:4px;height:28px;padding:0 5px;border-left:1px solid #d8e3e5}.model3dStationControl>span{font-size:6px;font-weight:800;letter-spacing:.3px;color:#0d766e}.model3dStationControl>input{width:62px;height:14px;margin:0;accent-color:#0d766e}.model3dStationControl>small{min-width:28px;font-size:6px;color:#6d8189;text-align:right}
 @media(max-width:720px){.model3dStationControl{grid-template-columns:auto 44px;height:30px}.model3dStationControl>input{width:44px}.model3dStationControl>small{display:none}}
+
+
+.model3dStationControl{grid-template-columns:auto 20px 62px 20px auto 24px}.model3dStationControl>button{display:grid;place-items:center;width:20px;height:22px;padding:0;border:0;border-radius:4px;background:#f3f7f7;color:#607780;font-size:11px;cursor:pointer}.model3dStationControl>button:hover{background:#e8f3f1;color:#0d766e}
+@media(max-width:720px){.model3dStationControl{grid-template-columns:auto 18px 42px 18px 22px}.model3dStationControl>button{width:18px}.model3dStationControl>small{display:none}}

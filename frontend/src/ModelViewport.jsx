@@ -119,7 +119,7 @@ async function imagePixels(file){
 }
 export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null}){
   const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary),onSpatialRegistrationSampleRef=useRef(onSpatialRegistrationSample);
-  const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null);
+  const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null),[ifcInfo,setIfcInfo]=useState(null),[ifcFilter,setIfcFilter]=useState("");
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null),[geometryStats,setGeometryStats]=useState(null),[photometricStats,setPhotometricStats]=useState(null);
   useEffect(()=>{pickEnabledRef.current=pickEnabled},[pickEnabled]);
   useEffect(()=>{onPointPickRef.current=onPointPick},[onPointPick]);
@@ -128,7 +128,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
   useEffect(()=>{onSpatialRegistrationSampleRef.current=onSpatialRegistrationSample},[onSpatialRegistrationSample]);
   useEffect(()=>{
     if(!file||!mount.current)return;
-    setError("");setFallback(false);setLoading(true);setLoadProgress(null);setModes([]);setIfcSelection(null);setSpatialNotice("");setPathologyStats(null);setGeometryStats(null);setPhotometricStats(null);
+    setError("");setFallback(false);setLoading(true);setLoadProgress(null);setModes([]);setIfcSelection(null);setIfcInfo(null);setIfcFilter("");setSpatialNotice("");setPathologyStats(null);setGeometryStats(null);setPhotometricStats(null);
     const el=mount.current,scene=new THREE.Scene();scene.background=new THREE.Color(0xdce4e7);
     const camera=new THREE.PerspectiveCamera(45,1,.01,100000);
     const pickMarkers=new THREE.Group();scene.add(pickMarkers);
@@ -157,7 +157,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       const bounds=new THREE.Box3().setFromObject(obj),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
       if(!Number.isFinite(size.length())||size.length()===0){scene.remove(obj);fail(new Error("Geometria vazia."));return}
       const radius=Math.max(size.length(),.01)*1.35;
-      view.current={camera,controls,center:center.clone(),radius,...extras};
+      view.current={camera,controls,center:center.clone(),radius,model:obj,...extras};
       controls.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(radius,radius*.65,radius));camera.near=Math.max(.001,size.length()/10000);camera.far=Math.max(100,size.length()*100);camera.updateProjectionMatrix();controls.update();dirty=true
     };
     const fail=e=>{releaseUrl();if(!disposed){setLoading(false);setLoadProgress(null);setError("Não foi possível abrir o ativo espacial/3D: "+(e?.message||String(e)))} };
@@ -242,7 +242,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       }catch(e){fail(e)}
     };
     const handlePointPick=e=>{
-      if(!pickEnabledRef.current||!model||!onPointPickRef.current)return;
+      if(!model)return;
       const rect=renderer.domElement.getBoundingClientRect();
       if(rect.width<1||rect.height<1)return;
       const mouse=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height*2-1));
@@ -254,6 +254,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         model.traverse?.(node=>{if(!node.isMesh||!node.userData?.ifc)return;const selected=node.userData.ifc.expressID===info.expressID;if(node.material?.emissive){node.material.emissive.setHex(selected?0x245466:0x000000);node.material.emissiveIntensity=selected?.22:0}});
         setIfcSelection(info);dirty=true;return;
       }
+      if(!pickEnabledRef.current||!onPointPickRef.current)return;
       const hit=hits.find(item=>item.object?.isPoints&&Number.isInteger(item.index));
       if(!hit)return;
       const attr=hit.object.geometry?.getAttribute("position");if(!attr)return;
@@ -286,6 +287,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         if(disposed){group.traverse?.(n=>{n.geometry?.dispose?.();if(n.material){const ms=Array.isArray(n.material)?n.material:[n.material];ms.forEach(disposeMaterial)}});return}
         setModes([]);setMode("elevation");
         const info=group.userData?.ifc||{};
+        setIfcInfo(info);
         setSpatialNotice("IFC4.3 renderizado · "+Number(info.geometryCount||0).toLocaleString("pt-BR")+" geometrias · "+Number(info.triangleCount||0).toLocaleString("pt-BR")+" triângulos"+(info.alignmentCount?" · "+info.alignmentCount+" alinhamento(s)":"")+".");
         fit(group,{ifc:true,ifcInfo:info});
       }catch(e){fail(e)}
@@ -352,10 +354,19 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     if(direction==="top")camera.up.set(0,0,-1);
     controls.target.copy(center);camera.lookAt(center);controls.update()
   }
+  function selectIfcElement(expressID){
+    const data=view.current;if(!data?.ifc)return;
+    let selected=null;
+    data.model?.traverse?.(node=>{if(!node.isMesh||!node.userData?.ifc)return;const active=node.userData.ifc.expressID===expressID;node.visible=true;if(node.material?.emissive){node.material.emissive.setHex(active?0x245466:0x000000);node.material.emissiveIntensity=active?.22:0}if(active)selected=node.userData.ifc});
+    if(selected)setIfcSelection(selected);
+  }
+  function isolateIfcElement(expressID){const data=view.current;if(!data?.ifc)return;data.model?.traverse?.(node=>{if(node.isMesh&&node.userData?.ifc)node.visible=node.userData.ifc.expressID===expressID})}
+  function restoreIfc(){const data=view.current;if(!data?.ifc)return;data.model?.traverse?.(node=>{if(node.isMesh&&node.userData?.ifc){node.visible=true;if(node.material?.emissive){node.material.emissive.setHex(0);node.material.emissiveIntensity=0}}});setIfcSelection(null)}
   function setPointMode(next){
     setMode(next);view.current?.setPointMode?.(next);
   }
   return <div className={"modelViewport "+(pickEnabled?"pointPickMode":"")} ref={mount} role="region" aria-label={pickEnabled?"Visualizador espacial 3D; selecione o ponto correspondente":"Visualizador espacial 3D do arquivo importado"} aria-busy={loading}>
+    {ifcInfo&&<aside className="ifcBrimPanel" aria-label="Estrutura BrIM IFC"><header><b>BrIM · IFC4.3</b><span>{Number(ifcInfo.elementCount||0).toLocaleString("pt-BR")} elementos</span></header><input value={ifcFilter} onChange={e=>setIfcFilter(e.target.value)} placeholder="Buscar componente…" aria-label="Buscar componente IFC"/><div className="ifcBrimList">{(ifcInfo.elements||[]).filter(item=>{const q=ifcFilter.trim().toLowerCase();return !q||[item.name,item.objectType,item.type,item.globalId,item.expressID].some(v=>String(v||"").toLowerCase().includes(q))}).slice(0,120).map(item=><button key={item.expressID} className={ifcSelection?.expressID===item.expressID?"active":""} onClick={()=>selectIfcElement(item.expressID)} title={item.globalId||""}><span>{item.name||item.objectType||item.type||"Elemento IFC"}</span><small>{item.type||"IFC"} · #{item.expressID}</small></button>)}</div><footer><button disabled={!ifcSelection} onClick={()=>ifcSelection&&isolateIfcElement(ifcSelection.expressID)}>Isolar</button><button onClick={restoreIfc}>Restaurar</button></footer></aside>}
     {ifcSelection&&<div className="ifcSelectionCard"><strong>{ifcSelection.name||ifcSelection.objectType||"Elemento IFC"}</strong><span>{ifcSelection.type||"IFC"} · #{ifcSelection.expressID}</span>{ifcSelection.globalId&&<span>GlobalID · {ifcSelection.globalId}</span>}{ifcSelection.description&&<small>{ifcSelection.description}</small>}</div>}
     {loading&&<div className="modelLoading" role="status" aria-live="polite"><b>Carregando ativo espacial / 3D</b><span>{loadProgress==null?"Preparando geometria…":loadProgress+"%"}</span>{loadProgress!=null&&<i><b style={{width:loadProgress+"%"}}/></i>}</div>}
     {error&&<div className="modelError" role="alert">{error}</div>}

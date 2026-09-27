@@ -100,6 +100,23 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       let length=0;for(let i=1;i<sampled.length;i++)length+=Math.hypot(sampled[i][0]-sampled[i-1][0],sampled[i][1]-sampled[i-1][1],sampled[i][2]-sampled[i-1][2]);
       return {index,expressID:alignment?.expressID??alignment?.ExpressID??null,globalId:alignment?.GlobalId?.value??alignment?.globalId??null,name:alignment?.Name?.value??alignment?.name??("Alignment "+(index+1)),rawType:alignment?.type??null,points:sampled,sampledLength:length,hasSampledCurve:sampled.length>1}
     });
+    let lengthUnit=null;
+    try{
+      const projects=vectorItems(api.GetLineIDsWithType?.(modelID,WebIFC.IFCPROJECT));
+      const project=projects.length?api.GetLine(modelID,projects[0],true):null;
+      const units=project?.UnitsInContext?.Units||[];
+      const unit=units.find(item=>item?.UnitType?.value==="LENGTHUNIT");
+      if(unit){
+        const prefix=unit?.Prefix?.value||null,name=unit?.Name?.value||null;
+        const symbols={METRE:"m",METER:"m"};
+        lengthUnit={name,prefix,symbol:symbols[name]||null,source:"IfcProject.UnitsInContext"};
+      }
+    }catch{}
+    let referents=[];
+    try{
+      const ids=vectorItems(api.GetLineIDsWithType?.(modelID,WebIFC.IFCREFERENT));
+      referents=ids.map(expressID=>{const line=api.GetLine(modelID,expressID,true);return {expressID,globalId:line?.GlobalId?.value||null,name:line?.Name?.value||null,predefinedType:line?.PredefinedType?.value||null}}).filter(item=>item.expressID!=null);
+    }catch{}
     let spatialTree=null;
     try{spatialTree=api.GetSpatialStructure?.(modelID,false)||null}catch{}
     if(!root.children.length)throw new Error("O IFC foi lido, mas nenhuma geometria tessellável foi produzida.");
@@ -109,7 +126,7 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       meshCount,
       geometryCount,
       triangleCount,
-      alignmentCount:alignmentInfo.length,\n      alignments:alignmentInfo,
+      alignmentCount:alignmentInfo.length,\n      alignments:alignmentInfo,\n      lengthUnit,\n      referents,\n      referentCount:referents.length,
       coordinateToOrigin:true,
       elements:Object.values(elementIndex),
       elementCount:Object.keys(elementIndex).length,

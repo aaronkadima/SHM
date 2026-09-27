@@ -252,6 +252,8 @@ check(workspace.includes("spatialTimelinePlaying")&&workspace.includes("setInter
 
 check(workspace.includes("temporalTracks={spatialTimeline?.tracks||[]}")&&modelViewport.includes("temporalTracks=[]")&&modelViewport.includes("cdm3TrackHistory")&&modelViewport.includes("Histórico 4D")&&modelViewport.includes("sem série quantitativa comparável")&&styles.includes(".cdm3TrackHistory{"),"selected CDM-3 damage must expose its persistent 4D track history without synthesizing quantitative values");
 
+check(!workspace.includes("useState(null);\\\\n  const [spatialBaseline"),"analysis workspace source must not contain a literal escaped newline before spatial 4D state");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

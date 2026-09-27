@@ -93,7 +93,13 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       }
       if(i%25===0)onProgress?.({loaded:18+Math.round(72*(i+1)/Math.max(meshCount,1)),total:100});
     }
-    let alignments=[];\n    try{alignments=api.GetAllAlignments?.(modelID)||[]}catch{}\n    const alignmentInfo=(Array.isArray(alignments)?alignments:[]).map((alignment,index)=>({\n      index,\n      expressID:alignment?.expressID??alignment?.ExpressID??null,\n      globalId:alignment?.GlobalId?.value??alignment?.globalId??null,\n      name:alignment?.Name?.value??alignment?.name??("Alignment "+(index+1)),\n      rawType:alignment?.type??null\n    }));
+    let alignments=[];\n    try{alignments=api.GetAllAlignments?.(modelID)||[]}catch{}\n    const alignmentInfo=(Array.isArray(alignments)?alignments:[]).map((alignment,index)=>{
+      const curves=alignment?.Absolute?.curves||alignment?.Horizontal?.curves||[];
+      const points=curves.flatMap(curve=>(curve?.points||[]).map(point=>[Number(point.x)||0,Number(point.z??point.y)||0,Number(point.y??point.z)||0]));
+      const sampled=[];for(const point of points){const previous=sampled[sampled.length-1];if(!previous||previous.some((v,i)=>Math.abs(v-point[i])>1e-9))sampled.push(point)}
+      let length=0;for(let i=1;i<sampled.length;i++)length+=Math.hypot(sampled[i][0]-sampled[i-1][0],sampled[i][1]-sampled[i-1][1],sampled[i][2]-sampled[i-1][2]);
+      return {index,expressID:alignment?.expressID??alignment?.ExpressID??null,globalId:alignment?.GlobalId?.value??alignment?.globalId??null,name:alignment?.Name?.value??alignment?.name??("Alignment "+(index+1)),rawType:alignment?.type??null,points:sampled,sampledLength:length,hasSampledCurve:sampled.length>1}
+    });
     let spatialTree=null;
     try{spatialTree=api.GetSpatialStructure?.(modelID,false)||null}catch{}
     if(!root.children.length)throw new Error("O IFC foi lido, mas nenhuma geometria tessellável foi produzida.");

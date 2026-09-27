@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import{spawn}from"node:child_process";
-import{rm}from"node:fs/promises";
+import{rm,writeFile}from"node:fs/promises";
 
 const chrome=process.env.CHROME_BIN||process.argv[2];
 const targetUrl=process.env.APP_SMOKE_URL||process.argv[3]||"http://127.0.0.1:4181/#/analysis";

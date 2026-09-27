@@ -17,21 +17,21 @@ function App(){
         const model=document.querySelector(".modelViewport");
         const badge=document.querySelector(".editorTypeBadge");
         const camera=document.querySelector(".editorCameraEntry");
-        const views=document.querySelector(".modelViews");
+        const views=document.querySelector(".model3dToolbar");\n        const cube=document.querySelector(".modelViewCube");
         const renderer=model?.querySelector("canvas,svg");
-        if(viewport&&model&&badge&&camera&&views&&renderer){
+        if(viewport&&model&&badge&&camera&&views&&cube&&renderer){
           await sleep(120);
           const vp=viewport.getBoundingClientRect(),mr=model.getBoundingClientRect(),br=badge.getBoundingClientRect(),cr=camera.getBoundingClientRect(),vr=views.getBoundingClientRect();
-          const buttons=[...views.querySelectorAll("button")];
+          const buttons=[...views.querySelectorAll("button")];\n          const cubeButtons=[...cube.querySelectorAll("button")];
           const hint=document.querySelector(".modelHint");
           const hr=hint?.getBoundingClientRect();
           const status=document.querySelector(".editorStatusMessage")?.textContent?.trim();
-          const controlsWithin=buttons.length===4&&buttons.every(btn=>{const r=btn.getBoundingClientRect();return r.left>=vp.left-1&&r.right<=vp.right+1&&r.top>=vp.top-1&&r.bottom<=vp.bottom+1});
-          const noTopCollision=vr.top>=Math.max(br.bottom,cr.bottom)+4;
+          const controlsWithin=buttons.length>=4&&buttons.every(btn=>{const r=btn.getBoundingClientRect();return r.left>=vp.left-1&&r.right<=vp.right+1&&r.top>=vp.top-1&&r.bottom<=vp.bottom+1});
+          const noTopCollision=vr.right<=cr.left-4||vr.bottom<=cr.top-4;
           const rendererFits=Math.abs(mr.left-vp.left)<1&&Math.abs(mr.top-vp.top)<1&&Math.abs(mr.width-vp.width)<2&&Math.abs(mr.height-vp.height)<2;
           const hintFits=!!hr&&hr.left>=vp.left-1&&hr.right<=vp.right+1&&hr.bottom<=vp.bottom+1;
-          const loadingDone=model.getAttribute("aria-busy")==="false"&&!document.querySelector(".modelLoading")&&buttons.every(btn=>!btn.disabled);
-          const checks={badgeOk:badge.textContent.includes("3D detectado"),statusOk:status==="Arquivo 3D reconhecido · análise 2D indisponível",rendererFits,controlsWithin,noTopCollision,hintFits,loadingDone,buttonsOk:buttons.map(b=>b.textContent.trim()).join("|")==="Perspectiva|Frontal|Superior|Lateral"};
+          const loadingDone=model.getAttribute("aria-busy")==="false"&&!document.querySelector(".modelLoading")&&buttons.every(btn=>!btn.disabled)&&cubeButtons.length>=4;
+          const checks={badgeOk:badge.textContent.includes("3D detectado"),statusOk:status==="Arquivo 3D reconhecido · análise 2D indisponível",rendererFits,controlsWithin,noTopCollision,hintFits,loadingDone,buttonsOk:!!views.querySelector(".model3dPan")&&cubeButtons.length>=4};
           const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
           const diag=" vp="+Math.round(vp.width)+"x"+Math.round(vp.height)+" views="+Math.round(vr.left)+"/"+Math.round(vr.top)+"/"+Math.round(vr.right)+"/"+Math.round(vr.bottom);
           setResult(failed.length?"MODEL_SMOKE_FAIL "+failed.join(",")+diag:"MODEL_SMOKE_PASS viewport="+Math.round(vp.width)+"x"+Math.round(vp.height)+" renderer="+renderer.tagName.toLowerCase()+" load=done");

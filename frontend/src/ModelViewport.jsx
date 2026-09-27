@@ -274,7 +274,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       if(rect.width<1||rect.height<1)return;
       const mouse=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height*2-1));
       const raycaster=new THREE.Raycaster();raycaster.params.Points.threshold=Math.max((view.current?.radius||1)/180,.002);raycaster.setFromCamera(mouse,camera);
-      const guideHits=raycaster.intersectObjects(infrastructureGuides.children,true);\n      const referentHit=guideHits.find(item=>item.object?.userData?.ifcReferent);\n      if(referentHit){navigateReferent(referentHit.object.userData.ifcReferent);dirty=true;return}\n      const hits=raycaster.intersectObject(model,true);
+      const guideHits=raycaster.intersectObjects(infrastructureGuides.children,true);\n      const referentHit=guideHits.find(item=>item.object?.userData?.ifcReferent);\n      if(referentHit){navigateReferent(referentHit.object.userData.ifcReferent);dirty=true;return}\n      const damageHit=guideHits.find(item=>item.object?.userData?.cdm3Damage);\n      if(damageHit){const record=damageHit.object.userData.cdm3Damage;if(record?.brim?.express_id!=null)selectIfcElement(record.brim.express_id);const center=new THREE.Box3().setFromObject(damageHit.object).getCenter(new THREE.Vector3());view.current.controls.target.copy(center);view.current.controls.update();dirty=true;return}\n      const hits=raycaster.intersectObject(model,true);
       if(measureMode){
         const surfaceHit=hits.find(item=>item.object?.isMesh||item.object?.isPoints);
         if(surfaceHit){
@@ -316,6 +316,20 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       if(disposed){releaseUrl();return}
       new GLTFLoader().load(url,g=>fit(g.scene),onProgress,fail);
     };
+    const setDamageGuides=(records=[])=>{
+      for(const child of [...infrastructureGuides.children])if(child.userData?.infrastructureGuide==="damage"){infrastructureGuides.remove(child);child.geometry?.dispose?.();disposeMaterial(child.material)}
+      const radius=view.current?.radius||1;
+      for(const record of records){
+        const vertices=record?.geometry?.vertices_3d;if(!Array.isArray(vertices)||vertices.length<2)continue;
+        const points=vertices.filter(p=>Array.isArray(p)&&p.length>=3).map(p=>new THREE.Vector3(Number(p[0])||0,Number(p[1])||0,Number(p[2])||0));if(points.length<2)continue;
+        const closed=record?.geometry?.source_record_closed&&points.length>=3;
+        const geometry=new THREE.BufferGeometry().setFromPoints(points),material=new THREE.LineBasicMaterial({color:0xc74b43,transparent:true,opacity:.95,depthTest:false});
+        const line=closed?new THREE.LineLoop(geometry,material):new THREE.Line(geometry,material);line.renderOrder=22;line.visible=guideVisibility.damage;line.userData.infrastructureGuide="damage";line.userData.cdm3Damage=record;infrastructureGuides.add(line);
+        const center=points.reduce((sum,p)=>sum.add(p),new THREE.Vector3()).multiplyScalar(1/points.length),marker=new THREE.Mesh(new THREE.SphereGeometry(Math.max(radius/150,.006),10,8),new THREE.MeshBasicMaterial({color:0xc74b43,depthTest:false}));
+        marker.position.copy(center);marker.renderOrder=23;marker.visible=guideVisibility.damage;marker.userData.infrastructureGuide="damage";marker.userData.cdm3Damage=record;infrastructureGuides.add(marker);
+      }
+      dirty=true;
+    };
     const buildInfrastructureGuides=(info,radius)=>{
       infrastructureGuides.clear();
       const alignment=info?.alignments?.find(item=>item?.hasSampledCurve&&item.points?.length>1);
@@ -340,7 +354,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         const info=group.userData?.ifc||{};
         setIfcInfo(info);
         setSpatialNotice("IFC4.3 renderizado · "+Number(info.geometryCount||0).toLocaleString("pt-BR")+" geometrias · "+Number(info.triangleCount||0).toLocaleString("pt-BR")+" triângulos"+(info.alignmentCount?" · "+info.alignmentCount+" alinhamento(s)":"")+".");
-        fit(group,{ifc:true,ifcInfo:info,infrastructureGuides});\n        requestAnimationFrame(()=>{if(view.current?.ifc){buildInfrastructureGuides(info,view.current.radius);dirty=true}});
+        fit(group,{ifc:true,ifcInfo:info,infrastructureGuides,setDamageGuides,setDamageGuideVisibility:visible=>{infrastructureGuides.traverse(node=>{if(node.userData?.infrastructureGuide==="damage")node.visible=visible});dirty=true}});\n        requestAnimationFrame(()=>{if(view.current?.ifc){buildInfrastructureGuides(info,view.current.radius);dirty=true}});
       }catch(e){fail(e)}
     };
     try{
@@ -376,7 +390,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         if(cancelled)return;
         if(registered)view.current?.setRegisteredColors?.(registered);
         if(pathology)view.current?.setPathologyProjection?.(pathology);
-        const ifcModel=view.current?.ifc?view.current.model:null;\n        const linked=ifcModel?bindPathologiesToIfcSurface(records,ifcModel,Math.max((view.current?.radius||1)*.03,.01)):records;\n        onSpatialPathologyRecordsRef.current?.(linked);
+        const ifcModel=view.current?.ifc?view.current.model:null;\n        const linked=ifcModel?bindPathologiesToIfcSurface(records,ifcModel,Math.max((view.current?.radius||1)*.03,.01)):records;\n        view.current?.setDamageGuides?.(linked);\n        onSpatialPathologyRecordsRef.current?.(linked);
       })
       .catch(e=>{if(!cancelled)setError("Falha ao projetar RGB/patologias no 3D: "+(e?.message||String(e)))});
     return()=>{cancelled=true};

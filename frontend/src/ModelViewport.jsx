@@ -117,7 +117,9 @@ async function imagePixels(file){
     return {width:canvas.width,height:canvas.height,data:ctx.getImageData(0,0,canvas.width,canvas.height).data};
   }finally{URL.revokeObjectURL(url)}
 }
-function bindPathologiesToIfcSurface(records,model,maxDistance){
+function spatialFrameCompatible(transform){return transform?.schema==="CDM3-SpatialTransform/1.0"&&transform?.frame_compatible===true&&transform?.source_frame==="point_cloud_world"&&transform?.target_frame==="ifc_model_local"&&Array.isArray(transform?.matrix4)&&transform.matrix4.length===4}
+function bindPathologiesToIfcSurface(records,model,maxDistance,spatialTransform=null){
+  if(!spatialFrameCompatible(spatialTransform))return (records||[]).map(record=>({...record,brim:{...(record.brim||{}),status:"frame_unverified",method:"spatial_transform_required"}}));
   if(!Array.isArray(records)||!records.length||!model)return records||[];
   const meshes=[];model.traverse?.(node=>{if(node.isMesh&&node.userData?.ifc?.expressID!=null)meshes.push(node)});
   if(!meshes.length)return records;
@@ -144,7 +146,7 @@ function flattenIfcTree(node,depth=0,out=[]){
   for(const child of node.children||[])flattenIfcTree(child,depth+1,out);
   return out;
 }
-export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null,spatial4dRecords=[],timelineSnapshot=null,temporalTracks=[]}){
+export default function ModelViewport({file,pickEnabled=false,onPointPick=null,rgbReferenceFile=null,registration=null,spatialTransform=null,rgbPathologyAnalysis=null,photometricViews=[],onPhotometricSummary=null,onSpatialRegistrationSample=null,onSpatialPathologyRecords=null,spatial4dRecords=[],timelineSnapshot=null,temporalTracks=[]}){
   const mount=useRef(null),view=useRef(null),pickEnabledRef=useRef(pickEnabled),onPointPickRef=useRef(onPointPick),onSpatialPathologyRecordsRef=useRef(onSpatialPathologyRecords),onPhotometricSummaryRef=useRef(onPhotometricSummary),onSpatialRegistrationSampleRef=useRef(onSpatialRegistrationSample);
   const[error,setError]=useState(""),[fallback,setFallback]=useState(false),[loading,setLoading]=useState(false),[loadProgress,setLoadProgress]=useState(null),[ifcSelection,setIfcSelection]=useState(null),[ifcInfo,setIfcInfo]=useState(null),[ifcFilter,setIfcFilter]=useState(""),[ifcExpanded,setIfcExpanded]=useState({}),[ifcDamageLinks,setIfcDamageLinks]=useState([]),[viewMenu,setViewMenu]=useState(false),[projection,setProjection]=useState("perspective"),[inspectMenu,setInspectMenu]=useState(false),[clipAxis,setClipAxis]=useState(""),[ghostMode,setGhostMode]=useState(false),[measureMode,setMeasureMode]=useState(false),[measurement,setMeasurement]=useState(null),[stationRatio,setStationRatio]=useState(.5),[guidesMenu,setGuidesMenu]=useState(false),[guideVisibility,setGuideVisibility]=useState({alignment:true,referents:true,damage:true}),[selectedDamage,setSelectedDamage]=useState(null),[temporalFilter,setTemporalFilter]=useState("all");
   const[modes,setModes]=useState([]),[mode,setMode]=useState("elevation"),[spatialNotice,setSpatialNotice]=useState(""),[pathologyStats,setPathologyStats]=useState(null),[geometryStats,setGeometryStats]=useState(null),[photometricStats,setPhotometricStats]=useState(null);
@@ -397,13 +399,13 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
         if(registered)view.current?.setRegisteredColors?.(registered);
         if(pathology)view.current?.setPathologyProjection?.(pathology);
         const ifcModel=view.current?.ifc?view.current.model:null;
-        const linked=ifcModel?bindPathologiesToIfcSurface(records,ifcModel,Math.max((view.current?.radius||1)*.03,.01)):records;
+        const linked=ifcModel?bindPathologiesToIfcSurface(records,ifcModel,Math.max((view.current?.radius||1)*.03,.01),spatialTransform):records;
         view.current?.setDamageGuides?.(linked);
         onSpatialPathologyRecordsRef.current?.(linked);
       })
       .catch(e=>{if(!cancelled)setError("Falha ao projetar RGB/patologias no 3D: "+(e?.message||String(e)))});
     return()=>{cancelled=true};
-  },[rgbReferenceFile,registration,rgbPathologyAnalysis,file]);
+  },[rgbReferenceFile,registration,spatialTransform,rgbPathologyAnalysis,file]);
   useEffect(()=>{
     const eligible=(photometricViews||[]).filter(v=>v?.file&&v?.registration?.registration);
     if(!eligible.length||!view.current?.parsed||!view.current?.setPhotometricFusion){setPhotometricStats(null);onPhotometricSummaryRef.current?.(null);return}
@@ -425,7 +427,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     const guides=view.current?.infrastructureGuides;if(!guides)return;
     const statusColor={grown:0xd24a43,reduced:0x3d82a8,stable:0x738b72,unmatched:0xd39b3d,matched_not_quantified:0x7e748d,not_comparable:0x7e748d};
     for(const child of [...guides.children])if(child.userData?.infrastructureGuide==="temporal_vector"){guides.remove(child);child.geometry?.dispose?.();disposeMaterial(child.material)}
-    for(const record of spatial4dRecords){const a=record?.temporal?.previous_centroid_3d,b=record?.temporal?.current_centroid_3d;if(!a||!b)continue;const status=record.temporal.change_status,color=statusColor[status]??0x7e748d,geometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]),line=new THREE.Line(geometry,new THREE.LineDashedMaterial({color,dashSize:Math.max((view.current?.radius||1)/80,.01),gapSize:Math.max((view.current?.radius||1)/130,.006),transparent:true,opacity:.82,depthTest:false}));line.computeLineDistances();line.renderOrder=24;line.userData.infrastructureGuide="temporal_vector";line.userData.temporalRecord=record;guides.add(line)}
+    for(const record of spatial4dRecords){if(!spatialFrameCompatible(spatialTransform))continue;const a=record?.temporal?.previous_centroid_3d,b=record?.temporal?.current_centroid_3d;if(!a||!b)continue;const status=record.temporal.change_status,color=statusColor[status]??0x7e748d,geometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]),line=new THREE.Line(geometry,new THREE.LineDashedMaterial({color,dashSize:Math.max((view.current?.radius||1)/80,.01),gapSize:Math.max((view.current?.radius||1)/130,.006),transparent:true,opacity:.82,depthTest:false}));line.computeLineDistances();line.renderOrder=24;line.userData.infrastructureGuide="temporal_vector";line.userData.temporalRecord=record;guides.add(line)}
     guides.traverse(node=>{const record=node.userData?.cdm3Damage;if(!record)return;const matched=spatial4dRecords.find(item=>item.id===record.id),status=matched?.temporal?.change_status,color=statusColor[status];if(color!=null&&node.material?.color)node.material.color.setHex(color);node.userData.temporalStatus=status||null;node.visible=guideVisibility.damage&&(temporalFilter==="all"||status===temporalFilter)});
     dirty=true;
   },[spatial4dRecords,temporalFilter,guideVisibility.damage]);
@@ -509,7 +511,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     const offset=axis==="x"?new THREE.Vector3(0,0,distance):new THREE.Vector3(distance,0,0);data.camera.position.copy(target).add(offset);data.camera.up.set(0,1,0);data.controls.target.copy(target);data.camera.lookAt(target);data.controls.update();
   }
   function damageStation(record){
-    const vertices=record?.geometry?.vertices_3d,alignment=ifcInfo?.alignments?.find(item=>item?.hasSampledCurve&&item.points?.length>1);if(!vertices?.length||!alignment)return null;
+    if(!spatialFrameCompatible(spatialTransform))return null;const vertices=record?.geometry?.vertices_3d,alignment=ifcInfo?.alignments?.find(item=>item?.hasSampledCurve&&item.points?.length>1);if(!vertices?.length||!alignment)return null;
     const center=vertices.reduce((sum,p)=>sum.add(new THREE.Vector3(Number(p?.[0])||0,Number(p?.[1])||0,Number(p?.[2])||0)),new THREE.Vector3()).multiplyScalar(1/vertices.length);
     let walked=0,best=null,total=alignment.sampledLength||0;
     for(let i=1;i<alignment.points.length;i++){const a=new THREE.Vector3(...alignment.points[i-1]),b=new THREE.Vector3(...alignment.points[i]),ab=b.clone().sub(a),len=ab.length();if(!len)continue;const t=Math.max(0,Math.min(1,center.clone().sub(a).dot(ab)/(len*len))),projected=a.clone().addScaledVector(ab,t),offset=projected.distanceTo(center),along=walked+len*t;if(!best||offset<best.offset)best={distance:along,ratio:total?along/total:0,offset};walked+=len}return best

@@ -276,7 +276,9 @@ export function buildSpatialPathologyRecords(
         detector_confidence_calibrated:false,
         registration_method:"2d_3d_correspondences_pnp_ransac",
         registration_metric_valid:metricValid
-      }
+      },
+      inspection:{campaign_id:analysis?.campaign_id||engine?.campaign_id||null,observed_at:analysis?.observed_at||analysis?.inspection_date||engine?.observed_at||null,source_image:sourceImageName,severity:record?.severity??null,severity_method:record?.severity_method||null},
+      temporal:{track_id:record?.track_id||null,previous_observation_id:record?.previous_observation_id||null,change_status:record?.change_status||"not_compared"}
     });
   });
   return out;

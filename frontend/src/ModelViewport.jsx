@@ -273,7 +273,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       const rect=renderer.domElement.getBoundingClientRect();
       if(rect.width<1||rect.height<1)return;
       const mouse=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height*2-1));
-      const raycaster=new THREE.Raycaster();raycaster.params.Points.threshold=Math.max((view.current?.radius||1)/180,.002);raycaster.setFromCamera(mouse,camera);
+      const raycaster=new THREE.Raycaster();raycaster.params.Points.threshold=Math.max((view.current?.radius||1)/180,.002);raycaster.setFromCamera(mouse,view.current?.camera||camera);
       const guideHits=raycaster.intersectObjects(infrastructureGuides.children,true);\n      const referentHit=guideHits.find(item=>item.object?.userData?.ifcReferent);\n      if(referentHit){navigateReferent(referentHit.object.userData.ifcReferent);dirty=true;return}\n      const damageHit=guideHits.find(item=>item.object?.userData?.cdm3Damage);\n      if(damageHit){const record=damageHit.object.userData.cdm3Damage;if(record?.brim?.express_id!=null)selectIfcElement(record.brim.express_id);const center=new THREE.Box3().setFromObject(damageHit.object).getCenter(new THREE.Vector3());view.current.controls.target.copy(center);view.current.controls.update();dirty=true;return}\n      const hits=raycaster.intersectObject(model,true);
       if(measureMode){
         const surfaceHit=hits.find(item=>item.object?.isMesh||item.object?.isPoints);
@@ -368,7 +368,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
       }else fail(new Error("Formato 3D não suportado pelo visualizador."));
     }catch(e){fail(e)}
     controls.addEventListener("change",()=>{dirty=true});
-    let animation;const draw=()=>{animation=requestAnimationFrame(draw);controls.update();if(!vectorFallback||dirty){renderer.render(scene,camera);dirty=false}};draw();
+    let animation;const draw=()=>{animation=requestAnimationFrame(draw);controls.update();if(!vectorFallback||dirty){renderer.render(scene,view.current?.camera||camera);dirty=false}};draw();
     return()=>{disposed=true;view.current=null;cancelAnimationFrame(animation);observer.disconnect();controls.dispose();renderer.domElement.removeEventListener("click",handlePointPick);scene.remove(model);model?.traverse?.(n=>{n.geometry?.dispose();if(n.material){const materials=Array.isArray(n.material)?n.material:[n.material];materials.forEach(disposeMaterial)}});pickMarkers.traverse(n=>{n.geometry?.dispose?.();disposeMaterial(n.material)});renderer.dispose?.();renderer.domElement.remove();releaseUrl()}
   },[file]);
   useEffect(()=>{
@@ -442,7 +442,7 @@ export default function ModelViewport({file,pickEnabled=false,onPointPick=null,r
     const data=view.current;if(!data?.model)return;
     const next=clipAxis===axis?"":axis;setClipAxis(next);
     const normals={x:new THREE.Vector3(-1,0,0),y:new THREE.Vector3(0,-1,0),z:new THREE.Vector3(0,0,-1)};
-    const plane=next?new THREE.Plane(normals[next],data.center[next]):null;
+    const plane=next?new THREE.Plane().setFromNormalAndCoplanarPoint(normals[next],data.center):null;
     data.model.traverse?.(node=>{if(!node.material)return;(Array.isArray(node.material)?node.material:[node.material]).forEach(mat=>{mat.clippingPlanes=plane?[plane]:[];mat.clipShadows=true;mat.needsUpdate=true})});
   }
   function toggleGhost(){

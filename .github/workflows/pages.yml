@@ -11,6 +11,8 @@ on:
     types: [completed]
     branches: ["dev","main"]
   workflow_dispatch:
+  schedule:
+    - cron: "17 3 1 1 *"
 
 permissions:
   contents: read

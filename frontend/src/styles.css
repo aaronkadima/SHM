@@ -567,3 +567,6 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 
 
 .cdm3DamageStation{width:100%;margin-top:6px;height:26px;border:0;border-radius:5px;background:#e7f2f0;color:#0d766e;font-size:7px;font-weight:700;cursor:pointer;text-align:left;padding:0 7px}.cdm3DamageStation:hover{background:#dcece9}
+
+
+.spatial4dControl{display:flex;align-items:center;gap:5px;min-height:30px;padding:4px 6px;border:1px solid #d5e0e2;border-radius:6px;background:#f8fbfb;color:#687d84}.spatial4dControl>b{font-size:7px;letter-spacing:.4px;text-transform:uppercase;color:#0d766e}.spatial4dControl>span{font-size:7px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.spatial4dControl>button{height:22px;border:0;border-radius:4px;background:#e8f2f1;color:#0d766e;font-size:7px;padding:0 7px;cursor:pointer}.spatial4dControl>button:last-child:not(:first-of-type){background:#f1f4f4;color:#73858b}

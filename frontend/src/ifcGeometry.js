@@ -93,8 +93,7 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       }
       if(i%25===0)onProgress?.({loaded:18+Math.round(72*(i+1)/Math.max(meshCount,1)),total:100});
     }
-    let alignments=[];
-    try{alignments=api.GetAllAlignments?.(modelID)||[]}catch{}
+    let alignments=[];\n    try{alignments=api.GetAllAlignments?.(modelID)||[]}catch{}\n    const alignmentInfo=(Array.isArray(alignments)?alignments:[]).map((alignment,index)=>({\n      index,\n      expressID:alignment?.expressID??alignment?.ExpressID??null,\n      globalId:alignment?.GlobalId?.value??alignment?.globalId??null,\n      name:alignment?.Name?.value??alignment?.name??("Alignment "+(index+1)),\n      rawType:alignment?.type??null\n    }));
     let spatialTree=null;
     try{spatialTree=api.GetSpatialStructure?.(modelID,false)||null}catch{}
     if(!root.children.length)throw new Error("O IFC foi lido, mas nenhuma geometria tessellável foi produzida.");
@@ -104,7 +103,7 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       meshCount,
       geometryCount,
       triangleCount,
-      alignmentCount:Array.isArray(alignments)?alignments.length:0,
+      alignmentCount:alignmentInfo.length,\n      alignments:alignmentInfo,
       coordinateToOrigin:true,
       elements:Object.values(elementIndex),
       elementCount:Object.keys(elementIndex).length,

@@ -240,6 +240,8 @@ check(cdm3Projection.includes("matchTemporalDamageCampaigns")&&cdm3Projection.in
 
 check(workspace.includes("Definir campanha A")&&workspace.includes("Comparar A × B")&&workspace.includes("matchTemporalDamageCampaigns(spatialBaseline.records,spatialPathologyRecords)")&&modelViewport.includes("spatial4dRecords=[]")&&modelViewport.includes("statusColor={grown:")&&styles.includes(".spatial4dControl{"),"spatial CDM-3 workflow must expose explicit Campaign A versus B matching and visualize 4D change states on the existing damage guides");
 
+check(modelViewport.includes("model4dLegend")&&modelViewport.includes('setTemporalFilter(key)')&&modelViewport.includes('status===temporalFilter')&&modelViewport.includes('["grown","Crescentes"]')&&styles.includes('.model4dLegend button[data-status="grown"]'),"4D canvas must expose counted temporal states and filter existing CDM-3 damage guides without replacing infrastructure layers");
+
 if(failures.length){
   console.error("Analysis viewer composition failures:");
   failures.forEach(x=>console.error(" - "+x));

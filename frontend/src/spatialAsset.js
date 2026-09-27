@@ -47,8 +47,7 @@ function finishPositions(raw,metadata={},attributes={}){
 
 export async function parseXyzFile(file,{maxPoints=250000}={}){
   const text=await file.text();
-  const lines=text.split(/\r?
-/);
+  const lines=text.split(/\\r?\\n/);
   const stride=Math.max(1,Math.ceil(lines.length/maxPoints));
   const raw=[],rgb=[],intensity=[];
   let valid=0,skipped=0,sampled=0,rgbSamples=0,intensitySamples=0;

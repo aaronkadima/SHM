@@ -4138,7 +4138,13 @@ c0.addEventListener("selectstart", () => {
     if(push){try{history.pushState(null,"",location.pathname+location.search)}catch(e){try{location.hash=""}catch(_){}}}
     renderCatalog();window.scrollTo(0,0);
   }
-  window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(h&&DECK[h]){if(!cur||cur.id!==h)openCourse(h,false)}else if(cur)goHome(false)});
+  const normalizeCourseHash=()=>{
+    const h=location.hash.slice(1);
+    if(h!=="projectcard")return h;
+    try{history.replaceState(null,"",location.pathname+location.search+"#site")}catch(e){}
+    return "site";
+  };
+  window.addEventListener("hashchange",()=>{const h=normalizeCourseHash();if(h&&DECK[h]){if(!cur||cur.id!==h)openCourse(h,false)}else if(cur)goHome(false)});
   window.addEventListener("popstate",()=>{const h=location.hash.slice(1);if(!h&&cur)goHome(false)});
 
   function setMode(m){mode=m;
@@ -4408,7 +4414,7 @@ c0.addEventListener("selectstart", () => {
     t.onclick=()=>{const o=p.hidden;p.hidden=!o;t.setAttribute("aria-expanded",o);t.textContent=o?"Fechar ▾":"Sobre o projeto ▴"};
     $("crCopy").onclick=()=>copyText("gmec.poli@usp.br",$("crCopy"));})();
   renderCatalog();
-  const h=location.hash.slice(1);if(h&&DECK[h])openCourse(h,false);
+  const h=normalizeCourseHash();if(h&&DECK[h])openCourse(h,false);
 })();
 </script>
 

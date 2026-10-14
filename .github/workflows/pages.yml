@@ -241,6 +241,22 @@ jobs:
           fi
           echo "bin=$CHROME" >> "$GITHUB_OUTPUT"
 
+      - name: AULAS · published page and interactive catalog smoke
+        shell: bash
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.bin }}
+        run: |
+          set -euo pipefail
+          URL="https://aaronkadima.github.io/SHM/aulas/"
+          curl --fail --silent --show-error --location --retry 4 --retry-delay 3 "$URL" -o /tmp/shm-aulas.html
+          grep -q 'Trilha Dev SHM' /tmp/shm-aulas.html
+          grep -q 'id="catalog"' /tmp/shm-aulas.html
+          grep -q 'id="player"' /tmp/shm-aulas.html
+          "$CHROME_BIN" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --dump-dom "$URL" > /tmp/shm-aulas-dom.html
+          grep -q 'class="course"' /tmp/shm-aulas-dom.html
+          grep -q 'Curso 1' /tmp/shm-aulas-dom.html
+          echo "AULAS OK: page served, catalog rendered by JavaScript."
+
       - name: PROD · YOLOv8n · mobile full-app smoke
         working-directory: frontend
         env:

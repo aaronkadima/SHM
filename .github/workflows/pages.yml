@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "frontend/**"
+      - "aulas/**"
       - ".github/workflows/pages.yml"
   workflow_run:
     workflows: ["Frontend build check","Export browser ONNX models"]
@@ -95,6 +96,7 @@ jobs:
         run: |
           mkdir -p site/dev site/browser-models site/dev/browser-models
           cp -a prod-src/frontend/dist/. site/
+          if [ -d prod-src/aulas ]; then mkdir -p site/aulas; cp -a prod-src/aulas/. site/aulas/; fi
           cp -a dev-src/frontend/dist/. site/dev/
           if compgen -G "prod-browser-models/*" >/dev/null; then cp -a prod-browser-models/. site/browser-models/; fi
           if compgen -G "dev-browser-models/*" >/dev/null; then cp -a dev-browser-models/. site/dev/browser-models/; fi

@@ -112,7 +112,7 @@ jobs:
           const block = html.match(/<section data-c="site">([\s\S]*?)<\/section>/);
           if (!block) throw new Error('Curso Sites estáticos: Project Card ausente');
           const cards = (block[1].match(/<article data-m="[1-4]">/g) || []).length;
-          if (cards !== 41) throw new Error('Esperados 41 flashcards, encontrados ' + cards);
+          if (cards !== 42) throw new Error('Esperados 42 flashcards, encontrados ' + cards);
           for (const moduleId of [1, 2, 3, 4]) {
             if (!block[1].includes('data-m="' + moduleId + '"')) {
               throw new Error('Módulo ' + moduleId + ' ausente');
@@ -123,14 +123,40 @@ jobs:
           }
           if (!html.includes('id:"site",phase:"Preparação",title:"Sites estáticos: Project Card"')) throw new Error('Curso não está em Preparação');
           if (html.includes('id:"projectcard"') || html.includes('Project Card Structure · Websites estáticos')) throw new Error('Curso duplicado ainda presente');
-          [7, 7, 8, 19].forEach((expected, i) => {
+          [8, 7, 8, 19].forEach((expected, i) => {
             const found = (block[1].match(new RegExp('<article data-m="' + (i + 1) + '">', 'g')) || []).length;
             if (found !== expected) throw new Error('Módulo ' + (i + 1) + ': esperado ' + expected + ', encontrado ' + found);
           });
           const titles = [...block[1].matchAll(/<article data-m="[1-4]"><h2>(.*?)<\/h2>/g)].map(m => m[1]);
           if (new Set(titles).size !== titles.length) throw new Error('Títulos de flashcards repetidos');
           if (!html.includes('id:"site",phase:"Preparação"')) throw new Error('Curso fora da Preparação');
-          console.log('Sites estáticos: Project Card: 41 cartões únicos em Preparação');
+          const expectedConcepts = {
+            site: ["Site ou aplicação web?"],
+            git: ["O que é controle de versão", "Git ou GitHub?"],
+            html: ["O que é HTML"],
+            css: ["O que é CSS"],
+            js: ["O que é JavaScript"],
+            react: ["O que é React", "O que é TypeScript"],
+            jsvc: ["O que é visão computacional", "O que é uma imagem digital"],
+            py: ["O que é Python", "Clássica ou deep learning?"],
+            dl: ["O que é deep learning", "O que é uma rede neural", "O que é uma CNN", "Como a rede aprende"],
+            matlab: ["O que é SHM", "O que é pós-processamento"],
+            bim: ["O que é BIM", "BIM ou CAD?", "Dimensões do BIM", "BIM nas obras públicas", "O que é gêmeo digital", "Modelo, sombra e gêmeo", "BIM ou gêmeo digital?"],
+            pc: ["O que é fotogrametria", "Do pixel ao ponto 3D", "O que é uma nuvem de pontos", "Fotogrametria ou LiDAR?"],
+            vr: ["VR, AR, MR e XR"]
+          };
+          if (!html.includes("trilha-dev-shm-conceitos-20261014-v1")) throw new Error("Migração de progresso ausente");
+          for (const [course, expected] of Object.entries(expectedConcepts)) {
+            const escaped = course.replace(/[.*+?^${}()|[\]\\]/g, "\\          console.log('Sites estáticos: Project Card: 42 cartões únicos em Preparação');");
+            const section = html.match(new RegExp('<section data-c="' + escaped + '">([\\s\\S]*?)<\\/section>'));
+            if (!section) throw new Error('Curso não encontrado: ' + course);
+            const found = [...section[1].matchAll(/<article data-m="[1-4]"><h2>(.*?)<\\/h2>/g)].map(match => match[1]);
+            for (const title of expected) {
+              if (found.filter(item => item === title).length !== 1) throw new Error('Flashcard ausente ou repetido: ' + course + ' — ' + title);
+            }
+          }
+          console.log('Conceitos OK: 30 cartões exclusivos, distribuídos em 13 cursos');
+          console.log('Sites estáticos: Project Card: 42 cartões únicos em Preparação');
           NODE
           cp -a dev-src/frontend/dist/. site/dev/
           if compgen -G "prod-browser-models/*" >/dev/null; then cp -a prod-browser-models/. site/browser-models/; fi

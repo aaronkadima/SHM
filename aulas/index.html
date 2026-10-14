@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="pt-BR"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Trilha Dev SHM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -200,8 +200,34 @@ code.i,.a code{font-family:var(--f-mono);font-size:.9em;background:var(--codebg)
 @media (max-width:480px){.btn{flex:1 1 auto}.sp{display:none}}
 @media (prefers-reduced-motion:reduce){.stage,.bar i,.course{transition:none}}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="figma-theme.css">
 
-<nav class="topbar" aria-label="Navegação"><div class="tb-in"><button class="brand" id="home" type="button" title="Voltar à página inicial">Trilha <em>Dev SHM</em></button><span class="crumb" id="crumb"></span></div></nav>
+
+<nav class="topbar" aria-label="Navegação principal"><div class="tb-in">
+  <a class="figma-app-logo" href="../#/analysis" title="Abrir SHM Vision Lab"><span class="logo-square" aria-hidden="true">S</span><b>SHM Studio</b></a>
+  <span class="tb-divider" aria-hidden="true"></span>
+  <button class="brand" id="home" type="button" title="Voltar ao catálogo">Trilha <em>Dev SHM</em></button>
+  <span class="crumb" id="crumb" aria-live="polite"></span>
+  <a class="tb-platform" href="../#/analysis">Abrir plataforma <span aria-hidden="true">↗</span></a>
+</div></nav>
+<div class="study-rail" role="navigation" aria-label="Acesso rápido aos estudos">
+  <button type="button" data-study-nav="catalog" title="Catálogo" aria-label="Catálogo" aria-current="page">⌂</button>
+  <button type="button" data-study-nav="apps" title="Projetos integradores" aria-label="Projetos integradores">▦</button>
+  <button type="button" data-study-nav="papers" title="Artigos científicos" aria-label="Artigos científicos">▤</button>
+  <a class="rail-last" href="../#/analysis" title="SHM Vision Lab" aria-label="Abrir SHM Vision Lab">↗</a>
+</div>
+<aside class="study-nav" aria-label="Navegação de aprendizagem">
+  <span class="sn-heading">ESPAÇO DE APRENDIZAGEM</span>
+  <button type="button" data-study-nav="catalog" aria-current="page"><span class="sn-icon" aria-hidden="true">⌂</span>Visão geral</button>
+  <button type="button" data-study-nav="apps"><span class="sn-icon" aria-hidden="true">▦</span>Projetos integradores</button>
+  <button type="button" data-study-nav="papers"><span class="sn-icon" aria-hidden="true">▤</span>Artigos científicos</button>
+  <span class="sn-subheading">CURSOS DA TRILHA</span>
+  <div id="studyCourseList" class="sn-course-list" aria-label="Acesso direto aos cursos"></div>
+  <div class="sn-foot">Trilha Dev SHM · GMEC / EPUSP<br>Estudo e progresso salvos neste navegador.</div>
+</aside>
 <div class="wrap">
   <section id="catalog">
     <div style="display:flex;flex-direction:column;gap:16px">
@@ -3866,4 +3892,5 @@ c0.addEventListener("selectstart", () => {
 })();
 </script>
 
+<script src="figma-shell.js"></script>
 </body></html>

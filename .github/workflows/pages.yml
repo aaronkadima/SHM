@@ -112,7 +112,7 @@ jobs:
           const block = html.match(/<section data-c="site">([\s\S]*?)<\/section>/);
           if (!block) throw new Error('Curso Sites estáticos: Project Card ausente');
           const cards = (block[1].match(/<article data-m="[1-4]">/g) || []).length;
-          if (cards !== 33) throw new Error('Esperados 33 flashcards, encontrados ' + cards);
+          if (cards !== 41) throw new Error('Esperados 41 flashcards, encontrados ' + cards);
           for (const moduleId of [1, 2, 3, 4]) {
             if (!block[1].includes('data-m="' + moduleId + '"')) {
               throw new Error('Módulo ' + moduleId + ' ausente');
@@ -123,11 +123,14 @@ jobs:
           }
           if (!html.includes('id:"site",phase:"Preparação",title:"Sites estáticos: Project Card"')) throw new Error('Curso não está em Preparação');
           if (html.includes('id:"projectcard"') || html.includes('Project Card Structure · Websites estáticos')) throw new Error('Curso duplicado ainda presente');
-          [6, 6, 6, 15].forEach((expected, i) => {
+          [7, 7, 8, 19].forEach((expected, i) => {
             const found = (block[1].match(new RegExp('<article data-m="' + (i + 1) + '">', 'g')) || []).length;
             if (found !== expected) throw new Error('Módulo ' + (i + 1) + ': esperado ' + expected + ', encontrado ' + found);
           });
-          console.log('Sites estáticos: Project Card: 33 cartões em Preparação, sem duplicação');
+          const titles = [...block[1].matchAll(/<article data-m="[1-4]"><h2>(.*?)<\/h2>/g)].map(m => m[1]);
+          if (new Set(titles).size !== titles.length) throw new Error('Títulos de flashcards repetidos');
+          if (!html.includes('id:"site",phase:"Preparação"')) throw new Error('Curso fora da Preparação');
+          console.log('Sites estáticos: Project Card: 41 cartões únicos em Preparação');
           NODE
           cp -a dev-src/frontend/dist/. site/dev/
           if compgen -G "prod-browser-models/*" >/dev/null; then cp -a prod-browser-models/. site/browser-models/; fi

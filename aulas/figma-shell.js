@@ -45,7 +45,7 @@
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     }
-    sync(section);
+    requestAnimationFrame(() => sync(section));
   }
   navItems.forEach(el => {
     if (el.tagName !== "A") el.addEventListener("click", () => go(el.dataset.studyNav));

@@ -188,7 +188,7 @@ jobs:
             }
           }
           if (!html.includes('trilha-dev-shm-segmentacao-20261014-v1')) throw new Error('Migração de progresso do lote 2 ausente');
-          if ((html.match(/<article data-m="[1-4]">/g) || []).length !== 290) throw new Error('Contagem geral de flashcards divergente');
+          if ((html.match(/<article data-m="/g) || []).length !== 290) throw new Error('Contagem geral de flashcards divergente');
           console.log('Segmentação e YOLO OK: 19 cartões exclusivos com progresso migrado');
           console.log('Conceitos OK: 30 cartões exclusivos, distribuídos em 13 cursos');
           console.log('Sites estáticos: Project Card: 42 cartões únicos em Preparação');

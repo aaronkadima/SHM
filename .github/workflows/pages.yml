@@ -188,7 +188,35 @@ jobs:
             }
           }
           if (!html.includes('trilha-dev-shm-segmentacao-20261014-v1')) throw new Error('Migração de progresso do lote 2 ausente');
-          if ((html.match(/<article data-m="/g) || []).length !== 290) throw new Error('Contagem geral de flashcards divergente');
+          if ((html.match(/<article data-m="/g) || []).length !== 307) throw new Error('Contagem geral de flashcards divergente');
+          const interopBatches = [
+            {course:"bim",anchor:"BIM ou gêmeo digital?",count:30,titles:[
+              "O que é modelo federado","Federado ou integrado?","Detecção de interferências",
+              "O que é interoperabilidade","openBIM e closedBIM","MVD: o recorte do IFC",
+              "BCF: comunicar problemas","IDS e bSDD","ISO 19650 e o ambiente comum de dados",
+              "Requisitos e plano de execução BIM","Nível de informação"
+            ]},
+            {course:"js",anchor:"Tempo real",count:32,titles:[
+              "O que é um protocolo","HTTP e APIs REST","WebSocket",
+              "MQTT para sensores","Qual protocolo usar?","Segurança na transferência"
+            ]}
+          ];
+          for(const batch of interopBatches){
+            const open='<section data-c="'+batch.course+'">';
+            const start=html.indexOf(open);
+            if(start<0)throw new Error('Curso ausente: '+batch.course);
+            const end=html.indexOf('</section>',start);
+            if(end<0)throw new Error('Seção incompleta: '+batch.course);
+            const names=[...html.slice(start,end).matchAll(/<article data-m="[1-5]"><h2>(.*?)<\/h2>/g)].map(x=>x[1]);
+            if(names.length!==batch.count)throw new Error('Contagem de curso divergente: '+batch.course);
+            const reference=names.indexOf(batch.anchor);
+            if(reference<0||names.slice(reference+1,reference+1+batch.titles.length).join('|')!==batch.titles.join('|')){
+              throw new Error('Ordem dos novos cartões incorreta: '+batch.course);
+            }
+            if(new Set(names).size!==names.length)throw new Error('Flashcards duplicados: '+batch.course);
+          }
+          if(!html.includes('trilha-dev-shm-bim-interop-20261014-v1'))throw new Error('Migração BIM/interoperabilidade ausente');
+          console.log('BIM/interoperabilidade OK: 17 cartões novos e progresso migrado');
           console.log('Segmentação e YOLO OK: 19 cartões exclusivos com progresso migrado');
           console.log('Conceitos OK: 30 cartões exclusivos, distribuídos em 13 cursos');
           console.log('Sites estáticos: Project Card: 42 cartões únicos em Preparação');

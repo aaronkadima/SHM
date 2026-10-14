@@ -258,8 +258,8 @@ jobs:
           grep -q 'id="catalog"' /tmp/shm-aulas.html
           grep -q 'id="player"' /tmp/shm-aulas.html
           grep -q 'id="studyCourseList"' /tmp/shm-aulas.html
-          curl --fail --silent --show-error --location "$URL/../aulas/figma-theme.css" -o /tmp/shm-aulas-theme.css
-          curl --fail --silent --show-error --location "$URL/../aulas/figma-shell.js" -o /tmp/shm-aulas-shell.js
+          curl --fail --silent --show-error --location "${URL}figma-theme.css" -o /tmp/shm-aulas-theme.css
+          curl --fail --silent --show-error --location "${URL}figma-shell.js" -o /tmp/shm-aulas-shell.js
           grep -q '#0d766e' /tmp/shm-aulas-theme.css
           "$CHROME_BIN" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --dump-dom "$URL" > /tmp/shm-aulas-dom.html
           grep -q 'class="course"' /tmp/shm-aulas-dom.html

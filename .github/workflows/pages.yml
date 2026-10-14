@@ -147,12 +147,14 @@ jobs:
           };
           if (!html.includes("trilha-dev-shm-conceitos-20261014-v1")) throw new Error("Migração de progresso ausente");
           for (const [course, expected] of Object.entries(expectedConcepts)) {
-            const escaped = course.replace(/[.*+?^${}()|[\]\\]/g, "\\          console.log('Sites estáticos: Project Card: 42 cartões únicos em Preparação');");
-            const section = html.match(new RegExp('<section data-c="' + escaped + '">([\\s\\S]*?)<\\/section>'));
-            if (!section) throw new Error('Curso não encontrado: ' + course);
-            const found = [...section[1].matchAll(/<article data-m="[1-4]"><h2>(.*?)<\\/h2>/g)].map(match => match[1]);
+            const sectionStart = html.indexOf('<section data-c="' + course + '">');
+            if (sectionStart < 0) throw new Error('Curso não encontrado: ' + course);
+            const sectionEnd = html.indexOf('</section>', sectionStart);
+            if (sectionEnd < 0) throw new Error('Fechamento ausente: ' + course);
+            const source = html.slice(sectionStart, sectionEnd);
+            const headings = [...source.matchAll(/<article data-m="[1-4]"><h2>(.*?)<\/h2>/g)].map(m => m[1]);
             for (const title of expected) {
-              if (found.filter(item => item === title).length !== 1) throw new Error('Flashcard ausente ou repetido: ' + course + ' — ' + title);
+              if (headings.filter(item => item === title).length !== 1) throw new Error('Flashcard ausente ou repetido: ' + course + ' — ' + title);
             }
           }
           console.log('Conceitos OK: 30 cartões exclusivos, distribuídos em 13 cursos');

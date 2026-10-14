@@ -643,6 +643,17 @@ Ctrl+Shift+P > Remote-SSH: Connect to Host > labgpu
 
 <!-- ================= SITES ESTÁTICOS: PROJECT CARD ================= -->
 <section data-c="site">
+<article data-m="1"><h2>Site ou aplicação web?</h2><p class="q">Qual a diferença entre um site e uma aplicação web?</p>
+<div class="a"><p>Um site apresenta conteúdo para ler e navegar. Uma aplicação web deixa o usuário criar, editar e guardar dados, como um programa que roda no navegador. As duas usam HTML, CSS e JavaScript.</p></div>
+<textarea>
+site              página do grupo, laudo publicado, material de curso
+aplicação web     Project Card, ficha de inspeção, visualizador do gêmeo digital
+
+as duas podem ser estáticas: a aplicação guarda os dados no navegador
+(localStorage, IndexedDB) ou conversa com uma API em outro servidor
+</textarea>
+<p class="p">O Project Card começa como aplicação estática e, mais tarde, passa a ler e gravar os projetos numa API do backend da plataforma.</p></article>
+
 <article data-m="1"><h2>O que é marcação</h2><p class="q">Qual a diferença entre uma linguagem de marcação e uma linguagem de programação?</p>
 <div class="a"><p>Uma linguagem de marcação descreve o que cada parte do conteúdo é (título, parágrafo, lista). Ela não tem variáveis, laços nem decisões. A lógica fica com o JavaScript.</p></div>
 <textarea>
@@ -1195,6 +1206,26 @@ document.addEventListener("DOMContentLoaded", () =&gt; {
 
 <!-- ================= 1. GIT ================= -->
 <section data-c="git">
+<article data-m="1"><h2>O que é controle de versão</h2><p class="q">Que problema um sistema de controle de versão resolve?</p>
+<div class="a"><p>Ele guarda o histórico de cada mudança nos arquivos: quem mudou, quando e por quê. Você pode comparar versões, voltar atrás e trabalhar em paralelo sem sobrescrever o trabalho dos outros.</p></div>
+<textarea>
+sem controle de versão           com Git
+  analise_final.py                 analise.py
+  analise_final2.py                + histórico de todas as versões
+  analise_final_revisada.py        + mensagem explicando cada mudança
+  analise_final_ok_AGORA.py        + volta a qualquer versão em segundos
+</textarea>
+<p class="p">Na pesquisa, o histórico mostra exatamente qual versão do código gerou cada figura e tabela de um artigo.</p></article>
+
+<article data-m="1"><h2>Git ou GitHub?</h2><p class="q">Git e GitHub são a mesma coisa?</p>
+<div class="a"><p>Não. Git é o programa de controle de versão, que roda no seu computador e funciona sem internet. GitHub é um serviço on-line que hospeda repositórios Git e acrescenta colaboração: Pull Requests, issues, Actions e Pages.</p></div>
+<textarea>
+Git          programa local     commit, branch, merge, log
+GitHub       serviço on-line    hospedagem, Pull Requests, issues, Actions, Pages
+alternativas GitLab, Bitbucket, Gitea (também hospedam repositórios Git)
+</textarea>
+<p class="p">Você pode trocar de serviço de hospedagem sem perder o histórico, porque ele está no Git, não no site.</p></article>
+
 <article data-m="1"><h2>Repositório</h2><p class="q">Como começar a versionar um projeto novo ou baixar um existente do GitHub?</p>
 <div class="a"><p><code>git init</code> cria um repositório na pasta atual. <code>git clone</code> copia um repositório remoto com todo o histórico.</p></div>
 <textarea>
@@ -1339,6 +1370,15 @@ jobs:
 
 <!-- ================= 2. HTML ================= -->
 <section data-c="html">
+<article data-m="1"><h2>O que é HTML</h2><p class="q">O que significa HTML e qual é o seu papel numa página?</p>
+<div class="a"><p>HyperText Markup Language: a linguagem de marcação que descreve a estrutura e o significado do conteúdo. "Hipertexto" porque os documentos se ligam por links.</p></div>
+<textarea>
+HTML    o que é cada coisa     título, parágrafo, tabela, formulário, imagem
+CSS     como aparece           cor, tamanho, posição
+JS      o que acontece         clique, cálculo, dados chegando do sensor
+</textarea>
+<p class="p">O HTML é mantido pelo WHATWG como um padrão vivo, atualizado continuamente. Por isso a referência é a documentação atual (MDN), não um livro de anos atrás.</p></article>
+
 <article data-m="1"><h2>Esqueleto</h2><p class="q">Qual é a estrutura mínima de uma página HTML?</p>
 <div class="a"><p>Declaração do tipo, idioma, codificação, viewport para celular, título e corpo.</p></div>
 <textarea>
@@ -1530,6 +1570,16 @@ jobs:
 
 <!-- ================= 3. CSS ================= -->
 <section data-c="css">
+<article data-m="1"><h2>O que é CSS</h2><p class="q">O que significa CSS e o que quer dizer "cascata"?</p>
+<div class="a"><p>Cascading Style Sheets: folhas de estilo que definem a aparência do HTML. "Cascata" é a regra que decide qual estilo vence quando várias regras atingem o mesmo elemento: origem, especificidade e ordem.</p></div>
+<textarea>
+p            { color: gray; }    /* especificidade baixa  */
+.descricao   { color: navy; }    /* classe vence tag       */
+#desc-guama  { color: black; }   /* id vence classe        */
+.descricao   { color: teal; }    /* mesma força: a última vence */
+</textarea>
+<p class="p">A maioria dos "CSS que não funciona" é uma regra mais específica vencendo. O DevTools mostra as regras riscadas e quem venceu.</p></article>
+
 <article data-m="1"><h2>Seletores</h2><p class="q">Como aplicar estilo a um elemento, a uma classe e a um id?</p>
 <div class="a"><p>Seletor de tag, de classe (<code>.</code>) e de id (<code>#</code>). Prefira classes: são reutilizáveis e têm especificidade baixa.</p></div>
 <textarea>
@@ -1699,6 +1749,15 @@ h1 { font-size: clamp(1.75rem, 1rem + 3vw, 3rem); }
 
 <!-- ================= 4. JS GÊMEOS ================= -->
 <section data-c="js">
+<article data-m="1"><h2>O que é JavaScript</h2><p class="q">O que é JavaScript e onde ele roda?</p>
+<div class="a"><p>A linguagem de programação da web. Roda em todos os navegadores e, com Node.js, também em servidores e ferramentas. Não tem relação com Java além do nome.</p></div>
+<textarea>
+navegador   interação, gráficos, Three.js, OpenCV.js, ONNX Runtime Web
+Node.js     servidor, API, scripts, ferramentas (Vite, ESLint, testes)
+padrão      ECMAScript: uma versão nova por ano (ES2023, ES2024...)
+</textarea>
+<p class="p">É a única linguagem que roda nativamente no navegador do inspetor, por isso o gêmeo digital e a segmentação no campo passam por ela.</p></article>
+
 <article data-m="1"><h2>const e let</h2><p class="q">Quando usar <code class="i">const</code> e quando usar <code class="i">let</code>?</p>
 <div class="a"><p><code>const</code> cria uma referência que não pode ser reatribuída. <code>let</code> pode mudar. Use <code>const</code> por padrão e evite <code>var</code>.</p></div>
 <textarea>
@@ -2061,6 +2120,30 @@ fmtMPa.format(3.6479);                     // "3,65"
 
 <!-- ================= 5. REACT + TS ================= -->
 <section data-c="react">
+<article data-m="1"><h2>O que é React</h2><p class="q">O que é React e que problema ele resolve?</p>
+<div class="a"><p>Uma biblioteca para construir interfaces a partir de componentes. Você descreve como a tela deve ficar para cada estado, e o React atualiza o DOM quando o estado muda.</p></div>
+<textarea>
+JS puro    "ache o painel, troque o texto, mude a classe do botão, atualize a lista"
+React      "o painel mostra o elemento selecionado"  -> muda o estado, a tela segue
+
+App
+ ├─ Visualizador3D
+ ├─ PainelElemento
+ └─ ListaSensores
+      └─ CartaoSensor (x N)
+</textarea>
+<p class="p">Com dezenas de painéis reagindo ao mesmo dado do sensor, descrever a tela por estado evita telas fora de sincronia.</p></article>
+
+<article data-m="1"><h2>O que é TypeScript</h2><p class="q">O que o TypeScript acrescenta ao JavaScript?</p>
+<div class="a"><p>Tipos. Você declara o formato dos dados e o editor aponta erros antes de rodar. No build, o TypeScript vira JavaScript comum.</p></div>
+<textarea>
+function tensao(E: number, ue: number): number {
+  return (E * ue * 1e-6) / 1e6;
+}
+tensao("30e9", 120);   // erro já no editor: string não é number
+</textarea>
+<p class="p">Em plataformas com muitas unidades e formatos de dado, os tipos funcionam como uma revisão automática a cada linha digitada.</p></article>
+
 <article data-m="1"><h2>Criar o projeto</h2><p class="q">Como iniciar uma plataforma React com TypeScript usando Vite?</p>
 <div class="a"><p>O Vite gera o projeto, roda um servidor de desenvolvimento com recarga instantânea e empacota para produção.</p></div>
 <textarea>
@@ -2277,6 +2360,29 @@ describe("momentoMax", () => {
 
 <!-- ================= 6. JS VISÃO COMPUTACIONAL ================= -->
 <section data-c="jsvc">
+<article data-m="1"><h2>O que é visão computacional</h2><p class="q">O que é visão computacional?</p>
+<div class="a"><p>A área que faz computadores extraírem informação de imagens e vídeos: detectar, classificar, segmentar, medir e reconstruir em 3D.</p></div>
+<textarea>
+classificar     "esta foto tem fissura?"
+detectar        "onde estão as anomalias?"            (caixas)
+segmentar       "quais pixels são fissura?"           (máscara)
+medir           "qual a abertura em mm?"              (geometria + escala)
+reconstruir     "qual a forma 3D da ponte?"           (fotogrametria)
+</textarea>
+<p class="p">Na inspeção de OAEs, a visão computacional transforma fotos em medidas objetivas e comparáveis entre campanhas.</p></article>
+
+<article data-m="1"><h2>O que é uma imagem digital</h2><p class="q">Como uma foto é representada no computador?</p>
+<div class="a"><p>Como uma grade de pixels. Cada pixel guarda números de intensidade: um valor em tons de cinza ou três valores (vermelho, verde, azul), geralmente de 0 a 255.</p></div>
+<textarea>
+foto 4000 × 3000 px, RGB
+  = 12 milhões de pixels
+  = 36 milhões de números (3 por pixel)
+
+pixel escuro   [ 38,  41,  45]
+pixel claro    [212, 208, 199]
+</textarea>
+<p class="p">Toda técnica do curso, do limiar à U-Net, é uma operação sobre essa grade de números.</p></article>
+
 <article data-m="1"><h2>Abrir a foto</h2><p class="q">Como ler uma foto escolhida pelo inspetor sem enviá-la a um servidor?</p>
 <div class="a"><p>O arquivo do <code>input type="file"</code> vira um bitmap direto no navegador.</p></div>
 <textarea>
@@ -2521,6 +2627,29 @@ function blocos(w, h, t = 512, sobrep = 64) {
 
 <!-- ================= 7. PYTHON VC ================= -->
 <section data-c="py">
+<article data-m="1"><h2>O que é Python</h2><p class="q">Por que Python domina a pesquisa em visão computacional e ciência de dados?</p>
+<div class="a"><p>É uma linguagem de leitura simples com um ecossistema enorme: NumPy, OpenCV, scikit-image, pandas, PyTorch. As partes pesadas dessas bibliotecas rodam em C/C++ e na GPU.</p></div>
+<textarea>
+NumPy          arrays e álgebra linear
+OpenCV         processamento de imagem clássico
+scikit-image   morfologia, esqueleto, medidas
+pandas         tabelas de resultados
+PyTorch        redes neurais e GPU
+</textarea>
+<p class="p">O fluxo da trilha: pesquisar e treinar em Python, entregar no navegador em JavaScript.</p></article>
+
+<article data-m="1"><h2>Clássica ou deep learning?</h2><p class="q">Qual a diferença entre visão computacional clássica e deep learning?</p>
+<div class="a"><p>Na clássica, você escolhe as regras (limiar, filtro, morfologia). No deep learning, a rede aprende as regras a partir de exemplos anotados.</p></div>
+<textarea>
+                  clássica                    deep learning
+regras            escritas por você           aprendidas dos dados
+dados anotados    poucos ou nenhum            centenas a milhares
+sombra, manchas   frágil                      robusta, se houver exemplos
+explicação        fácil                       mais difícil
+custo             CPU, rápido                 treino em GPU
+</textarea>
+<p class="p">Os dois se completam: a rede segmenta, e o processamento clássico limpa a máscara e mede em mm.</p></article>
+
 <article data-m="1"><h2>Ambiente</h2><p class="q">Como isolar as bibliotecas de cada projeto de pesquisa?</p>
 <div class="a"><p>Um ambiente virtual guarda versões próprias de pacotes. O <code>requirements.txt</code> registra quais são.</p></div>
 <textarea>
@@ -2765,6 +2894,51 @@ from pipeline import processar
 
 <!-- ================= 8. DEEP LEARNING ================= -->
 <section data-c="dl">
+<article data-m="1"><h2>O que é deep learning</h2><p class="q">Como deep learning se relaciona com inteligência artificial e machine learning?</p>
+<div class="a"><p>São conjuntos dentro de conjuntos. Deep learning é o machine learning feito com redes neurais de muitas camadas, que aprendem sozinhas as características relevantes dos dados brutos (pixels, sinais).</p></div>
+<textarea>
+Inteligência artificial      sistemas que executam tarefas que exigiriam inteligência
+ └─ Machine learning         aprendem padrões a partir de dados
+     └─ Deep learning        redes neurais profundas, aprendem as próprias características
+         └─ CNNs, Transformers, U-Net, YOLO, Mask R-CNN
+</textarea>
+<p class="p">No ML tradicional, o engenheiro define as características (área, comprimento, contraste). No deep learning, a rede as descobre a partir das fotos anotadas.</p></article>
+
+<article data-m="1"><h2>O que é uma rede neural</h2><p class="q">O que um neurônio artificial calcula?</p>
+<div class="a"><p>Uma soma ponderada das entradas mais um viés, passada por uma função de ativação. Uma rede empilha milhares desses neurônios em camadas.</p></div>
+<textarea>
+saída = ativação( w1·x1 + w2·x2 + ... + wn·xn + b )
+
+x   entradas (pixels, ou saídas da camada anterior)
+w   pesos, aprendidos no treino
+b   viés
+ativação  ReLU: max(0, z)   sigmoide: 1 / (1 + e^-z)
+</textarea>
+<p class="p">"Treinar" é ajustar milhões de pesos w até a rede acertar os exemplos. O arquivo .pt guarda exatamente esses pesos.</p></article>
+
+<article data-m="1"><h2>O que é uma CNN</h2><p class="q">Por que redes convolucionais funcionam bem com imagens?</p>
+<div class="a"><p>Elas aplicam pequenos filtros (kernels) que deslizam pela imagem, como o Sobel, mas com valores aprendidos. As primeiras camadas detectam bordas; as seguintes combinam bordas em texturas e formas.</p></div>
+<textarea>
+camada 1    bordas e linhas finas
+camada 2    cantos, texturas do concreto
+camada 3    trechos de fissura, manchas
+camada N    "fissura", "armadura exposta", "eflorescência"
+
+o mesmo filtro vale para a imagem inteira -> poucos parâmetros
+</textarea>
+<p class="p">É a mesma convolução do cartão de Sobel no curso de JS para visão computacional, repetida em dezenas de camadas.</p></article>
+
+<article data-m="1"><h2>Como a rede aprende</h2><p class="q">O que acontece em cada passo do treino?</p>
+<div class="a"><p>A rede prevê, a função de perda mede o erro em relação à anotação, a retropropagação calcula como cada peso influenciou o erro e o otimizador ajusta os pesos um pouco na direção que reduz o erro.</p></div>
+<textarea>
+1. previsão     máscara prevista pela rede
+2. perda        quão diferente da máscara anotada (Dice, BCE)
+3. gradiente    retropropagação: efeito de cada peso no erro
+4. atualização  peso = peso - taxa_aprendizado × gradiente
+repete por lote; uma passada por todo o dataset = 1 época
+</textarea>
+<p class="p">Se a perda do treino cai e a da validação sobe, a rede está decorando o treino (overfitting). É hora de mais dados ou mais aumento de dados.</p></article>
+
 <article data-m="1"><h2>Qual tarefa?</h2><p class="q">Classificação, detecção, segmentação semântica ou de instância: qual usar para fissuras?</p>
 <div class="a"><p>Depende da pergunta. Para medir abertura é preciso saber quais pixels são fissura, ou seja, segmentação.</p></div>
 <textarea>
@@ -2997,6 +3171,30 @@ media, incerteza = mc_dropout(modelo, x)
 
 <!-- ================= MATLAB ================= -->
 <section data-c="matlab">
+<article data-m="1"><h2>O que é SHM</h2><p class="q">O que é monitoramento da integridade estrutural (SHM)?</p>
+<div class="a"><p>Structural Health Monitoring: acompanhar o comportamento de uma estrutura ao longo do tempo com sensores, para detectar e avaliar danos e apoiar decisões de manutenção.</p></div>
+<textarea>
+níveis de identificação de dano (escala clássica de Rytter)
+  1. detecção       existe dano?
+  2. localização    onde?
+  3. quantificação  quão grave?
+  4. prognóstico    quanto tempo de vida resta?
+
+sensores: extensômetros, LVDT, acelerômetros, termopares, inclinômetros, câmeras
+</textarea>
+<p class="p">A inspeção visual periódica (NBR 9452) e o SHM contínuo se completam: um dá o estado detalhado em datas, o outro dá a evolução entre elas.</p></article>
+
+<article data-m="1"><h2>O que é pós-processamento</h2><p class="q">Por que os dados dos sensores precisam de pós-processamento?</p>
+<div class="a"><p>O sinal bruto mistura resposta da estrutura, ruído elétrico, efeitos de temperatura e falhas de aquisição. O pós-processamento limpa, transforma e resume o sinal em indicadores: frequências, amortecimento, tendências e alertas.</p></div>
+<textarea>
+sinal bruto -> limpeza -> filtragem -> domínio da frequência -> indicadores
+              (outliers)  (ruído)      (FFT, Welch)            (f1, ξ, resíduo)
+
+domínio do tempo        "como a deformação variou ao longo do dia"
+domínio da frequência   "em que frequências a ponte vibra"
+</textarea>
+<p class="p">Uma queda persistente da frequência natural, depois de descontada a temperatura, pode indicar perda de rigidez.</p></article>
+
 <article data-m="1"><h2>Vetores e matrizes</h2><p class="q">O que muda ao sair do Python e do JavaScript para o MATLAB?</p>
 <div class="a"><p>Tudo é matriz, a indexação começa em 1 e as operações elemento a elemento levam ponto: <code>.*</code>, <code>./</code>, <code>.^</code>.</p></div>
 <textarea>
@@ -3177,6 +3375,87 @@ end
 
 <!-- ================= 9. BIM / IFC ================= -->
 <section data-c="bim">
+<article data-m="1"><h2>O que é BIM</h2><p class="q">O que significa BIM e por que não é só um modelo 3D?</p>
+<div class="a"><p>Building Information Modeling: um processo de projetar, construir e operar com um modelo digital em que cada objeto tem geometria e informação (material, propriedades, fases, custos, manutenção). O 3D é só uma das formas de ver essa informação.</p></div>
+<textarea>
+modelo 3D comum      linhas e superfícies
+modelo BIM           objetos com significado
+  "Longarina V1"     tipo: viga | material: C40 | vão: 25 m
+                     fase: superestrutura | última inspeção: 03/2026
+</textarea>
+<p class="p">BIM não é um software. Revit, Tekla, Allplan e outros são ferramentas que produzem modelos BIM; o IFC é o formato aberto de troca entre elas.</p></article>
+
+<article data-m="1"><h2>BIM ou CAD?</h2><p class="q">Qual a diferença prática entre trabalhar em CAD e em BIM?</p>
+<div class="a"><p>No CAD você desenha linhas que representam a ponte. No BIM você modela os elementos da ponte, e plantas, cortes e quantitativos saem do mesmo modelo.</p></div>
+<textarea>
+                    CAD                      BIM
+unidade básica      linha, arco, hachura     viga, pilar, laje, aparelho de apoio
+mudar uma seção     redesenhar cada vista    alterar o objeto, todas as vistas mudam
+quantitativos       contados à mão           extraídos do modelo
+informação          texto solto no desenho   propriedades do objeto
+</textarea>
+<p class="p">Para o gêmeo digital, o que importa é a informação por objeto: é nela que se penduram anomalias, sensores e notas de condição.</p></article>
+
+<article data-m="1"><h2>Dimensões do BIM</h2><p class="q">O que são 4D, 5D e as demais "dimensões" do BIM?</p>
+<div class="a"><p>São usos que acrescentam informação ao modelo 3D. A partir da 6D, a definição varia entre autores e países.</p></div>
+<textarea>
+3D    geometria e propriedades dos objetos
+4D    tempo: cronograma ligado aos elementos
+5D    custo: orçamento a partir dos quantitativos
+6D+   usos variam conforme a fonte: sustentabilidade, energia,
+      operação e manutenção, segurança
+</textarea>
+<p class="p">O monitoramento de uma ponte em serviço fica na fase de operação e manutenção, que é onde o modelo BIM passa a alimentar o gêmeo digital.</p></article>
+
+<article data-m="1"><h2>BIM nas obras públicas</h2><p class="q">O uso de BIM em obras públicas no Brasil é regulamentado?</p>
+<div class="a"><p>Sim. A Estratégia BIM BR e o Decreto nº 10.306/2020 estabeleceram a adoção gradual do BIM em obras e serviços de engenharia da administração pública federal, em fases que vão do projeto à gestão do ativo.</p></div>
+<textarea>
+Decreto nº 10.306/2020
+  adoção gradual do BIM em obras da administração pública federal
+  fases sucessivas: projeto -> execução -> gestão e manutenção
+  órgãos de infraestrutura de transportes estão entre os envolvidos
+</textarea>
+<p class="p">Confira no texto do decreto e nas normas atualizadas do órgão contratante quais fases e entregas já são exigidas no seu projeto.</p></article>
+
+<article data-m="1"><h2>O que é gêmeo digital</h2><p class="q">O que define um gêmeo digital?</p>
+<div class="a"><p>Uma representação virtual de um ativo físico específico, ligada a ele por dados que chegam de forma contínua ou periódica, e usada para acompanhar, prever e decidir. O gêmeo muda quando a ponte muda.</p></div>
+<textarea>
+ponte real ──(sensores, inspeções, fotos)──► gêmeo digital
+     ▲                                          │
+     └──────(decisão de manutenção, alerta)─────┘
+
+ingredientes
+  ativo físico identificado    a Ponte do Guamá, não "uma ponte"
+  modelo                       geometria + informação (BIM, malha, nuvem)
+  dados                        sensores, inspeções, clima
+  análise                      indicadores, modelos de degradação
+  retorno ao ativo             alertas, priorização, decisão
+</textarea>
+<p class="p">Um modelo 3D bonito sem dados atualizados é uma maquete digital. O que faz dele um gêmeo é o fluxo de dados com a estrutura real.</p></article>
+
+<article data-m="1"><h2>Modelo, sombra e gêmeo</h2><p class="q">Qual a diferença entre modelo digital, sombra digital e gêmeo digital?</p>
+<div class="a"><p>Uma classificação muito usada (Kritzinger et al., 2018) olha para a direção e a automação do fluxo de dados entre o ativo físico e o digital.</p></div>
+<textarea>
+                    físico → digital     digital → físico
+modelo digital      manual               manual
+sombra digital      automático           manual
+gêmeo digital       automático           automático
+
+ex.: sensores atualizam o modelo sozinhos, mas a decisão
+     de manutenção é humana  ->  sombra digital
+</textarea>
+<p class="p">Em pontes, a maior parte das aplicações reais é sombra digital: os dados entram automaticamente e a decisão continua com o engenheiro. Isso é desejável.</p></article>
+
+<article data-m="1"><h2>BIM ou gêmeo digital?</h2><p class="q">Um modelo BIM já é um gêmeo digital?</p>
+<div class="a"><p>Não. O BIM descreve a ponte como projetada ou construída. O gêmeo digital acompanha a ponte como ela está hoje, alimentado por medições. O BIM costuma ser a base geométrica e de informação do gêmeo.</p></div>
+<textarea>
+BIM               como foi projetada / construída     estático entre revisões
+fotogrametria     como está na data da captura        retrato do estado real
+sensores          como se comporta agora              série temporal
+gêmeo digital     junta os três, ligados por GlobalId, ao longo do tempo
+</textarea>
+<p class="p">Muitas pontes antigas não têm BIM. Nelas, a nuvem de pontos da fotogrametria vira a base do gêmeo, e o modelo BIM é construído a partir dela.</p></article>
+
 <article data-m="1"><h2>O que é IFC</h2><p class="q">Por que usar IFC como base do gêmeo digital de uma OAE?</p>
 <div class="a"><p>IFC é o formato aberto de BIM (ISO 16739). Guarda geometria e significado: cada objeto sabe se é laje, viga ou pilar e carrega propriedades.</p></div>
 <textarea>
@@ -3351,6 +3630,53 @@ IfcMapConversion
 
 <!-- ================= 10. FOTOGRAMETRIA E NUVENS ================= -->
 <section data-c="pc">
+<article data-m="1"><h2>O que é fotogrametria</h2><p class="q">O que é fotogrametria?</p>
+<div class="a"><p>A ciência de obter medidas e modelos 3D a partir de fotografias. Com o mesmo ponto visto em fotos tiradas de posições diferentes, a posição dele no espaço é calculada por triangulação.</p></div>
+<textarea>
+aérea              câmera em avião ou drone, mapas e modelos de terreno
+terrestre          câmera no solo, fachadas, encontros, pilares
+curta distância    a poucos metros, detalhes como fissuras e juntas
+
+produtos: nuvem de pontos, malha texturizada, ortofoto, modelo digital de elevação
+</textarea>
+<p class="p">Fotogrametria (medir com fotos) não é o mesmo que fotometria, que é a medição da luz. Os termos parecem, mas são áreas distintas.</p></article>
+
+<article data-m="1"><h2>Do pixel ao ponto 3D</h2><p class="q">Como duas fotos permitem calcular a profundidade de um ponto?</p>
+<div class="a"><p>Pela paralaxe: o mesmo ponto aparece em posições diferentes nas duas imagens. Quanto mais próximo o objeto, maior o deslocamento. No caso simples de duas câmeras paralelas, Z = f·B/d.</p></div>
+<textarea>
+Z   distância até o ponto
+f   distância focal (em pixels)
+B   base: distância entre as duas posições da câmera
+d   disparidade: deslocamento do ponto entre as imagens (pixels)
+
+f = 3600 px, B = 0,5 m, d = 180 px   ->   Z = 3600 × 0,5 / 180 = 10 m
+</textarea>
+<p class="p">É por isso que sobreposição e ângulos variados importam: sem paralaxe suficiente, a profundidade fica mal determinada.</p></article>
+
+<article data-m="1"><h2>O que é uma nuvem de pontos</h2><p class="q">O que guarda uma nuvem de pontos?</p>
+<div class="a"><p>Um conjunto de pontos com coordenadas X, Y, Z, muitas vezes com cor e normal. Ela registra a forma real da superfície, mas não sabe o que é viga ou pilar.</p></div>
+<textarea>
+x          y          z        r    g    b
+12.4031    0.2215    -1.6020   142  139  131
+12.4058    0.2219    -1.6013   140  137  130
+...
+milhões de linhas -> forma da ponte como está hoje
+</textarea>
+<p class="p">Dar significado aos pontos (este trecho é a longarina V1) é a ponte entre a nuvem e o modelo BIM do gêmeo digital.</p></article>
+
+<article data-m="1"><h2>Fotogrametria ou LiDAR?</h2><p class="q">Quando usar fotogrametria e quando usar laser scanner (LiDAR)?</p>
+<div class="a"><p>A fotogrametria calcula a geometria a partir de fotos. O LiDAR mede distâncias diretamente com pulsos de laser. Cada um tem vantagens.</p></div>
+<textarea>
+                     fotogrametria             LiDAR
+custo do equipamento baixo (câmera, drone)     alto
+cor e textura        excelentes                depende de câmera acoplada
+escala               precisa de alvos/GNSS     métrica direta
+superfície lisa      falha sem textura         funciona
+pouca luz            sofre                     funciona
+fissuras finas       boas, com GSD pequeno     limitadas pela densidade
+</textarea>
+<p class="p">Fotos permitem segmentar fissuras com deep learning e depois projetá-las no 3D, o que o LiDAR sozinho não oferece.</p></article>
+
 <article data-m="1"><h2>GSD</h2><p class="q">A que distância voar o drone para enxergar fissuras de 0,3 mm?</p>
 <div class="a"><p>O GSD (ground sample distance) é o tamanho de um pixel na superfície. Depende da distância, do tamanho do pixel do sensor e da focal.</p></div>
 <textarea>
@@ -3562,6 +3888,17 @@ regra prática: malha simplificada para VR,
 </section>
 <!-- ================= VR / WebXR ================= -->
 <section data-c="vr">
+<article data-m="1"><h2>VR, AR, MR e XR</h2><p class="q">Qual a diferença entre realidade virtual, aumentada, mista e estendida?</p>
+<div class="a"><p>Elas se diferenciam pelo quanto do mundo real o usuário continua vendo e se o conteúdo virtual interage com ele.</p></div>
+<textarea>
+VR   realidade virtual     mundo real substituído    percorrer a ponte no escritório
+AR   realidade aumentada   informação sobre o real   ver a fissura antiga no lugar
+MR   realidade mista       virtual ancorado e        modelo que "encosta" no pilar real
+                           interagindo com o real
+XR   realidade estendida   termo que engloba as três
+</textarea>
+<p class="p">No gêmeo digital, VR serve ao planejamento e à revisão em equipe, e AR à inspeção em campo.</p></article>
+
 <article data-m="1"><h2>VR, AR e WebXR</h2><p class="q">O que é WebXR e o que precisa para usar?</p>
 <div class="a"><p>WebXR é a API do navegador para realidade virtual (imersão total) e aumentada (sobre o mundo real). Roda no navegador de headsets como os da linha Meta Quest, sem instalar app.</p></div>
 <textarea>
@@ -3777,17 +4114,17 @@ c0.addEventListener("selectstart", () => {
   const COURSES=[
     {id:"dev",phase:"Preparação",title:"Ambiente de desenvolvimento",desc:"Editores, instalação do VS Code, Git e conexão com o GitHub, extensões, live mode, Node, Python, MATLAB e servidor remoto.",tags:["VS Code","GitHub","Live Server"],mods:{1:"Editores e VS Code",2:"Git e GitHub no editor",3:"Extensões e live mode",4:"Ambientes por linguagem"}},
     {id:"site",phase:"Preparação",title:"Sites estáticos: Project Card",desc:"Sintaxe de marcação, DOM, tecnologias da web e URL, e a estrutura de um app de cartões de projeto com classes, objetos, eventos, Node e pacotes.",tags:["HTML","DOM","Node/npm"],mods:{1:"Sintaxe de marcação",2:"DOM",3:"Tecnologias da web",4:"Estrutura do app"}},
-    {id:"git",phase:"Base",title:"Git e GitHub",desc:"Versionar código, experimentar em branches e publicar versões citáveis.",tags:["git","GitHub","LFS"],mods:{1:"Uso diário",2:"Colaboração"}},
+    {id:"git",phase:"Base",title:"Git e GitHub",desc:"Versionar código, experimentar em branches e publicar versões citáveis.",tags:["git","GitHub","LFS"],mods:{1:"Conceitos e uso diário",2:"Colaboração"}},
     {id:"html",phase:"Base",title:"HTML para plataformas técnicas",desc:"Estrutura semântica, tabelas de anomalias, formulários de campo e canvas.",tags:["HTML5","formulários","canvas"],mods:{1:"Estrutura",2:"Formulários e mídia"}},
     {id:"css",phase:"Base",title:"CSS para interfaces de inspeção",desc:"Layout do visualizador, responsivo para tablet, tokens, tema escuro e severidade.",tags:["flexbox","grid","tokens"],mods:{1:"Fundamentos",2:"Layout",3:"Tema"}},
     {id:"js",phase:"Plataforma",title:"JavaScript para gêmeos digitais",desc:"Do const ao Three.js: dados de sensores, funções, assíncrono e geometria que reage ao dado.",tags:["ES2023","Three.js","WebSocket"],mods:{1:"Fundamentos",2:"Dados de sensores",3:"Funções e organização",4:"Dados assíncronos",5:"Gêmeo na tela"}},
     {id:"react",phase:"Plataforma",title:"React e TypeScript",desc:"Componentes, estado, efeitos e hooks na mesma base Vite das suas plataformas.",tags:["React","TypeScript","Vite"],mods:{1:"Componentes",2:"Estado e dados",3:"Projeto"}},
-    {id:"jsvc",phase:"Visão computacional",title:"JavaScript para visão computacional em SHM",desc:"Pixels no canvas, filtros, OpenCV.js, inferência ONNX e Web Workers no navegador.",tags:["canvas","OpenCV.js","ONNX"],mods:{1:"Imagem no navegador",2:"Processamento",3:"Medição e modelos"}},
-    {id:"py",phase:"Visão computacional",title:"Python para visão computacional",desc:"NumPy, OpenCV e scikit-image para segmentar, medir fissuras em mm e gerar o laudo.",tags:["NumPy","OpenCV","pandas"],mods:{1:"Python essencial",2:"NumPy e OpenCV",3:"Medição e relatório"}},
-    {id:"dl",phase:"Visão computacional",title:"Deep learning para inspeção",desc:"Dataset sem vazamento, U-Net e YOLO-seg, perdas para classes raras e exportação ONNX.",tags:["PyTorch","U-Net","YOLO"],mods:{1:"Dados",2:"Treino",3:"Avaliação e deploy"}},
-    {id:"matlab",phase:"Pós-processamento",title:"MATLAB para pós-processamento de SHM",desc:"Sinais de sensores: limpeza, filtragem, FFT e Welch, frequências e amortecimento, efeito da temperatura.",tags:["MATLAB","Signal Toolbox","Octave"],mods:{1:"Base",2:"Sinais",3:"Dinâmica e integração"}},
+    {id:"jsvc",phase:"Visão computacional",title:"JavaScript para visão computacional em SHM",desc:"Pixels no canvas, filtros, OpenCV.js, inferência ONNX e Web Workers no navegador.",tags:["canvas","OpenCV.js","ONNX"],mods:{1:"Conceitos e imagem",2:"Processamento",3:"Medição e modelos"}},
+    {id:"py",phase:"Visão computacional",title:"Python para visão computacional",desc:"NumPy, OpenCV e scikit-image para segmentar, medir fissuras em mm e gerar o laudo.",tags:["NumPy","OpenCV","pandas"],mods:{1:"Conceitos e Python essencial",2:"NumPy e OpenCV",3:"Medição e relatório"}},
+    {id:"dl",phase:"Visão computacional",title:"Deep learning para inspeção",desc:"Dataset sem vazamento, U-Net e YOLO-seg, perdas para classes raras e exportação ONNX.",tags:["PyTorch","U-Net","YOLO"],mods:{1:"Conceitos e dados",2:"Treino",3:"Avaliação e deploy"}},
+    {id:"matlab",phase:"Pós-processamento",title:"MATLAB para pós-processamento de SHM",desc:"Sinais de sensores: limpeza, filtragem, FFT e Welch, frequências e amortecimento, efeito da temperatura.",tags:["MATLAB","Signal Toolbox","Octave"],mods:{1:"SHM e base",2:"Sinais",3:"Dinâmica e integração"}},
     {id:"bim",phase:"Gêmeo digital",title:"BIM e IFC na web",desc:"IFC 4.3 para pontes, GlobalId como chave e visualizador IFC open source sobre Three.js.",tags:["IFC 4.3","web-ifc","Fragments"],mods:{1:"Conceitos",2:"Visualizador IFC",3:"Integração"}},
-    {id:"pc",phase:"Gêmeo digital",title:"Fotogrametria e nuvens de pontos",desc:"GSD e captura, SfM com COLMAP, Open3D, registro ICP entre campanhas e fissuras projetadas no 3D.",tags:["COLMAP","Open3D","ICP"],mods:{1:"Aquisição",2:"Nuvens com Open3D",3:"Da nuvem ao gêmeo"}},
+    {id:"pc",phase:"Gêmeo digital",title:"Fotogrametria e nuvens de pontos",desc:"GSD e captura, SfM com COLMAP, Open3D, registro ICP entre campanhas e fissuras projetadas no 3D.",tags:["COLMAP","Open3D","ICP"],mods:{1:"Conceitos e aquisição",2:"Nuvens com Open3D",3:"Da nuvem ao gêmeo"}},
     {id:"vr",phase:"Gêmeo digital",title:"Realidade virtual e aumentada",desc:"WebXR com Three.js: entrar na ponte em escala real, selecionar elementos, painéis 3D, teleporte e AR em campo.",tags:["WebXR","Three.js","AR"],mods:{1:"Fundamentos XR",2:"Interação",3:"Interface e campo"}}
   ];
   /* Exercícios: mc = múltipla escolha (a = índice correto); w = resposta escrita, conferida contra re
@@ -4149,6 +4486,24 @@ c0.addEventListener("selectstart", () => {
   try{marks=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){marks={}}
   try{exs=JSON.parse(localStorage.getItem(XKEY)||"{}")}catch(e){exs={}}
   try{const old=JSON.parse(localStorage.getItem("jsgd-marks")||"null");if(old&&!marks.js){marks.js=old}}catch(e){}
+  /* Preserve previous card marks: conceptual cards were prepended to each course. */
+  const CONCEPT_CARD_OFFSETS={"site":1,"git":2,"html":1,"css":1,"js":1,"react":2,"jsvc":2,"py":2,"dl":4,"matlab":2,"bim":7,"pc":4,"vr":1};
+  try {
+    const migrationKey="trilha-dev-shm-conceitos-20261014-v1";
+    if (localStorage.getItem(migrationKey)!=="applied") {
+      for (const [course,offset] of Object.entries(CONCEPT_CARD_OFFSETS)) {
+        if (!offset || !marks[course] || typeof marks[course]!=="object") continue;
+        const shifted={};
+        for (const [index,state] of Object.entries(marks[course])) {
+          const numeric=/^(0|[1-9][0-9]*)$/.test(index) && Number.isSafeInteger(Number(index));
+          shifted[numeric?String(Number(index)+offset):index]=state;
+        }
+        marks[course]=shifted;
+      }
+      localStorage.setItem(KEY,JSON.stringify(marks));
+      localStorage.setItem(migrationKey,"applied");
+    }
+  } catch (error) { /* Browsers with storage disabled still render all cards. */ }
   const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(marks));localStorage.setItem(XKEY,JSON.stringify(exs))}catch(e){}};
   const $=id=>document.getElementById(id);
   const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");

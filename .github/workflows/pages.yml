@@ -106,6 +106,24 @@ jobs:
           grep -q 'Trilha Dev SHM' site/aulas/index.html
           grep -q 'id="catalog"' site/aulas/index.html
           grep -q 'id="player"' site/aulas/index.html
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('site/aulas/index.html', 'utf8');
+          const block = html.match(/<section data-c="projectcard">([\s\S]*?)<\/section>/);
+          if (!block) throw new Error('Curso Project Card Structure ausente');
+          const cards = (block[1].match(/<article data-m="[1-4]">/g) || []).length;
+          if (cards !== 38) throw new Error('Esperados 38 flashcards, encontrados ' + cards);
+          for (const moduleId of [1, 2, 3, 4]) {
+            if (!block[1].includes('data-m="' + moduleId + '"')) {
+              throw new Error('Módulo ' + moduleId + ' ausente');
+            }
+          }
+          for (const section of ['const COURSES=[', 'const EX={', 'const APPS={', 'const RES={']) {
+            if (!html.includes(section)) throw new Error('Falta configuração ' + section);
+          }
+          if (!html.includes('id:"projectcard"')) throw new Error('Curso não está no catálogo');
+          console.log('Project Card Structure: 38 cartões em 4 módulos; catálogo OK');
+          NODE
           cp -a dev-src/frontend/dist/. site/dev/
           if compgen -G "prod-browser-models/*" >/dev/null; then cp -a prod-browser-models/. site/browser-models/; fi
           if compgen -G "dev-browser-models/*" >/dev/null; then cp -a dev-browser-models/. site/dev/browser-models/; fi
@@ -264,6 +282,7 @@ jobs:
           "$CHROME_BIN" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --dump-dom "$URL" > /tmp/shm-aulas-dom.html
           grep -q 'class="course"' /tmp/shm-aulas-dom.html
           grep -q 'Curso 1' /tmp/shm-aulas-dom.html
+          grep -q 'Project Card Structure' /tmp/shm-aulas-dom.html
           grep -q 'class="sn-course"' /tmp/shm-aulas-dom.html
           echo "AULAS OK: page served, catalog rendered by JavaScript."
 

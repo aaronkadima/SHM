@@ -2010,6 +2010,80 @@ ws.onmessage = (ev) => atualizar(JSON.parse(ev.data));
 </textarea>
 <p class="p">Polling basta para inspeção periódica. Para acelerômetros e prova de carga ao vivo, use WebSocket.</p></article>
 
+<article data-m="4"><h2>O que é um protocolo</h2><p class="q">O que é um protocolo de transferência de dados?</p>
+<div class="a"><p>Um conjunto de regras que dois sistemas seguem para trocar mensagens: como iniciar a conversa, o formato de cada mensagem, a ordem e o que fazer em caso de erro.</p></div>
+<textarea>
+camadas (simplificado)
+  aplicação   HTTP, WebSocket, MQTT, SFTP    o que a mensagem significa
+  transporte  TCP, UDP                       entrega confiável ou rápida
+  rede        IP                             endereço de cada máquina
+
+o formato do conteúdo (JSON, CSV, IFC) é outra escolha, independente do protocolo
+</textarea>
+<p class="p">Protocolo e formato são decisões separadas: um JSON de leitura de sensor pode viajar por HTTP, WebSocket ou MQTT.</p></article>
+
+<article data-m="4"><h2>HTTP e APIs REST</h2><p class="q">Como funciona o HTTP e o que é uma API REST?</p>
+<div class="a"><p>HTTP é pedido e resposta: o cliente pede, o servidor responde e a conexão termina. Uma API REST organiza os dados em recursos com endereços próprios e usa os métodos do HTTP para cada ação.</p></div>
+<textarea>
+GET    /api/oaes/017/sensores           lista os sensores
+GET    /api/sensores/S12/leituras?de=2026-03-01
+POST   /api/anomalias                   cria uma anomalia (corpo em JSON)
+PUT    /api/anomalias/A-017             substitui
+DELETE /api/anomalias/A-017             apaga
+
+status: 200 ok · 201 criado · 400 pedido inválido · 401 sem login · 404 não existe · 500 erro no servidor
+</textarea>
+<p class="p">HTTP é ideal para buscar históricos, enviar fotos e registrar inspeções. Para dados contínuos, veja WebSocket e MQTT.</p></article>
+
+<article data-m="4"><h2>WebSocket</h2><p class="q">O que o WebSocket resolve que o HTTP comum não resolve?</p>
+<div class="a"><p>Mantém uma conexão aberta nos dois sentidos. O servidor envia dados quando eles existem, sem o navegador ficar perguntando. A conexão começa como HTTP e é "promovida" a WebSocket.</p></div>
+<textarea>
+HTTP (polling)   navegador: "tem dado novo?"  servidor: "não"  (repete a cada 5 s)
+WebSocket        conexão aberta; servidor: "S12 = 3,9 MPa" no momento da leitura
+
+ws://   sem criptografia (só desenvolvimento)
+wss://  com TLS (produção)
+</textarea>
+<p class="p">É o protocolo natural entre o servidor da plataforma e o painel do gêmeo digital aberto no navegador.</p></article>
+
+<article data-m="4"><h2>MQTT para sensores</h2><p class="q">Por que o MQTT é tão usado em sensores de monitoramento?</p>
+<div class="a"><p>É um protocolo leve de publicação e assinatura. Os sensores publicam em tópicos num intermediário (broker), e quem se interessa assina esses tópicos. Funciona bem com rede instável e equipamentos de pouca memória.</p></div>
+<textarea>
+sensor S12 ──publica──► broker ──entrega──► servidor da plataforma
+                          │                └─► painel de alarmes
+tópicos   oae/017/longarina/V1/S12/deformacao
+          oae/017/+/+/+/temperatura        (+ = qualquer nível)
+
+QoS 0  no máximo uma vez   (pode perder)
+QoS 1  pelo menos uma vez  (pode duplicar)
+QoS 2  exatamente uma vez  (mais lento)
+portas usuais: 1883 sem TLS, 8883 com TLS
+</textarea>
+<p class="p">Um caminho comum: datalogger publica em MQTT, o servidor grava no banco e repassa ao navegador por WebSocket.</p></article>
+
+<article data-m="4"><h2>Qual protocolo usar?</h2><p class="q">Como escolher o protocolo para cada fluxo de dados da plataforma?</p>
+<div class="a"><p>Pela natureza do dado: tamanho, frequência e quem inicia a comunicação.</p></div>
+<textarea>
+fluxo                                  protocolo
+datalogger em campo -> servidor        MQTT (leve, tolera queda de sinal)
+servidor -> painel do navegador        WebSocket (tempo real)
+histórico, relatórios, cadastro        HTTP / API REST
+fotos e modelos IFC grandes            HTTPS com envio em partes, ou SFTP
+issues de coordenação BIM              BCF API (sobre HTTP)
+</textarea>
+<p class="p">Desenhe esse mapa antes de programar. Ele vira a seção de arquitetura de dados da metodologia e do artigo.</p></article>
+
+<article data-m="4"><h2>Segurança na transferência</h2><p class="q">O que proteger quando dados de uma obra trafegam pela rede?</p>
+<div class="a"><p>Criptografia no caminho (TLS: HTTPS, WSS, MQTTS), identificação de quem envia (login, tokens, certificados nos dataloggers) e permissão por recurso.</p></div>
+<textarea>
+https:// · wss:// · mqtts://     tráfego criptografado com TLS
+Authorization: Bearer eyJ...     token de acesso nas chamadas da API
+certificado por datalogger       só sensores autorizados publicam
+permissões                       inspetor registra; gestor aprova; público só lê
+</textarea>
+<p class="p">Dados de infraestrutura crítica merecem cuidado: localização detalhada de danos não deve ficar aberta sem controle de acesso.</p></article>
+
+
 <article data-m="5"><h2>DOM e eventos</h2><p class="q">Como mostrar a flecha atual na página e reagir a um clique?</p>
 <div class="a"><p>O DOM é a árvore da página. Você seleciona elementos e escuta eventos.</p></div>
 <textarea>
@@ -3728,6 +3802,144 @@ gêmeo digital     junta os três, ligados por GlobalId, ao longo do tempo
 </textarea>
 <p class="p">Muitas pontes antigas não têm BIM. Nelas, a nuvem de pontos da fotogrametria vira a base do gêmeo, e o modelo BIM é construído a partir dela.</p></article>
 
+<article data-m="1"><h2>O que é modelo federado</h2><p class="q">O que é um modelo federado em BIM?</p>
+<div class="a"><p>Um modelo de coordenação que reúne, por referência, os modelos de cada disciplina, sem fundi-los num arquivo único. Cada equipe continua dona e responsável pelo seu modelo; o federado só os sobrepõe no mesmo sistema de coordenadas.</p></div>
+<textarea>
+modelo federado da OAE
+ ├─ estrutura.ifc        (projetista estrutural)
+ ├─ geotecnia.ifc        (fundações, sondagens)
+ ├─ drenagem.ifc         (drenos, buzinotes)
+ ├─ rodovia.ifc          (alinhamento, pavimento, barreiras)
+ └─ inspecao_2026.ifc    (anomalias, sensores, notas de condição)
+
+cada arquivo é atualizado por seu autor; o federado recarrega as versões novas
+</textarea>
+<p class="p">No gêmeo digital, a camada de inspeção e monitoramento entra como mais um modelo federado, sem mexer no modelo de projeto.</p></article>
+
+<article data-m="1"><h2>Federado ou integrado?</h2><p class="q">Qual a diferença entre federar e unir os modelos num arquivo só?</p>
+<div class="a"><p>No modelo federado, os arquivos continuam separados e cada disciplina mantém a autoria. No modelo integrado (fundido), tudo vira um único arquivo e a responsabilidade por cada parte se perde.</p></div>
+<textarea>
+                    federado                    integrado (fundido)
+arquivos            separados, referenciados    um só
+autoria             clara, por disciplina       difusa
+atualização         troca só o modelo alterado  refaz a fusão
+tamanho             leve para cada equipe       pesado
+uso típico          coordenação, gêmeo digital  entrega final, arquivamento
+</textarea>
+<p class="p">Os visualizadores IFC na web carregam vários arquivos na mesma cena, o que é, na prática, um modelo federado.</p></article>
+
+<article data-m="1"><h2>Detecção de interferências</h2><p class="q">Para que serve a verificação de interferências (clash detection) no modelo federado?</p>
+<div class="a"><p>Para achar conflitos entre disciplinas antes da obra: elementos que ocupam o mesmo espaço ou que não respeitam folgas mínimas.</p></div>
+<textarea>
+conflito físico (hard clash)    dreno atravessando a longarina
+conflito de folga (soft clash)  aparelho de apoio sem espaço para inspeção ou troca
+conflito de fluxo (workflow)    elemento instalado antes do que o sustenta
+
+resultado: lista de conflitos com GUIDs dos elementos -> enviada como BCF
+</textarea>
+<p class="p">Em pontes existentes, a mesma verificação compara o modelo de projeto com a nuvem de pontos e mostra o que foi construído diferente.</p></article>
+
+<article data-m="1"><h2>O que é interoperabilidade</h2><p class="q">O que significa interoperabilidade entre softwares BIM?</p>
+<div class="a"><p>A capacidade de sistemas diferentes trocarem informação e usarem o que receberam sem perda de significado. Abrir o arquivo não basta: a viga precisa chegar como viga, com suas propriedades.</p></div>
+<textarea>
+níveis de interoperabilidade
+  técnica     os sistemas conseguem se conectar e trocar bytes  (arquivo, rede)
+  sintática   entendem o formato                                 (IFC, JSON, XML)
+  semântica   entendem o significado                             (IfcBeam = viga, mesmas unidades)
+
+falha comum: a geometria chega, mas a viga vira "objeto genérico" sem material
+</textarea>
+<p class="p">Interoperabilidade semântica é o que permite pendurar uma anomalia no elemento certo, qualquer que seja o software que gerou o modelo.</p></article>
+
+<article data-m="1"><h2>openBIM e closedBIM</h2><p class="q">Qual a diferença entre openBIM e closedBIM?</p>
+<div class="a"><p>openBIM usa padrões abertos e neutros (IFC, BCF, IDS, bSDD), mantidos pela buildingSMART, para trocar informação entre ferramentas de fornecedores diferentes. closedBIM depende do formato nativo de um único fornecedor.</p></div>
+<textarea>
+openBIM     IFC (modelo) · BCF (comunicação) · IDS (requisitos) · bSDD (dicionário)
+            vantagem: independência de fornecedor, arquivo legível por décadas
+closedBIM   formatos nativos (.rvt, .pln, .dgn...)
+            vantagem: troca completa dentro do mesmo ecossistema
+</textarea>
+<p class="p">Uma ponte dura mais que qualquer versão de software. Para o acervo da obra, o formato aberto é o que garante leitura no futuro.</p></article>
+
+<article data-m="1"><h2>MVD: o recorte do IFC</h2><p class="q">Por que o mesmo IFC exportado de dois softwares pode trazer informações diferentes?</p>
+<div class="a"><p>O IFC é muito amplo. Uma Model View Definition (MVD) define o subconjunto do esquema necessário para um tipo de troca, e cada software exporta conforme as MVDs que suporta.</p></div>
+<textarea>
+IFC 4
+  Reference View       visualização e coordenação (geometria leve, propriedades)
+  Design Transfer View transferência para continuar a edição (geometria paramétrica)
+
+ao exportar: escolha a MVD que o destinatário espera
+</textarea>
+<p class="p">Para o visualizador do gêmeo digital, uma exportação voltada à referência e coordenação costuma bastar e gera arquivos menores.</p></article>
+
+<article data-m="1"><h2>BCF: comunicar problemas</h2><p class="q">Como apontar um problema num elemento do modelo sem mandar o modelo inteiro?</p>
+<div class="a"><p>O BIM Collaboration Format (BCF) troca só o "tópico": descrição, comentários, ponto de vista da câmera, captura de tela e os GUIDs dos elementos envolvidos.</p></div>
+<textarea>
+tópico BCF
+  título        "Fissura na longarina V1 acima do limite"
+  status        aberto -> em análise -> resolvido
+  componentes   2O2Fr$t4X7Zf8NOew3FLOH
+  ponto de vista posição da câmera + captura de tela
+  comentários   inspetor, projetista, gestor
+
+formas: arquivo .bcfzip ou BCF API (servidor)
+</textarea>
+<p class="p">Uma anomalia detectada pela plataforma pode virar um tópico BCF que abre direto no software do projetista, no elemento certo.</p></article>
+
+<article data-m="1"><h2>IDS e bSDD</h2><p class="q">Como dizer, de forma verificável, que informação o modelo precisa ter?</p>
+<div class="a"><p>A Information Delivery Specification (IDS) é um arquivo XML com requisitos que um programa confere automaticamente. O buildingSMART Data Dictionary (bSDD) padroniza nomes e definições de classes e propriedades.</p></div>
+<textarea>
+requisito IDS (em linguagem natural)
+  "todo IfcBeam deve ter Pset_SHM_Inspecao.NotaCondicao, inteiro de 1 a 5"
+
+verificação automática
+  OK     312 vigas
+  FALHA  4 vigas sem NotaCondicao  -> lista de GUIDs para corrigir
+
+bSDD: dicionário on-line de classes e propriedades, com tradução e unidades
+</textarea>
+<p class="p">Com IDS, o órgão contratante confere a entrega do modelo de inspeção por programa, sem abrir viga por viga.</p></article>
+
+<article data-m="1"><h2>ISO 19650 e o ambiente comum de dados</h2><p class="q">O que a ISO 19650 organiza no uso do BIM?</p>
+<div class="a"><p>A gestão da informação ao longo do ciclo de vida do ativo. Um conceito central é o ambiente comum de dados (CDE): o repositório único onde a informação passa por estados controlados.</p></div>
+<textarea>
+estados da informação no CDE
+  em andamento (WIP)   trabalho interno de cada equipe
+  compartilhado        liberado para coordenação com as outras disciplinas
+  publicado            aprovado para uso (construção, operação)
+  arquivado            histórico de versões, rastreável
+
+ISO 19650-1 conceitos · -2 fase de entrega · -3 fase operacional · -5 segurança
+</textarea>
+<p class="p">A fase operacional (parte 3) é a que trata da gestão do ativo em serviço, onde ficam inspeções e monitoramento de pontes.</p></article>
+
+<article data-m="1"><h2>Requisitos e plano de execução BIM</h2><p class="q">O que é o "protocolo" de troca de informação num projeto BIM?</p>
+<div class="a"><p>O conjunto de documentos que define quem entrega o quê, quando e em que formato. Na ISO 19650, o contratante declara os requisitos de troca de informação (EIR) e a equipe responde com o plano de execução BIM (BEP).</p></div>
+<textarea>
+EIR   requisitos de troca de informação (contratante)
+      formatos (IFC 4.3), nível de informação, prazos, IDS de verificação
+BEP   plano de execução BIM (equipe)
+      papéis, softwares, nomenclatura de arquivos, coordenadas, calendário de entregas
+
+nomenclatura de arquivo (exemplo)
+  OAE017-GMEC-ZZ-M3-S-0001.ifc
+  projeto-autor-zona-tipo-disciplina-número
+</textarea>
+<p class="p">Sem acordo prévio sobre coordenadas e nomenclatura, a federação dos modelos falha logo na primeira entrega.</p></article>
+
+<article data-m="1"><h2>Nível de informação</h2><p class="q">O que significam LOD e nível de necessidade de informação?</p>
+<div class="a"><p>Indicam quanto detalhe geométrico e quanta informação alfanumérica um elemento deve ter em cada fase. O LOD (Level of Development, de 100 a 500) é muito usado no mercado; a ISO 19650 adota o nível de necessidade de informação (LOIN), detalhado na ISO 7817-1.</p></div>
+<textarea>
+LOD 100   volume aproximado            "existe uma longarina aqui"
+LOD 300   geometria definida           seção, comprimento, posição exatas
+LOD 400   detalhe de fabricação        cabos de protensão, armaduras
+LOD 500   verificado em campo          como construído
+
+LOIN: define por finalidade -> geometria + informação + documentação necessárias
+</textarea>
+<p class="p">Para monitoramento, a longarina precisa de pouca geometria e muita informação: propriedades, sensores ligados, histórico de inspeções.</p></article>
+
+
 <article data-m="1"><h2>O que é IFC</h2><p class="q">Por que usar IFC como base do gêmeo digital de uma OAE?</p>
 <div class="a"><p>IFC é o formato aberto de BIM (ISO 16739). Guarda geometria e significado: cada objeto sabe se é laje, viga ou pilar e carrega propriedades.</p></div>
 <textarea>
@@ -4795,6 +5007,25 @@ c0.addEventListener("selectstart", () => {
       localStorage.setItem(migrationKey,"applied");
     }
   } catch(error) { /* Armazenamento indisponível não impede os flashcards de carregar. */ }
+  /* Lote 3: preserva o estado dos cartões já estudados após inserção dentro dos módulos. */
+  const BIM_INTEROP_PROGRESS_OFFSETS={bim:{after:6,count:11},js:{after:18,count:6}};
+  try {
+    const migrationKey="trilha-dev-shm-bim-interop-20261014-v1";
+    if(localStorage.getItem(migrationKey)!=="applied"){
+      for(const [course,{after,count}] of Object.entries(BIM_INTEROP_PROGRESS_OFFSETS)){
+        const prior=marks[course];
+        if(!prior||typeof prior!=="object"||Array.isArray(prior))continue;
+        const updated={};
+        for(const [index,state] of Object.entries(prior)){
+          const isIndex=/^(0|[1-9][0-9]*)$/.test(index)&&Number.isSafeInteger(Number(index));
+          updated[isIndex&&Number(index)>after?String(Number(index)+count):index]=state;
+        }
+        marks[course]=updated;
+      }
+      localStorage.setItem(KEY,JSON.stringify(marks));
+      localStorage.setItem(migrationKey,"applied");
+    }
+  }catch(error){ /* Falha de armazenamento não impede a consulta às aulas. */ }
   const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(marks));localStorage.setItem(XKEY,JSON.stringify(exs))}catch(e){}};
   const $=id=>document.getElementById(id);
   const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");

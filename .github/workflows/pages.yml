@@ -157,6 +157,39 @@ jobs:
               if (headings.filter(item => item === title).length !== 1) throw new Error('Flashcard ausente ou repetido: ' + course + ' — ' + title);
             }
           }
+          const segmentationBatches = [
+            {course:"py",after:"Clássica ou deep learning?",titles:[
+              "O que é segmentação","Etapas da segmentação","O que é uma máscara",
+              "O que é o histograma","O que é o método de Otsu","Limiar global ou adaptativo?",
+              "O que é morfologia matemática","Descritores de forma",
+              "Classificar patologias por regras","Separação em camadas"
+            ],count:29},
+            {course:"dl",after:"Como a rede aprende",titles:[
+              "Semântica, instância e panóptica","Estrutura da U-Net","O que é YOLO",
+              "Estrutura do YOLO","Como o YOLO gera máscaras","IoU e NMS",
+              "Ler a saída do YOLO","Estrutura do Mask R-CNN",
+              "Classificação de patologias com redes"
+            ],count:28}
+          ];
+          for (const batch of segmentationBatches) {
+            const open = '<section data-c="' + batch.course + '">';
+            const begin = html.indexOf(open);
+            if (begin < 0) throw new Error('Curso ausente: ' + batch.course);
+            const section = html.slice(begin, html.indexOf('</section>', begin));
+            const names = [...section.matchAll(/<article data-m="[1-4]"><h2>(.*?)<\/h2>/g)].map(match => match[1]);
+            if (names.length !== batch.count) throw new Error('Contagem divergente: ' + batch.course);
+            const at = names.indexOf(batch.after);
+            if (at < 0) throw new Error('Cartão de referência ausente: ' + batch.after);
+            if (names.slice(at + 1, at + 1 + batch.titles.length).join('|') !== batch.titles.join('|')) {
+              throw new Error('Ordem de segmentação incorreta no curso ' + batch.course);
+            }
+            for (const title of batch.titles) {
+              if (names.filter(name => name === title).length !== 1) throw new Error('Novo cartão duplicado ou ausente: ' + title);
+            }
+          }
+          if (!html.includes('trilha-dev-shm-segmentacao-20261014-v1')) throw new Error('Migração de progresso do lote 2 ausente');
+          if ((html.match(/<article data-m="[1-4]">/g) || []).length !== 290) throw new Error('Contagem geral de flashcards divergente');
+          console.log('Segmentação e YOLO OK: 19 cartões exclusivos com progresso migrado');
           console.log('Conceitos OK: 30 cartões exclusivos, distribuídos em 13 cursos');
           console.log('Sites estáticos: Project Card: 42 cartões únicos em Preparação');
           NODE

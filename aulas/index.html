@@ -233,7 +233,7 @@ code.i,.a code{font-family:var(--f-mono);font-size:.9em;background:var(--codebg)
     <div style="display:flex;flex-direction:column;gap:16px">
       <span class="eyebrow">Academia de desenvolvimento · SHM e gêmeos digitais de OAEs</span>
       <h1>Trilha <em>Dev SHM</em></h1>
-      <p class="lede">Treze cursos em flashcards e exercícios para construir plataformas web de inspeção e monitoramento de pontes: da página HTML à fissura segmentada, ao sinal do sensor pós-processado e à ponte percorrida em realidade virtual.</p>
+      <p class="lede">Catorze cursos em flashcards e exercícios para construir plataformas web de inspeção e monitoramento de pontes: da página HTML à fissura segmentada, ao sinal do sensor pós-processado e à ponte percorrida em realidade virtual.</p>
       <div class="summary" id="summary"></div>
       <div id="phases" style="display:flex;flex-direction:column;gap:22px"></div>
       <div class="phase" id="proj"><h3>Aplicações · projetos integradores</h3>
@@ -639,6 +639,260 @@ Host labgpu
 Ctrl+Shift+P > Remote-SSH: Connect to Host > labgpu
 </textarea>
 <p class="p">Rode treinos longos dentro de <code>tmux</code> no servidor: se a conexão cair, o treino da U-Net continua.</p></article>
+</section>
+
+<!-- PROJECT CARD STRUCTURE — CREATING STATIC WEBSITES -->
+<section data-c="projectcard">
+<article data-m="1"><h2>Markup syntax</h2><p class="q">O que é sintaxe de marcação?</p>
+<div class="a"><p>São regras para representar estrutura e significado de conteúdo por meio de tags e atributos.</p></div>
+<textarea>
+&lt;h1&gt;Projetos de inspeção&lt;/h1&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="1"><h2>Tag e elemento</h2><p class="q">Qual a diferença entre tag e elemento HTML?</p>
+<div class="a"><p>A tag é a marcação; o elemento inclui a tag inicial, o conteúdo e, quando aplicável, a tag final.</p></div>
+<textarea>
+&lt;p&gt;Relatório concluído&lt;/p&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="1"><h2>Atributos</h2><p class="q">Para que servem atributos HTML?</p>
+<div class="a"><p>Acrescentam informações ou comportamento à marcação, como href, id, class e alt.</p></div>
+<textarea>
+&lt;a href="./ponte.html" class="link"&gt;Abrir&lt;/a&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="1"><h2>Hierarquia e aninhamento</h2><p class="q">Como aninhar elementos de forma correta?</p>
+<div class="a"><p>O elemento filho deve estar dentro do pai e terminar antes do fechamento deste.</p></div>
+<textarea>
+&lt;article&gt;&lt;h2&gt;Ponte A&lt;/h2&gt;&lt;p&gt;Descrição&lt;/p&gt;&lt;/article&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="1"><h2>Elementos vazios</h2><p class="q">O que caracteriza um elemento vazio (void element)?</p>
+<div class="a"><p>Não possui conteúdo nem tag final; exemplos: img, input, br e meta.</p></div>
+<textarea>
+&lt;img src="./ponte.jpg" alt="Vista da ponte"&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="1"><h2>Comentários e entidades</h2><p class="q">Como escrever comentários e representar caracteres reservados?</p>
+<div class="a"><p>Comentários usam &lt;!-- ... --&gt;; caracteres como &lt; e &amp; podem ser escritos com entidades HTML.</p></div>
+<textarea>
+&lt;!-- comentário --&gt;
+&amp;lt;p&amp;gt; aparece como texto
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="1"><h2>Estrutura mínima</h2><p class="q">Quais partes compõem a estrutura básica de um HTML?</p>
+<div class="a"><p>DOCTYPE, html, head com metadados e body com conteúdo visível.</p></div>
+<textarea>
+&lt;!doctype html&gt;
+&lt;html lang="pt-BR"&gt;&lt;head&gt;&lt;title&gt;Projetos&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;&lt;main&gt;Olá&lt;/main&gt;&lt;/body&gt;&lt;/html&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="2"><h2>HTML e DOM</h2><p class="q">Qual é a relação entre HTML e DOM?</p>
+<div class="a"><p>HTML é a linguagem de marcação; DOM é a árvore de objetos e nós do documento manipulável por JavaScript.</p></div>
+<textarea>
+document → html → body → main → article
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="2"><h2>Nós do DOM</h2><p class="q">Quais tipos de nós podem aparecer no DOM?</p>
+<div class="a"><p>Nós de elemento, texto, comentário e documento, organizados por relações entre pais e filhos.</p></div>
+<textarea>
+document.body.childNodes
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="2"><h2>Árvore DOM</h2><p class="q">Como a hierarquia HTML é refletida no DOM?</p>
+<div class="a"><p>Elementos aninhados tornam-se nós filhos dentro de nós pais, formando uma árvore.</p></div>
+<textarea>
+&lt;main&gt;&lt;article&gt;&lt;h2&gt;Projeto&lt;/h2&gt;&lt;/article&gt;&lt;/main&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="2"><h2>Seletores no DOM</h2><p class="q">Como selecionar um elemento usando CSS selectors?</p>
+<div class="a"><p>document.querySelector() aceita um seletor CSS e retorna o primeiro elemento ou null.</p></div>
+<textarea>
+const card = document.querySelector(".project-card");
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="2"><h2>Selecionar por ID</h2><p class="q">Como localizar um elemento com identificador único?</p>
+<div class="a"><p>document.getElementById('id') seleciona o elemento com aquele id, se existir.</p></div>
+<textarea>
+const area = document.getElementById("projetos");
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="2"><h2>Modificar DOM</h2><p class="q">Como atualizar um título no DOM com segurança?</p>
+<div class="a"><p>Use textContent para inserir texto, sem interpretá-lo como HTML.</p></div>
+<textarea>
+document.querySelector("h2").textContent = "Nova inspeção";
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="2"><h2>Criar e carregar nós</h2><p class="q">Como inserir um card depois que o DOM foi carregado?</p>
+<div class="a"><p>Use document.createElement, append e script defer ou DOMContentLoaded.</p></div>
+<textarea>
+const card=document.createElement("article");
+card.textContent="Ponte A";
+document.querySelector("main").append(card);
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="3"><h2>HTML, CSS, JavaScript</h2><p class="q">Qual é a responsabilidade de cada tecnologia web?</p>
+<div class="a"><p>HTML estrutura; CSS define a aparência; JavaScript adiciona lógica, dados e interação.</p></div>
+<textarea>
+index.html   css/style.css   js/app.js
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="3"><h2>Referências a arquivos</h2><p class="q">Como o HTML carrega CSS e JavaScript externos?</p>
+<div class="a"><p>Use link rel=stylesheet e script src; defer evita execução antes da leitura do HTML.</p></div>
+<textarea>
+&lt;link rel="stylesheet" href="./css/style.css"&gt;
+&lt;script defer src="./js/app.js"&gt;&lt;/script&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="3"><h2>URL</h2><p class="q">Quais são as partes principais de uma URL?</p>
+<div class="a"><p>Esquema, domínio, caminho e, opcionalmente, query e fragmento.</p></div>
+<textarea>
+https://exemplo.org/aulas/?curso=html#cartao
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="3"><h2>URL relativa</h2><p class="q">Qual é a diferença entre URL relativa e caminho a partir da raiz?</p>
+<div class="a"><p>./style.css resolve no diretório atual; /style.css resolve na raiz do domínio.</p></div>
+<textarea>
+./figma-theme.css
+/SHM/aulas/
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="3"><h2>VS Code e IDE</h2><p class="q">O VS Code é um editor ou uma IDE?</p>
+<div class="a"><p>É um editor extensível que integra terminal, Git, depurador e extensões, funcionando como uma IDE.</p></div>
+<textarea>
+code .  // abre a pasta atual
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="3"><h2>Website estático</h2><p class="q">O que é um website estático?</p>
+<div class="a"><p>Um site servido a partir de arquivos sem gerar HTML dinamicamente no servidor a cada requisição.</p></div>
+<textarea>
+HTML + CSS + JS → hospedagem estática → navegador
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="3"><h2>Node.js e npm</h2><p class="q">Node.js é obrigatório para HTML/CSS/JS puros?</p>
+<div class="a"><p>Não. Node executa JavaScript fora do browser; npm gerencia pacotes e ferramentas opcionais.</p></div>
+<textarea>
+node --version
+npm init -y
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="3"><h2>Fluxo de desenvolvimento</h2><p class="q">Como testar e publicar um site estático?</p>
+<div class="a"><p>Edite no VS Code, execute um servidor local, confira no navegador e publique em hospedagem estática.</p></div>
+<textarea>
+VS Code → Live Server → Git → GitHub Pages
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>App Page Structure</h2><p class="q">Qual é uma organização simples para os arquivos da página?</p>
+<div class="a"><p>index.html, CSS, JavaScript e imagens em diretórios separados e com caminhos consistentes.</p></div>
+<textarea>
+site/
+├── index.html
+├── css/style.css
+├── js/app.js
+└── img/ponte.jpg
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>Snippets e Emmet</h2><p class="q">O que é um snippet no VS Code?</p>
+<div class="a"><p>É um trecho de código reutilizável; Emmet também expande abreviações HTML/CSS.</p></div>
+<textarea>
+section.projetos&gt;article.project-card*3&gt;h2+p
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>HTML semantics</h2><p class="q">Quais elementos semânticos estruturam uma app page?</p>
+<div class="a"><p>header, nav, main, section, article e footer descrevem a função das regiões.</p></div>
+<textarea>
+&lt;header&gt;SHM&lt;/header&gt;&lt;main&gt;&lt;section&gt;&lt;article&gt;Projeto&lt;/article&gt;&lt;/section&gt;&lt;/main&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>Project card</h2><p class="q">Como montar um card semântico para um projeto?</p>
+<div class="a"><p>Use article com título, descrição e uma ação adequada, como um link para detalhes.</p></div>
+<textarea>
+&lt;article class="project-card"&gt;&lt;h2&gt;Ponte A&lt;/h2&gt;&lt;p&gt;Inspeção&lt;/p&gt;&lt;a href="ponte.html"&gt;Abrir&lt;/a&gt;&lt;/article&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>CSS selectors</h2><p class="q">Como selecionar tag, class e id no CSS?</p>
+<div class="a"><p>article seleciona uma tag, .card seleciona a classe e #card-01 seleciona o id.</p></div>
+<textarea>
+article {padding:1rem}
+.project-card {border:1px solid #ddd}
+#card-01 {background:#eee}
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>class e id</h2><p class="q">Qual diferença entre class e id no HTML?</p>
+<div class="a"><p>Classes podem se repetir em vários elementos; o id deve ser único dentro do documento.</p></div>
+<textarea>
+&lt;article id="p1" class="project-card"&gt;&lt;/article&gt;
+&lt;article id="p2" class="project-card"&gt;&lt;/article&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>CSS Grid</h2><p class="q">Como criar uma grade responsiva de cards?</p>
+<div class="a"><p>Com display:grid, grid-template-columns e gap; auto-fit adapta o número de colunas.</p></div>
+<textarea>
+.grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>Grid versus Flexbox</h2><p class="q">Quando escolher Grid em vez de Flexbox?</p>
+<div class="a"><p>Grid é ideal para linhas e colunas; Flexbox organiza itens numa direção e alinha conteúdo interno.</p></div>
+<textarea>
+.grid {display:grid}
+.card-actions {display:flex;gap:8px}
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>JavaScript objects</h2><p class="q">Como armazenar os dados de um projeto em um objeto?</p>
+<div class="a"><p>Um objeto reúne propriedades chave-valor, como título, status e identificador.</p></div>
+<textarea>
+const projeto={id:"p1",titulo:"Ponte A",concluido:false};
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>Classes JavaScript</h2><p class="q">class em JavaScript é igual à classe CSS?</p>
+<div class="a"><p>Não. CSS class agrupa elementos para estilos; class em JavaScript define um modelo de objetos.</p></div>
+<textarea>
+class ProjectCard { constructor(titulo){this.titulo=titulo} }
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>PascalCase</h2><p class="q">O que é PascalCase e quando se usa?</p>
+<div class="a"><p>Cada palavra começa por maiúscula; é comum em classes e componentes como ProjectCard.</p></div>
+<textarea>
+ProjectCard  // PascalCase
+projectCard // camelCase
+project-card // kebab-case
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>Eventos</h2><p class="q">Como executar uma ação ao clicar no botão?</p>
+<div class="a"><p>Registre um handler de evento com addEventListener('click', função).</p></div>
+<textarea>
+document.querySelector("#abrir").addEventListener("click",()=&gt;console.log("Aberto"));
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>data-* e dataset</h2><p class="q">Como associar um ID de projeto a um card no DOM?</p>
+<div class="a"><p>Use data-projeto-id no HTML e leia dataset.projetoId em JavaScript.</p></div>
+<textarea>
+&lt;article data-projeto-id="p1"&gt;&lt;/article&gt;
+// card.dataset.projetoId
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>Packages</h2><p class="q">Para que serve package.json?</p>
+<div class="a"><p>Registra metadados, scripts e dependências de um projeto que usa Node/npm.</p></div>
+<textarea>
+npm init -y
+npm install --save-dev vite
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>Node: dois sentidos</h2><p class="q">Qual é a diferença entre um DOM node e Node.js?</p>
+<div class="a"><p>DOM node é uma unidade da árvore do documento; Node.js é um runtime de JavaScript.</p></div>
+<textarea>
+document.body.childNodes;
+node --version
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<article data-m="4"><h2>Links e botões</h2><p class="q">Como decidir entre &lt;a&gt; e &lt;button&gt; num card?</p>
+<div class="a"><p>Use &lt;a href&gt; para navegar e &lt;button&gt; para uma ação, como marcar favorito.</p></div>
+<textarea>
+&lt;a href="detalhes.html"&gt;Detalhes&lt;/a&gt;
+&lt;button type="button"&gt;Favoritar&lt;/button&gt;
+</textarea>
+<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
 </section>
 
 <!-- ================= 1. GIT ================= -->
@@ -3225,6 +3479,7 @@ c0.addEventListener("selectstart", () => {
   const COURSES=[
     {id:"dev",phase:"Preparação",title:"Ambiente de desenvolvimento",desc:"Editores, instalação do VS Code, Git e conexão com o GitHub, extensões, live mode, Node, Python, MATLAB e servidor remoto.",tags:["VS Code","GitHub","Live Server"],mods:{1:"Editores e VS Code",2:"Git e GitHub no editor",3:"Extensões e live mode",4:"Ambientes por linguagem"}},
     {id:"git",phase:"Base",title:"Git e GitHub",desc:"Versionar código, experimentar em branches e publicar versões citáveis.",tags:["git","GitHub","LFS"],mods:{1:"Uso diário",2:"Colaboração"}},
+    {id:"projectcard",phase:"Base",title:"Project Card Structure · Websites estáticos",desc:"Markup syntax, HTML e DOM, HTML/CSS/JavaScript, URL, VS Code, snippets, semântica, seletores, Grid, objetos, classes, eventos, pacotes e Node.",tags:["HTML & DOM","CSS Grid","JavaScript"],mods:{1:"Markup syntax",2:"Markup Language & DOM",3:"Websites technology",4:"App Page Structure"}},
     {id:"html",phase:"Base",title:"HTML para plataformas técnicas",desc:"Estrutura semântica, tabelas de anomalias, formulários de campo e canvas.",tags:["HTML5","formulários","canvas"],mods:{1:"Estrutura",2:"Formulários e mídia"}},
     {id:"css",phase:"Base",title:"CSS para interfaces de inspeção",desc:"Layout do visualizador, responsivo para tablet, tokens, tema escuro e severidade.",tags:["flexbox","grid","tokens"],mods:{1:"Fundamentos",2:"Layout",3:"Tema"}},
     {id:"js",phase:"Plataforma",title:"JavaScript para gêmeos digitais",desc:"Do const ao Three.js: dados de sensores, funções, assíncrono e geometria que reage ao dado.",tags:["ES2023","Three.js","WebSocket"],mods:{1:"Fundamentos",2:"Dados de sensores",3:"Funções e organização",4:"Dados assíncronos",5:"Gêmeo na tela"}},
@@ -3247,6 +3502,18 @@ c0.addEventListener("selectstart", () => {
       {t:"mc",q:"Para um projeto React + TypeScript, o live mode certo é:",o:["npm run dev (Vite)","Live Server","Abrir o .tsx no navegador","git push"],a:0,e:"O Vite compila TS/JSX e atualiza só o módulo alterado."},
       {t:"w",q:"Escreva o comando que gera uma chave SSH ed25519 (sem o e-mail).",ph:"ssh-keygen ...",re:/^ssh-keygen-ted25519(-c.*)?$/,ans:"ssh-keygen -t ed25519",e:"Depois cole a chave pública (.pub) nas configurações SSH do GitHub."},
       {t:"mc",q:"O VS Code diz que o módulo numpy não existe, mas você instalou. Causa provável:",o:["Interpretador selecionado não é o do .venv","Falta reiniciar o Git","O arquivo não foi salvo em UTF-8","O Live Server está desligado"],a:0,e:"Use Python: Select Interpreter e escolha o .venv do projeto."}
+    ],
+    projectcard:[
+      {t:"mc",q:"HTML e DOM são:",o:["HTML marcação e DOM árvore de nós","Ambos linguagens JS","Ambos estilos CSS","Ambos pacotes npm"],a:0,e:"HTML é interpretado e representado no DOM."},
+      {t:"mc",q:"Como selecionar class=project-card no CSS?",o:[".project-card","#project-card","project-card","@project-card"],a:0,e:"O ponto seleciona classes."},
+      {t:"mc",q:"Qual tecnologia descreve a estrutura dos cards?",o:["HTML","CSS","Git","Node.js"],a:0,e:"HTML define estrutura e semântica."},
+      {t:"mc",q:"Qual regra habilita CSS Grid?",o:["display: grid","position: grid","display: block","float: grid"],a:0,e:"grid-template-columns define colunas."},
+      {t:"mc",q:"Como reagir ao clique do botão?",o:["addEventListener('click',fn)","querySelectorAll('click')","JSON.parse('click')","npm click"],a:0,e:"Eventos são tratados por listeners."},
+      {t:"mc",q:"O que significa PascalCase?",o:["ProjectCard","projectCard","project-card","project_card"],a:0,e:"Cada palavra inicia por maiúscula."},
+      {t:"mc",q:"Para navegar entre páginas, use:",o:["a com href","button sem listener","div sem role","meta"],a:0,e:"Links semânticos permitem navegação."},
+      {t:"mc",q:"Node.js é obrigatório num site estático simples?",o:["Não","Sempre","Só para CSS Grid","Só para usar o DOM"],a:0,e:"Node/npm são úteis para ferramentas, mas não obrigatórios."},
+      {t:"mc",q:"Qual atributo deve ser exclusivo por documento?",o:["id","class","title","aria-label"],a:0,e:"IDs são únicos; classes podem se repetir."},
+      {t:"mc",q:"Qual termo descreve um trecho reutilizável de código?",o:["Snippet","DOM node","URL","Selector"],a:0,e:"Emmet expande abreviações e o VS Code fornece snippets."}
     ],
     git:[
       {t:"mc",q:"Qual arquivo impede que pesos *.pt e datasets entrem no repositório?",o:[".gitignore",".gitattributes","README.md","package.json"],a:0,e:"O .gitignore lista caminhos e padrões que o Git não deve acompanhar."},
@@ -3345,6 +3612,10 @@ c0.addEventListener("selectstart", () => {
        start:"// .vscode/settings.json\n{\n  \"liveServer.settings.host\": \"0.0.0.0\",\n  \"editor.formatOnSave\": true\n}",
        hints:["O IP do computador aparece em ipconfig (Windows) ou ifconfig/ip a (macOS/Linux).","Se o celular não abrir, verifique o firewall do computador para a porta 5500."],
        done:"Uma mudança salva no VS Code aparece no celular em poucos segundos, e o commit está no GitHub."}
+    ],
+    projectcard:[
+      {"id":"wc1","lvl":"Básico","t":"Website estático com Project Cards","ctx":"Vitrine de projetos de SHM","goal":"Construir uma página semântica de projetos com layout responsivo.","req":["Criar index.html, css/style.css e js/app.js","Usar header, nav, main, section, article e footer","Criar três cards com título, descrição e link","Aplicar CSS Grid, classes reutilizáveis e IDs únicos","Usar um snippet ou Emmet no VS Code","Testar em telas estreitas e validar HTML"],"start":"<section class=\"grid\"><article class=\"project-card\"><h2>Ponte A</h2><a href=\"./ponte.html\">Abrir</a></article></section>\n/* CSS */\n.grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}","hints":["Abra o projeto com Live Server.","Links relativos devem funcionar após a publicação."],"done":"Três cards responsivos e semanticamente corretos no navegador."},
+      {"id":"wc2","lvl":"Intermediário","t":"Project Cards com DOM e eventos","ctx":"Interação de cards de projetos SHM","goal":"Gerar cards a partir de objetos e reagir ao clique de botões.","req":["Criar array com três objetos de projeto","Gerar elementos usando createElement e textContent","Usar classes CSS para estilizar os novos nós","Ler um atributo data-projeto-id via dataset","Registrar listener de clique num botão de favorito","Manter navegação por teclado e links funcionais"],"start":"const projeto={id:\"p1\",titulo:\"Ponte A\"};\nconst card=document.createElement(\"article\");\ncard.className=\"project-card\";\ncard.textContent=projeto.titulo;\ndocument.querySelector(\".grid\").append(card);","hints":["Para texto de usuário, prefira textContent.","Use button para ações e a para navegação."],"done":"Cards renderizados a partir de objetos, com interação acessível."}
     ],
     git:[
       {id:"g1",lvl:"Básico",t:"Repositório da campanha de inspeção",ctx:"Você vai começar a campanha de março na Ponte do Guamá e quer o código de processamento versionado desde o primeiro dia.",goal:"Criar um repositório com estrutura de pastas, regras de exclusão e a primeira versão marcada.",
@@ -3533,7 +3804,7 @@ c0.addEventListener("selectstart", () => {
     ]
   };
   const PROJ=[
-    {id:"P1",lvl:"Projeto",t:"Ficha digital de inspeção",courses:["html","css","js","react"],ctx:"Substituir a ficha em papel por um app que funciona no celular em campo.",goal:"App React que registra anomalias por elemento, lista, filtra e exporta.",
+    {id:"P1",lvl:"Projeto",t:"Ficha digital de inspeção",courses:["projectcard","html","css","js","react"],ctx:"Substituir a ficha em papel por um app que funciona no celular em campo.",goal:"App React que registra anomalias por elemento, lista, filtra e exporta.",
      req:["Formulário do desafio h1 em React com estado controlado","Lista de anomalias com filtro por elemento e por tipo","Layout do desafio c1 e tema do desafio c2","Persistência local (localStorage ou IndexedDB)","Exportar e importar JSON da campanha"],
      done:"Uma inspeção simulada de 20 anomalias é registrada no celular, exportada e reaberta em outro aparelho."},
     {id:"P2",lvl:"Projeto",t:"Detector de fissuras de ponta a ponta",courses:["dl","jsvc","py"],ctx:"Do dataset ao inspetor medindo no navegador.",goal:"Treinar, exportar e usar no navegador um modelo que entrega aberturas em mm.",
@@ -3819,6 +4090,7 @@ c0.addEventListener("selectstart", () => {
   ];
   const RES={
     dev:[["Documentação do VS Code","https://code.visualstudio.com/docs"],["VS Code: Git e GitHub","https://code.visualstudio.com/docs/sourcecontrol/overview"],["GitHub: conectar com SSH","https://docs.github.com/pt/authentication/connecting-to-github-with-ssh"],["Marketplace de extensões","https://marketplace.visualstudio.com/vscode"]],
+    projectcard:[["MDN: HTML","https://developer.mozilla.org/pt-BR/docs/Web/HTML"],["MDN: DOM","https://developer.mozilla.org/pt-BR/docs/Web/API/Document_Object_Model"],["MDN: CSS Grid","https://developer.mozilla.org/pt-BR/docs/Web/CSS/CSS_grid_layout"],["VS Code: Emmet","https://code.visualstudio.com/docs/editor/emmet"],["Node.js: introdução","https://nodejs.org/en/learn/getting-started/introduction-to-nodejs"]],
     git:[["Pro Git (livro, em português)","https://git-scm.com/book/pt-br/v2"],["GitHub Docs","https://docs.github.com/pt"],["Git LFS","https://git-lfs.com"]],
     html:[["MDN: HTML","https://developer.mozilla.org/pt-BR/docs/Web/HTML"],["MDN: formulários web","https://developer.mozilla.org/pt-BR/docs/Learn/Forms"],["Validador W3C","https://validator.w3.org"]],
     css:[["MDN: CSS","https://developer.mozilla.org/pt-BR/docs/Web/CSS"],["web.dev: Learn CSS","https://web.dev/learn/css"],["CSS Grid (guia MDN)","https://developer.mozilla.org/pt-BR/docs/Web/CSS/CSS_grid_layout"]],

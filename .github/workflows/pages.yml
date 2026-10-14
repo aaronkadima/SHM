@@ -109,10 +109,10 @@ jobs:
           node - <<'NODE'
           const fs = require('node:fs');
           const html = fs.readFileSync('site/aulas/index.html', 'utf8');
-          const block = html.match(/<section data-c="projectcard">([\s\S]*?)<\/section>/);
-          if (!block) throw new Error('Curso Project Card Structure ausente');
+          const block = html.match(/<section data-c="site">([\s\S]*?)<\/section>/);
+          if (!block) throw new Error('Curso Sites estáticos: Project Card ausente');
           const cards = (block[1].match(/<article data-m="[1-4]">/g) || []).length;
-          if (cards !== 38) throw new Error('Esperados 38 flashcards, encontrados ' + cards);
+          if (cards !== 33) throw new Error('Esperados 33 flashcards, encontrados ' + cards);
           for (const moduleId of [1, 2, 3, 4]) {
             if (!block[1].includes('data-m="' + moduleId + '"')) {
               throw new Error('Módulo ' + moduleId + ' ausente');
@@ -121,8 +121,13 @@ jobs:
           for (const section of ['const COURSES=[', 'const EX={', 'const APPS={', 'const RES={']) {
             if (!html.includes(section)) throw new Error('Falta configuração ' + section);
           }
-          if (!html.includes('id:"projectcard"')) throw new Error('Curso não está no catálogo');
-          console.log('Project Card Structure: 38 cartões em 4 módulos; catálogo OK');
+          if (!html.includes('id:"site",phase:"Preparação",title:"Sites estáticos: Project Card"')) throw new Error('Curso não está em Preparação');
+          if (html.includes('id:"projectcard"') || html.includes('Project Card Structure · Websites estáticos')) throw new Error('Curso duplicado ainda presente');
+          [6, 6, 6, 15].forEach((expected, i) => {
+            const found = (block[1].match(new RegExp('<article data-m="' + (i + 1) + '">', 'g')) || []).length;
+            if (found !== expected) throw new Error('Módulo ' + (i + 1) + ': esperado ' + expected + ', encontrado ' + found);
+          });
+          console.log('Sites estáticos: Project Card: 33 cartões em Preparação, sem duplicação');
           NODE
           cp -a dev-src/frontend/dist/. site/dev/
           if compgen -G "prod-browser-models/*" >/dev/null; then cp -a prod-browser-models/. site/browser-models/; fi
@@ -282,8 +287,10 @@ jobs:
           "$CHROME_BIN" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --dump-dom "$URL" > /tmp/shm-aulas-dom.html
           grep -q 'class="course"' /tmp/shm-aulas-dom.html
           grep -q 'Curso 1' /tmp/shm-aulas-dom.html
-          grep -q 'Project Card Structure' /tmp/shm-aulas-dom.html
+          grep -q 'Sites estáticos: Project Card' /tmp/shm-aulas-dom.html
           grep -q 'class="sn-course"' /tmp/shm-aulas-dom.html
+          "$CHROME_BIN" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --dump-dom "${URL}#site" > /tmp/shm-aulas-site-dom.html
+          grep -q 'id="ctitle">Sites estáticos: Project Card</h2>' /tmp/shm-aulas-site-dom.html
           echo "AULAS OK: page served, catalog rendered by JavaScript."
 
       - name: PROD · YOLOv8n · mobile full-app smoke

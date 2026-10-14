@@ -1121,6 +1121,76 @@ npm run dev      # http://localhost:5173
 npm run build    # gera dist/ com o site estático pronto para publicar
 </textarea>
 <p class="p">O <code>npm run build</code> gera de novo um site estático em <code>dist/</code>, que pode ir para o GitHub Pages como qualquer outro.</p></article>
+
+<!-- Complementos da versão anterior: tópicos ausentes, preservando os índices dos 33 cartões existentes. -->
+<article data-m="1"><h2>Estrutura mínima</h2><p class="q">Quais partes compõem a estrutura básica de um HTML?</p>
+<div class="a"><p>DOCTYPE, html, head com metadados e body com conteúdo visível.</p></div>
+<textarea>
+&lt;!doctype html&gt;
+&lt;html lang="pt-BR"&gt;&lt;head&gt;&lt;title&gt;Projetos&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;&lt;main&gt;Olá&lt;/main&gt;&lt;/body&gt;&lt;/html&gt;
+</textarea>
+<p class="p">A declaração do tipo de documento, os metadados e o corpo delimitam as áreas principais de uma página web.</p></article>
+
+<article data-m="3"><h2>Referências a arquivos</h2><p class="q">Como o HTML carrega CSS e JavaScript externos?</p>
+<div class="a"><p>Use link rel=stylesheet e script src; defer evita execução antes da leitura do HTML.</p></div>
+<textarea>
+&lt;link rel="stylesheet" href="./css/style.css"&gt;
+&lt;script defer src="./js/app.js"&gt;&lt;/script&gt;
+</textarea>
+<p class="p">Caminhos relativos devem apontar para as pastas reais do projeto, inclusive após publicação no GitHub Pages.</p></article>
+
+<article data-m="3"><h2>Fluxo de desenvolvimento</h2><p class="q">Como testar e publicar um site estático?</p>
+<div class="a"><p>Edite no VS Code, execute um servidor local, confira no navegador e publique em hospedagem estática.</p></div>
+<textarea>
+VS Code → Live Server → Git → GitHub Pages
+</textarea>
+<p class="p">Publicar exige testar o site localmente e verificar os arquivos acessíveis na URL final.</p></article>
+
+<article data-m="4"><h2>Grid versus Flexbox</h2><p class="q">Quando escolher Grid em vez de Flexbox?</p>
+<div class="a"><p>Grid é ideal para linhas e colunas; Flexbox organiza itens numa direção e alinha conteúdo interno.</p></div>
+<textarea>
+.grid {display:grid}
+.card-actions {display:flex;gap:8px}
+</textarea>
+<p class="p">No SHM Studio, Grid organiza as colunas de project cards, enquanto Flexbox organiza botões e informações internas.</p></article>
+
+<article data-m="4"><h2>Classes JavaScript</h2><p class="q">class em JavaScript é igual à classe CSS?</p>
+<div class="a"><p>Não. CSS class agrupa elementos para estilos; class em JavaScript define um modelo de objetos.</p></div>
+<textarea>
+class ProjectCard { constructor(titulo){this.titulo=titulo} }
+</textarea>
+<p class="p">A classe CSS identifica elementos para estilizar; uma classe JavaScript fornece estrutura e comportamento a objetos.</p></article>
+
+<article data-m="4"><h2>Node: dois sentidos</h2><p class="q">Qual é a diferença entre um DOM node e Node.js?</p>
+<div class="a"><p>DOM node é uma unidade da árvore do documento; Node.js é um runtime de JavaScript.</p></div>
+<textarea>
+document.body.childNodes;
+node --version
+</textarea>
+<p class="p">Um nó do DOM representa parte da página; Node.js é o ambiente de execução usado pelas ferramentas de desenvolvimento.</p></article>
+
+<article data-m="4"><h2>Links e botões</h2><p class="q">Como decidir entre &lt;a&gt; e &lt;button&gt; num card?</p>
+<div class="a"><p>Use &lt;a href&gt; para navegar e &lt;button&gt; para uma ação, como marcar favorito.</p></div>
+<textarea>
+&lt;a href="detalhes.html"&gt;Detalhes&lt;/a&gt;
+&lt;button type="button"&gt;Favoritar&lt;/button&gt;
+</textarea>
+<p class="p">Use links em cards para acessar outras páginas e botões para executar ações na interface.</p></article>
+
+<article data-m="2"><h2>Quando o DOM está pronto?</h2><p class="q">Como garantir que o script encontre os elementos antes de acessá-los?</p>
+<div class="a"><p>Carregue o script externo com <code>defer</code> ou espere o evento <code>DOMContentLoaded</code> antes de consultar os elementos da página.</p></div>
+<textarea>
+&lt;!-- No head do HTML --&gt;
+&lt;script src="./js/app.js" defer&gt;&lt;/script&gt;
+
+// Em scripts que precisam aguardar o DOM:
+document.addEventListener("DOMContentLoaded", () =&gt; {
+  const grid = document.querySelector(".project-grid");
+  console.log(grid);
+});
+</textarea>
+<p class="p">Este cuidado evita seletores vazios quando o código executa antes da criação do contêiner de project cards.</p></article>
 </section>
 
 <!-- ================= 1. GIT ================= -->

@@ -1,7 +1,8 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
-import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,RefreshCw,Settings2,Unlock,X} from "lucide-react";
+import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,RefreshCw,Settings2,Unlock,X} from "lucide-react";
 import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint}from"./viewerPreferences.js";
 import{detectAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./assetDetection.js";
+import{AULAS_HREF}from"./aulasRoute.js";
 const IMAGE_ACCEPT=SUPPORTED_IMAGE_EXTENSIONS.map(ext=>"."+ext).join(",");
 const ASSET_ACCEPT=[...SUPPORTED_IMAGE_EXTENSIONS,...SUPPORTED_MODEL_EXTENSIONS].map(ext=>"."+ext).join(",");
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
@@ -995,6 +996,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button title={kind==="2d"?"Ajustar à tela":"Ajuste 2D indisponível"} aria-label="Ajustar à tela" disabled={kind!=="2d"} onClick={fitView}><Maximize2/></button>
           <button aria-label="Abrir modo câmera" title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button>
         </div>
+        <a className="editorAulasLink" href={AULAS_HREF} target="_blank" rel="noopener noreferrer" aria-label="Abrir aulas da Trilha Dev SHM em nova aba" title="Aulas · Trilha Dev SHM (nova aba)"><BookOpen size={20} aria-hidden="true"/></a>
       </div>
       {layersOpen&&<><button type="button" className="editorLayersScrim" aria-label="Fechar painel de camadas" title="Fechar camadas" onClick={()=>setLayersPanelOpen(false)}/><aside className={"editorLayers "+(selectedEngineLabels.length>=24?"engineDensityUltra":selectedEngineLabels.length>=12?"engineDensityDense":"")} data-engine-count={selectedEngineLabels.length} data-layer-width={layersWidth} style={{width:layersWidth,"--engine-count":Math.max(1,selectedEngineLabels.length)}}><div className="editorLayersContent"><div className="editorPanelTitle"><b>Camadas</b><button aria-label="Recolher painel de camadas" title="Recolher camadas" onClick={()=>setLayersPanelOpen(false)}><ChevronLeft size={17}/></button></div>
         <div className="layerRow"><span>◉</span> {kind==="2d"?"Imagem atual · t1":kind==="3d"?"Modelo 3D atual":"Arquivo atual"}</div>

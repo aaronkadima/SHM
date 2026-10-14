@@ -2650,6 +2650,155 @@ custo             CPU, rápido                 treino em GPU
 </textarea>
 <p class="p">Os dois se completam: a rede segmenta, e o processamento clássico limpa a máscara e mede em mm.</p></article>
 
+<article data-m="1"><h2>O que é segmentação</h2><p class="q">O que significa segmentar uma imagem?</p>
+<div class="a"><p>Atribuir um rótulo a cada pixel, separando o que interessa (fissura, mancha, armadura) do fundo (concreto são). O resultado é uma máscara do mesmo tamanho da foto.</p></div>
+<textarea>
+classificação   uma resposta por imagem     "tem fissura"
+detecção        uma caixa por objeto        [x1, y1, x2, y2] + "fissura"
+segmentação     um rótulo por pixel         máscara 4000 × 3000
+
+só a segmentação diz a forma exata, e a forma é o que se mede:
+comprimento, abertura, área
+</textarea>
+<p class="p">Para o laudo, a caixa diz onde olhar; a máscara diz quanto mede.</p></article>
+
+<article data-m="1"><h2>Etapas da segmentação</h2><p class="q">Quais são as etapas de um pipeline de segmentação de manifestações patológicas?</p>
+<div class="a"><p>Da foto ao laudo, cada etapa entrega algo à próxima. Clássico e deep learning mudam só a etapa 3; o resto é igual.</p></div>
+<textarea>
+1. aquisição          foto com escala conhecida (alvo, GSD)
+2. pré-processamento  cinza, redução de ruído, realce de contraste, correção de perspectiva
+3. segmentação        limiar (Otsu, adaptativo) ou rede (U-Net, YOLO-seg)  -> máscara
+4. pós-processamento  morfologia, remoção de regiões pequenas              -> máscara limpa
+5. descrição          componentes conectados, descritores de forma e cor   -> regiões
+6. classificação      fissura, eflorescência, armadura exposta...          -> rótulo por região
+7. quantificação      comprimento, abertura, área em mm e mm²              -> medidas
+8. relatório          quadro por elemento, figuras, nota de condição
+</textarea>
+<p class="p">Quando o resultado sai ruim, descubra em qual etapa o erro nasceu. Melhorar a rede não resolve uma foto sem escala.</p></article>
+
+<article data-m="1"><h2>O que é uma máscara</h2><p class="q">O que é uma máscara e como ela é guardada?</p>
+<div class="a"><p>Uma imagem do mesmo tamanho da foto em que cada pixel diz a que classe pertence. Na binária, 0 é fundo e 1 (ou 255) é objeto. Na multiclasse, cada valor inteiro é uma classe.</p></div>
+<textarea>
+binária            multiclasse (mapa de rótulos)
+0 0 0 0 0          0 0 0 0 0      0 fundo
+0 1 1 0 0          0 1 1 0 3      1 fissura
+0 0 1 1 0          0 0 1 3 3      2 eflorescência
+0 0 0 1 0          2 2 0 3 3      3 armadura exposta
+
+foto[mascara > 0]          pixels da fissura
+(mascara > 0).mean()       fração da área afetada
+</textarea>
+<p class="p">Salve máscaras em PNG. O JPG cria valores intermediários nas bordas e uma máscara 0/1 vira 0, 1, 2, 7... sem sentido.</p></article>
+
+<article data-m="1"><h2>O que é o histograma</h2><p class="q">O que o histograma de uma foto em tons de cinza mostra?</p>
+<div class="a"><p>Quantos pixels existem com cada intensidade de 0 a 255. Numa foto de fissura em concreto, aparece um pico grande (concreto claro) e uma cauda ou pico pequeno de pixels escuros (fissura).</p></div>
+<textarea>
+hist = np.bincount(cinza.ravel(), minlength=256)
+
+contagem
+  │                 ▄▄
+  │                ████
+  │  ▂            ██████
+  │ ▂█▂          ████████▄
+  └─────────────────────────── intensidade
+    0  fissura       concreto  255
+</textarea>
+<p class="p">Se o histograma não tem dois grupos separados (sombra forte, manchas), nenhum limiar global vai funcionar bem.</p></article>
+
+<article data-m="1"><h2>O que é o método de Otsu</h2><p class="q">Como o Otsu escolhe o limiar sozinho?</p>
+<div class="a"><p>Ele testa todos os limiares de 0 a 255 e escolhe o que melhor separa o histograma em duas classes: máxima variância entre as classes, o que equivale à mínima variância dentro de cada uma. Foi proposto por Nobuyuki Otsu em 1979.</p></div>
+<textarea>
+# Otsu do zero, em NumPy
+p = np.bincount(cinza.ravel(), minlength=256) / cinza.size
+omega = np.cumsum(p)                      # fração de pixels abaixo de t
+mu = np.cumsum(p * np.arange(256))        # média acumulada
+mu_t = mu[-1]                             # média global
+var_entre = (mu_t * omega - mu) ** 2 / (omega * (1 - omega) + 1e-12)
+t = int(np.argmax(var_entre))
+
+# o mesmo, pelo OpenCV
+t2, mascara = cv2.threshold(cinza, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+</textarea>
+<p class="p">Otsu sempre devolve um limiar, mesmo numa foto sem fissura. Ele separa a imagem em duas classes, existindo ou não um defeito.</p></article>
+
+<article data-m="1"><h2>Limiar global ou adaptativo?</h2><p class="q">Quando o limiar único do Otsu falha e o que usar no lugar?</p>
+<div class="a"><p>O limiar global usa um valor para a foto inteira. O adaptativo calcula um limiar para cada vizinhança, a partir da média local, e resiste a sombra e iluminação desigual.</p></div>
+<textarea>
+global (Otsu)    iluminação uniforme, fundo homogêneo
+adaptativo       sombra do tabuleiro, umidade, manchas, foto com flash
+                 cv2.adaptiveThreshold(cinza, 255,
+                     cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 7)
+                 31 = tamanho da janela (px), 7 = margem abaixo da média local
+</textarea>
+<p class="p">A janela do adaptativo deve ser bem maior que a largura da fissura em pixels. Janela pequena demais marca a textura do concreto inteira.</p></article>
+
+<article data-m="1"><h2>O que é morfologia matemática</h2><p class="q">O que fazem erosão, dilatação, abertura e fechamento?</p>
+<div class="a"><p>São operações sobre a forma da máscara, usando um pequeno elemento estruturante (quadrado, cruz ou elipse) que percorre a imagem.</p></div>
+<textarea>
+erosão       encolhe as regiões: some o que é menor que o elemento
+dilatação    engorda as regiões: une partes próximas
+abertura     erosão + dilatação: remove pontinhos, mantém o resto
+fechamento   dilatação + erosão: fecha falhas e emenda trechos da fissura
+
+k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+limpa = cv2.morphologyEx(mascara, cv2.MORPH_OPEN, k)
+</textarea>
+<p class="p">Morfologia muda a largura. Meça a abertura da fissura na máscara antes da erosão ou da dilatação, ou compense o efeito.</p></article>
+
+<article data-m="1"><h2>Descritores de forma</h2><p class="q">Como o computador diferencia uma fissura de uma mancha pela forma?</p>
+<div class="a"><p>Cada região da máscara é descrita por números: área, alongamento, circularidade, solidez, orientação. Uma fissura é longa e fina; uma mancha é compacta.</p></div>
+<textarea>
+from skimage.measure import label, regionprops
+
+for r in regionprops(label(mascara > 0)):
+    along = r.axis_major_length / max(r.axis_minor_length, 1)    # alongamento
+    circ = 4 * np.pi * r.area / max(r.perimeter, 1) ** 2         # 1 = círculo
+    print(r.label, r.area, round(along, 1), round(circ, 2), r.solidity, r.orientation)
+
+fissura          alongamento alto, circularidade perto de 0
+mancha, umidade  alongamento baixo, circularidade alta
+desplacamento    área grande, contorno irregular (solidez baixa)
+</textarea>
+<p class="p">A orientação também informa: fissuras verticais no meio do vão e inclinadas perto do apoio sugerem mecanismos diferentes, que o engenheiro interpreta.</p></article>
+
+<article data-m="1"><h2>Classificar patologias por regras</h2><p class="q">Como separar fissura, eflorescência e armadura exposta sem deep learning?</p>
+<div class="a"><p>Combine forma e cor numa árvore de regras. A cor em HSV (matiz, saturação, valor) separa melhor que RGB: eflorescência é clara e sem saturação; corrosão tem matiz marrom-avermelhado.</p></div>
+<textarea>
+hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)       # H: 0-179 no OpenCV
+
+def classificar(regiao, hsv_px):
+    h, s, v = np.median(hsv_px, axis=0)
+    along = regiao.axis_major_length / max(regiao.axis_minor_length, 1)
+    if along > 8 and regiao.axis_minor_length < 12:
+        return "fissura"
+    if s < 40 and v > 170:
+        return "eflorescência"
+    if 5 <= h <= 25 and s > 80:
+        return "armadura exposta / corrosão"
+    return "mancha (verificar)"
+
+# limiares de exemplo: calibre com fotos das suas obras
+</textarea>
+<p class="p">Regras são transparentes e boas para um primeiro protótipo, mas quebram com iluminação e concreto diferentes. Os casos que elas erram viram dados de treino para a rede.</p></article>
+
+<article data-m="1"><h2>Separação em camadas</h2><p class="q">Como guardar e mostrar cada patologia em uma camada própria?</p>
+<div class="a"><p>Duas formas. O mapa de rótulos (H × W) admite uma classe por pixel. A pilha de máscaras (H × W × C), uma camada por patologia, permite sobreposição, como uma fissura dentro de uma mancha de umidade.</p></div>
+<textarea>
+CLASSES = ["fissura", "eflorescencia", "armadura_exposta", "desplacamento"]
+
+camadas = np.zeros((h, w, len(CLASSES)), np.uint8)    # multirrótulo
+for i, nome in enumerate(CLASSES):
+    camadas[..., i] = mascaras[nome] > 0
+
+# salvar uma camada por arquivo, todas alinhadas à foto
+for i, nome in enumerate(CLASSES):
+    cv2.imwrite(f"saida/{foto.stem}_{nome}.png", camadas[..., i] * 255)
+
+# visualização: cada camada com sua cor e transparência sobre a foto
+</textarea>
+<p class="p">Camadas separadas permitem ligar e desligar cada patologia no visualizador e medir cada uma sem interferência das outras.</p></article>
+
+
 <article data-m="1"><h2>Ambiente</h2><p class="q">Como isolar as bibliotecas de cada projeto de pesquisa?</p>
 <div class="a"><p>Um ambiente virtual guarda versões próprias de pacotes. O <code>requirements.txt</code> registra quais são.</p></div>
 <textarea>
@@ -2938,6 +3087,129 @@ o mesmo filtro vale para a imagem inteira -> poucos parâmetros
 repete por lote; uma passada por todo o dataset = 1 época
 </textarea>
 <p class="p">Se a perda do treino cai e a da validação sobe, a rede está decorando o treino (overfitting). É hora de mais dados ou mais aumento de dados.</p></article>
+
+<article data-m="1"><h2>Semântica, instância e panóptica</h2><p class="q">Quais são os tipos de segmentação feitos por redes neurais?</p>
+<div class="a"><p>A semântica rotula cada pixel por classe. A de instância separa cada objeto individual com sua máscara. A panóptica junta as duas.</p></div>
+<textarea>
+semântica     todos os pixels de fissura = 1        U-Net, DeepLabV3+, SegFormer
+instância     fissura 1, fissura 2, fissura 3       Mask R-CNN, YOLO-seg
+panóptica     instâncias + fundo rotulado           Mask2Former
+
+pergunta                            tipo
+"qual a área total fissurada?"      semântica
+"quantas fissuras e cada abertura?" instância
+</textarea>
+<p class="p">Uma rede semântica seguida de componentes conectados também separa instâncias, desde que as fissuras não se toquem.</p></article>
+
+<article data-m="1"><h2>Estrutura da U-Net</h2><p class="q">Como é a arquitetura da U-Net e por que ela é boa para fissuras finas?</p>
+<div class="a"><p>Um encoder reduz a imagem e extrai contexto; um decoder reconstrói a resolução. As conexões de atalho (skip connections) levam os detalhes finos do encoder direto ao decoder. Foi proposta por Ronneberger et al. em 2015, para imagens biomédicas.</p></div>
+<textarea>
+entrada 512×512 ───────────────────────────────► saída 512×512 (máscara)
+   │ encoder                              decoder ▲
+   ▼ 256×256 ─────── skip ─────────────────► 256×256
+     ▼ 128×128 ───── skip ─────────────► 128×128
+       ▼ 64×64 ───── skip ─────────► 64×64
+         ▼ 32×32  (gargalo: contexto)  ▲
+</textarea>
+<p class="p">Sem os atalhos, a fissura de 2 px de largura se perderia na redução para 32 × 32.</p></article>
+
+<article data-m="1"><h2>O que é YOLO</h2><p class="q">O que é o YOLO e por que ele é rápido?</p>
+<div class="a"><p>You Only Look Once: uma família de detectores que prevê todas as caixas e classes num único passe da rede pela imagem. Foi proposto por Redmon et al. em 2016; as versões mais usadas hoje vêm da biblioteca Ultralytics.</p></div>
+<textarea>
+detectores em duas etapas (Faster/Mask R-CNN)
+  1. propõe regiões candidatas   2. classifica cada região    -> preciso, mais lento
+
+YOLO (uma etapa)
+  um passe -> todas as caixas, classes e confianças de uma vez -> tempo real
+
+tarefas: detect (caixas) · segment (máscaras) · classify · pose · obb (caixas giradas)
+</textarea>
+<p class="p">Rodar em tempo real permite usar o YOLO no vídeo do drone durante o voo, marcando as regiões que merecem foto de perto.</p></article>
+
+<article data-m="1"><h2>Estrutura do YOLO</h2><p class="q">Quais são as três partes da arquitetura do YOLO?</p>
+<div class="a"><p>Backbone, neck e head. O backbone extrai características; o neck combina características de escalas diferentes; o head faz as previsões em várias escalas.</p></div>
+<textarea>
+imagem 640×640
+  │
+  ▼ BACKBONE   camadas convolucionais (blocos CSP)
+  │            mapas de características em 80×80, 40×40, 20×20
+  ▼ NECK       FPN + PAN: mistura detalhe (escala fina) e contexto (escala grossa)
+  │
+  ▼ HEAD       em cada escala: caixa (x, y, w, h) + classes + confiança
+  │            80×80 -> objetos pequenos   20×20 -> objetos grandes
+  ▼ NMS        remove caixas duplicadas -> resultado final
+</textarea>
+<p class="p">As três escalas explicam por que o YOLO acha tanto um desplacamento grande quanto uma armadura exposta pequena na mesma foto.</p></article>
+
+<article data-m="1"><h2>Como o YOLO gera máscaras</h2><p class="q">Como o YOLO-seg produz uma máscara para cada objeto?</p>
+<div class="a"><p>A rede gera um conjunto de máscaras-protótipo para a imagem inteira e, para cada objeto detectado, um vetor de coeficientes. A máscara do objeto é a combinação dos protótipos com esses coeficientes, recortada pela caixa.</p></div>
+<textarea>
+protótipos   P: 32 mapas de 160×160 (compartilhados pela imagem)
+objeto k     coeficientes c_k: 32 números (saem do head, junto da caixa)
+máscara k    sigmoide( Σ c_k[i] · P[i] ), recortada pela caixa do objeto
+</textarea>
+<p class="p">Os protótipos têm resolução menor que a foto. Para aberturas de décimos de milímetro, combine o YOLO com uma U-Net de alta resolução dentro da caixa.</p></article>
+
+<article data-m="1"><h2>IoU e NMS</h2><p class="q">O que são IoU de caixas e supressão de não máximos (NMS)?</p>
+<div class="a"><p>IoU mede a sobreposição de duas caixas: área da interseção dividida pela área da união. O NMS mantém a caixa de maior confiança e descarta as outras da mesma classe que a sobrepõem acima de um limiar de IoU.</p></div>
+<textarea>
+def iou(a, b):                     # caixas [x1, y1, x2, y2]
+    ix = max(0, min(a[2], b[2]) - max(a[0], b[0]))
+    iy = max(0, min(a[3], b[3]) - max(a[1], b[1]))
+    inter = ix * iy
+    ua = (a[2]-a[0])*(a[3]-a[1]) + (b[2]-b[0])*(b[3]-b[1]) - inter
+    return inter / ua
+
+modelo.predict(img, conf=0.25, iou=0.7)   # limiares de confiança e de NMS
+</textarea>
+<p class="p">Fissuras longas e ramificadas geram várias caixas sobrepostas. Ajuste o limiar de IoU do NMS ou prefira a segmentação semântica para elas.</p></article>
+
+<article data-m="1"><h2>Ler a saída do YOLO</h2><p class="q">Onde ficam caixas, classes, confianças e máscaras no resultado do Ultralytics?</p>
+<div class="a"><p>Cada imagem gera um objeto de resultado com <code>boxes</code> e, nos modelos de segmentação, <code>masks</code>.</p></div>
+<textarea>
+r = modelo("V1-fissura-03.jpg")[0]
+
+r.names                 # {0: "fissura", 1: "armadura_exposta", ...}
+r.boxes.xyxy            # (N, 4) caixas em pixels da foto original
+r.boxes.conf            # (N,)  confiança
+r.boxes.cls             # (N,)  índice da classe
+r.masks.data            # (N, H, W) máscaras na resolução de entrada da rede
+r.masks.xy              # lista de polígonos em pixels da foto original
+
+for cls, conf in zip(r.boxes.cls.tolist(), r.boxes.conf.tolist()):
+    print(r.names[int(cls)], round(conf, 2))
+</textarea>
+<p class="p">Para medir, use <code>r.masks.xy</code> (coordenadas da foto original) ou redimensione <code>masks.data</code> para o tamanho da foto antes de aplicar a escala mm/px.</p></article>
+
+<article data-m="1"><h2>Estrutura do Mask R-CNN</h2><p class="q">Como o Mask R-CNN segmenta instâncias e em que difere do YOLO?</p>
+<div class="a"><p>É um detector de duas etapas (He et al., 2017). Uma rede de propostas (RPN) sugere regiões; o RoIAlign recorta as características de cada região; três cabeças preveem classe, caixa refinada e uma máscara por região.</p></div>
+<textarea>
+imagem -> backbone + FPN -> RPN (regiões candidatas)
+                           -> RoIAlign (recorte alinhado de cada região)
+                           -> cabeça de classe | cabeça de caixa | cabeça de máscara 28×28
+
+Mask R-CNN    máscaras por região mais detalhadas, mais lento
+YOLO-seg      um passe, tempo real, máscara a partir de protótipos
+</textarea>
+<p class="p">Mask R-CNN continua forte em datasets pequenos de patologias, enquanto o YOLO-seg ganha quando a velocidade importa.</p></article>
+
+<article data-m="1"><h2>Classificação de patologias com redes</h2><p class="q">Como organizar as classes de manifestações patológicas para treinar uma rede?</p>
+<div class="a"><p>Defina uma taxonomia fechada, com critério escrito para cada classe, e decida se uma região pode ter mais de um rótulo. Classes ambíguas ou raras demais confundem a rede.</p></div>
+<textarea>
+classes (exemplo)          critério de anotação
+fissura                    abertura visível, contorno linear
+armadura exposta           aço visível, com ou sem corrosão
+eflorescência              depósito esbranquiçado
+desplacamento              perda de concreto com profundidade
+mancha de umidade          escurecimento sem perda de material
+
+cuidados
+  desbalanceamento   fissura domina; use pesos por classe ou mais amostras raras
+  multirrótulo       armadura exposta costuma vir com desplacamento
+  manual             guia de anotação com fotos-exemplo por classe
+</textarea>
+<p class="p">Alinhe os nomes das classes com os termos usados no laudo e na NBR 9452, para a saída da rede entrar direto no relatório.</p></article>
+
 
 <article data-m="1"><h2>Qual tarefa?</h2><p class="q">Classificação, detecção, segmentação semântica ou de instância: qual usar para fissuras?</p>
 <div class="a"><p>Depende da pergunta. Para medir abertura é preciso saber quais pixels são fissura, ou seja, segmentação.</p></div>
@@ -4504,6 +4776,25 @@ c0.addEventListener("selectstart", () => {
       localStorage.setItem(migrationKey,"applied");
     }
   } catch (error) { /* Browsers with storage disabled still render all cards. */ }
+  /* Lote 2: inserir após os cartões conceituais sem trocar as marcas dos cartões anteriores. */
+  const SEGMENTATION_PROGRESS_OFFSETS={py:{after:1,count:10},dl:{after:3,count:9}};
+  try {
+    const migrationKey="trilha-dev-shm-segmentacao-20261014-v1";
+    if(localStorage.getItem(migrationKey)!=="applied"){
+      for(const [course,{after,count}] of Object.entries(SEGMENTATION_PROGRESS_OFFSETS)){
+        const previous=marks[course];
+        if(!previous||typeof previous!=="object"||Array.isArray(previous))continue;
+        const shifted={};
+        for(const [index,state] of Object.entries(previous)){
+          const numeric=/^(0|[1-9][0-9]*)$/.test(index)&&Number.isSafeInteger(Number(index));
+          shifted[numeric&&Number(index)>after?String(Number(index)+count):index]=state;
+        }
+        marks[course]=shifted;
+      }
+      localStorage.setItem(KEY,JSON.stringify(marks));
+      localStorage.setItem(migrationKey,"applied");
+    }
+  } catch(error) { /* Armazenamento indisponível não impede os flashcards de carregar. */ }
   const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(marks));localStorage.setItem(XKEY,JSON.stringify(exs))}catch(e){}};
   const $=id=>document.getElementById(id);
   const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");

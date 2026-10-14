@@ -641,258 +641,486 @@ Ctrl+Shift+P > Remote-SSH: Connect to Host > labgpu
 <p class="p">Rode treinos longos dentro de <code>tmux</code> no servidor: se a conexão cair, o treino da U-Net continua.</p></article>
 </section>
 
-<!-- PROJECT CARD STRUCTURE — CREATING STATIC WEBSITES -->
-<section data-c="projectcard">
-<article data-m="1"><h2>Markup syntax</h2><p class="q">O que é sintaxe de marcação?</p>
-<div class="a"><p>São regras para representar estrutura e significado de conteúdo por meio de tags e atributos.</p></div>
+<!-- ================= SITES ESTÁTICOS: PROJECT CARD ================= -->
+<section data-c="site">
+<article data-m="1"><h2>O que é marcação</h2><p class="q">Qual a diferença entre uma linguagem de marcação e uma linguagem de programação?</p>
+<div class="a"><p>Uma linguagem de marcação descreve o que cada parte do conteúdo é (título, parágrafo, lista). Ela não tem variáveis, laços nem decisões. A lógica fica com o JavaScript.</p></div>
 <textarea>
-&lt;h1&gt;Projetos de inspeção&lt;/h1&gt;
+marcação      HTML, XML, SVG, Markdown   -> descreve estrutura e significado
+estilo        CSS                        -> descreve aparência
+programação   JavaScript, Python         -> descreve comportamento e cálculo
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="1"><h2>Tag e elemento</h2><p class="q">Qual a diferença entre tag e elemento HTML?</p>
-<div class="a"><p>A tag é a marcação; o elemento inclui a tag inicial, o conteúdo e, quando aplicável, a tag final.</p></div>
+<p class="p">O IFC em formato texto (STEP) e o XML de muitos sistemas de aquisição também são formatos de descrição de dados, não programas.</p></article>
+
+<article data-m="1"><h2>Anatomia de um elemento</h2><p class="q">Quais são as partes de um elemento HTML?</p>
+<div class="a"><p>Tag de abertura, conteúdo e tag de fechamento. A tag de abertura pode ter atributos no formato <code>nome="valor"</code>.</p></div>
 <textarea>
-&lt;p&gt;Relatório concluído&lt;/p&gt;
+<p class="descricao" id="desc-guama">Ponte em concreto protendido, 3 vãos.</p>
+ │  └── atributo ──┘ └── atributo ──┘  └────────── conteúdo ──────────┘   │
+ └ tag de abertura                                         tag de fechamento ┘
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="1"><h2>Atributos</h2><p class="q">Para que servem atributos HTML?</p>
-<div class="a"><p>Acrescentam informações ou comportamento à marcação, como href, id, class e alt.</p></div>
+<p class="p">O nome da tag diz o que o conteúdo é. Os atributos acrescentam informação: identificação, classe de estilo, destino de um link.</p></article>
+
+<article data-m="1"><h2>Aninhamento</h2><p class="q">Qual regra de aninhamento o HTML abaixo quebra?</p>
+<div class="a"><p>Elementos devem fechar na ordem inversa em que abriram, como parênteses. O primeiro exemplo fecha o <code>strong</code> depois do <code>p</code>.</p></div>
 <textarea>
-&lt;a href="./ponte.html" class="link"&gt;Abrir&lt;/a&gt;
+<!-- errado -->
+<p>Abertura de <strong>0,35 mm</p></strong>
+
+<!-- certo -->
+<p>Abertura de <strong>0,35 mm</strong></p>
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="1"><h2>Hierarquia e aninhamento</h2><p class="q">Como aninhar elementos de forma correta?</p>
-<div class="a"><p>O elemento filho deve estar dentro do pai e terminar antes do fechamento deste.</p></div>
+<p class="p">O navegador tenta corrigir erros de aninhamento, mas cada navegador corrige do seu jeito. Use a indentação do editor para ver a hierarquia.</p></article>
+
+<article data-m="1"><h2>Elementos vazios</h2><p class="q">Por que <code class="i">img</code>, <code class="i">input</code> e <code class="i">br</code> não têm tag de fechamento?</p>
+<div class="a"><p>São elementos vazios: não têm conteúdo, só atributos. Escreva apenas a tag de abertura.</p></div>
 <textarea>
-&lt;article&gt;&lt;h2&gt;Ponte A&lt;/h2&gt;&lt;p&gt;Descrição&lt;/p&gt;&lt;/article&gt;
+<img src="fotos/guama.jpg" alt="Vista lateral da Ponte do Guamá">
+<input type="text" name="nome">
+<meta charset="utf-8">
+<link rel="stylesheet" href="estilo.css">
+<hr>
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="1"><h2>Elementos vazios</h2><p class="q">O que caracteriza um elemento vazio (void element)?</p>
-<div class="a"><p>Não possui conteúdo nem tag final; exemplos: img, input, br e meta.</p></div>
+<p class="p">A barra no final (<code>&lt;img /&gt;</code>) é aceita, mas desnecessária em HTML5. Escolha um estilo e mantenha no projeto.</p></article>
+
+<article data-m="1"><h2>Atributos booleanos</h2><p class="q">Como marcar um campo como obrigatório ou um botão como desativado?</p>
+<div class="a"><p>Atributos booleanos valem pela presença. Escrever o atributo já liga a opção; para desligar, remova o atributo.</p></div>
 <textarea>
-&lt;img src="./ponte.jpg" alt="Vista da ponte"&gt;
+<input name="nome" required>
+<button type="submit" disabled>Salvar</button>
+<details open>...</details>
+
+<!-- atenção: isto continua desativado -->
+<button disabled="false">Salvar</button>
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="1"><h2>Comentários e entidades</h2><p class="q">Como escrever comentários e representar caracteres reservados?</p>
-<div class="a"><p>Comentários usam &lt;!-- ... --&gt;; caracteres como &lt; e &amp; podem ser escritos com entidades HTML.</p></div>
+<p class="p">No JavaScript, use a propriedade: <code>botao.disabled = false</code> remove o efeito do atributo.</p></article>
+
+<article data-m="1"><h2>Comentários e entidades</h2><p class="q">Como escrever um comentário no HTML e mostrar o caractere &lt; na página?</p>
+<div class="a"><p>Comentários ficam entre <code>&lt;!--</code> e <code>--&gt;</code> e não aparecem na página. Caracteres reservados são escritos como entidades.</p></div>
 <textarea>
-&lt;!-- comentário --&gt;
-&amp;lt;p&amp;gt; aparece como texto
+<!-- seção de projetos ativos -->
+<p>Flecha &amp;lt; L/500</p>          <!-- mostra: Flecha < L/500 -->
+<p>Pesquisa &amp;amp; Extensão</p>     <!-- mostra: Pesquisa & Extensão -->
+<p>25&amp;nbsp;m</p>                    <!-- espaço que não quebra linha -->
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="1"><h2>Estrutura mínima</h2><p class="q">Quais partes compõem a estrutura básica de um HTML?</p>
-<div class="a"><p>DOCTYPE, html, head com metadados e body com conteúdo visível.</p></div>
+<p class="p">Comentários são visíveis para quem abre o código-fonte. Nunca deixe senhas ou dados de obra sensíveis neles.</p></article>
+
+<article data-m="2"><h2>O que é o DOM</h2><p class="q">O que o navegador faz com o arquivo HTML antes de mostrar a página?</p>
+<div class="a"><p>Ele lê o texto e monta o DOM (Document Object Model): uma árvore de objetos, um para cada elemento, texto e atributo. O JavaScript lê e altera essa árvore, não o arquivo.</p></div>
 <textarea>
-&lt;!doctype html&gt;
-&lt;html lang="pt-BR"&gt;&lt;head&gt;&lt;title&gt;Projetos&lt;/title&gt;&lt;/head&gt;
-&lt;body&gt;&lt;main&gt;Olá&lt;/main&gt;&lt;/body&gt;&lt;/html&gt;
+document
+ └─ html
+     ├─ head
+     │   └─ title  "Projetos"
+     └─ body
+         ├─ header
+         └─ main
+             └─ div#projects-list
+                 ├─ div.project-card
+                 └─ div.project-card
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="2"><h2>HTML e DOM</h2><p class="q">Qual é a relação entre HTML e DOM?</p>
-<div class="a"><p>HTML é a linguagem de marcação; DOM é a árvore de objetos e nós do documento manipulável por JavaScript.</p></div>
-<textarea>
-document → html → body → main → article
-</textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="2"><h2>Nós do DOM</h2><p class="q">Quais tipos de nós podem aparecer no DOM?</p>
-<div class="a"><p>Nós de elemento, texto, comentário e documento, organizados por relações entre pais e filhos.</p></div>
-<textarea>
-document.body.childNodes
-</textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="2"><h2>Árvore DOM</h2><p class="q">Como a hierarquia HTML é refletida no DOM?</p>
-<div class="a"><p>Elementos aninhados tornam-se nós filhos dentro de nós pais, formando uma árvore.</p></div>
-<textarea>
-&lt;main&gt;&lt;article&gt;&lt;h2&gt;Projeto&lt;/h2&gt;&lt;/article&gt;&lt;/main&gt;
-</textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="2"><h2>Seletores no DOM</h2><p class="q">Como selecionar um elemento usando CSS selectors?</p>
-<div class="a"><p>document.querySelector() aceita um seletor CSS e retorna o primeiro elemento ou null.</p></div>
+<p class="p">Mudar o DOM muda a página na hora. O arquivo index.html no disco continua igual.</p></article>
+
+<article data-m="2"><h2>Nós e relações</h2><p class="q">Como se chamam as relações entre elementos na árvore do DOM?</p>
+<div class="a"><p>Pai, filhos, irmãos, ancestrais e descendentes. O JavaScript navega por essas relações.</p></div>
 <textarea>
 const card = document.querySelector(".project-card");
+card.parentElement;          // div#projects-list (pai)
+card.children;               // elementos filhos
+card.nextElementSibling;     // próximo card (irmão)
+card.closest("main");        // ancestral mais próximo que casa com o seletor
+card.querySelector("h3");    // descendente
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="2"><h2>Selecionar por ID</h2><p class="q">Como localizar um elemento com identificador único?</p>
-<div class="a"><p>document.getElementById('id') seleciona o elemento com aquele id, se existir.</p></div>
+<p class="p"><code>closest</code> é muito útil em eventos: a partir do botão clicado, você acha o card inteiro ao qual ele pertence.</p></article>
+
+<article data-m="2"><h2>Selecionar elementos</h2><p class="q">Quais métodos buscam elementos no DOM?</p>
+<div class="a"><p><code>getElementById</code> busca pelo id. <code>querySelector</code> devolve o primeiro que casa com um seletor CSS. <code>querySelectorAll</code> devolve todos.</p></div>
 <textarea>
-const area = document.getElementById("projetos");
+const lista = document.getElementById("projects-list");
+const primeiro = document.querySelector(".project-card");
+const todos = document.querySelectorAll(".project-card");
+
+todos.forEach((c) => console.log(c.dataset.id));
+todos.length;     // quantos cards existem
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="2"><h2>Modificar DOM</h2><p class="q">Como atualizar um título no DOM com segurança?</p>
-<div class="a"><p>Use textContent para inserir texto, sem interpretá-lo como HTML.</p></div>
+<p class="p">Se o método devolve <code>null</code>, ou o seletor está errado ou o script rodou antes do HTML existir. Use <code>type="module"</code> ou coloque o script no fim do body.</p></article>
+
+<article data-m="2"><h2>Criar elementos</h2><p class="q">Como acrescentar um novo card de projeto à lista pelo JavaScript?</p>
+<div class="a"><p>Crie o elemento, preencha classe e conteúdo e insira na árvore com <code>append</code>.</p></div>
 <textarea>
-document.querySelector("h2").textContent = "Nova inspeção";
+const card = document.createElement("div");
+card.className = "project-card";
+card.dataset.id = "oae-017";
+card.innerHTML = `
+  <div class="card-header"><span class="icone">PG</span><h3>Ponte do Guamá</h3></div>
+  <p>Inspeção rotineira, 3 vãos em concreto protendido.</p>
+`;
+document.getElementById("projects-list").append(card);
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="2"><h2>Criar e carregar nós</h2><p class="q">Como inserir um card depois que o DOM foi carregado?</p>
-<div class="a"><p>Use document.createElement, append e script defer ou DOMContentLoaded.</p></div>
+<p class="p">Se o texto vier de um formulário, use <code>textContent</code> para o nome e a descrição. <code>innerHTML</code> com texto digitado permite injetar código na página.</p></article>
+
+<article data-m="2"><h2>Alterar e remover</h2><p class="q">Como mudar o status de um card, trocar sua aparência e removê-lo?</p>
+<div class="a"><p>Altere texto com <code>textContent</code>, classes com <code>classList</code>, atributos com <code>setAttribute</code> e remova com <code>remove()</code>.</p></div>
 <textarea>
-const card=document.createElement("article");
-card.textContent="Ponte A";
-document.querySelector("main").append(card);
+card.querySelector(".status").textContent = "Concluída";
+card.classList.add("concluida");
+card.classList.remove("ativa");
+card.classList.toggle("selecionado");
+card.setAttribute("aria-label", "Ponte do Guamá, concluída");
+card.remove();
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="3"><h2>HTML, CSS, JavaScript</h2><p class="q">Qual é a responsabilidade de cada tecnologia web?</p>
-<div class="a"><p>HTML estrutura; CSS define a aparência; JavaScript adiciona lógica, dados e interação.</p></div>
+<p class="p">Prefira trocar classes a mudar <code>style</code> direto. A aparência continua no CSS e o JavaScript só diz o estado.</p></article>
+
+<article data-m="2"><h2>DOM no DevTools</h2><p class="q">Como ver e testar o DOM ao vivo no navegador?</p>
+<div class="a"><p>F12 abre as ferramentas de desenvolvedor. A aba Elements mostra o DOM atual; o Console executa JavaScript na página.</p></div>
 <textarea>
-index.html   css/style.css   js/app.js
+F12 ou Ctrl+Shift+I      abrir DevTools
+Ctrl+Shift+C             clicar num elemento da página para inspecionar
+Elements                 editar HTML e CSS ao vivo (some ao recarregar)
+Console
+  $0                     elemento selecionado em Elements
+  $(".project-card")    igual a querySelectorAll, já como array
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="3"><h2>Referências a arquivos</h2><p class="q">Como o HTML carrega CSS e JavaScript externos?</p>
-<div class="a"><p>Use link rel=stylesheet e script src; defer evita execução antes da leitura do HTML.</p></div>
+<p class="p">Teste o seletor no Console antes de colocar no código. Se <code>$(".project-card").length</code> der 0, o problema é o seletor.</p></article>
+
+<article data-m="3"><h2>Os três papéis</h2><p class="q">Que parte do site cada tecnologia resolve?</p>
+<div class="a"><p>HTML dá estrutura e significado, CSS dá aparência e layout, JavaScript dá comportamento. Manter cada um no seu arquivo facilita manter o projeto.</p></div>
 <textarea>
-&lt;link rel="stylesheet" href="./css/style.css"&gt;
-&lt;script defer src="./js/app.js"&gt;&lt;/script&gt;
+index.html     o card existe e tem nome, descrição e status
+style.css      o card tem borda, cor de status e fica numa grade
+index.js       clicar em "Novo projeto" cria um card a partir do formulário
+
+<link rel="stylesheet" href="style.css">     <!-- no head -->
+<script type="module" src="index.js"></script>
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="3"><h2>URL</h2><p class="q">Quais são as partes principais de uma URL?</p>
-<div class="a"><p>Esquema, domínio, caminho e, opcionalmente, query e fragmento.</p></div>
+<p class="p">Teste: desligue o CSS e o JS. A página ainda deve fazer sentido como documento. Se não fizer, a estrutura HTML está fraca.</p></article>
+
+<article data-m="3"><h2>Site estático</h2><p class="q">O que torna um site "estático"?</p>
+<div class="a"><p>O servidor entrega os arquivos exatamente como estão no disco. Não há banco de dados nem código rodando no servidor; tudo que muda acontece no navegador.</p></div>
 <textarea>
-https://exemplo.org/aulas/?curso=html#cartao
+estático     HTML + CSS + JS prontos   -> GitHub Pages, Netlify, qualquer servidor
+dinâmico     servidor gera a página    -> Node/Express, Python/FastAPI + banco de dados
+
+hospedar no GitHub Pages:
+  Settings > Pages > Branch: main / pasta raiz > Save
+  https://usuario.github.io/repositorio/
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="3"><h2>URL relativa</h2><p class="q">Qual é a diferença entre URL relativa e caminho a partir da raiz?</p>
-<div class="a"><p>./style.css resolve no diretório atual; /style.css resolve na raiz do domínio.</p></div>
+<p class="p">Um site estático é suficiente para o protótipo do Project Card, para catálogos e para material de curso como esta trilha.</p></article>
+
+<article data-m="3"><h2>Anatomia de uma URL</h2><p class="q">Quais são as partes de uma URL?</p>
+<div class="a"><p>Protocolo, domínio, porta (opcional), caminho, parâmetros de consulta e fragmento.</p></div>
 <textarea>
-./figma-theme.css
-/SHM/aulas/
+https://sites.usp.br:443/gmec/projetos/index.html?ano=2026&tipo=ponte#oae-017
+└─┬─┘   └────┬─────┘ └┬┘ └──────────┬──────────┘ └─────────┬─────────┘ └──┬──┘
+protocolo  domínio  porta        caminho                 consulta       fragmento
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="3"><h2>VS Code e IDE</h2><p class="q">O VS Code é um editor ou uma IDE?</p>
-<div class="a"><p>É um editor extensível que integra terminal, Git, depurador e extensões, funcionando como uma IDE.</p></div>
+<p class="p">O fragmento (#oae-017) não vai ao servidor: serve para pular a uma parte da página ou guardar qual item está aberto.</p></article>
+
+<article data-m="3"><h2>Caminhos relativos</h2><p class="q">A imagem não aparece. Como escrever o caminho certo para ela?</p>
+<div class="a"><p>Caminhos relativos partem do arquivo atual. <code>./</code> é a pasta atual, <code>../</code> sobe uma pasta, e <code>/</code> no início parte da raiz do site.</p></div>
 <textarea>
-code .  // abre a pasta atual
+projeto/
+  index.html
+  assets/
+    icones/ponte.svg
+  pages/
+    sobre.html
+
+<!-- em index.html -->
+<img src="assets/icones/ponte.svg" alt="">
+<!-- em pages/sobre.html -->
+<img src="../assets/icones/ponte.svg" alt="">
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="3"><h2>Website estático</h2><p class="q">O que é um website estático?</p>
-<div class="a"><p>Um site servido a partir de arquivos sem gerar HTML dinamicamente no servidor a cada requisição.</p></div>
+<p class="p">Caminhos começando com <code>/</code> funcionam no Live Server, mas quebram no GitHub Pages quando o site fica dentro de /repositorio/. Prefira relativos.</p></article>
+
+<article data-m="3"><h2>Cliente e servidor</h2><p class="q">O que acontece entre digitar a URL e ver a página?</p>
+<div class="a"><p>O navegador (cliente) pede cada arquivo ao servidor por HTTP. O servidor responde com o arquivo e um código de status.</p></div>
 <textarea>
-HTML + CSS + JS → hospedagem estática → navegador
+GET /index.html      200 OK
+GET /style.css       200 OK
+GET /index.js        200 OK
+GET /assets/x.png    404 Not Found    <- caminho errado
+
+DevTools > Network: lista cada pedido, o status e o tempo
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="3"><h2>Node.js e npm</h2><p class="q">Node.js é obrigatório para HTML/CSS/JS puros?</p>
-<div class="a"><p>Não. Node executa JavaScript fora do browser; npm gerencia pacotes e ferramentas opcionais.</p></div>
+<p class="p">Página sem estilo? Abra a aba Network e procure o style.css: se aparecer 404, é caminho errado.</p></article>
+
+<article data-m="3"><h2>Estrutura de pastas no VS Code</h2><p class="q">Como organizar as pastas de um site estático?</p>
+<div class="a"><p>Separe páginas, estilos, scripts e arquivos de mídia. Abra a pasta raiz no VS Code e rode com o Live Server.</p></div>
 <textarea>
-node --version
-npm init -y
+project-card/
+  index.html
+  src/
+    index.js
+    classes/
+      Project.js
+      ProjectsManager.js
+  styles/
+    style.css
+  assets/
+    icones/
+  .vscode/
+    settings.json
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="3"><h2>Fluxo de desenvolvimento</h2><p class="q">Como testar e publicar um site estático?</p>
-<div class="a"><p>Edite no VS Code, execute um servidor local, confira no navegador e publique em hospedagem estática.</p></div>
+<p class="p">Um arquivo por classe, com o mesmo nome da classe, faz qualquer pessoa achar o código só pelo Explorador.</p></article>
+
+<article data-m="4"><h2>Snippets e Emmet</h2><p class="q">Como gerar o esqueleto da página e blocos repetidos sem digitar tudo?</p>
+<div class="a"><p>O VS Code traz o Emmet: abreviações que viram HTML ao apertar Tab. Snippets próprios guardam trechos que você usa sempre.</p></div>
 <textarea>
-VS Code → Live Server → Git → GitHub Pages
+!                       -> esqueleto HTML completo
+div.project-card        -> <div class="project-card"></div>
+ul>li*3                 -> lista com 3 itens
+section#projects>h2+div.cards
+                        -> section com id, um h2 e uma div irmã
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>App Page Structure</h2><p class="q">Qual é uma organização simples para os arquivos da página?</p>
-<div class="a"><p>index.html, CSS, JavaScript e imagens em diretórios separados e com caminhos consistentes.</p></div>
+<p class="p">Crie seus snippets em "Snippets: Configure Snippets". Um snippet do card de projeto padroniza a estrutura de todos os cards.</p></article>
+
+<article data-m="4"><h2>Semântica do app</h2><p class="q">Como estruturar a página de um app de projetos com tags semânticas?</p>
+<div class="a"><p>Barra lateral de navegação, área principal com cabeçalho de página e a lista de cards. Cada região usa a tag que diz o seu papel.</p></div>
 <textarea>
-site/
-├── index.html
-├── css/style.css
-├── js/app.js
-└── img/ponte.jpg
+<body>
+  <aside id="sidebar">
+    <nav><a href="#projects">Projetos</a><a href="#users">Equipe</a></nav>
+  </aside>
+  <main id="projects">
+    <header class="page-header">
+      <h2>Projetos de inspeção</h2>
+      <button id="new-project-btn" type="button">Novo projeto</button>
+    </header>
+    <div id="projects-list"></div>
+  </main>
+</body>
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>Snippets e Emmet</h2><p class="q">O que é um snippet no VS Code?</p>
-<div class="a"><p>É um trecho de código reutilizável; Emmet também expande abreviações HTML/CSS.</p></div>
+<p class="p">Com essa estrutura, leitores de tela anunciam "navegação" e "principal", e o CSS Grid posiciona as duas regiões com poucas linhas.</p></article>
+
+<article data-m="4"><h2>Estrutura do card</h2><p class="q">Quais partes um card de projeto precisa ter?</p>
+<div class="a"><p>Cabeçalho (ícone com iniciais e nome), descrição e uma lista de propriedades no formato rótulo/valor.</p></div>
 <textarea>
-section.projetos&gt;article.project-card*3&gt;h2+p
+<article class="project-card" data-id="oae-017">
+  <header class="card-header">
+    <span class="icone" aria-hidden="true">PG</span>
+    <h3>Ponte do Guamá</h3>
+  </header>
+  <p class="descricao">Inspeção rotineira, 3 vãos em concreto protendido.</p>
+  <dl class="props">
+    <div><dt>Status</dt><dd class="status ativa">Ativa</dd></div>
+    <div><dt>Papel</dt><dd>Inspetor</dd></div>
+    <div><dt>Entrega</dt><dd>2026-11-30</dd></div>
+    <div><dt>Progresso</dt><dd>40%</dd></div>
+  </dl>
+</article>
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>HTML semantics</h2><p class="q">Quais elementos semânticos estruturam uma app page?</p>
-<div class="a"><p>header, nav, main, section, article e footer descrevem a função das regiões.</p></div>
+<p class="p"><code>dl</code>, <code>dt</code> e <code>dd</code> são a tag certa para pares rótulo/valor, como uma ficha técnica.</p></article>
+
+<article data-m="4"><h2>Seletores para o card</h2><p class="q">Que seletor CSS pega só as propriedades do card, só o status ativo e o card sob o mouse?</p>
+<div class="a"><p>Combine classe, descendente, classe dupla e pseudo-classe.</p></div>
 <textarea>
-&lt;header&gt;SHM&lt;/header&gt;&lt;main&gt;&lt;section&gt;&lt;article&gt;Projeto&lt;/article&gt;&lt;/section&gt;&lt;/main&gt;
+.project-card { border: 1px solid var(--linha); border-radius: 6px; }
+.project-card .props dt { color: var(--suave); }       /* descendente */
+.status.ativa { color: var(--ok); }                     /* duas classes */
+.project-card:hover { border-color: var(--destaque); }  /* pseudo-classe */
+.project-card > header { display: flex; gap: 8px; }     /* filho direto */
+#projects-list { padding: 16px; }                       /* id */
+[data-id="oae-017"] { outline: 2px solid gold; }       /* atributo */
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>Project card</h2><p class="q">Como montar um card semântico para um projeto?</p>
-<div class="a"><p>Use article com título, descrição e uma ação adequada, como um link para detalhes.</p></div>
+<p class="p">Use id para o JavaScript achar o elemento e classe para o CSS estilizar. Assim mudar o visual nunca quebra o script.</p></article>
+
+<article data-m="4"><h2>Grid de cards</h2><p class="q">Como fazer a lista de cards ocupar quantas colunas couberem na tela?</p>
+<div class="a"><p><code>repeat(auto-fill, minmax(...))</code> cria colunas com largura mínima e divide o espaço restante.</p></div>
 <textarea>
-&lt;article class="project-card"&gt;&lt;h2&gt;Ponte A&lt;/h2&gt;&lt;p&gt;Inspeção&lt;/p&gt;&lt;a href="ponte.html"&gt;Abrir&lt;/a&gt;&lt;/article&gt;
+body {
+  display: grid;
+  grid-template-columns: 240px 1fr;     /* barra lateral + conteúdo */
+  min-height: 100vh;
+}
+#projects-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+@media (max-width: 700px) {
+  body { grid-template-columns: 1fr; }  /* barra lateral vai para cima */
+}
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>CSS selectors</h2><p class="q">Como selecionar tag, class e id no CSS?</p>
-<div class="a"><p>article seleciona uma tag, .card seleciona a classe e #card-01 seleciona o id.</p></div>
+<p class="p">Sem nenhuma media query na lista, ela já vai de 1 coluna no celular a 4 num monitor largo.</p></article>
+
+<article data-m="4"><h2>id e classe</h2><p class="q">Quando usar <code class="i">id</code> e quando usar <code class="i">class</code>?</p>
+<div class="a"><p>Um <code>id</code> é único na página e identifica um elemento. Uma <code>class</code> pode se repetir e agrupa elementos parecidos. Um elemento pode ter várias classes.</p></div>
 <textarea>
-article {padding:1rem}
-.project-card {border:1px solid #ddd}
-#card-01 {background:#eee}
+<div id="projects-list">                             <!-- só existe um -->
+  <article class="project-card">...</article>        <!-- vários -->
+  <article class="project-card concluida">...</article>
+</div>
+
+document.getElementById("projects-list");            // um elemento
+document.querySelectorAll(".project-card");          // uma lista
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>class e id</h2><p class="q">Qual diferença entre class e id no HTML?</p>
-<div class="a"><p>Classes podem se repetir em vários elementos; o id deve ser único dentro do documento.</p></div>
+<p class="p">Ids repetidos não dão erro visível, mas <code>getElementById</code> passa a devolver só o primeiro e o resto da lógica falha em silêncio.</p></article>
+
+<article data-m="4"><h2>Objetos de projeto</h2><p class="q">Como guardar os dados de um projeto antes de desenhar o card?</p>
+<div class="a"><p>Um objeto JavaScript reúne os dados do projeto. O card é só a visualização desse objeto.</p></div>
 <textarea>
-&lt;article id="p1" class="project-card"&gt;&lt;/article&gt;
-&lt;article id="p2" class="project-card"&gt;&lt;/article&gt;
+const projeto = {
+  id: "oae-017",
+  nome: "Ponte do Guamá",
+  descricao: "Inspeção rotineira, 3 vãos em concreto protendido.",
+  status: "ativa",          // "pendente" | "ativa" | "concluida"
+  papel: "inspetor",
+  entrega: new Date("2026-11-30"),
+  progresso: 0.4,
+};
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>CSS Grid</h2><p class="q">Como criar uma grade responsiva de cards?</p>
-<div class="a"><p>Com display:grid, grid-template-columns e gap; auto-fit adapta o número de colunas.</p></div>
+<p class="p">Separar dado e tela permite salvar os projetos em JSON, exportar para outra plataforma e redesenhar os cards sem perder nada.</p></article>
+
+<article data-m="4"><h2>A classe Project</h2><p class="q">Como garantir que todo projeto nasça com os mesmos campos e saiba criar o próprio card?</p>
+<div class="a"><p>Uma classe define o molde. O <code>constructor</code> recebe os dados e um método cria o elemento do card.</p></div>
 <textarea>
-.grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
+// src/classes/Project.js
+export class Project {
+  constructor(dados) {
+    this.id = crypto.randomUUID();
+    this.nome = dados.nome;
+    this.descricao = dados.descricao;
+    this.status = dados.status ?? "pendente";
+    this.entrega = new Date(dados.entrega);
+    this.progresso = 0;
+    this.ui = this.criarCard();
+  }
+
+  criarCard() {
+    const el = document.createElement("article");
+    el.className = "project-card";
+    el.dataset.id = this.id;
+    const h3 = document.createElement("h3");
+    h3.textContent = this.nome;
+    el.append(h3);
+    return el;
+  }
+}
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>Grid versus Flexbox</h2><p class="q">Quando escolher Grid em vez de Flexbox?</p>
-<div class="a"><p>Grid é ideal para linhas e colunas; Flexbox organiza itens numa direção e alinha conteúdo interno.</p></div>
+<p class="p">Guardar o elemento em <code>this.ui</code> liga o objeto ao seu card: alterar o status pode atualizar a tela no mesmo método.</p></article>
+
+<article data-m="4"><h2>O gerenciador de projetos</h2><p class="q">Quem guarda a lista de projetos e coloca os cards na página?</p>
+<div class="a"><p>Uma segunda classe gerencia a coleção: cria projetos, impede nomes repetidos e insere os cards no container.</p></div>
 <textarea>
-.grid {display:grid}
-.card-actions {display:flex;gap:8px}
+// src/classes/ProjectsManager.js
+import { Project } from "./Project.js";
+
+export class ProjectsManager {
+  lista = [];
+  constructor(container) {
+    this.container = container;
+  }
+  novoProjeto(dados) {
+    if (this.lista.some((p) => p.nome === dados.nome)) {
+      throw new Error(`Já existe um projeto chamado "${dados.nome}"`);
+    }
+    const p = new Project(dados);
+    this.lista.push(p);
+    this.container.append(p.ui);
+    return p;
+  }
+}
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>JavaScript objects</h2><p class="q">Como armazenar os dados de um projeto em um objeto?</p>
-<div class="a"><p>Um objeto reúne propriedades chave-valor, como título, status e identificador.</p></div>
+<p class="p">A regra de negócio (nome único) fica num lugar só. A interface só chama <code>novoProjeto</code> e mostra o erro, se houver.</p></article>
+
+<article data-m="4"><h2>Eventos</h2><p class="q">Como abrir o formulário ao clicar em "Novo projeto" e criar o card ao enviar?</p>
+<div class="a"><p><code>addEventListener</code> liga uma função a um evento. No envio do formulário, <code>preventDefault</code> impede a página de recarregar e <code>FormData</code> lê os campos.</p></div>
 <textarea>
-const projeto={id:"p1",titulo:"Ponte A",concluido:false};
+// src/index.js
+import { ProjectsManager } from "./classes/ProjectsManager.js";
+
+const manager = new ProjectsManager(document.getElementById("projects-list"));
+const modal = document.getElementById("new-project-modal");   // <dialog>
+const form = document.getElementById("new-project-form");
+
+document.getElementById("new-project-btn")
+  .addEventListener("click", () => modal.showModal());
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const dados = Object.fromEntries(new FormData(form));
+  try {
+    manager.novoProjeto(dados);
+    form.reset();
+    modal.close();
+  } catch (err) {
+    form.querySelector(".erro").textContent = err.message;
+  }
+});
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>Classes JavaScript</h2><p class="q">class em JavaScript é igual à classe CSS?</p>
-<div class="a"><p>Não. CSS class agrupa elementos para estilos; class em JavaScript define um modelo de objetos.</p></div>
+<p class="p">Os nomes dos campos (<code>name="nome"</code>) viram as chaves do objeto <code>dados</code>. Mantenha-os iguais aos campos da classe Project.</p></article>
+
+<article data-m="4"><h2>Delegação de eventos</h2><p class="q">Como reagir a cliques em cards criados depois que a página carregou?</p>
+<div class="a"><p>Escute o evento no container e descubra qual card foi clicado com <code>closest</code>. Um único listener atende cards atuais e futuros.</p></div>
 <textarea>
-class ProjectCard { constructor(titulo){this.titulo=titulo} }
+document.getElementById("projects-list").addEventListener("click", (e) => {
+  const card = e.target.closest(".project-card");
+  if (!card) return;                       // clicou fora de um card
+  const projeto = manager.lista.find((p) => p.id === card.dataset.id);
+  abrirDetalhe(projeto);
+});
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>PascalCase</h2><p class="q">O que é PascalCase e quando se usa?</p>
-<div class="a"><p>Cada palavra começa por maiúscula; é comum em classes e componentes como ProjectCard.</p></div>
+<p class="p">Sem delegação, cada card novo precisaria do seu próprio listener, e é fácil esquecer de criar ou de remover.</p></article>
+
+<article data-m="4"><h2>Convenções de nomes</h2><p class="q">PascalCase, camelCase, kebab-case: onde usar cada um?</p>
+<div class="a"><p>Cada linguagem tem sua convenção. Segui-la deixa claro, só pelo nome, o que cada coisa é.</p></div>
 <textarea>
-ProjectCard  // PascalCase
-projectCard // camelCase
-project-card // kebab-case
+PascalCase    classes e componentes    Project, ProjectsManager, CardElemento
+camelCase     variáveis e funções      novoProjeto, dataEntrega, criarCard()
+UPPER_SNAKE   constantes fixas         MAX_PROJETOS, E_CONCRETO
+kebab-case    classes CSS, ids, URLs   project-card, new-project-btn
+              e nomes de arquivo web   project-card.css
+snake_case    Python                   mm_por_px, carregar_cinza()
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>Eventos</h2><p class="q">Como executar uma ação ao clicar no botão?</p>
-<div class="a"><p>Registre um handler de evento com addEventListener('click', função).</p></div>
+<p class="p">Em React, componentes precisam começar com maiúscula (PascalCase): <code>&lt;ProjectCard /&gt;</code> é componente, <code>&lt;projectCard /&gt;</code> é tratado como tag HTML.</p></article>
+
+<article data-m="4"><h2>Node e npm</h2><p class="q">Para que serve o Node.js num site que roda no navegador?</p>
+<div class="a"><p>O Node roda JavaScript fora do navegador. No desenvolvimento web ele executa as ferramentas: servidor local, empacotador, formatador, testes. O site final continua rodando no navegador.</p></div>
 <textarea>
-document.querySelector("#abrir").addEventListener("click",()=&gt;console.log("Aberto"));
+node -v                 # versão do Node
+npm -v                  # versão do npm (gerenciador de pacotes)
+
+npm init -y             # cria o package.json
+npm i three             # instala uma biblioteca (dependência do app)
+npm i -D vite           # instala uma ferramenta (só desenvolvimento)
+npx vite                # roda o servidor do Vite
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>data-* e dataset</h2><p class="q">Como associar um ID de projeto a um card no DOM?</p>
-<div class="a"><p>Use data-projeto-id no HTML e leia dataset.projetoId em JavaScript.</p></div>
+<p class="p">O site estático pode começar sem Node, só com Live Server. O Node entra quando você precisa de bibliotecas como Three.js ou de TypeScript.</p></article>
+
+<article data-m="4"><h2>Pacotes e package.json</h2><p class="q">O que fica registrado no package.json e o que não vai para o Git?</p>
+<div class="a"><p>O <code>package.json</code> lista dependências e scripts. O <code>package-lock.json</code> fixa as versões exatas. A pasta <code>node_modules</code> é recriada com <code>npm install</code> e fica fora do repositório.</p></div>
 <textarea>
-&lt;article data-projeto-id="p1"&gt;&lt;/article&gt;
-// card.dataset.projetoId
+{
+  "name": "project-card",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": { "three": "^0.170.0" },
+  "devDependencies": { "vite": "^6.0.0" }
+}
+
+# .gitignore
+node_modules/
+dist/
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>Packages</h2><p class="q">Para que serve package.json?</p>
-<div class="a"><p>Registra metadados, scripts e dependências de um projeto que usa Node/npm.</p></div>
+<p class="p">Versione o package.json e o package-lock.json. Quem clonar roda <code>npm install</code> e tem as mesmas versões que você.</p></article>
+
+<article data-m="4"><h2>Importar pacotes</h2><p class="q">Como usar um pacote instalado pelo npm no código do site?</p>
+<div class="a"><p>Importe pelo nome do pacote. O Vite resolve o nome para o arquivo dentro de <code>node_modules</code> e entrega ao navegador.</p></div>
 <textarea>
-npm init -y
-npm install --save-dev vite
+// src/index.js
+import * as THREE from "three";
+import { ProjectsManager } from "./classes/ProjectsManager.js";
+
+// Live Server sozinho não entende "three" (nome sem caminho).
+// Use o Vite:
+npm run dev      # http://localhost:5173
+npm run build    # gera dist/ com o site estático pronto para publicar
 </textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>Node: dois sentidos</h2><p class="q">Qual é a diferença entre um DOM node e Node.js?</p>
-<div class="a"><p>DOM node é uma unidade da árvore do documento; Node.js é um runtime de JavaScript.</p></div>
-<textarea>
-document.body.childNodes;
-node --version
-</textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
-<article data-m="4"><h2>Links e botões</h2><p class="q">Como decidir entre &lt;a&gt; e &lt;button&gt; num card?</p>
-<div class="a"><p>Use &lt;a href&gt; para navegar e &lt;button&gt; para uma ação, como marcar favorito.</p></div>
-<textarea>
-&lt;a href="detalhes.html"&gt;Detalhes&lt;/a&gt;
-&lt;button type="button"&gt;Favoritar&lt;/button&gt;
-</textarea>
-<p class="p">Aplicação: montar e entender cards na página web de projetos do SHM Studio.</p></article>
+<p class="p">O <code>npm run build</code> gera de novo um site estático em <code>dist/</code>, que pode ir para o GitHub Pages como qualquer outro.</p></article>
 </section>
 
 <!-- ================= 1. GIT ================= -->
@@ -3478,8 +3706,8 @@ c0.addEventListener("selectstart", () => {
 (function(){
   const COURSES=[
     {id:"dev",phase:"Preparação",title:"Ambiente de desenvolvimento",desc:"Editores, instalação do VS Code, Git e conexão com o GitHub, extensões, live mode, Node, Python, MATLAB e servidor remoto.",tags:["VS Code","GitHub","Live Server"],mods:{1:"Editores e VS Code",2:"Git e GitHub no editor",3:"Extensões e live mode",4:"Ambientes por linguagem"}},
+    {id:"site",phase:"Preparação",title:"Sites estáticos: Project Card",desc:"Sintaxe de marcação, DOM, tecnologias da web e URL, e a estrutura de um app de cartões de projeto com classes, objetos, eventos, Node e pacotes.",tags:["HTML","DOM","Node/npm"],mods:{1:"Sintaxe de marcação",2:"DOM",3:"Tecnologias da web",4:"Estrutura do app"}},
     {id:"git",phase:"Base",title:"Git e GitHub",desc:"Versionar código, experimentar em branches e publicar versões citáveis.",tags:["git","GitHub","LFS"],mods:{1:"Uso diário",2:"Colaboração"}},
-    {id:"projectcard",phase:"Base",title:"Project Card Structure · Websites estáticos",desc:"Markup syntax, HTML e DOM, HTML/CSS/JavaScript, URL, VS Code, snippets, semântica, seletores, Grid, objetos, classes, eventos, pacotes e Node.",tags:["HTML & DOM","CSS Grid","JavaScript"],mods:{1:"Markup syntax",2:"Markup Language & DOM",3:"Websites technology",4:"App Page Structure"}},
     {id:"html",phase:"Base",title:"HTML para plataformas técnicas",desc:"Estrutura semântica, tabelas de anomalias, formulários de campo e canvas.",tags:["HTML5","formulários","canvas"],mods:{1:"Estrutura",2:"Formulários e mídia"}},
     {id:"css",phase:"Base",title:"CSS para interfaces de inspeção",desc:"Layout do visualizador, responsivo para tablet, tokens, tema escuro e severidade.",tags:["flexbox","grid","tokens"],mods:{1:"Fundamentos",2:"Layout",3:"Tema"}},
     {id:"js",phase:"Plataforma",title:"JavaScript para gêmeos digitais",desc:"Do const ao Three.js: dados de sensores, funções, assíncrono e geometria que reage ao dado.",tags:["ES2023","Three.js","WebSocket"],mods:{1:"Fundamentos",2:"Dados de sensores",3:"Funções e organização",4:"Dados assíncronos",5:"Gêmeo na tela"}},
@@ -3503,17 +3731,15 @@ c0.addEventListener("selectstart", () => {
       {t:"w",q:"Escreva o comando que gera uma chave SSH ed25519 (sem o e-mail).",ph:"ssh-keygen ...",re:/^ssh-keygen-ted25519(-c.*)?$/,ans:"ssh-keygen -t ed25519",e:"Depois cole a chave pública (.pub) nas configurações SSH do GitHub."},
       {t:"mc",q:"O VS Code diz que o módulo numpy não existe, mas você instalou. Causa provável:",o:["Interpretador selecionado não é o do .venv","Falta reiniciar o Git","O arquivo não foi salvo em UTF-8","O Live Server está desligado"],a:0,e:"Use Python: Select Interpreter e escolha o .venv do projeto."}
     ],
-    projectcard:[
-      {t:"mc",q:"HTML e DOM são:",o:["HTML marcação e DOM árvore de nós","Ambos linguagens JS","Ambos estilos CSS","Ambos pacotes npm"],a:0,e:"HTML é interpretado e representado no DOM."},
-      {t:"mc",q:"Como selecionar class=project-card no CSS?",o:[".project-card","#project-card","project-card","@project-card"],a:0,e:"O ponto seleciona classes."},
-      {t:"mc",q:"Qual tecnologia descreve a estrutura dos cards?",o:["HTML","CSS","Git","Node.js"],a:0,e:"HTML define estrutura e semântica."},
-      {t:"mc",q:"Qual regra habilita CSS Grid?",o:["display: grid","position: grid","display: block","float: grid"],a:0,e:"grid-template-columns define colunas."},
-      {t:"mc",q:"Como reagir ao clique do botão?",o:["addEventListener('click',fn)","querySelectorAll('click')","JSON.parse('click')","npm click"],a:0,e:"Eventos são tratados por listeners."},
-      {t:"mc",q:"O que significa PascalCase?",o:["ProjectCard","projectCard","project-card","project_card"],a:0,e:"Cada palavra inicia por maiúscula."},
-      {t:"mc",q:"Para navegar entre páginas, use:",o:["a com href","button sem listener","div sem role","meta"],a:0,e:"Links semânticos permitem navegação."},
-      {t:"mc",q:"Node.js é obrigatório num site estático simples?",o:["Não","Sempre","Só para CSS Grid","Só para usar o DOM"],a:0,e:"Node/npm são úteis para ferramentas, mas não obrigatórios."},
-      {t:"mc",q:"Qual atributo deve ser exclusivo por documento?",o:["id","class","title","aria-label"],a:0,e:"IDs são únicos; classes podem se repetir."},
-      {t:"mc",q:"Qual termo descreve um trecho reutilizável de código?",o:["Snippet","DOM node","URL","Selector"],a:0,e:"Emmet expande abreviações e o VS Code fornece snippets."}
+    site:[
+      {t:"mc",q:"Qual destes é um elemento vazio, sem tag de fechamento?",o:["img","p","div","section"],a:0,e:"img, input, br, meta e link só têm a tag de abertura."},
+      {t:"mc",q:"O DOM é:",o:["A árvore de objetos que o navegador monta a partir do HTML","O arquivo index.html no disco","A folha de estilos","O servidor que entrega a página"],a:0,e:"O JavaScript altera o DOM; o arquivo no disco não muda."},
+      {t:"w",q:"Escreva o seletor CSS que pega todos os elementos com a classe project-card.",ph:".…",re:/^\.project-card$/,ans:".project-card",e:"Ponto para classe, cerquilha para id."},
+      {t:"w",q:"Escreva a linha que busca o elemento com id projects-list.",ph:"document…",re:/^(const\w+=)?document\.getelementbyid\("projects-list"\);?$/,ans:'document.getElementById("projects-list")',e:"Também funciona document.querySelector(\"#projects-list\")."},
+      {t:"mc",q:"Na URL https://sites.usp.br/gmec/projetos?ano=2026#oae-017, qual parte não vai ao servidor?",o:["#oae-017 (fragmento)","?ano=2026 (consulta)","/gmec/projetos (caminho)","sites.usp.br (domínio)"],a:0,e:"O fragmento fica só no navegador."},
+      {t:"mc",q:"Qual nome segue PascalCase, a convenção para classes?",o:["ProjectsManager","projectsManager","projects-manager","projects_manager"],a:0,e:"camelCase para variáveis, kebab-case para CSS e ids, snake_case em Python."},
+      {t:"mc",q:"Qual pasta não deve ir para o repositório Git?",o:["node_modules","src","package.json","package-lock.json"],a:0,e:"node_modules é recriada com npm install."},
+      {t:"mc",q:"Por que chamar e.preventDefault() no evento submit do formulário?",o:["Para a página não recarregar e o JS tratar os dados","Para apagar os campos","Para validar o HTML","Para enviar ao GitHub"],a:0,e:"Sem isso, o navegador faz o envio padrão e recarrega a página."}
     ],
     git:[
       {t:"mc",q:"Qual arquivo impede que pesos *.pt e datasets entrem no repositório?",o:[".gitignore",".gitattributes","README.md","package.json"],a:0,e:"O .gitignore lista caminhos e padrões que o Git não deve acompanhar."},
@@ -3613,9 +3839,31 @@ c0.addEventListener("selectstart", () => {
        hints:["O IP do computador aparece em ipconfig (Windows) ou ifconfig/ip a (macOS/Linux).","Se o celular não abrir, verifique o firewall do computador para a porta 5500."],
        done:"Uma mudança salva no VS Code aparece no celular em poucos segundos, e o commit está no GitHub."}
     ],
-    projectcard:[
-      {"id":"wc1","lvl":"Básico","t":"Website estático com Project Cards","ctx":"Vitrine de projetos de SHM","goal":"Construir uma página semântica de projetos com layout responsivo.","req":["Criar index.html, css/style.css e js/app.js","Usar header, nav, main, section, article e footer","Criar três cards com título, descrição e link","Aplicar CSS Grid, classes reutilizáveis e IDs únicos","Usar um snippet ou Emmet no VS Code","Testar em telas estreitas e validar HTML"],"start":"<section class=\"grid\"><article class=\"project-card\"><h2>Ponte A</h2><a href=\"./ponte.html\">Abrir</a></article></section>\n/* CSS */\n.grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}","hints":["Abra o projeto com Live Server.","Links relativos devem funcionar após a publicação."],"done":"Três cards responsivos e semanticamente corretos no navegador."},
-      {"id":"wc2","lvl":"Intermediário","t":"Project Cards com DOM e eventos","ctx":"Interação de cards de projetos SHM","goal":"Gerar cards a partir de objetos e reagir ao clique de botões.","req":["Criar array com três objetos de projeto","Gerar elementos usando createElement e textContent","Usar classes CSS para estilizar os novos nós","Ler um atributo data-projeto-id via dataset","Registrar listener de clique num botão de favorito","Manter navegação por teclado e links funcionais"],"start":"const projeto={id:\"p1\",titulo:\"Ponte A\"};\nconst card=document.createElement(\"article\");\ncard.className=\"project-card\";\ncard.textContent=projeto.titulo;\ndocument.querySelector(\".grid\").append(card);","hints":["Para texto de usuário, prefira textContent.","Use button para ações e a para navegação."],"done":"Cards renderizados a partir de objetos, com interação acessível."}
+    site:[
+      {id:"s1",lvl:"Básico",t:"Iniciais do ícone do card",ctx:"Cada card de projeto mostra um ícone com as iniciais do nome, como PG para Ponte do Guamá.",goal:"Escrever iniciais(nome) que devolve as iniciais em maiúsculas.",
+       req:["Usar as duas primeiras palavras com mais de 2 letras (ignora do, da, de)","Se nenhuma palavra tiver mais de 2 letras, usar a primeira letra do nome","Resultado em maiúsculas","Ignorar espaços extras"],
+       start:"function iniciais(nome) {\n  return \"\";\n}",
+       hints:["nome.trim().split(/\\s+/) separa as palavras.","palavras.filter((p) => p.length > 2).slice(0, 2)"],
+       done:"Os testes passam.",
+       run:{fn:"iniciais",tests:[{a:["Ponte do Guamá"],x:"PG"},{a:["Viaduto Santa Ifigênia"],x:"VS"},{a:["  passarela   da UFPA "],x:"PU"},{a:["ponte"],x:"P"},{a:["de"],x:"D"}]},
+       sol:"function iniciais(nome) {\n  const ps = nome.trim().split(/\\s+/);\n  const longas = ps.filter((p) => p.length > 2).slice(0, 2);\n  const base = longas.length ? longas : [ps[0]];\n  return base.map((p) => p[0].toUpperCase()).join(\"\");\n}"},
+      {id:"s2",lvl:"Básico",t:"Conversor para PascalCase",ctx:"Você quer gerar nomes de classe e de arquivo a partir de descrições em português.",goal:"Escrever paraPascalCase(texto).",
+       req:["Separar palavras por espaço, hífen ou sublinhado","Primeira letra de cada palavra em maiúscula, o resto em minúscula","Juntar sem separadores","Ignorar separadores repetidos e espaços nas pontas"],
+       start:"function paraPascalCase(texto) {\n  return \"\";\n}",
+       hints:["texto.trim().split(/[\\s_-]+/)","p[0].toUpperCase() + p.slice(1).toLowerCase()"],
+       done:"Os testes passam.",
+       run:{fn:"paraPascalCase",tests:[{a:["projects manager"],x:"ProjectsManager"},{a:["cartão de projeto"],x:"CartãoDeProjeto"},{a:["sensor-LVDT"],x:"SensorLvdt"},{a:["  nota__de   condição "],x:"NotaDeCondição"}]},
+       sol:"function paraPascalCase(texto) {\n  return texto.trim().split(/[\\s_-]+/).filter(Boolean)\n    .map((p) => p[0].toUpperCase() + p.slice(1).toLowerCase())\n    .join(\"\");\n}"},
+      {id:"s3",lvl:"Intermediário",t:"App Project Card estático",ctx:"Primeiro app da trilha: a lista de projetos de inspeção do grupo.",goal:"Construir a página com barra lateral, grade de cards e criação de projetos por formulário.",
+       req:["Estrutura semântica: aside com nav, main com header e #projects-list","Card com header (ícone de iniciais + nome), descrição e dl com status, papel, entrega e progresso","Grade com repeat(auto-fill, minmax(300px, 1fr)) e barra lateral que sobe no celular","Classes Project e ProjectsManager em arquivos próprios, importadas como módulos","Botão Novo projeto abre um dialog com formulário; submit cria o card sem recarregar","Nome repetido mostra mensagem de erro no formulário","Clique num card (delegação) mostra os dados no console","Publicado no GitHub Pages"],
+       start:"project-card/\n  index.html\n  styles/style.css\n  src/index.js\n  src/classes/Project.js\n  src/classes/ProjectsManager.js",
+       hints:["Comece só com HTML e CSS de um card escrito à mão. Depois passe a criá-lo pelo JS.","Use a função do desafio s1 para o ícone do card."],
+       done:"Três projetos criados pelo formulário aparecem na grade, e o site abre pelo endereço do GitHub Pages."},
+      {id:"s4",lvl:"Intermediário",t:"Do Live Server ao Vite",ctx:"O app vai precisar de bibliotecas do npm, como Three.js, e de um processo de build.",goal:"Transformar o projeto s3 num projeto Node com Vite, sem mudar o comportamento.",
+       req:["npm init -y e package.json com \"type\": \"module\"","Vite como devDependency e scripts dev e build","node_modules e dist no .gitignore","npm run dev funcionando com recarga automática","npm run build gerando dist/ e publicação de dist/ no GitHub Pages"],
+       start:"npm init -y\nnpm i -D vite\n# package.json -> \"scripts\": { \"dev\": \"vite\", \"build\": \"vite build\" }\nnpm run dev",
+       hints:["Se o site fica em usuario.github.io/repositorio/, configure base: \"/repositorio/\" no vite.config.js."],
+       done:"O mesmo app roda com npm run dev, e a versão de dist/ funciona publicada."}
     ],
     git:[
       {id:"g1",lvl:"Básico",t:"Repositório da campanha de inspeção",ctx:"Você vai começar a campanha de março na Ponte do Guamá e quer o código de processamento versionado desde o primeiro dia.",goal:"Criar um repositório com estrutura de pastas, regras de exclusão e a primeira versão marcada.",
@@ -3804,7 +4052,7 @@ c0.addEventListener("selectstart", () => {
     ]
   };
   const PROJ=[
-    {id:"P1",lvl:"Projeto",t:"Ficha digital de inspeção",courses:["projectcard","html","css","js","react"],ctx:"Substituir a ficha em papel por um app que funciona no celular em campo.",goal:"App React que registra anomalias por elemento, lista, filtra e exporta.",
+    {id:"P1",lvl:"Projeto",t:"Ficha digital de inspeção",courses:["site","html","css","js","react"],ctx:"Substituir a ficha em papel por um app que funciona no celular em campo.",goal:"App React que registra anomalias por elemento, lista, filtra e exporta.",
      req:["Formulário do desafio h1 em React com estado controlado","Lista de anomalias com filtro por elemento e por tipo","Layout do desafio c1 e tema do desafio c2","Persistência local (localStorage ou IndexedDB)","Exportar e importar JSON da campanha"],
      done:"Uma inspeção simulada de 20 anomalias é registrada no celular, exportada e reaberta em outro aparelho."},
     {id:"P2",lvl:"Projeto",t:"Detector de fissuras de ponta a ponta",courses:["dl","jsvc","py"],ctx:"Do dataset ao inspetor medindo no navegador.",goal:"Treinar, exportar e usar no navegador um modelo que entrega aberturas em mm.",
@@ -4090,7 +4338,7 @@ c0.addEventListener("selectstart", () => {
   ];
   const RES={
     dev:[["Documentação do VS Code","https://code.visualstudio.com/docs"],["VS Code: Git e GitHub","https://code.visualstudio.com/docs/sourcecontrol/overview"],["GitHub: conectar com SSH","https://docs.github.com/pt/authentication/connecting-to-github-with-ssh"],["Marketplace de extensões","https://marketplace.visualstudio.com/vscode"]],
-    projectcard:[["MDN: HTML","https://developer.mozilla.org/pt-BR/docs/Web/HTML"],["MDN: DOM","https://developer.mozilla.org/pt-BR/docs/Web/API/Document_Object_Model"],["MDN: CSS Grid","https://developer.mozilla.org/pt-BR/docs/Web/CSS/CSS_grid_layout"],["VS Code: Emmet","https://code.visualstudio.com/docs/editor/emmet"],["Node.js: introdução","https://nodejs.org/en/learn/getting-started/introduction-to-nodejs"]],
+    site:[["MDN: começando com HTML","https://developer.mozilla.org/pt-BR/docs/Learn/HTML/Introduction_to_HTML/Getting_started"],["MDN: introdução ao DOM","https://developer.mozilla.org/pt-BR/docs/Web/API/Document_Object_Model/Introduction"],["MDN: o que é uma URL","https://developer.mozilla.org/pt-BR/docs/Learn/Common_questions/Web_mechanics/What_is_a_URL"],["Emmet no VS Code","https://code.visualstudio.com/docs/editor/emmet"],["Documentação do npm","https://docs.npmjs.com"],["GitHub Pages","https://docs.github.com/pt/pages"]],
     git:[["Pro Git (livro, em português)","https://git-scm.com/book/pt-br/v2"],["GitHub Docs","https://docs.github.com/pt"],["Git LFS","https://git-lfs.com"]],
     html:[["MDN: HTML","https://developer.mozilla.org/pt-BR/docs/Web/HTML"],["MDN: formulários web","https://developer.mozilla.org/pt-BR/docs/Learn/Forms"],["Validador W3C","https://validator.w3.org"]],
     css:[["MDN: CSS","https://developer.mozilla.org/pt-BR/docs/Web/CSS"],["web.dev: Learn CSS","https://web.dev/learn/css"],["CSS Grid (guia MDN)","https://developer.mozilla.org/pt-BR/docs/Web/CSS/CSS_grid_layout"]],

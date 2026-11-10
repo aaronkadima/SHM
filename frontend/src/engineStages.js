@@ -11,7 +11,8 @@ export function engineStagesSupported(engineId){return STAGE_ENGINES.has(engineI
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function canvas(w,h){const c=document.createElement("canvas");c.width=w;c.height=h;return c}
-function url(c){return c.toDataURL("image/jpeg",.9)}
+// As etapas são montadas como canvas e convertidas no fim para blobs (URL de objeto) + miniatura.
+function url(c){return c}
 async function decode(file,maxSide){
   const bmp=await createImageBitmap(file,{imageOrientation:"from-image"});
   const k=Math.min(1,maxSide/Math.max(bmp.width,bmp.height)),w=Math.max(1,Math.round(bmp.width*k)),h=Math.max(1,Math.round(bmp.height*k));
@@ -123,6 +124,19 @@ async function onnxStages(engineId,file,control={}){
   return stages;
 }
 
+const THUMB_SIDE=220;
+function toBlobUrl(c,type="image/jpeg",quality=.9){return new Promise(res=>c.toBlob(b=>res(b?URL.createObjectURL(b):c.toDataURL(type,quality)),type,quality))}
+function thumbCanvas(src){const k=Math.min(1,THUMB_SIDE/Math.max(src.width,src.height)),t=canvas(Math.max(1,Math.round(src.width*k)),Math.max(1,Math.round(src.height*k))),ctx=t.getContext("2d");ctx.imageSmoothingQuality="high";ctx.drawImage(src,0,0,t.width,t.height);return t}
+async function imageCanvas(dataUrl){const img=new Image();img.src=dataUrl;await img.decode();const c=canvas(img.naturalWidth,img.naturalHeight);c.getContext("2d").drawImage(img,0,0);return c}
+async function finalize(stages){
+  return Promise.all(stages.map(async s=>{
+    const src=typeof s.url==="string"?await imageCanvas(s.url):s.url,png=!!s.transparent;
+    const[full,thumb]=await Promise.all([toBlobUrl(src,png?"image/png":"image/jpeg"),toBlobUrl(thumbCanvas(src),png?"image/png":"image/jpeg",.85)]);
+    return{...s,url:full,thumb,width:src.width,height:src.height};
+  }));
+}
+export function releaseEngineStages(stages=[]){for(const s of stages)for(const u of [s.url,s.thumb])if(typeof u==="string"&&u.startsWith("blob:"))URL.revokeObjectURL(u)}
+
 // result: resultado oficial do motor (seu overlay vira a última etapa).
 export async function computeEngineStages(engineId,file,{options={},control={},result=null}={}){
   let stages;
@@ -131,5 +145,5 @@ export async function computeEngineStages(engineId,file,{options={},control={},r
   else if(STAGE_ENGINES.has(engineId))stages=await onnxStages(engineId,file,control);
   else return[];
   if(result?.overlay_png_base64)stages.push(stage("result",stages.length+1+" · Resultado do motor","Saída oficial exibida no canvas e usada nas exportações.","data:image/png;base64,"+result.overlay_png_base64,{transparent:result.metrics?.overlay_semantics==="transparent_layers"}));
-  return stages;
+  return finalize(stages);
 }

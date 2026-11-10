@@ -1,6 +1,6 @@
-import React,{useEffect,useState}from"react";
+import React,{useEffect,useRef,useState}from"react";
 import{ChevronLeft,ChevronRight,Download,X}from"lucide-react";
-import{computeEngineStages,engineStagesSupported}from"./engineStages.js";
+import{computeEngineStages,engineStagesSupported,releaseEngineStages}from"./engineStages.js";
 
 // Miniaturas flutuantes das etapas de processamento do motor escolhido; clique amplia.
 export default function EngineStages({engineId,engineName,file,result,options,control,hidden=false,onState}){
@@ -9,6 +9,11 @@ export default function EngineStages({engineId,engineName,file,result,options,co
   const[open,setOpen]=useState(-1);
   const[collapsed,setCollapsed]=useState(false);
   const key=[engineId,file?.size,file?.lastModified,file?.type,result?.latency_ms].join("|");
+  const stagesRef=useRef([]);
+  useEffect(()=>{const previous=stagesRef.current;stagesRef.current=stages;if(previous!==stages)releaseEngineStages(previous.filter(p=>!stages.includes(p)))},[stages]);
+  useEffect(()=>()=>releaseEngineStages(stagesRef.current),[]);
+  // Pré-decodifica todas as etapas: trocar na ampliação fica instantâneo.
+  useEffect(()=>{for(const s of stages){const img=new Image();img.src=s.url;img.decode?.().catch(()=>{})}},[stages]);
 
   useEffect(()=>{
     let cancelled=false;setStages([]);setOpen(-1);
@@ -34,7 +39,7 @@ export default function EngineStages({engineId,engineName,file,result,options,co
   },[open,stages.length]);
 
   if(hidden||status==="idle")return null;
-  const current=open>=0?stages[open]:null,baseUrl=stages[0]?.url;
+  const current=open>=0?stages[open]:null,baseUrl=stages[0]?.url,baseThumb=stages[0]?.thumb||baseUrl;
   return <>
     <aside className={"engineStages"+(collapsed?" collapsed":"")} aria-label={"Etapas de processamento · "+(engineName||engineId)}>
       <button className="engineStagesHead" onClick={()=>setCollapsed(v=>!v)} aria-expanded={!collapsed} title={collapsed?"Mostrar etapas":"Recolher etapas"}>
@@ -44,7 +49,7 @@ export default function EngineStages({engineId,engineName,file,result,options,co
         {status==="loading"&&[0,1,2,3].map(i=><span key={i} className="engineStageSkeleton"/>)}
         {status.startsWith("error")&&<p className="engineStagesError" title={status.slice(6)}>Etapas indisponíveis</p>}
         {stages.map((s,i)=><button key={s.id} className="engineStageThumb" onClick={()=>setOpen(i)} title={s.label+" — "+s.detail} aria-label={"Ampliar etapa "+s.label}>
-          <span className={"engineStageImg"+(s.transparent?" transparent":"")} style={s.transparent&&baseUrl?{backgroundImage:"url("+baseUrl+")"}:undefined}><img src={s.url} alt="" className={s.lowres?"lowres":""}/></span>
+          <span className={"engineStageImg"+(s.transparent?" transparent":"")} style={s.transparent&&baseThumb?{backgroundImage:"url("+baseThumb+")"}:undefined}><img src={s.thumb||s.url} alt="" loading="lazy" decoding="async" className={s.lowres?"lowres":""}/></span>
           <small>{s.label.replace(/^\d+\s·\s/,"")}</small>
         </button>)}
       </div>}
@@ -56,7 +61,10 @@ export default function EngineStages({engineId,engineName,file,result,options,co
           <a href={current.url} download={(engineId+"-"+current.id+".png")} title="Baixar imagem da etapa" aria-label="Baixar imagem da etapa"><Download size={16}/></a>
           <button onClick={()=>setOpen(-1)} aria-label="Fechar"><X size={18}/></button>
         </header>
-        <div className={"engineStageLarge"+(current.transparent?" transparent":"")} style={current.transparent&&baseUrl?{backgroundImage:"url("+baseUrl+")"}:undefined}><img src={current.url} alt={current.label} className={current.lowres?"lowres":""}/></div>
+        <div className="engineStageLarge">
+          {/* todas montadas e decodificadas; só a atual fica visível */}
+          {stages.map((s,i)=><div key={s.id} className={"engineStageLayer"+(i===open?" current":"")+(s.transparent?" transparent":"")} style={s.transparent&&baseUrl?{backgroundImage:"url("+baseUrl+")"}:undefined} aria-hidden={i!==open}><img src={s.url} alt={i===open?s.label:""} decoding="async" className={s.lowres?"lowres":""}/></div>)}
+        </div>
         <figcaption>{current.detail}</figcaption>
         <button className="engineStageNav prev" disabled={open===0} onClick={()=>setOpen(i=>i-1)} aria-label="Etapa anterior"><ChevronLeft size={22}/></button>
         <button className="engineStageNav next" disabled={open===stages.length-1} onClick={()=>setOpen(i=>i+1)} aria-label="Próxima etapa"><ChevronRight size={22}/></button>

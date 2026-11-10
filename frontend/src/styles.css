@@ -864,7 +864,9 @@ body:has(.liveCam){overflow:hidden}
 .engineStageLightbox header{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #e3eaed;color:#263e4b}
 .engineStageLightbox header div{display:flex;flex-direction:column;margin-right:auto}.engineStageLightbox header b{font-size:13.5px}.engineStageLightbox header span{font-size:11px;color:#7b8b95}
 .engineStageLightbox header a,.engineStageLightbox header button{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;border:1px solid #dbe4e8;background:#fff;color:#263e4b;cursor:pointer}
-.engineStageLarge{flex:1;min-height:0;display:grid;place-items:center;background:#12202a center/contain no-repeat}
+.engineStageLarge{flex:1;min-height:0;display:grid;place-items:center;background:#12202a;position:relative}
+.engineStageLayer{grid-area:1/1;display:grid;place-items:center;background:center/contain no-repeat;visibility:hidden}
+.engineStageLayer.current{visibility:visible}
 .engineStageLarge img{width:min(1200px,94vw);height:min(calc(92vh - 140px),70vw);object-fit:contain;display:block}
 .engineStageLarge img.lowres,.engineStageImg img.lowres{image-rendering:pixelated}
 .engineStageLightbox figcaption{padding:10px 14px 12px;font-size:12px;color:#5d7380;line-height:1.5}
@@ -891,3 +893,27 @@ body:has(.liveCam){overflow:hidden}
 .studioLocked{opacity:.38;filter:grayscale(.4);pointer-events:none;user-select:none}
 .editorViewport.hasStages .editorResultsTab{right:126px}
 @media(max-width:720px){.editorViewport.hasStages .editorResultsTab{right:15px}}
+
+/* Camadas: botão de configuração por linha e caixas com a cor da camada */
+.layerSettingsToggle{display:inline-grid;place-items:center;width:20px;height:20px;border:1px solid transparent;border-radius:5px;background:transparent;color:#637986;cursor:pointer;padding:0;flex:none}
+.layerSettingsToggle:hover,.layerSettingsToggle.active{border-color:#dbe4e8;background:#fff;color:#0d766e}
+.layerSettingsPanel{margin:-2px 6px 6px 26px;padding:9px 10px;border:1px solid #dbe4e8;border-radius:8px;background:#fff;display:flex;flex-direction:column;gap:8px;font-size:11px;color:#263e4b}
+.layerSettingsPanel label{display:flex;flex-direction:column;gap:4px}
+.layerSettingsPanel label>span{display:flex;justify-content:space-between}
+.layerSettingsPanel label b{color:#0d766e;align-self:flex-end;margin-top:-17px;font-size:11px}
+.layerSettingsPanel input[type=range]{width:100%;accent-color:#0d766e}
+.layerSettingsPanel .layerSettingsCheck{flex-direction:row;align-items:center;gap:6px}.layerSettingsCheck input{accent-color:#0d766e}
+.layerSettingsActions{display:flex;gap:6px;flex-wrap:wrap}
+.layerSettingsActions button{display:inline-flex;align-items:center;gap:4px;border:1px solid #dbe4e8;background:#fff;color:#263e4b;border-radius:6px;padding:4px 8px;font:inherit;font-size:10.5px;cursor:pointer}
+.layerSettingsActions button:disabled{opacity:.45;cursor:not-allowed}
+.layerSettingsPanel.locked input[type=range]{opacity:.5}
+.layerGroupActions .layerBoxesToggle.active{border-color:#0d766e;color:#0d766e;background:#e7f4f1}
+.editorDetection{border-color:var(--box-color,#0d766e)!important;opacity:var(--box-opacity,1)}
+.editorDetection.boxesHidden{border-color:transparent!important;background:transparent!important;box-shadow:none!important}
+.editorDetection.boxesHidden:hover,.editorDetection.boxesHidden.selected{border-color:var(--box-color,#0d766e)!important}
+.srOnly{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important}
+.editorMenuSection{display:block;padding:6px 12px 2px;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7b8b95}
+.editorRecentItem{flex-direction:column;align-items:flex-start!important;gap:1px}
+.editorRecentItem span{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editorRecentItem small{font-size:10px;color:#7b8b95}
+.editorDetection{background:color-mix(in srgb,var(--box-color,#0d766e) 12%,transparent)!important}

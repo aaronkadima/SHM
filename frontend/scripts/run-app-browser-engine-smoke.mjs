@@ -168,7 +168,8 @@ try{
   console.log("APP_BROWSER_SMOKE_READY",JSON.stringify(before));
   await writeFile("/tmp/shm-app-smoke-diagnostic.json",JSON.stringify({engineId,phase:"browser_ready",before},null,2));
 
-  await evaluate(request,'(()=>{document.querySelector(".editorPrimary")?.click();return true})()');
+  // Barreira de qualidade: imagem reprovada exige confirmação (segundo clique em "Analisar mesmo assim").
+  await evaluate(request,'(async()=>{const b=document.querySelector(".editorPrimary");b?.click();await new Promise(r=>setTimeout(r,500));const again=document.querySelector(".editorPrimary");if(/mesmo assim/i.test(again?.textContent||"")&&!document.querySelector(".editorProgress"))again.click();return true})()');
 
   const deadline=Date.now()+timeoutMs;
   let state=null;

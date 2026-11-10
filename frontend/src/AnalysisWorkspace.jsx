@@ -1,9 +1,10 @@
 import React,{Suspense,useEffect,useRef,useState} from "react";
-import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,Unlock,X} from "lucide-react";
+import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Save,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
+import ImageInspector from "./ImageInspector.jsx";
+import EngineStages from "./EngineStages.jsx";
 import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint}from"./viewerPreferences.js";
 import{detectAsset,isCdm3SpatialAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./assetDetection.js";
 import{buildDamageTimeline,matchTemporalDamageCampaigns}from"./cdm3RegisteredProjection.js";
-import{AULAS_HREF}from"./aulasRoute.js";
 const IMAGE_ACCEPT=SUPPORTED_IMAGE_EXTENSIONS.map(ext=>"."+ext).join(",");
 const ASSET_ACCEPT=[...SUPPORTED_IMAGE_EXTENSIONS,...SUPPORTED_MODEL_EXTENSIONS].map(ext=>"."+ext).join(",");
 const ModelViewport=React.lazy(()=>import("./ModelViewport.jsx"));
@@ -39,10 +40,13 @@ const TEMPORAL_WARNING_LABELS={
   exposure_warning:"exposição próxima do limite",
   low_texture:"baixa textura para registro"
 };
-export default function AnalysisWorkspace({appInfo=null,executionIssue="",referenceValidating=false,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,spatialRgbFile=null,spatialRgbPrev=null,onSpatialRgbFile=null,spatialRegistration=null,spatialTransform=null,spatialFrameAssets=null,onSolveSpatialFrameAlignment=null,spatialRgbAnalysis=null,spatialPhotoViews=[],activeSpatialPhotoId=null,onAddSpatialPhotos=null,onSelectSpatialPhoto=null,onRemoveSpatialPhoto=null,spatialAutoRegistrationBusy=false,spatialAutoRegistrationStatus=null,onAutoRegisterSpatialPhotos=null,spatialRegistrationPointCount=0,photometricSummary=null,onPhotometricSummary=null,onSpatialRegistrationSample=null,spatialPathologyRecords=[],onSpatialPathologyRecords=null,onSolveSpatialRegistration=null,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,onLive=null,error,onExport,onExportCsv,onExportMap,onExportCdm,onExportCdm3=null}){
+export default function AnalysisWorkspace({appInfo=null,executionIssue="",referenceValidating=false,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,spatialRgbFile=null,spatialRgbPrev=null,onSpatialRgbFile=null,spatialRegistration=null,spatialTransform=null,spatialFrameAssets=null,onSolveSpatialFrameAlignment=null,spatialRgbAnalysis=null,spatialPhotoViews=[],activeSpatialPhotoId=null,onAddSpatialPhotos=null,onSelectSpatialPhoto=null,onRemoveSpatialPhoto=null,spatialAutoRegistrationBusy=false,spatialAutoRegistrationStatus=null,onAutoRegisterSpatialPhotos=null,spatialRegistrationPointCount=0,photometricSummary=null,onPhotometricSummary=null,onSpatialRegistrationSample=null,spatialPathologyRecords=[],onSpatialPathologyRecords=null,onSolveSpatialRegistration=null,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,onLive=null,onRenameFile=null,onSaveFile=null,onApplyCorrection=null,onRestoreOriginal=null,hasOriginalFile=false,appliedCorrection=null,onImageDiagnostics=null,cdmOptions={},stageControl={},aulasOpen=false,onToggleAulas=null,aulasHref="",onAulasNav=null,aulasCrumb="",error,onExport,onExportCsv,onExportMap,onExportCdm,onExportCdm3=null}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [initialCompactLayout]=useState(()=>typeof window!=="undefined"&&window.innerWidth<900);
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialCompactLayout?false:initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
+  const [inspectorOpen,setInspectorOpen]=useState(()=>{try{return localStorage.getItem("shmImageInspectorOpen")==="1"}catch{return false}}),[inspectorTab,setInspectorTab]=useState("histogram"),[correctionPreview,setCorrectionPreview]=useState(null);
+  const [imageQuality,setImageQuality]=useState(null),[qualityAck,setQualityAck]=useState(false),[renaming,setRenaming]=useState(false),[nameDraft,setNameDraft]=useState(""),[stagesActive,setStagesActive]=useState(false);
+  const aulasFrame=useRef(null);
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false),[cameraFacing,setCameraFacing]=useState("environment"),[cameraCapturing,setCameraCapturing]=useState(false),[cameraResolution,setCameraResolution]=useState("");
   const [registrationOpen,setRegistrationOpen]=useState(false),[registrationPairs,setRegistrationPairs]=useState([]),[registrationPendingUv,setRegistrationPendingUv]=useState(null),[registrationBusy,setRegistrationBusy]=useState(false),[registrationError,setRegistrationError]=useState("");
   const [registrationIntrinsics,setRegistrationIntrinsics]=useState({fx:"",fy:"",cx:"",cy:""});
@@ -106,6 +110,12 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         picker.current?.click();
         return;
       }
+      if(key==="s"&&!e.shiftKey){
+        e.preventDefault();
+        if(!file){showStatusNotice("Nenhum arquivo para salvar.",1400,"warning");return}
+        onSaveFile?.();showStatusNotice("Arquivo salvo · "+file.name,1600);
+        return;
+      }
       if(key===","&&!e.shiftKey){
         e.preventDefault();
         if(busy){showStatusNotice("Configurações indisponíveis durante a análise.",1600,"warning");return}
@@ -121,7 +131,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     };
     window.addEventListener("keydown",onShortcut);
     return()=>window.removeEventListener("keydown",onShortcut);
-  },[busy,cameraOpen,onSettings]);
+  },[busy,cameraOpen,onSettings,onSaveFile,file]);
   useEffect(()=>{
     const onEscape=e=>{
       if(e.key!=="Escape")return;
@@ -295,7 +305,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const results=res?.results||[];
   const shown=results.filter(r=>visible[r.engine_id]!==false);
   const chosen=shown.find(r=>r.engine_id===active)||shown[0];
-  const basePreview=localPreview||prev;
+  const basePreview=correctionPreview||localPreview||prev;
   const pathologyEngineId=(chosen?.engine_id==="cdm_1"||chosen?.engine_id==="cdm_3")?chosen.engine_id:null;
   const pathologyLayers=pathologyEngineId?chosen.metrics?.layers||[]:[];
   const pathologyIdsKey=pathologyLayers.map(layer=>layer.id).join("|");
@@ -424,6 +434,25 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     if(detectAsset(dropped)==="unknown"){showStatusNotice("Formato não suportado · use um formato listado em Importar.",1800,"warning");return}
     onFile(dropped);
     showStatusNotice("Arquivo importado por arrastar e soltar",1600);
+  }
+  useEffect(()=>{try{localStorage.setItem("shmImageInspectorOpen",inspectorOpen?"1":"0")}catch{}},[inspectorOpen]);
+  useEffect(()=>{setQualityAck(false);setCorrectionPreview(null);setImageQuality(null);setRenaming(false)},[file]);
+  function handleDiagnostics(info){setImageQuality(info?.quality||null);onImageDiagnostics?.(info)}
+  // Barreira de qualidade: imagem inadequada exige confirmação explícita (segundo clique).
+  function runWithQualityGate(){
+    if(kind==="2d"&&imageQuality?.verdict==="bad"&&!qualityAck){
+      setQualityAck(true);setInspectorOpen(true);setInspectorTab("quality");
+      showStatusNotice("Imagem inadequada (nota "+imageQuality.score+"/100): alto risco de falsos positivos. Corrija a imagem ou clique em Analisar de novo para prosseguir.",7000,"warning");
+      return;
+    }
+    if(correctionPreview)showStatusNotice("Ajustes da prévia não aplicados: a análise usa a imagem sem eles.",3500,"warning");
+    onRun();
+  }
+  function startRename(){if(!file||busy)return;setNameDraft(file.name);setRenaming(true)}
+  function commitRename(){
+    const v=nameDraft.trim();setRenaming(false);
+    if(!v||v===file?.name)return;
+    onRenameFile?.(v);showStatusNotice("Arquivo renomeado",1400);
   }
   function showStatusNotice(message,ms=1800,tone="info"){
     if(statusTimer.current)clearTimeout(statusTimer.current);
@@ -1008,6 +1037,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>picker.current?.click())}><span>Importar…</span><small>Ctrl/Cmd+O</small></button>
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>setCameraOpen(true))}><span>Câmera</span></button>
           {onLive&&<button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onLive)}><span>Modo Live (tempo real)</span></button>}
+          <hr/>
+          <button type="button" role="menuitem" disabled={!file||busy} onClick={e=>runEditorMenuAction(e,startRename)}><span>Renomear…</span></button>
+          <button type="button" role="menuitem" disabled={!file} onClick={e=>runEditorMenuAction(e,()=>{onSaveFile?.();showStatusNotice("Arquivo salvo · "+file.name,1600)})}><span>Salvar</span><small>Ctrl/Cmd+S</small></button>
           {kind==="2d"&&selected.length===1&&selected[0]==="cdm_1"&&<button type="button" role="menuitem" disabled={busy||referenceValidating} onClick={e=>runEditorMenuAction(e,()=>referencePicker.current?.click())}><span>Referência t0…</span></button>}
         </div></details>
         <details className="editorMenu" name="shm-editor-menu"><summary>Editar</summary><div className="editorMenuPanel" role="menu">
@@ -1028,7 +1060,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button type="button" role="menuitem" disabled={analysisDisabled} onClick={e=>runEditorMenuAction(e,()=>analyzeButton.current?.click())}><span>Executar análise</span><small>Ctrl/Cmd+Enter</small></button>
         </div></details>
       </nav></div>
-      <div className="editorFileTitle">{file?.name||"Nova inspeção"} {kind&&"· "+(kind==="unknown"?"NÃO SUPORTADO":kind.toUpperCase())}<span className="editorEngineState">{selectedEngineLabels.length===0?"Nenhum motor":selectedEngineLabels.length===1?selectedEngineLabels[0].name+(selectedEngineLabels[0].browser_ready?" · browser local":""):selectedEngineLabels.length+" motores · comparação"}</span></div>
+      <div className="editorFileTitle">{aulasOpen?<span className="editorFileName static">Aulas · Trilha Dev SHM{aulasCrumb?" · "+aulasCrumb:""}</span>:renaming?<input className="editorFileNameInput" autoFocus value={nameDraft} aria-label="Nome do arquivo" onChange={e=>setNameDraft(e.target.value)} onBlur={commitRename} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();commitRename()}else if(e.key==="Escape"){e.preventDefault();setRenaming(false)}}}/>:<button type="button" className="editorFileName" disabled={!file||busy} onClick={startRename} title={file?"Clique para renomear":"Nenhum arquivo"}>{file?.name||"Nova inspeção"}</button>} {!aulasOpen&&kind&&"· "+(kind==="unknown"?"NÃO SUPORTADO":kind.toUpperCase())}{!aulasOpen&&file&&onSaveFile&&<button type="button" className="editorFileSave" onClick={()=>{onSaveFile();showStatusNotice("Arquivo salvo · "+file.name,1600)}} title="Salvar (Ctrl/Cmd+S)" aria-label="Salvar arquivo"><Save size={13}/></button>}{!aulasOpen&&<span className="editorEngineState">{selectedEngineLabels.length===0?"Nenhum motor":selectedEngineLabels.length===1?selectedEngineLabels[0].name+(selectedEngineLabels[0].browser_ready?" · browser local":""):selectedEngineLabels.length+" motores · comparação"}</span>}</div>
       <div className="editorTopActions">
         <input ref={picker} hidden type="file" accept={ASSET_ACCEPT} onChange={e=>{const next=e.target.files?.[0]||null;e.target.value="";onFile(next)}}/>
         <input ref={referencePicker} hidden type="file" accept={IMAGE_ACCEPT} onChange={e=>{const next=e.target.files?.[0]||null;e.target.value="";onReferenceFile(next)}}/>
@@ -1039,7 +1071,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         {kind==="3d"&&isCdm3SpatialAsset(file)&&selected.length===1&&selected[0]==="cdm_3"&&<button className={spatialPhotoViews.length?"spatialRgbAttached":""} disabled={busy} title="Adicionar até 8 fotografias para registro e texturização fotométrica multivista" onClick={()=>spatialMultiPicker.current?.click()}><ImagePlus size={16}/> {spatialPhotoViews.length?"Fotos 3D · "+spatialPhotoViews.length:"Adicionar fotos"}</button>}
         {onLive&&<button disabled={busy} title="Detecção em tempo real com câmera ou vídeo (foto e gravação)" onClick={onLive}><Radio size={16}/> Live</button>}
         <button disabled={busy} aria-keyshortcuts="Control+, Meta+," title="Configurações · Ctrl/Cmd+," onClick={onSettings}><Settings2 size={16}/> Configurar</button>
-        <button ref={analyzeButton} className="editorPrimary" aria-keyshortcuts="Control+Enter Meta+Enter" disabled={analysisDisabled} title={(analysisBlockedReason||"Executar análise")+" · Ctrl/Cmd+Enter"} onClick={onRun}><Play size={16}/> Analisar</button>
+        <button ref={analyzeButton} className="editorPrimary" aria-keyshortcuts="Control+Enter Meta+Enter" disabled={analysisDisabled} title={(analysisBlockedReason||"Executar análise")+" · Ctrl/Cmd+Enter"} onClick={runWithQualityGate}><Play size={16}/> {qualityAck&&imageQuality?.verdict==="bad"?"Analisar mesmo assim":"Analisar"}</button>
       </div>
     </div>
     <div className="editorBody">
@@ -1051,9 +1083,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button title={kind==="2d"?"Ajustar à tela":"Ajuste 2D indisponível"} aria-label="Ajustar à tela" disabled={kind!=="2d"} onClick={fitView}><Maximize2/></button>
           <button aria-label="Abrir modo câmera" title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button>
         </div>
-        <a className="editorAulasLink" href={AULAS_HREF} target="_blank" rel="noopener noreferrer" aria-label="Abrir aulas da Trilha Dev SHM em nova aba" title="Aulas · Trilha Dev SHM (nova aba)"><BookOpen size={20} aria-hidden="true"/></a>
+        <button type="button" className={"editorAulasLink"+(aulasOpen?" active":"")} onClick={onToggleAulas} aria-pressed={aulasOpen} aria-label={aulasOpen?"Voltar à análise":"Abrir aulas da Trilha Dev SHM"} title={aulasOpen?"Voltar à análise":"Aulas · Trilha Dev SHM"}><BookOpen size={20} aria-hidden="true"/></button>
       </div>
-      {layersOpen&&<><button type="button" className="editorLayersScrim" aria-label="Fechar painel de camadas" title="Fechar camadas" onClick={()=>setLayersPanelOpen(false)}/><aside className={"editorLayers "+(selectedEngineLabels.length>=24?"engineDensityUltra":selectedEngineLabels.length>=12?"engineDensityDense":"")} data-engine-count={selectedEngineLabels.length} data-layer-width={layersWidth} style={{width:layersWidth,"--engine-count":Math.max(1,selectedEngineLabels.length)}}><div className="editorLayersContent"><div className="editorPanelTitle"><b>Camadas</b><button aria-label="Recolher painel de camadas" title="Recolher camadas" onClick={()=>setLayersPanelOpen(false)}><ChevronLeft size={17}/></button></div>
+      {layersOpen&&!aulasOpen&&<><button type="button" className="editorLayersScrim" aria-label="Fechar painel de camadas" title="Fechar camadas" onClick={()=>setLayersPanelOpen(false)}/><aside className={"editorLayers "+(selectedEngineLabels.length>=24?"engineDensityUltra":selectedEngineLabels.length>=12?"engineDensityDense":"")} data-engine-count={selectedEngineLabels.length} data-layer-width={layersWidth} style={{width:layersWidth,"--engine-count":Math.max(1,selectedEngineLabels.length)}}><div className="editorLayersContent"><div className="editorPanelTitle"><b>Camadas</b><button aria-label="Recolher painel de camadas" title="Recolher camadas" onClick={()=>setLayersPanelOpen(false)}><ChevronLeft size={17}/></button></div>
         <div className="layerRow"><span>◉</span> {kind==="2d"?"Imagem atual · t1":kind==="3d"?"Modelo 3D atual":"Arquivo atual"}</div>
         {kind==="2d"&&referenceFile&&<div className="layerRow referenceLayer"><span>○</span><span>Referência · t0 <small>{referenceFile.name}</small>{linkedReferenceCompatibility&&<em className={"referenceCompatibility "+linkedReferenceCompatibility.status} title={linkedReferenceCompatibility.refLabel}>{linkedReferenceCompatibility.text}</em>}</span><button className="layerClear" aria-label="Remover referência temporal t0" disabled={busy} title="Remover referência t0" onClick={()=>onReferenceFile(null)}><X size={13}/></button></div>}
         {kind==="3d"&&spatialPhotoViews.map(view=><div className={"layerRow referenceLayer spatialRgbLayer "+(view.id===activeSpatialPhotoId?"selected":"")} key={view.id}><span>{view.id===activeSpatialPhotoId?"◉":"○"}</span><span>{view.file?.name}<small>{view.registration?.registration?(view.registration?.method==="orb_anchor_projection_pnp"?"auto registrada":"registrada"):view.auto_registration_error?"auto falhou · manual disponível":"registro pendente"}</small><em className={"referenceCompatibility "+(view.registration?.registration?"pass":"warning")}>{view.registration?.registration?"fotometria elegível":"selecione e registre"}</em></span><button className="layerSolo" type="button" disabled={busy||view.id===activeSpatialPhotoId} onClick={()=>onSelectSpatialPhoto?.(view.id)}>Ativar</button><button className="layerClear" aria-label={"Remover "+view.file?.name} disabled={busy} title="Remover vista" onClick={()=>onRemoveSpatialPhoto?.(view.id)}><X size={13}/></button></div>)}
@@ -1076,8 +1108,12 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           </div>
         </div>
       </aside><div className="editorLayerResizeHandle" role="separator" tabIndex="0" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" aria-valuemin="340" aria-valuemax="600" aria-valuenow={Math.round(layersWidth)} aria-valuetext={Math.round(layersWidth)+" pixels"} title="Arraste ou use ← →, Home e End" onKeyDown={resizeLayersKey} onPointerDown={beginLayersResize}/></>}
-      <div className={"editorViewport "+(fileDragActive?"fileDragActive":"")} ref={surface} onDragEnter={fileDragEnter} onDragOver={fileDragOver} onDragLeave={fileDragLeave} onDrop={fileDrop}>
+      {aulasOpen?<div className="editorViewport editorAulasViewport"><iframe ref={aulasFrame} src={aulasHref} title="Trilha Dev SHM · aulas" className="editorAulasFrame" onLoad={()=>onAulasNav?.(aulasFrame.current)}/></div>:
+      <div className={"editorViewport "+(fileDragActive?"fileDragActive":"")+(stagesActive?" hasStages":"")+(inspectorOpen&&kind==="2d"?" hasInspector":"")} ref={surface} onDragEnter={fileDragEnter} onDragOver={fileDragOver} onDragLeave={fileDragLeave} onDrop={fileDrop}>
         <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
+        {file&&kind==="2d"&&!inspectorOpen&&<button className={"editorImageEntry "+(imageQuality?"q-"+imageQuality.verdict:"")} onClick={()=>setInspectorOpen(true)} title="Histograma, propriedades, qualidade e correção da imagem"><SlidersHorizontal size={15}/> Imagem{imageQuality&&<i aria-label={"Qualidade "+imageQuality.score}>{imageQuality.score}</i>}</button>}
+        {file&&kind==="2d"&&<ImageInspector file={file} open={inspectorOpen} tab={inspectorTab} onTab={setInspectorTab} onClose={()=>setInspectorOpen(false)} onPreview={setCorrectionPreview} onApplyCorrection={(next,info)=>{setCorrectionPreview(null);onApplyCorrection?.(next,info);showStatusNotice("Correção aplicada · "+info.description,2600)}} onRestoreOriginal={()=>{onRestoreOriginal?.();showStatusNotice("Imagem original restaurada",1600)}} hasOriginal={hasOriginalFile} appliedCorrection={appliedCorrection} onDiagnostics={handleDiagnostics} onRename={name=>{const f=onRenameFile?.(name);showStatusNotice("Arquivo renomeado",1400);return f}} onSave={f=>{onSaveFile?.(f);showStatusNotice("Arquivo salvo · "+(f?.name||file.name),1600)}}/>}
+        {file&&kind==="2d"&&chosen&&<EngineStages engineId={chosen.engine_id} engineName={chosen.name} file={file} result={chosen} options={cdmOptions} control={stageControl} hidden={busy} onState={setStagesActive}/>}
         {fileDragActive&&<div className="editorDropOverlay" aria-hidden="true"><ImagePlus size={30}/><b>Solte para importar</b><span>Imagem 2D, modelo 3D ou LAS / XYZ / IFC</span></div>}
         {file&&<div className={"editorTypeBadge "+(kind==="unknown"?"unsupported":"")}>{kind==="2d"?"▧  2D detectado":kind==="3d"?(isCdm3SpatialAsset(file)?"◇  CDM-3 espacial":"◇  3D detectado"):"Formato não suportado"}</div>}
         {!file?<div className="editorEmpty"><ImagePlus size={38}/><h2>Importe uma imagem ou ativo espacial</h2><p>Imagens 2D usam os motores visuais. LAS, XYZ e IFC são reconhecidos como entradas espaciais do CDM-3. Também é possível arrastar o arquivo ou colar uma imagem.</p><button onClick={()=>picker.current?.click()}>Selecionar arquivo</button></div>:
@@ -1142,7 +1178,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <strong>{persisting?"100%":busy?(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)):results.length}</strong>
           {busy&&<i aria-hidden="true"><b style={{width:(persisting?100:pct)+"%"}}/></i>}
         </button>}
-      </div>
+      </div>}
     </div>
     <div className="editorStatus"><span className={"editorStatusMessage "+(statusNotice&&!busy&&!error&&!previewError?(statusNoticeTone==="warning"?"warning ":"transient "):"")+(!statusNotice&&analysisBlockedReason&&!busy&&!error&&!previewError?"blocked":"")} title={statusMessage}>{statusMessage}</span><span className="editorStatusMeta">Zoom {Math.round(zoom*100)}% · {kind?.toUpperCase()||"—"}{comparison==="wipe"?" · divisor "+Math.round(wipePosition)+"%":""}{appInfo?.deployment?.status==="divergent"&&<button className="editorUpdateAvailable" type="button" title="Há uma versão publicada mais recente. Recarregar sem usar o HTML em cache." onClick={()=>{const url=new URL(window.location.href);url.searchParams.set("build",String(appInfo?.deployment?.manifest?.sha||Date.now()));window.location.replace(url.toString())}}><RefreshCw size={11}/> Atualizar</button>}{appInfo?.channel==="development"&&<span className={"editorDevStamp "+(appInfo?.deployment?.status||"")} title={"Build de desenvolvimento · "+(appInfo?.buildSha||"—")+" · catálogo v"+(appInfo?.catalogVersion||"—")+" · deploy "+(appInfo?.deployment?.status||"não verificado")+(appInfo?.deployment?.manifest?.sha?" · publicado "+appInfo.deployment.manifest.sha:"")}>DEV · {String(appInfo?.buildSha||"—").slice(0,8)}{" "}<i className="editorDeployState" aria-label={"Deploy "+(appInfo?.deployment?.status||"não verificado")}>{appInfo?.deployment?.status==="synced"?"✓":appInfo?.deployment?.status==="divergent"?"!":appInfo?.deployment?.status==="unavailable"?"?":appInfo?.deployment?.status==="checking"?"…":""}</i></span>}</span></div>
     {cameraOpen&&<div className="editorModalBackdrop"><div className="editorCamera" role="dialog" aria-modal="true" aria-label="Modo câmera"><header><b>Modo câmera</b><button aria-label="Fechar modo câmera" title="Fechar câmera" onClick={()=>setCameraOpen(false)}><X size={19}/></button></header>{cameraError&&<p role="alert">{cameraError}</p>}<video ref={video} autoPlay playsInline muted onLoadedMetadata={e=>{const v=e.currentTarget;setCameraResolution(v.videoWidth+"×"+v.videoHeight);setCameraReady(v.videoWidth>0&&v.videoHeight>0)}}/><footer><span>{cameraError?cameraError:cameraReady?"Prévia ao vivo"+(cameraResolution?" · "+cameraResolution:""):"Aguardando câmera…"}</span><div className="editorCameraActions"><button type="button" disabled={cameraCapturing} onClick={()=>setCameraFacing(value=>value==="environment"?"user":"environment")}>{cameraFacing==="environment"?"Frontal":"Traseira"}</button><button onClick={capture} disabled={!!cameraError||!cameraReady||cameraCapturing}><Camera size={16}/> {cameraCapturing?"Capturando…":"Capturar imagem"}</button></div></footer></div></div>}

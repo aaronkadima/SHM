@@ -90,7 +90,8 @@ export function grayFromRgba(rgba,n){
   return gray;
 }
 // Aproxima cv2.MORPH_BLACKHAT (kernel 2r+1) + blur 3x3 + Otsu + abertura 2x2.
-export function opencvCrackCore(rgba,w,h,{radius=7,minAreaRatio=.00002,maxItems=120}={}){
+// Devolve também os arrays intermediários (usados no painel de etapas do motor).
+export function opencvCrackStages(rgba,w,h,{radius=7,minAreaRatio=.00002,maxItems=120}={}){
   const n=w*h,gray=grayFromRgba(rgba,n);
   const dilated=maxFilterVertical(maxFilterHorizontal(gray,w,h,radius),w,h,radius);
   const closing=minFilterVertical(minFilterHorizontal(dilated,w,h,radius),w,h,radius);
@@ -100,5 +101,9 @@ export function opencvCrackCore(rgba,w,h,{radius=7,minAreaRatio=.00002,maxItems=
   const mask=binaryOpen2(rawMask,w,h);
   let maskArea=0;for(const v of mask)maskArea+=v;
   const minArea=Math.max(8,Math.floor(n*minAreaRatio)),comps=components(mask,w,h,minArea,maxItems);
+  return{gray,blackhat,blurred,threshold,rawMask,mask,comps,maskArea,minArea};
+}
+export function opencvCrackCore(rgba,w,h,opts={}){
+  const{mask,comps,threshold,maskArea}=opencvCrackStages(rgba,w,h,opts);
   return{mask,comps,threshold,maskArea};
 }

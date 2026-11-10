@@ -85,6 +85,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-execution-config.mjs
 
+      - name: Image quality gate and pre-analysis correction
+        working-directory: frontend
+        run: node scripts/check-image-quality.mjs
+
       - name: Live mode engines (worker-safe classical runtimes + catalog contract)
         working-directory: frontend
         run: node scripts/check-live-engines.mjs

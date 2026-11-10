@@ -131,6 +131,14 @@ Rota `#/live` (o antigo `#/cameras` redireciona). Também acessível pelo botão
 - **Escala:** o Live processa ≈512–640 px. No CDM-1, kernel e área mínima são escalados pela razão entre a resolução do Live e a resolução que a análise completa usaria (min(1600, lado original)). Resultados do Live são triagem; laudo e medições devem usar a Análise completa.
 - Paridade Live × pipeline completo verificada na mesma imagem (YOLOv8n: área 0,0391 × 0,0389, mesmas caixas; CrackenPy: 0,0539 × 0,0540; CDM-1: 8 × 8 registros). CI: `frontend/scripts/check-live-engines.mjs`.
 
+## Studio: imagem, qualidade e etapas dos motores
+
+- **Painel Imagem** (botão flutuante no canvas): histograma RGB/luminância com a curva tonal (curva S), propriedades do arquivo e da imagem, **laudo de adequação** e **correção antes da análise** (exposição, contraste, curva S, gama, saturação, balanço de branco, redução de ruído, nitidez, rotação). A prévia aparece no canvas; ao aplicar, a análise usa a imagem corrigida e o original pode ser restaurado.
+- **Laudo de adequação** (`frontend/src/imageQuality.js`): resolução, nitidez (variância do Laplaciano), exposição, recorte de sombras/realces, faixa dinâmica p2–p98, ruído (Immerkær) e balanço de branco. Imagem reprovada exige confirmação ("Analisar mesmo assim"). Com ruído, a correção automática não aumenta contraste (amplificaria o grão). Nota e ajustes ficam em `metadata.image_quality` / `metadata.image_correction` do resultado.
+- **Etapas do motor**: miniaturas flutuantes à direita com as imagens intermediárias do motor escolhido (OpenCV: cinza → black-hat → suavização → Otsu → abertura → componentes; CDM-1: base normalizada → black-hat → máscara candidata → máscaras por família → componentes; ONNX: tensor de entrada → mapa de probabilidade/candidatos → máscara → resultado). Clique amplia; ← → navegam.
+- **Nome do arquivo**: clique no título (ou Imagem → Propriedades no celular) para renomear; Ctrl/Cmd+S salva o arquivo com o novo nome e atualiza o histórico.
+- **Aulas no Studio** (`#/aulas`): a Trilha Dev SHM abre dentro do Studio, mantendo barra superior, ferramentas laterais e barra de status; a página das aulas entra em modo `?embed=studio` (sem cabeçalho/rodapé próprios), com busca de cursos e "continuar de onde parou".
+
 ## Resultados
 
 A plataforma apresenta:

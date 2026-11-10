@@ -98,18 +98,18 @@ function runCdmLive(frame,opts={}){
   return{layers,boxes,counts,metrics:{cdm_live_cfg:cfg,total_records:total,processed:[w,h]}};
 }
 
-function softmaxMask(out,crackId,threshold,requireArgmax=true){
+function softmaxMask(out,crackId,threshold,requireArgmax=true,withProb=false){
   const classes=Number(out.dims[1]),oh=Number(out.dims[2]),ow=Number(out.dims[3]),plane=oh*ow,data=out.data;
-  const mask=new Uint8Array(plane);let area=0,sum=0,maxProb=0;
+  const mask=new Uint8Array(plane),prob=withProb?new Float32Array(plane):null;let area=0,sum=0,maxProb=0;
   for(let i=0;i<plane;i++){
     let maxLog=-Infinity,best=0;
     for(let c=0;c<classes;c++){const v=data[c*plane+i];if(v>maxLog){maxLog=v;best=c}}
     let denom=0;for(let c=0;c<classes;c++)denom+=Math.exp(data[c*plane+i]-maxLog);
     const p=Math.exp(data[crackId*plane+i]-maxLog)/Math.max(denom,1e-12);
-    if(p>maxProb)maxProb=p;
+    if(p>maxProb)maxProb=p;if(prob)prob[i]=p;
     if((!requireArgmax||best===crackId)&&p>=threshold){mask[i]=1;area++;sum+=p}
   }
-  return{mask,w:ow,h:oh,area,meanProb:area?sum/area:0,maxProb};
+  return{mask,prob,w:ow,h:oh,area,meanProb:area?sum/area:0,maxProb};
 }
 function rgbTensorData(frame,manifest,normalize){
   const{width:w,height:h,data}=frame,n=w*h,out=new Float32Array(3*n);
@@ -133,10 +133,10 @@ async function runSemanticOnnx(engineId,loaded,frame,opts){
   const classes=Number(out.dims[1]);
   const crackId=clamp(Number(manifest.crack_id??(engineId==="crackenpy_public_crack"?2:1)),0,classes-1);
   const threshold=engineId==="crackenpy_public_crack"?0:Number(opts.threshold??manifest.threshold??.5);
-  const m=softmaxMask(out,crackId,threshold,true);
+  const m=softmaxMask(out,crackId,threshold,true,!!opts.withProbability);
   const comp=filteredComponents(m.mask,m.w,m.h,{minArea:Math.max(3,Math.round(m.w*m.h*.00005)),maxItems:40});
   return{
-    layers:[{id:"crack",label:"Fissura",color:CRACK_COLOR,mask:comp.mask,w:m.w,h:m.h}],
+    layers:[{id:"crack",label:"Fissura",color:CRACK_COLOR,mask:comp.mask,w:m.w,h:m.h,...(m.prob?{prob:m.prob,rawMask:m.mask}:{})}],
     boxes:comp.boxes.map(b=>({...b,label:"Fissura",score:null,color:CRACK_COLOR})),
     counts:{"Fissura":comp.count},
     metrics:{crack_area_ratio:comp.area/(m.w*m.h),mean_crack_probability:m.meanProb,max_crack_probability:m.maxProb,model_output:[m.w,m.h]}
@@ -190,7 +190,8 @@ async function runYoloLive(loaded,frame,letterbox,opts){
   return{
     layers:[{id:"crack",label:"Fissura",color:CRACK_COLOR,mask,w:mw,h:mh}],
     boxes,counts:{"Fissura":boxes.length},
-    metrics:{detections:boxes.length,confidence_threshold:threshold,crack_area_ratio:area/(mw*mh),candidates_above_threshold:raw.length}
+    metrics:{detections:boxes.length,confidence_threshold:threshold,crack_area_ratio:area/(mw*mh),candidates_above_threshold:raw.length},
+    ...(opts.withCandidates?{candidates:raw.map(r=>({score:r.score,box:[clamp((r.box[0]-padX)/drawW,0,1),clamp((r.box[1]-padY)/drawH,0,1),clamp((r.box[2]-padX)/drawW,0,1),clamp((r.box[3]-padY)/drawH,0,1)]}))}:{})
   };
 }
 

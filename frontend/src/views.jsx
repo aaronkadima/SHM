@@ -5,7 +5,6 @@ import{
   ShieldCheck,MonitorCog,CloudCog,AlertTriangle,Search,Database,Image as ImageIcon
 }from"lucide-react";
 import{campaignChainAudit,CHAIN_STATUS_LABELS}from"./campaignAudit.js";
-import{AULAS_HREF}from"./aulasRoute.js";
 
 const NAV=[
   ["dashboard",LayoutDashboard,"Dashboard"],
@@ -295,7 +294,7 @@ function EmptyView({icon:Icon=Database,title,children,action}){
 export function NavRail({active,onSelect}){
   return <aside className="navRail">
     <button className="navLogo" onClick={()=>onSelect("dashboard")} title="SHM Vision Lab"><Layers3 size={22}/></button>
-    <nav>{NAV.map(([key,Icon,label])=><button key={key} onClick={()=>onSelect(key)} className={active===key?"active":""} title={label}><Icon size={19}/><span>{label}</span></button>)}<a className="navAulasLink" href={AULAS_HREF} target="_blank" rel="noopener noreferrer" title="Aulas · Trilha Dev SHM (nova aba)" aria-label="Abrir aulas da Trilha Dev SHM em nova aba"><BookOpen size={19} aria-hidden="true"/><span>Aulas</span></a></nav>
+    <nav>{NAV.map(([key,Icon,label])=><button key={key} onClick={()=>onSelect(key)} className={active===key?"active":""} title={label}><Icon size={19}/><span>{label}</span></button>)}<button className={"navAulasLink"+(active==="aulas"?" active":"")} onClick={()=>onSelect("aulas")} title="Aulas · Trilha Dev SHM" aria-label="Abrir aulas da Trilha Dev SHM"><BookOpen size={19} aria-hidden="true"/><span>Aulas</span></button></nav>
   </aside>
 }
 

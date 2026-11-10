@@ -122,7 +122,7 @@ Alguns possuem checkpoints públicos de patologia estrutural já integrados; out
 
 ## Modo Live (tempo real)
 
-Rota `#/live` (o antigo `#/cameras` redireciona). Também acessível pelo botão **Live** do editor de Análise.
+Rota `#/live` (o antigo `#/cameras` redireciona). Também acessível pelo botão **Live** do editor de Análise. Abre a câmera direto em tela cheia, como o app de câmera do celular; ajustes, galeria e troca de motor ficam em botões flutuantes no estilo do SHM Studio.
 
 - **Fontes:** câmera do dispositivo (720p/1080p/4K, troca frontal/traseira, lanterna quando suportada) ou arquivo de vídeo (ex.: voo de drone).
 - **Motores:** `cdm_1`, `opencv_crack`, `yolov8n_public_crack_seg`, `segformer_public_crack`, `crackenpy_public_crack` (campo `live_ready` no catálogo).

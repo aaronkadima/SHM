@@ -204,6 +204,12 @@ export default function App(){
     return()=>window.removeEventListener("hashchange",sync);
   },[]);
   function navigate(view){
+    // Live abre como o app de câmera do celular: tela cheia em dispositivos de toque.
+    try{
+      const touch=window.matchMedia?.("(pointer:coarse)")?.matches;
+      if(view==="live"&&touch&&!document.fullscreenElement)document.documentElement.requestFullscreen?.({navigationUI:"hide"})?.catch?.(()=>{});
+      if(view!=="live"&&document.fullscreenElement)document.exitFullscreen?.().catch?.(()=>{});
+    }catch{}
     setActiveView(view);
     if(window.location.hash!=="#/"+view)window.location.hash="#/"+view;
   }
@@ -710,9 +716,9 @@ export default function App(){
   }
 
   return <div className={"appShell "+(["analysis","settings"].includes(activeView)?"editorShell ":"")+(activeView==="settings"?"settingsShell":"")+(activeView==="live"?" liveShell":"")}>
-    {! ["analysis","settings"].includes(activeView)&&<NavRail active={activeView} onSelect={navigate}/>}
+    {! ["analysis","settings","live"].includes(activeView)&&<NavRail active={activeView} onSelect={navigate}/>}
     <main className="appMain">
-    {! ["analysis","settings"].includes(activeView)&&<header className="topbar">
+    {! ["analysis","settings","live"].includes(activeView)&&<header className="topbar">
       <div className="brandBlock">
         <div className="eye"><Layers3 size={15}/> SHM · OAEs · COMPUTER VISION</div>
         <h1>PLATAFORMA SHM · OAE BRASIL</h1>
@@ -728,7 +734,7 @@ export default function App(){
     </header>}
 
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
-    {activeView==="live"&&<LiveView engines={engines} selected={selected} cdmOptions={cdmOptions} inspectionMeta={inspectionMeta} appInfo={APP_INFO} onNavigate={navigate} onAnalyzeFrame={f=>{pick(f);navigate("analysis")}}/>}
+    {activeView==="live"&&<LiveView engines={engines} selected={selected} cdmOptions={cdmOptions} inspectionMeta={inspectionMeta} appInfo={APP_INFO} onClose={()=>navigate("analysis")} onAnalyzeFrame={f=>{pick(f);navigate("analysis")}}/>}
     {activeView==="analysis"&&<>
     <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} spatialRegistration={spatialRegistration} spatialTransform={spatialTransform} spatialFrameAssets={spatialFrameAssets} onSolveSpatialFrameAlignment={solveSpatialFrameAlignment} spatialRgbAnalysis={spatialRgbAnalysis} spatialPhotoViews={spatialPhotoViews} activeSpatialPhotoId={activeSpatialPhotoId} onAddSpatialPhotos={addSpatialPhotos} onSelectSpatialPhoto={selectSpatialPhoto} onRemoveSpatialPhoto={removeSpatialPhoto} spatialAutoRegistrationBusy={spatialAutoRegistrationBusy} spatialAutoRegistrationStatus={spatialAutoRegistrationStatus} onAutoRegisterSpatialPhotos={autoRegisterSpatialPhotos} spatialRegistrationPointCount={Number(spatialRegistrationSample?.sampled_point_count||0)} photometricSummary={photometricSummary} onPhotometricSummary={setPhotometricSummary} onSpatialRegistrationSample={setSpatialRegistrationSample} spatialPathologyRecords={spatialPathologyRecords} onSpatialPathologyRecords={handleSpatialPathologyRecords} onSolveSpatialRegistration={solveSpatialRegistration} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} onLive={()=>navigate("live")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)} onExportCdm3={exportSpatialPathologies}/>
     </>}

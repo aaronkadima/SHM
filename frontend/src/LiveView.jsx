@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState}from"react";
-import{Activity,Camera,Circle,Download,FileJson,FileVideo,Flashlight,MapPin,Pause,Play,ScanSearch,Square,SwitchCamera,Trash2,Video,VideoOff}from"lucide-react";
+import{Camera,Download,FileJson,FileVideo,Flashlight,Images,MapPin,Play,RefreshCw,ScanSearch,Settings2,SwitchCamera,Trash2,Video,X}from"lucide-react";
 import{LIVE_ENGINES,LIVE_ENGINE_IDS}from"./liveEngines.js";
 
 const RESOLUTIONS={"720p":[1280,720],"1080p":[1920,1080],"4K":[3840,2160]};
@@ -20,7 +20,7 @@ function download(url,name){const a=document.createElement("a");a.href=url;a.dow
 function fmtDuration(ms){const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
 function safeSlug(v){return String(v||"").trim().replace(/[^\w.-]+/g,"_").slice(0,40)}
 
-export default function LiveView({engines=[],selected=[],cdmOptions={},inspectionMeta={},appInfo={},onAnalyzeFrame,onNavigate}){
+export default function LiveView({engines=[],selected=[],cdmOptions={},inspectionMeta={},appInfo={},onAnalyzeFrame,onClose}){
   const liveEngines=useMemo(()=>LIVE_ENGINE_IDS.filter(id=>engines.some(e=>e.id===id&&e.browser_ready)).map(id=>({id,...LIVE_ENGINES[id],catalog:engines.find(e=>e.id===id)})),[engines]);
   const initialEngine=useMemo(()=>{
     const pref=localStorage.getItem("shmLiveEngine");
@@ -51,8 +51,10 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
   const[recElapsed,setRecElapsed]=useState(0);
   const[captures,setCaptures]=useState([]);
   const[notice,setNotice]=useState("");
+  const[panel,setPanel]=useState(null);// "settings" | "gallery" | null
+  const[mode,setMode]=useState(()=>localStorage.getItem("shmLiveMode")==="video"?"video":"photo");
 
-  const videoRef=useRef(null),canvasRef=useRef(null),workCanvasRef=useRef(null),fileInputRef=useRef(null);
+  const videoRef=useRef(null),canvasRef=useRef(null),recCanvasRef=useRef(null),workCanvasRef=useRef(null),fileInputRef=useRef(null);
   const workerRef=useRef(null),streamRef=useRef(null),rafRef=useRef(0),fileUrlRef=useRef(null),wakeLockRef=useRef(null);
   const specRef=useRef(null),readyEngineRef=useRef(null),inflightRef=useRef(false),seqRef=useRef(0),lastSendRef=useRef(0);
   const resultRef=useRef(null),layerCanvasesRef=useRef([]),emaRef=useRef(new Map());
@@ -64,6 +66,8 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
   useEffect(()=>{geoRef.current=geo},[geo]);
   useEffect(()=>{localStorage.setItem("shmLiveEngine",engineId)},[engineId]);
   useEffect(()=>{localStorage.setItem("shmLiveResolution",resolution)},[resolution]);
+  useEffect(()=>{localStorage.setItem("shmLiveMode",mode)},[mode]);
+  const panelRef=useRef(null);panelRef.current=panel;
 
   const flash=useCallback((text,ms=1800)=>{setNotice(text);clearTimeout(flash.t);flash.t=setTimeout(()=>setNotice(""),ms)},[]);
 
@@ -256,7 +260,9 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
       const k=Math.min(1,DISPLAY_MAX_SIDE/Math.max(v.videoWidth,v.videoHeight));
       const W=Math.round(v.videoWidth*k),H=Math.round(v.videoHeight*k);
       if(canvas.width!==W)canvas.width=W;if(canvas.height!==H)canvas.height=H;
-      drawComposite(canvas.getContext("2d"),W,H);
+      drawComposite(canvas.getContext("2d"),W,H,{hud:false});
+      const rc=recCanvasRef.current;
+      if(rc&&recorderRef.current?.state==="recording")drawComposite(rc.getContext("2d"),rc.width,rc.height,{hud:true});
       frameCountRef.current.display++;
       const s=settingsRef.current,now=performance.now();
       if(s.detecting&&!inflightRef.current&&now-lastSendRef.current>=1000/Math.max(1,s.fpsCap))sendFrame();
@@ -300,15 +306,19 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
       original:{blob:rawBlob,url:URL.createObjectURL(rawBlob),name:base+"-original.jpg"},
       json:{blob:jsonBlob,url:URL.createObjectURL(jsonBlob),name:base+".json"},
       counts:meta.detections?.counts||{}};
-    setCaptures(list=>[item,...list]);flash("Foto capturada");
+    setCaptures(list=>[item,...list]);flash("Foto salva nas capturas");
   },[drawComposite,metadataFor,flash]);
 
   // ---------- Gravação de vídeo ----------
   const canRecord=typeof MediaRecorder!=="undefined"&&typeof HTMLCanvasElement!=="undefined"&&!!HTMLCanvasElement.prototype.captureStream;
   const startRecording=useCallback(()=>{
-    const canvas=canvasRef.current,v=videoRef.current;
+    const v=videoRef.current;
     if(!v?.videoWidth){flash("Inicie uma fonte de vídeo primeiro.");return}
     if(!canRecord){flash("Gravação de vídeo não suportada neste navegador.",3000);return}
+    // Grava de um canvas próprio, com faixa de dados (OAE, data, achados); a tela fica limpa.
+    const canvas=document.createElement("canvas"),k=Math.min(1,DISPLAY_MAX_SIDE/Math.max(v.videoWidth,v.videoHeight));
+    canvas.width=Math.round(v.videoWidth*k);canvas.height=Math.round(v.videoHeight*k);
+    drawComposite(canvas.getContext("2d"),canvas.width,canvas.height,{hud:true});recCanvasRef.current=canvas;
     const mimeType=pickVideoMime(),stream=canvas.captureStream(30);
     let rec;
     try{rec=new MediaRecorder(stream,{...(mimeType?{mimeType}:{}),videoBitsPerSecond:8_000_000})}
@@ -329,11 +339,16 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
       setCaptures(list=>[{id:crypto.randomUUID(),kind:"video",base,createdAt:Date.now(),duration,
         video:{blob,url:URL.createObjectURL(blob),name:base+"-deteccoes."+ext},
         json:{blob:jsonBlob,url:URL.createObjectURL(jsonBlob),name:base+"-linha-do-tempo.json"},counts:totals},...list]);
-      setRecording(false);setRecElapsed(0);flash("Vídeo salvo na sessão");
+      setRecording(false);setRecElapsed(0);recCanvasRef.current=null;flash("Vídeo salvo nas capturas");
     };
     rec.start(1000);recorderRef.current=rec;recStartRef.current=performance.now();setRecording(true);
-  },[canRecord,metadataFor,flash]);
+  },[canRecord,metadataFor,flash,drawComposite]);
   const stopRecording=useCallback(()=>{if(recorderRef.current?.state==="recording")recorderRef.current.stop()},[]);
+
+  // Abre a câmera direto, como o app de câmera do celular.
+  const autoStartedRef=useRef(false);
+  useEffect(()=>{if(autoStartedRef.current)return;autoStartedRef.current=true;startCamera()},[startCamera]);
+  const shutter=useCallback(()=>{if(mode==="photo")takePhoto();else if(recorderRef.current?.state==="recording")stopRecording();else startRecording()},[mode,takePhoto,startRecording,stopRecording]);
 
   useEffect(()=>{
     const onKey=e=>{
@@ -341,9 +356,10 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
       if(e.key==="p"||e.key==="P"){e.preventDefault();takePhoto()}
       else if(e.key==="r"||e.key==="R"){e.preventDefault();recorderRef.current?.state==="recording"?stopRecording():startRecording()}
       else if(e.key===" "){e.preventDefault();setDetecting(d=>!d)}
+      else if(e.key==="Escape"&&recorderRef.current?.state!=="recording"){e.preventDefault();if(panelRef.current)setPanel(null);else onClose?.()}
     };
     window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey);
-  },[takePhoto,startRecording,stopRecording]);
+  },[takePhoto,startRecording,stopRecording,onClose]);
 
   useEffect(()=>{
     const onVis=()=>{if(document.visibilityState==="visible"&&streamRef.current)requestWakeLock()};
@@ -367,115 +383,125 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
   }
 
   const live=streamState.status==="live",engineMeta=liveEngines.find(e=>e.id===engineId);
-  const countEntries=Object.entries(stats.counts||{});
-  return <section className="viewPage liveView">
-    <div className="viewHead">
-      <div><span>ENTRADA VISUAL · TEMPO REAL</span><h2>Modo Live</h2><p>Detecção de patologias quadro a quadro no próprio navegador. Nenhum quadro é enviado a servidores.</p></div>
-      <div className="viewActions">
-        <button onClick={()=>onNavigate?.("analysis")}><Activity size={14}/> Análise</button>
+  const findings=Object.entries(stats.counts||{}).filter(([,n])=>n>0);
+  const engineReady=engineState.status==="ready";
+  const lastCapture=captures[0];
+  const close=()=>{if(recording){flash("Pare a gravação antes de sair.");return}onClose?.()};
+  return <section className="liveCam" aria-label="Modo Live · câmera com detecção em tempo real">
+    <video ref={videoRef} playsInline muted autoPlay className="liveVideoSource"/>
+    <canvas ref={canvasRef} className={"liveCamCanvas"+(live?"":" hidden")} aria-label="Vídeo com detecções em tempo real"/>
+    <input ref={fileInputRef} hidden type="file" accept="video/*" onChange={e=>{const f=e.target.files?.[0];e.target.value="";startFile(f)}}/>
+
+    {!live&&<div className="liveCamEmpty">
+      <div className="liveCamCard">
+        {streamState.status==="error"?<>
+          <Camera size={28}/><b>Câmera indisponível</b><p>{streamState.error}</p>
+          <div className="liveCamCardActions"><button className="primary" onClick={()=>startCamera()}><RefreshCw size={15}/> Tentar novamente</button><button onClick={()=>fileInputRef.current?.click()}><FileVideo size={15}/> Abrir vídeo</button></div>
+        </>:streamState.status==="idle"?<>
+          <Camera size={28}/><b>Câmera encerrada</b>
+          <div className="liveCamCardActions"><button className="primary" onClick={()=>startCamera()}><Camera size={15}/> Abrir câmera</button><button onClick={()=>fileInputRef.current?.click()}><FileVideo size={15}/> Abrir vídeo</button></div>
+        </>:<><span className="liveSpinner" aria-hidden="true"/><b>Abrindo câmera…</b></>}
+      </div>
+    </div>}
+
+    {/* Topo: sair · motor · ajustes */}
+    <div className="liveFloat liveTop">
+      <button className="liveRound" onClick={close} title="Voltar ao Studio (Esc)" aria-label="Fechar modo Live"><X size={20}/></button>
+      <button className="liveChip" onClick={()=>setPanel(p=>p==="settings"?null:"settings")} title="Trocar motor e ajustes">
+        <i className={"liveDot "+(!detecting?"paused":engineReady?"on":engineState.status==="error"?"err":"load")}/>
+        <span>{engineMeta?.name||engineId}</span>
+        <small>{!detecting?"pausado":engineReady?(stats.latency!=null?Math.round(stats.latency)+" ms":"pronto"):engineState.status==="error"?"erro":Math.round(engineState.progress)+"%"}</small>
+      </button>
+      <div className="liveTopRight">
+        {torch.supported&&<button className={"liveRound"+(torch.on?" active":"")} onClick={toggleTorch} title="Lanterna" aria-label="Lanterna"><Flashlight size={18}/></button>}
+        <button className={"liveRound"+(panel==="settings"?" active":"")} onClick={()=>setPanel(p=>p==="settings"?null:"settings")} title="Ajustes" aria-label="Ajustes do modo Live"><Settings2 size={18}/></button>
       </div>
     </div>
-    <div className="liveGrid">
-      <article className="surface liveStage">
-        <div className="liveViewport">
-          <video ref={videoRef} playsInline muted autoPlay className="liveVideoSource"/>
-          <canvas ref={canvasRef} className={"liveCanvas"+(live?"":" hidden")} aria-label="Vídeo com detecções em tempo real"/>
-          {!live&&<div className="liveEmpty">
-            {streamState.status==="starting"?<><Camera size={30}/><b>Iniciando fonte…</b></>:<>
-              <Camera size={30}/><b>Nenhuma fonte ativa</b>
-              <p>Use a câmera do dispositivo ou um vídeo gravado (por exemplo, voo de drone sob a OAE).</p>
-              <div className="liveEmptyActions">
-                <button className="primary" onClick={()=>startCamera()}><Camera size={15}/> Iniciar câmera</button>
-                <button onClick={()=>fileInputRef.current?.click()}><FileVideo size={15}/> Abrir vídeo</button>
-              </div>
-            </>}
-            {streamState.error&&<p className="liveError" role="alert">{streamState.error}</p>}
-          </div>}
-          {live&&<div className="liveBadges">
-            <span className={"liveBadge "+(detecting&&engineState.status==="ready"?"on":"off")}><i/>{detecting?(engineState.status==="ready"?"DETECTANDO":engineState.status==="error"?"ERRO NO MOTOR":"CARREGANDO "+Math.round(engineState.progress)+"%"):"PAUSADO"}</span>
-            {recording&&<span className="liveBadge rec"><i/>REC {fmtDuration(recElapsed)}</span>}
-            <span className="liveBadge info">{stats.fps.toFixed(0)} fps · IA {stats.ifps.toFixed(1)}/s{stats.latency!=null?" · "+Math.round(stats.latency)+" ms":""}</span>
-          </div>}
-          {notice&&<div className="liveNotice" role="status">{notice}</div>}
-        </div>
-        <input ref={fileInputRef} hidden type="file" accept="video/*" onChange={e=>{const f=e.target.files?.[0];e.target.value="";startFile(f)}}/>
-        <div className="liveControls">
-          <button className="liveShutter" disabled={!live} onClick={takePhoto} title="Capturar foto com detecções (P)"><Camera size={18}/><span>Foto</span></button>
-          {recording
-            ?<button className="liveRecord active" onClick={stopRecording} title="Parar gravação (R)"><Square size={16}/><span>Parar</span></button>
-            :<button className="liveRecord" disabled={!live||!canRecord} onClick={startRecording} title={canRecord?"Gravar vídeo com detecções (R)":"Gravação não suportada neste navegador"}><Circle size={16}/><span>Gravar</span></button>}
-          <button disabled={!live} onClick={()=>setDetecting(d=>!d)} title="Pausar/retomar detecção (Espaço)">{detecting?<Pause size={16}/>:<Play size={16}/>}<span>{detecting?"Pausar IA":"Retomar IA"}</span></button>
-          {source?.kind==="camera"&&devices.length>1&&<button disabled={recording} onClick={()=>{const next=facing==="environment"?"user":"environment";setFacing(next);setDeviceId("");startCamera({facing:next,deviceId:""})}} title="Alternar câmera"><SwitchCamera size={16}/><span>Alternar</span></button>}
-          {torch.supported&&<button className={torch.on?"active":""} onClick={toggleTorch} title="Lanterna"><Flashlight size={16}/><span>Luz</span></button>}
-          {live&&<button disabled={recording} onClick={stopSource} title="Encerrar fonte"><VideoOff size={16}/><span>Encerrar</span></button>}
-        </div>
-      </article>
 
-      <aside className="liveSide">
-        <article className="surface">
-          <div className="surfaceHead"><div><b>MOTOR</b><span>Motores browser-ready com suporte ao Live</span></div><span className={"statusPill "+(engineState.status==="ready"?"success":engineState.status==="error"?"danger":"neutral")}>{engineState.status==="ready"?"PRONTO":engineState.status==="error"?"ERRO":"CARREGANDO"}</span></div>
-          <div className="liveField">
-            <select value={engineId} disabled={recording} onChange={e=>setEngineId(e.target.value)} aria-label="Motor de detecção">
-              {liveEngines.map(e=><option key={e.id} value={e.id}>{e.catalog?.name||e.name}</option>)}
-            </select>
-            <small>{engineMeta?.note}</small>
-            {engineState.status==="loading"&&<div className="liveProgress"><i style={{width:Math.max(4,engineState.progress)+"%"}}/></div>}
-            {engineState.error&&<p className="liveError" role="alert">{engineState.error}</p>}
-          </div>
-          <div className="liveField"><label>Taxa máxima de inferência <b>{fpsCap} quadros/s</b></label><input type="range" min="1" max="20" value={fpsCap} onChange={e=>setFpsCap(Number(e.target.value))}/></div>
-          {engineId==="yolov8n_public_crack_seg"&&<div className="liveField"><label>Confiança mínima <b>{Math.round(confidence*100)}%</b></label><input type="range" min=".05" max=".9" step=".05" value={confidence} onChange={e=>setConfidence(Number(e.target.value))}/></div>}
-          {engineId==="cdm_1"&&<small className="liveHint">Usa os parâmetros CDM-1 de Configurações (limiar {cdmOptions.cdm_threshold??35}), com kernel e área mínima escalados para a resolução do Live.</small>}
-        </article>
+    {recording&&<div className="liveRec" role="status"><i/>{fmtDuration(recElapsed)}</div>}
+    {notice&&<div className="liveToast" role="status">{notice}</div>}
+    {engineState.error&&<div className="liveToast error" role="alert">{engineState.error}</div>}
 
-        <article className="surface">
-          <div className="surfaceHead"><div><b>ACHADOS NO QUADRO</b><span>{stats.resolution?stats.resolution.join(" × ")+" px":"—"}</span></div></div>
-          <div className="liveCounts">
-            {countEntries.length?countEntries.map(([k,n])=><div key={k} className={n?"has":""}><span>{k}</span><b>{n}</b></div>):<div className="compactEmpty">{live?(detecting?"Aguardando primeiro resultado…":"Detecção pausada."):"Inicie uma fonte de vídeo."}</div>}
-          </div>
-        </article>
+    {/* Achados: só aparecem quando existem */}
+    {live&&detecting&&findings.length>0&&<div className="liveFindings" aria-live="polite">
+      {findings.map(([k,n])=><span key={k}><b>{n}</b> {k}</span>)}
+    </div>}
 
-        <article className="surface">
-          <div className="surfaceHead"><div><b>VISUALIZAÇÃO & FONTE</b></div></div>
-          <div className="liveField"><label>Opacidade das camadas <b>{Math.round(opacity*100)}%</b></label><input type="range" min=".1" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/></div>
-          <label className="liveCheck"><input type="checkbox" checked={showBoxes} onChange={e=>setShowBoxes(e.target.checked)}/> Caixas delimitadoras</label>
-          <label className="liveCheck"><input type="checkbox" checked={smoothing} onChange={e=>{setSmoothing(e.target.checked);emaRef.current=new Map()}}/> Estabilização temporal das máscaras</label>
-          <label className="liveCheck"><input type="checkbox" checked={geoOn} onChange={e=>setGeoOn(e.target.checked)}/> <MapPin size={13}/> Georreferenciar capturas{geo?" (±"+Math.round(geo.accuracy_m)+" m)":""}</label>
-          <div className="liveField"><label>Resolução da câmera</label>
-            <select value={resolution} disabled={recording} onChange={e=>{setResolution(e.target.value);if(source?.kind==="camera")startCamera({resolution:e.target.value})}}>{Object.keys(RESOLUTIONS).map(k=><option key={k}>{k}</option>)}</select>
-          </div>
-          {devices.length>1&&<div className="liveField"><label>Dispositivo</label>
-            <select value={deviceId} disabled={recording} onChange={e=>{setDeviceId(e.target.value);startCamera({deviceId:e.target.value})}}><option value="">Automático ({facing==="environment"?"traseira":"frontal"})</option>{devices.map(d=><option key={d.id} value={d.id}>{d.label}</option>)}</select>
-          </div>}
-          <div className="liveSourceButtons">
-            <button disabled={recording} onClick={()=>startCamera()}><Camera size={14}/> Câmera</button>
-            <button disabled={recording} onClick={()=>fileInputRef.current?.click()}><FileVideo size={14}/> Vídeo</button>
-          </div>
-          <small className="liveHint">Atalhos: <kbd>P</kbd> foto · <kbd>R</kbd> gravar · <kbd>Espaço</kbd> pausar IA. Metadados de OAE/elemento vêm de Configurações.</small>
-        </article>
-      </aside>
+    {/* Base: galeria · obturador · trocar câmera */}
+    <div className="liveFloat liveBottom">
+      <div className="liveModes" role="tablist" aria-label="Modo de captura">
+        <button role="tab" aria-selected={mode==="photo"} className={mode==="photo"?"on":""} disabled={recording} onClick={()=>setMode("photo")}>FOTO</button>
+        <button role="tab" aria-selected={mode==="video"} className={mode==="video"?"on":""} disabled={recording||!canRecord} title={canRecord?"":"Gravação não suportada neste navegador"} onClick={()=>setMode("video")}>VÍDEO</button>
+      </div>
+      <div className="liveBottomRow">
+        <button className="liveThumb" onClick={()=>setPanel(p=>p==="gallery"?null:"gallery")} title="Capturas da sessão" aria-label={"Capturas da sessão: "+captures.length}>
+          {lastCapture?(lastCapture.kind==="photo"?<img src={lastCapture.annotated.url} alt=""/>:<video src={lastCapture.video.url} muted playsInline/>):<Images size={20}/>}
+          {captures.length>0&&<em>{captures.length}</em>}
+        </button>
+        <button className={"liveShutterBtn "+mode+(recording?" recording":"")} disabled={!live} onClick={shutter}
+          title={mode==="photo"?"Capturar foto (P)":recording?"Parar gravação (R)":"Gravar vídeo (R)"} aria-label={mode==="photo"?"Capturar foto":recording?"Parar gravação":"Iniciar gravação"}><i/></button>
+        <button className="liveRound big" disabled={!live||recording||source?.kind!=="camera"} onClick={()=>{const next=facing==="environment"?"user":"environment";setFacing(next);setDeviceId("");startCamera({facing:next,deviceId:""})}} title="Alternar câmera" aria-label="Alternar câmera"><SwitchCamera size={20}/></button>
+      </div>
     </div>
 
-    <article className="surface liveCaptures">
-      <div className="surfaceHead"><div><b>CAPTURAS DA SESSÃO</b><span>{captures.length?captures.length+" item(ns) · ficam na memória até sair da página":"Fotos e vídeos aparecem aqui"}</span></div></div>
-      {captures.length?<div className="liveCaptureGrid">{captures.map(c=><figure key={c.id} className="liveCapture">
-        {c.kind==="photo"?<img src={c.annotated.url} alt="Captura com detecções"/>:<video src={c.video.url} controls playsInline/>}
-        <figcaption>
-          <b>{c.kind==="photo"?"Foto":"Vídeo · "+fmtDuration(c.duration)}</b>
-          <span>{Object.entries(c.counts||{}).filter(([,n])=>n>0).map(([k,n])=>k+" "+n).join(" · ")||"sem achados"}</span>
-          <div className="liveCaptureActions">
-            {c.kind==="photo"?<>
-              <button onClick={()=>download(c.annotated.url,c.annotated.name)} title="PNG com camadas e HUD"><Download size={13}/> Detecções</button>
-              <button onClick={()=>download(c.original.url,c.original.name)} title="Quadro original sem sobreposição"><Download size={13}/> Original</button>
-              <button onClick={()=>download(c.json.url,c.json.name)} title="Metadados e detecções"><FileJson size={13}/> JSON</button>
-              <button className="primary" onClick={()=>analyzeCapture(c)} title="Abrir o quadro original na Análise completa"><ScanSearch size={13}/> Analisar</button>
-            </>:<>
-              <button onClick={()=>download(c.video.url,c.video.name)}><Video size={13}/> Vídeo</button>
-              <button onClick={()=>download(c.json.url,c.json.name)} title="Detecções quadro a quadro"><FileJson size={13}/> Linha do tempo</button>
-            </>}
-            <button onClick={()=>removeCapture(c.id)} title="Descartar" aria-label="Descartar captura"><Trash2 size={13}/></button>
-          </div>
-        </figcaption>
-      </figure>)}</div>:<div className="compactEmpty">Nenhuma captura ainda.</div>}
-    </article>
+    {panel&&<button className="liveScrim" aria-label="Fechar painel" onClick={()=>setPanel(null)}/>}
+
+    {panel==="settings"&&<aside className="livePanel" aria-label="Ajustes do modo Live">
+      <header><b>Ajustes</b><button onClick={()=>setPanel(null)} aria-label="Fechar ajustes"><X size={17}/></button></header>
+      <div className="livePanelBody">
+        <label className="liveLabel">Motor de detecção
+          <select value={engineId} disabled={recording} onChange={e=>setEngineId(e.target.value)}>
+            {liveEngines.map(e=><option key={e.id} value={e.id}>{e.catalog?.name||e.name}</option>)}
+          </select>
+          <small>{engineMeta?.note}</small>
+          {engineState.status==="loading"&&<span className="liveProgress"><i style={{width:Math.max(4,engineState.progress)+"%"}}/></span>}
+        </label>
+        <div className="liveSwitchRow"><span>Detecção ativa</span><button className={"liveSwitch"+(detecting?" on":"")} role="switch" aria-checked={detecting} onClick={()=>setDetecting(d=>!d)}><i/></button></div>
+        <label className="liveLabel">Taxa máxima de inferência <b>{fpsCap}/s</b><input type="range" min="1" max="20" value={fpsCap} onChange={e=>setFpsCap(Number(e.target.value))}/></label>
+        {engineId==="yolov8n_public_crack_seg"&&<label className="liveLabel">Confiança mínima <b>{Math.round(confidence*100)}%</b><input type="range" min=".05" max=".9" step=".05" value={confidence} onChange={e=>setConfidence(Number(e.target.value))}/></label>}
+        <label className="liveLabel">Opacidade das camadas <b>{Math.round(opacity*100)}%</b><input type="range" min=".1" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/></label>
+        <div className="liveSwitchRow"><span>Caixas delimitadoras</span><button className={"liveSwitch"+(showBoxes?" on":"")} role="switch" aria-checked={showBoxes} onClick={()=>setShowBoxes(v=>!v)}><i/></button></div>
+        <div className="liveSwitchRow"><span>Estabilizar máscaras</span><button className={"liveSwitch"+(smoothing?" on":"")} role="switch" aria-checked={smoothing} onClick={()=>{setSmoothing(v=>!v);emaRef.current=new Map()}}><i/></button></div>
+        <div className="liveSwitchRow"><span><MapPin size={13}/> Georreferenciar{geo?" · ±"+Math.round(geo.accuracy_m)+" m":""}</span><button className={"liveSwitch"+(geoOn?" on":"")} role="switch" aria-checked={geoOn} onClick={()=>setGeoOn(v=>!v)}><i/></button></div>
+        <label className="liveLabel">Resolução da câmera
+          <select value={resolution} disabled={recording} onChange={e=>{setResolution(e.target.value);if(source?.kind==="camera")startCamera({resolution:e.target.value})}}>{Object.keys(RESOLUTIONS).map(k=><option key={k}>{k}</option>)}</select>
+        </label>
+        {devices.length>1&&<label className="liveLabel">Câmera
+          <select value={deviceId} disabled={recording} onChange={e=>{setDeviceId(e.target.value);startCamera({deviceId:e.target.value})}}><option value="">Automática ({facing==="environment"?"traseira":"frontal"})</option>{devices.map(d=><option key={d.id} value={d.id}>{d.label}</option>)}</select>
+        </label>}
+        <div className="livePanelActions">
+          <button disabled={recording} onClick={()=>{setPanel(null);fileInputRef.current?.click()}}><FileVideo size={15}/> Analisar arquivo de vídeo</button>
+          {source?.kind==="file"&&<button disabled={recording} onClick={()=>startCamera()}><Camera size={15}/> Voltar à câmera</button>}
+        </div>
+        <p className="liveNote">{stats.resolution?stats.resolution.join(" × ")+" px · ":""}{stats.fps.toFixed(0)} fps · IA {stats.ifps.toFixed(1)}/s. Detecção preliminar no navegador, sem envio de quadros. Atalhos: P foto · R vídeo · Espaço pausa.</p>
+      </div>
+    </aside>}
+
+    {panel==="gallery"&&<aside className="livePanel wide" aria-label="Capturas da sessão">
+      <header><b>Capturas da sessão</b><button onClick={()=>setPanel(null)} aria-label="Fechar capturas"><X size={17}/></button></header>
+      <div className="livePanelBody">
+        {captures.length?<div className="liveGallery">{captures.map(c=><figure key={c.id}>
+          {c.kind==="photo"?<img src={c.annotated.url} alt="Captura com detecções"/>:<video src={c.video.url} controls playsInline/>}
+          <figcaption>
+            <b>{c.kind==="photo"?"Foto":"Vídeo · "+fmtDuration(c.duration)}</b>
+            <span>{Object.entries(c.counts||{}).filter(([,n])=>n>0).map(([k,n])=>k+" "+n).join(" · ")||"sem achados"}</span>
+            <div className="liveGalleryActions">
+              {c.kind==="photo"?<>
+                <button onClick={()=>download(c.annotated.url,c.annotated.name)} title="PNG com camadas e dados da inspeção"><Download size={13}/> Detecções</button>
+                <button onClick={()=>download(c.original.url,c.original.name)} title="Quadro original"><Download size={13}/> Original</button>
+                <button onClick={()=>download(c.json.url,c.json.name)} title="Metadados e detecções"><FileJson size={13}/> JSON</button>
+                <button className="primary" onClick={()=>analyzeCapture(c)} title="Abrir o quadro original na Análise completa"><ScanSearch size={13}/> Analisar</button>
+              </>:<>
+                <button onClick={()=>download(c.video.url,c.video.name)}><Video size={13}/> Vídeo</button>
+                <button onClick={()=>download(c.json.url,c.json.name)} title="Detecções quadro a quadro"><FileJson size={13}/> Linha do tempo</button>
+              </>}
+              <button onClick={()=>removeCapture(c.id)} title="Descartar" aria-label="Descartar captura"><Trash2 size={13}/></button>
+            </div>
+          </figcaption>
+        </figure>)}</div>:<p className="liveNote center">Nenhuma captura ainda. Use o obturador para registrar fotos ou vídeos com as detecções.</p>}
+      </div>
+    </aside>}
+
+    {!detecting&&live&&<button className="liveResume" onClick={()=>setDetecting(true)}><Play size={14}/> Retomar detecção</button>}
   </section>
 }

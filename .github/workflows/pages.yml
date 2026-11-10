@@ -2,9 +2,11 @@ name: Deploy SHM production + development preview to GitHub Pages
 
 on:
   push:
-    branches: ["main","dev"]
+    # Só o main pode publicar no ambiente github-pages; o dev é publicado pelo workflow_run do main.
+    branches: ["main"]
     paths:
       - "frontend/**"
+      - "aulas/**"
       - ".github/workflows/pages.yml"
   workflow_run:
     workflows: ["Frontend build check","Export browser ONNX models"]
@@ -97,7 +99,135 @@ jobs:
         run: |
           mkdir -p site/dev site/browser-models site/dev/browser-models
           cp -a prod-src/frontend/dist/. site/
+          if [ -d prod-src/aulas ]; then mkdir -p site/aulas; cp -a prod-src/aulas/. site/aulas/; fi
+          test -s site/aulas/index.html
+          test -s site/aulas/figma-theme.css
+          test -s site/aulas/figma-shell.js
+          node --check site/aulas/figma-shell.js
+          grep -q 'figma-theme.css' site/aulas/index.html
+          grep -q 'figma-shell.js' site/aulas/index.html
+          grep -q 'Trilha Dev SHM' site/aulas/index.html
+          grep -q 'id="catalog"' site/aulas/index.html
+          grep -q 'id="player"' site/aulas/index.html
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('site/aulas/index.html', 'utf8');
+          const block = html.match(/<section data-c="site">([\s\S]*?)<\/section>/);
+          if (!block) throw new Error('Curso Sites estáticos: Project Card ausente');
+          const cards = (block[1].match(/<article data-m="[1-4]">/g) || []).length;
+          if (cards !== 42) throw new Error('Esperados 42 flashcards, encontrados ' + cards);
+          for (const moduleId of [1, 2, 3, 4]) {
+            if (!block[1].includes('data-m="' + moduleId + '"')) {
+              throw new Error('Módulo ' + moduleId + ' ausente');
+            }
+          }
+          for (const section of ['const COURSES=[', 'const EX={', 'const APPS={', 'const RES={']) {
+            if (!html.includes(section)) throw new Error('Falta configuração ' + section);
+          }
+          if (!html.includes('id:"site",phase:"Preparação",title:"Sites estáticos: Project Card"')) throw new Error('Curso não está em Preparação');
+          if (html.includes('id:"projectcard"') || html.includes('Project Card Structure · Websites estáticos')) throw new Error('Curso duplicado ainda presente');
+          [8, 7, 8, 19].forEach((expected, i) => {
+            const found = (block[1].match(new RegExp('<article data-m="' + (i + 1) + '">', 'g')) || []).length;
+            if (found !== expected) throw new Error('Módulo ' + (i + 1) + ': esperado ' + expected + ', encontrado ' + found);
+          });
+          const titles = [...block[1].matchAll(/<article data-m="[1-4]"><h2>(.*?)<\/h2>/g)].map(m => m[1]);
+          if (new Set(titles).size !== titles.length) throw new Error('Títulos de flashcards repetidos');
+          if (!html.includes('id:"site",phase:"Preparação"')) throw new Error('Curso fora da Preparação');
+          const expectedConcepts = {
+            site: ["Site ou aplicação web?"],
+            git: ["O que é controle de versão", "Git ou GitHub?"],
+            html: ["O que é HTML"],
+            css: ["O que é CSS"],
+            js: ["O que é JavaScript"],
+            react: ["O que é React", "O que é TypeScript"],
+            jsvc: ["O que é visão computacional", "O que é uma imagem digital"],
+            py: ["O que é Python", "Clássica ou deep learning?"],
+            dl: ["O que é deep learning", "O que é uma rede neural", "O que é uma CNN", "Como a rede aprende"],
+            matlab: ["O que é SHM", "O que é pós-processamento"],
+            bim: ["O que é BIM", "BIM ou CAD?", "Dimensões do BIM", "BIM nas obras públicas", "O que é gêmeo digital", "Modelo, sombra e gêmeo", "BIM ou gêmeo digital?"],
+            pc: ["O que é fotogrametria", "Do pixel ao ponto 3D", "O que é uma nuvem de pontos", "Fotogrametria ou LiDAR?"],
+            vr: ["VR, AR, MR e XR"]
+          };
+          if (!html.includes("trilha-dev-shm-conceitos-20261014-v1")) throw new Error("Migração de progresso ausente");
+          for (const [course, expected] of Object.entries(expectedConcepts)) {
+            const sectionStart = html.indexOf('<section data-c="' + course + '">');
+            if (sectionStart < 0) throw new Error('Curso não encontrado: ' + course);
+            const sectionEnd = html.indexOf('</section>', sectionStart);
+            if (sectionEnd < 0) throw new Error('Fechamento ausente: ' + course);
+            const source = html.slice(sectionStart, sectionEnd);
+            const headings = [...source.matchAll(/<article data-m="[1-4]"><h2>(.*?)<\/h2>/g)].map(m => m[1]);
+            for (const title of expected) {
+              if (headings.filter(item => item === title).length !== 1) throw new Error('Flashcard ausente ou repetido: ' + course + ' — ' + title);
+            }
+          }
+          const segmentationBatches = [
+            {course:"py",after:"Clássica ou deep learning?",titles:[
+              "O que é segmentação","Etapas da segmentação","O que é uma máscara",
+              "O que é o histograma","O que é o método de Otsu","Limiar global ou adaptativo?",
+              "O que é morfologia matemática","Descritores de forma",
+              "Classificar patologias por regras","Separação em camadas"
+            ],count:29},
+            {course:"dl",after:"Como a rede aprende",titles:[
+              "Semântica, instância e panóptica","Estrutura da U-Net","O que é YOLO",
+              "Estrutura do YOLO","Como o YOLO gera máscaras","IoU e NMS",
+              "Ler a saída do YOLO","Estrutura do Mask R-CNN",
+              "Classificação de patologias com redes"
+            ],count:28}
+          ];
+          for (const batch of segmentationBatches) {
+            const open = '<section data-c="' + batch.course + '">';
+            const begin = html.indexOf(open);
+            if (begin < 0) throw new Error('Curso ausente: ' + batch.course);
+            const section = html.slice(begin, html.indexOf('</section>', begin));
+            const names = [...section.matchAll(/<article data-m="[1-4]"><h2>(.*?)<\/h2>/g)].map(match => match[1]);
+            if (names.length !== batch.count) throw new Error('Contagem divergente: ' + batch.course);
+            const at = names.indexOf(batch.after);
+            if (at < 0) throw new Error('Cartão de referência ausente: ' + batch.after);
+            if (names.slice(at + 1, at + 1 + batch.titles.length).join('|') !== batch.titles.join('|')) {
+              throw new Error('Ordem de segmentação incorreta no curso ' + batch.course);
+            }
+            for (const title of batch.titles) {
+              if (names.filter(name => name === title).length !== 1) throw new Error('Novo cartão duplicado ou ausente: ' + title);
+            }
+          }
+          if (!html.includes('trilha-dev-shm-segmentacao-20261014-v1')) throw new Error('Migração de progresso do lote 2 ausente');
+          if ((html.match(/<article data-m="/g) || []).length !== 307) throw new Error('Contagem geral de flashcards divergente');
+          const interopBatches = [
+            {course:"bim",anchor:"BIM ou gêmeo digital?",count:30,titles:[
+              "O que é modelo federado","Federado ou integrado?","Detecção de interferências",
+              "O que é interoperabilidade","openBIM e closedBIM","MVD: o recorte do IFC",
+              "BCF: comunicar problemas","IDS e bSDD","ISO 19650 e o ambiente comum de dados",
+              "Requisitos e plano de execução BIM","Nível de informação"
+            ]},
+            {course:"js",anchor:"Tempo real",count:32,titles:[
+              "O que é um protocolo","HTTP e APIs REST","WebSocket",
+              "MQTT para sensores","Qual protocolo usar?","Segurança na transferência"
+            ]}
+          ];
+          for(const batch of interopBatches){
+            const open='<section data-c="'+batch.course+'">';
+            const start=html.indexOf(open);
+            if(start<0)throw new Error('Curso ausente: '+batch.course);
+            const end=html.indexOf('</section>',start);
+            if(end<0)throw new Error('Seção incompleta: '+batch.course);
+            const names=[...html.slice(start,end).matchAll(/<article data-m="[1-5]"><h2>(.*?)<\/h2>/g)].map(x=>x[1]);
+            if(names.length!==batch.count)throw new Error('Contagem de curso divergente: '+batch.course);
+            const reference=names.indexOf(batch.anchor);
+            if(reference<0||names.slice(reference+1,reference+1+batch.titles.length).join('|')!==batch.titles.join('|')){
+              throw new Error('Ordem dos novos cartões incorreta: '+batch.course);
+            }
+            if(new Set(names).size!==names.length)throw new Error('Flashcards duplicados: '+batch.course);
+          }
+          if(!html.includes('trilha-dev-shm-bim-interop-20261014-v1'))throw new Error('Migração BIM/interoperabilidade ausente');
+          console.log('BIM/interoperabilidade OK: 17 cartões novos e progresso migrado');
+          console.log('Segmentação e YOLO OK: 19 cartões exclusivos com progresso migrado');
+          console.log('Conceitos OK: 30 cartões exclusivos, distribuídos em 13 cursos');
+          console.log('Sites estáticos: Project Card: 42 cartões únicos em Preparação');
+          NODE
           cp -a dev-src/frontend/dist/. site/dev/
+          if [ -d dev-src/aulas ]; then mkdir -p site/dev/aulas; cp -a dev-src/aulas/. site/dev/aulas/; fi
+          test -s site/dev/aulas/index.html
+          cmp -s site/aulas/index.html site/dev/aulas/index.html || echo "::warning::Aulas de produção e desenvolvimento divergem"
           if compgen -G "prod-browser-models/*" >/dev/null; then cp -a prod-browser-models/. site/browser-models/; fi
           if compgen -G "dev-browser-models/*" >/dev/null; then cp -a dev-browser-models/. site/dev/browser-models/; fi
           PROD_SHA="$(git -C prod-src rev-parse --short HEAD)"
@@ -245,6 +375,30 @@ jobs:
             exit 1
           fi
           echo "bin=$CHROME" >> "$GITHUB_OUTPUT"
+
+      - name: AULAS · published page and interactive catalog smoke
+        shell: bash
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.bin }}
+        run: |
+          set -euo pipefail
+          URL="https://aaronkadima.github.io/SHM/aulas/"
+          curl --fail --silent --show-error --location --retry 4 --retry-delay 3 "$URL" -o /tmp/shm-aulas.html
+          grep -q 'Trilha Dev SHM' /tmp/shm-aulas.html
+          grep -q 'id="catalog"' /tmp/shm-aulas.html
+          grep -q 'id="player"' /tmp/shm-aulas.html
+          grep -q 'id="studyCourseList"' /tmp/shm-aulas.html
+          curl --fail --silent --show-error --location "${URL}figma-theme.css" -o /tmp/shm-aulas-theme.css
+          curl --fail --silent --show-error --location "${URL}figma-shell.js" -o /tmp/shm-aulas-shell.js
+          grep -q '#0d766e' /tmp/shm-aulas-theme.css
+          "$CHROME_BIN" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --dump-dom "$URL" > /tmp/shm-aulas-dom.html
+          grep -q 'class="course"' /tmp/shm-aulas-dom.html
+          grep -q 'Curso 1' /tmp/shm-aulas-dom.html
+          grep -q 'Sites estáticos: Project Card' /tmp/shm-aulas-dom.html
+          grep -q 'class="sn-course"' /tmp/shm-aulas-dom.html
+          "$CHROME_BIN" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --dump-dom "${URL}#site" > /tmp/shm-aulas-site-dom.html
+          grep -q 'id="ctitle">Sites estáticos: Project Card</h2>' /tmp/shm-aulas-site-dom.html
+          echo "AULAS OK: page served, catalog rendered by JavaScript."
 
       - name: PROD · YOLOv8n · mobile full-app smoke
         working-directory: frontend

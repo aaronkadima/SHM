@@ -913,7 +913,17 @@ body:has(.liveCam){overflow:hidden}
 .editorDetection.boxesHidden:hover,.editorDetection.boxesHidden.selected{border-color:var(--box-color,#0d766e)!important}
 .srOnly{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important}
 .editorMenuSection{display:block;padding:6px 12px 2px;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7b8b95}
-.editorRecentItem{flex-direction:column;align-items:flex-start!important;gap:1px}
-.editorRecentItem span{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.editorRecentItem small{font-size:10px;color:#7b8b95}
+.editorSubmenu{position:relative}
+.editorSubmenu>button small{font-size:13px!important;line-height:1}
+.editorSubmenu.open>button{background:#edf6f3;color:#0d766e}
+.editorSubmenuPanel{top:-6px;left:calc(100% + 6px);min-width:230px;max-height:min(70vh,420px);overflow:auto}
+.editorMenuPanelRight .editorSubmenuPanel{left:auto;right:calc(100% + 6px)}
+.editorRecentItem{gap:16px}
+.editorRecentItem span{white-space:nowrap}
+.editorRecentItem small{font-size:9.5px!important;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:700px){.editorSubmenuPanel{left:8px;top:calc(100% + 2px)}}
 .editorDetection{background:color-mix(in srgb,var(--box-color,#0d766e) 12%,transparent)!important}
+.livePanel header .liveSaveAll{width:auto;margin-left:auto;margin-right:6px;display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border:1px solid #0d766e;border-radius:8px;background:#0d766e;color:#fff;font-weight:600;font-size:12px}
+.livePanel header .liveSaveAll:hover{background:#0a655f}
+.liveSaved{font-style:normal;font-weight:600;color:#0d766e;font-size:11px}
+.liveToast{z-index:7}

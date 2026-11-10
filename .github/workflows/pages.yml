@@ -405,6 +405,14 @@ jobs:
           cmp -s /tmp/shm-aulas.html /tmp/shm-dev-aulas.html || { echo "Aulas de produção e /dev divergem"; exit 1; }
           echo "AULAS DEV OK: /SHM/dev/aulas/ servido e idêntico à produção."
 
+      - name: PROD + DEV · rotas do app (Live, Aulas, Análise)
+        working-directory: frontend
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.bin }}
+        run: |
+          APP_SMOKE_URL="https://aaronkadima.github.io/SHM/#/analysis" APP_SMOKE_DEBUG_PORT=9249 node scripts/run-app-route-smoke.mjs
+          APP_SMOKE_URL="https://aaronkadima.github.io/SHM/dev/#/analysis" APP_SMOKE_DEBUG_PORT=9250 node scripts/run-app-route-smoke.mjs
+
       - name: PROD · YOLOv8n · mobile full-app smoke
         working-directory: frontend
         env:

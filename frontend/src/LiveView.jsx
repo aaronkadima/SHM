@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState}from"react";
-import{Camera,Download,FileJson,FileVideo,Flashlight,Images,MapPin,Play,RefreshCw,ScanSearch,Settings2,SwitchCamera,Trash2,Video,X}from"lucide-react";
+import{Camera,Download,FileJson,FileVideo,Flashlight,ImageDown,Images,MapPin,Play,RefreshCw,ScanSearch,Settings2,SwitchCamera,Trash2,Video,X}from"lucide-react";
 import{LIVE_ENGINES,LIVE_ENGINE_IDS}from"./liveEngines.js";
 
 const RESOLUTIONS={"720p":[1280,720],"1080p":[1920,1080],"4K":[3840,2160]};
@@ -18,6 +18,23 @@ function stamp(date=new Date()){
 function canvasBlob(canvas,type="image/png",quality){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("Falha ao gerar imagem.")),type,quality))}
 function download(url,name){const a=document.createElement("a");a.href=url;a.download=name;a.click()}
 function fmtDuration(ms){const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+// Salvar na galeria do aparelho: o navegador não grava direto no app Fotos; o compartilhamento
+// nativo (Web Share com arquivos) oferece "Salvar imagem/vídeo" no iOS e Android. Sem suporte
+// (desktop), cai para download.
+function captureFiles(items){
+  return items.flatMap(c=>c.kind==="photo"
+    ?[new File([c.annotated.blob],c.annotated.name,{type:c.annotated.blob.type||"image/png",lastModified:c.createdAt})]
+    :[new File([c.video.blob],c.video.name,{type:c.video.blob.type||"video/mp4",lastModified:c.createdAt})]);
+}
+export function canShareToDevice(files){try{return !!navigator.canShare?.({files})}catch{return false}}
+async function saveFilesToDevice(files){
+  if(files.length&&canShareToDevice(files)){
+    try{await navigator.share({files,title:"SHM Vision Lab · capturas"});return"shared"}
+    catch(e){if(e?.name==="AbortError")return"cancelled";if(e?.name!=="NotAllowedError")throw e}
+  }
+  for(const f of files){const u=URL.createObjectURL(f);download(u,f.name);setTimeout(()=>URL.revokeObjectURL(u),4000)}
+  return"downloaded";
+}
 function safeSlug(v){return String(v||"").trim().replace(/[^\w.-]+/g,"_").slice(0,40)}
 
 export default function LiveView({engines=[],selected=[],cdmOptions={},inspectionMeta={},appInfo={},onAnalyzeFrame,onClose}){
@@ -53,6 +70,8 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
   const[notice,setNotice]=useState("");
   const[panel,setPanel]=useState(null);// "settings" | "gallery" | null
   const[mode,setMode]=useState(()=>localStorage.getItem("shmLiveMode")==="video"?"video":"photo");
+  const[autoSave,setAutoSave]=useState(()=>localStorage.getItem("shmLiveAutoSave")==="1");
+  const shareSupported=useMemo(()=>{try{return canShareToDevice([new File([new Blob(["x"],{type:"image/png"})],"t.png",{type:"image/png"})])}catch{return false}},[]);
 
   const videoRef=useRef(null),canvasRef=useRef(null),recCanvasRef=useRef(null),workCanvasRef=useRef(null),fileInputRef=useRef(null);
   const workerRef=useRef(null),streamRef=useRef(null),rafRef=useRef(0),fileUrlRef=useRef(null),wakeLockRef=useRef(null);
@@ -67,9 +86,19 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
   useEffect(()=>{localStorage.setItem("shmLiveEngine",engineId)},[engineId]);
   useEffect(()=>{localStorage.setItem("shmLiveResolution",resolution)},[resolution]);
   useEffect(()=>{localStorage.setItem("shmLiveMode",mode)},[mode]);
+  useEffect(()=>{localStorage.setItem("shmLiveAutoSave",autoSave?"1":"0")},[autoSave]);
   const panelRef=useRef(null);panelRef.current=panel;
 
   const flash=useCallback((text,ms=1800)=>{setNotice(text);clearTimeout(flash.t);flash.t=setTimeout(()=>setNotice(""),ms)},[]);
+  const autoSaveRef=useRef(autoSave);autoSaveRef.current=autoSave;
+  const saveCaptures=useCallback(async items=>{
+    if(!items.length)return;
+    try{
+      const r=await saveFilesToDevice(captureFiles(items));
+      if(r==="shared"){flash(items.length>1?items.length+" capturas enviadas para salvar":"Escolha “Salvar imagem/vídeo” para guardar na galeria",2600);setCaptures(list=>list.map(c=>items.some(i=>i.id===c.id)?{...c,saved:true}:c))}
+      else if(r==="downloaded"){flash(items.length>1?items.length+" arquivos baixados":"Arquivo baixado no dispositivo",2200);setCaptures(list=>list.map(c=>items.some(i=>i.id===c.id)?{...c,saved:true}:c))}
+    }catch(e){flash("Não foi possível salvar: "+String(e?.message||e),3200)}
+  },[flash]);
 
   // ---------- Worker ----------
   const engineOpts=useCallback(()=>{
@@ -306,8 +335,9 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
       original:{blob:rawBlob,url:URL.createObjectURL(rawBlob),name:base+"-original.jpg"},
       json:{blob:jsonBlob,url:URL.createObjectURL(jsonBlob),name:base+".json"},
       counts:meta.detections?.counts||{}};
-    setCaptures(list=>[item,...list]);flash("Foto salva nas capturas");
-  },[drawComposite,metadataFor,flash]);
+    setCaptures(list=>[item,...list]);
+    if(autoSaveRef.current)saveCaptures([item]);else flash("Foto salva nas capturas");
+  },[drawComposite,metadataFor,flash,saveCaptures]);
 
   // ---------- Gravação de vídeo ----------
   const canRecord=typeof MediaRecorder!=="undefined"&&typeof HTMLCanvasElement!=="undefined"&&!!HTMLCanvasElement.prototype.captureStream;
@@ -336,13 +366,15 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
       delete timeline.detections;
       const jsonBlob=new Blob([JSON.stringify(timeline,null,2)],{type:"application/json"});
       const totals={};for(const f of timelineRef.current)for(const[k,n]of Object.entries(f.counts||{}))totals[k]=Math.max(totals[k]||0,n);
-      setCaptures(list=>[{id:crypto.randomUUID(),kind:"video",base,createdAt:Date.now(),duration,
+      const videoItem={id:crypto.randomUUID(),kind:"video",base,createdAt:Date.now(),duration,
         video:{blob,url:URL.createObjectURL(blob),name:base+"-deteccoes."+ext},
-        json:{blob:jsonBlob,url:URL.createObjectURL(jsonBlob),name:base+"-linha-do-tempo.json"},counts:totals},...list]);
-      setRecording(false);setRecElapsed(0);recCanvasRef.current=null;flash("Vídeo salvo nas capturas");
+        json:{blob:jsonBlob,url:URL.createObjectURL(jsonBlob),name:base+"-linha-do-tempo.json"},counts:totals};
+      setCaptures(list=>[videoItem,...list]);
+      setRecording(false);setRecElapsed(0);recCanvasRef.current=null;
+      if(autoSaveRef.current)saveCaptures([videoItem]);else flash("Vídeo salvo nas capturas");
     };
     rec.start(1000);recorderRef.current=rec;recStartRef.current=performance.now();setRecording(true);
-  },[canRecord,metadataFor,flash,drawComposite]);
+  },[canRecord,metadataFor,flash,drawComposite,saveCaptures]);
   const stopRecording=useCallback(()=>{if(recorderRef.current?.state==="recording")recorderRef.current.stop()},[]);
 
   // Abre a câmera direto, como o app de câmera do celular.
@@ -462,6 +494,7 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
         <label className="liveLabel">Opacidade das camadas <b>{Math.round(opacity*100)}%</b><input type="range" min=".1" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/></label>
         <div className="liveSwitchRow"><span>Caixas delimitadoras</span><button className={"liveSwitch"+(showBoxes?" on":"")} role="switch" aria-checked={showBoxes} onClick={()=>setShowBoxes(v=>!v)}><i/></button></div>
         <div className="liveSwitchRow"><span>Estabilizar máscaras</span><button className={"liveSwitch"+(smoothing?" on":"")} role="switch" aria-checked={smoothing} onClick={()=>{setSmoothing(v=>!v);emaRef.current=new Map()}}><i/></button></div>
+        <div className="liveSwitchRow"><span><ImageDown size={13}/> Salvar cada captura no dispositivo</span><button className={"liveSwitch"+(autoSave?" on":"")} role="switch" aria-checked={autoSave} onClick={()=>setAutoSave(v=>!v)}><i/></button></div>
         <div className="liveSwitchRow"><span><MapPin size={13}/> Georreferenciar{geo?" · ±"+Math.round(geo.accuracy_m)+" m":""}</span><button className={"liveSwitch"+(geoOn?" on":"")} role="switch" aria-checked={geoOn} onClick={()=>setGeoOn(v=>!v)}><i/></button></div>
         <label className="liveLabel">Resolução da câmera
           <select value={resolution} disabled={recording} onChange={e=>{setResolution(e.target.value);if(source?.kind==="camera")startCamera({resolution:e.target.value})}}>{Object.keys(RESOLUTIONS).map(k=><option key={k}>{k}</option>)}</select>
@@ -478,19 +511,20 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
     </aside>}
 
     {panel==="gallery"&&<aside className="livePanel wide" aria-label="Capturas da sessão">
-      <header><b>Capturas da sessão</b><button onClick={()=>setPanel(null)} aria-label="Fechar capturas"><X size={17}/></button></header>
+      <header><b>Capturas da sessão</b>{captures.length>0&&<button className="liveSaveAll" onClick={()=>saveCaptures(captures)} title={shareSupported?"Salvar todas na galeria do dispositivo":"Baixar todas as capturas"}><ImageDown size={15}/> {shareSupported?"Salvar todas":"Baixar todas"}</button>}<button onClick={()=>setPanel(null)} aria-label="Fechar capturas"><X size={17}/></button></header>
       <div className="livePanelBody">
         {captures.length?<div className="liveGallery">{captures.map(c=><figure key={c.id}>
           {c.kind==="photo"?<img src={c.annotated.url} alt="Captura com detecções"/>:<video src={c.video.url} controls playsInline/>}
           <figcaption>
-            <b>{c.kind==="photo"?"Foto":"Vídeo · "+fmtDuration(c.duration)}</b>
+            <b>{c.kind==="photo"?"Foto":"Vídeo · "+fmtDuration(c.duration)}{c.saved&&<em className="liveSaved"> · salvo</em>}</b>
             <span>{Object.entries(c.counts||{}).filter(([,n])=>n>0).map(([k,n])=>k+" "+n).join(" · ")||"sem achados"}</span>
             <div className="liveGalleryActions">
+              <button className="primary" onClick={()=>saveCaptures([c])} title={shareSupported?"Salvar na galeria do dispositivo (Fotos/Galeria)":"Baixar no dispositivo"}><ImageDown size={13}/> {shareSupported?"Salvar na galeria":"Salvar no dispositivo"}</button>
               {c.kind==="photo"?<>
                 <button onClick={()=>download(c.annotated.url,c.annotated.name)} title="PNG com camadas e dados da inspeção"><Download size={13}/> Detecções</button>
                 <button onClick={()=>download(c.original.url,c.original.name)} title="Quadro original"><Download size={13}/> Original</button>
                 <button onClick={()=>download(c.json.url,c.json.name)} title="Metadados e detecções"><FileJson size={13}/> JSON</button>
-                <button className="primary" onClick={()=>analyzeCapture(c)} title="Abrir o quadro original na Análise completa"><ScanSearch size={13}/> Analisar</button>
+                <button onClick={()=>analyzeCapture(c)} title="Abrir o quadro original na Análise completa"><ScanSearch size={13}/> Analisar</button>
               </>:<>
                 <button onClick={()=>download(c.video.url,c.video.name)}><Video size={13}/> Vídeo</button>
                 <button onClick={()=>download(c.json.url,c.json.name)} title="Detecções quadro a quadro"><FileJson size={13}/> Linha do tempo</button>

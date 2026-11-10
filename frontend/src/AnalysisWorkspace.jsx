@@ -40,12 +40,18 @@ const TEMPORAL_WARNING_LABELS={
   exposure_warning:"exposição próxima do limite",
   low_texture:"baixa textura para registro"
 };
+// Nome longo encurtado para 5 caracteres + "…" + extensão (ex.: "OAE-1….jpg").
+function shortFileName(name){
+  const s=String(name||""),m=s.match(/^(.*?)(\.[^.]{1,8})?$/),stem=m?.[1]||s,ext=m?.[2]||"";
+  return stem.length>5?stem.slice(0,5)+"…"+ext:s;
+}
 export default function AnalysisWorkspace({appInfo=null,executionIssue="",referenceValidating=false,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,spatialRgbFile=null,spatialRgbPrev=null,onSpatialRgbFile=null,spatialRegistration=null,spatialTransform=null,spatialFrameAssets=null,onSolveSpatialFrameAlignment=null,spatialRgbAnalysis=null,spatialPhotoViews=[],activeSpatialPhotoId=null,onAddSpatialPhotos=null,onSelectSpatialPhoto=null,onRemoveSpatialPhoto=null,spatialAutoRegistrationBusy=false,spatialAutoRegistrationStatus=null,onAutoRegisterSpatialPhotos=null,spatialRegistrationPointCount=0,photometricSummary=null,onPhotometricSummary=null,onSpatialRegistrationSample=null,spatialPathologyRecords=[],onSpatialPathologyRecords=null,onSolveSpatialRegistration=null,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,onLive=null,onRenameFile=null,onSaveFile=null,onApplyCorrection=null,onRestoreOriginal=null,hasOriginalFile=false,appliedCorrection=null,onImageDiagnostics=null,cdmOptions={},stageControl={},aulasOpen=false,onToggleAulas=null,recentHistory=[],onOpenRecent=null,aulasHref="",onAulasNav=null,aulasCrumb="",error,onExport,onExportCsv,onExportMap,onExportCdm,onExportCdm3=null}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [initialCompactLayout]=useState(()=>typeof window!=="undefined"&&window.innerWidth<900);
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialCompactLayout?false:initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
   const [inspectorOpen,setInspectorOpen]=useState(()=>{try{return localStorage.getItem("shmImageInspectorOpen")==="1"}catch{return false}}),[inspectorTab,setInspectorTab]=useState("histogram"),[correctionPreview,setCorrectionPreview]=useState(null);
   const [imageQuality,setImageQuality]=useState(null),[qualityAck,setQualityAck]=useState(false),[renaming,setRenaming]=useState(false),[nameDraft,setNameDraft]=useState(""),[stagesActive,setStagesActive]=useState(false);
+  const [recentOpen,setRecentOpen]=useState(false);
   const [showBoxes,setShowBoxes]=useState(()=>{try{return localStorage.getItem("shmShowDetectionBoxes")!=="0"}catch{return true}}),[layerSettingsId,setLayerSettingsId]=useState(null);
   const aulasFrame=useRef(null),aulasLockRef=useRef(false);
   aulasLockRef.current=aulasOpen;
@@ -1053,8 +1059,12 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>picker.current?.click())}><span>Importar…</span><small>Ctrl/Cmd+O</small></button>
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>setCameraOpen(true))}><span>Câmera</span></button>
           {onLive&&<button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onLive)}><span>Modo Live (tempo real)</span></button>}
-          {recentHistory.length>0&&<><hr/><span className="editorMenuSection">Recentes</span>
-          {recentHistory.slice(0,6).map(item=>{const name=item.file_meta?.name||"inspeção";const when=item.created_at?new Date(item.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"";const where=[item.inspection?.oae_id,item.inspection?.element_id].filter(Boolean).join(" · ");return <button key={item.id} type="button" role="menuitem" className="editorRecentItem" disabled={busy} title={"Abrir "+name+(where?" · "+where:"")} onClick={e=>runEditorMenuAction(e,()=>onOpenRecent?.(item.id))}><span>{name}</span><small>{[where,when].filter(Boolean).join(" · ")}</small></button>})}</>}
+          {recentHistory.length>0&&<div className={"editorSubmenu"+(recentOpen?" open":"")} onMouseEnter={()=>setRecentOpen(true)} onMouseLeave={()=>setRecentOpen(false)}>
+            <button type="button" role="menuitem" aria-haspopup="menu" aria-expanded={recentOpen} disabled={busy} onClick={e=>{e.preventDefault();e.stopPropagation();setRecentOpen(v=>!v)}}><span>Recentes</span><small aria-hidden="true">›</small></button>
+            {recentOpen&&<div className="editorMenuPanel editorSubmenuPanel" role="menu" aria-label="Arquivos recentes">
+              {recentHistory.slice(0,10).map(item=>{const name=item.file_meta?.name||"inspeção";const when=item.created_at?new Date(item.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}).replace(",",""):"";const where=[item.inspection?.oae_id,item.inspection?.element_id].filter(Boolean).join(" · ");return <button key={item.id} type="button" role="menuitem" className="editorRecentItem" title={name+(where?" · "+where:"")+(when?" · "+when:"")} onClick={e=>{setRecentOpen(false);runEditorMenuAction(e,()=>onOpenRecent?.(item.id))}}><span>{shortFileName(name)}</span><small>{when}</small></button>})}
+            </div>}
+          </div>}
           <hr/>
           <button type="button" role="menuitem" disabled={!file||busy} onClick={e=>runEditorMenuAction(e,startRename)}><span>Renomear…</span></button>
           <button type="button" role="menuitem" disabled={!file} onClick={e=>runEditorMenuAction(e,()=>{onSaveFile?.();showStatusNotice("Arquivo salvo · "+file.name,1600)})}><span>Salvar</span><small>Ctrl/Cmd+S</small></button>

@@ -1,13 +1,8 @@
 name: Deploy SHM production + development preview to GitHub Pages
 
 on:
-  push:
-    # Só o main pode publicar no ambiente github-pages; o dev é publicado pelo workflow_run do main.
-    branches: ["main"]
-    paths:
-      - "frontend/**"
-      - "aulas/**"
-      - ".github/workflows/pages.yml"
+  # Sem gatilho de push: o deploy roda uma única vez, depois que o "Frontend build check" passa
+  # (dev ou main). Dois deploys simultâneos deixavam o CDN servindo versões misturadas.
   workflow_run:
     workflows: ["Frontend build check","Export browser ONNX models"]
     types: [completed]

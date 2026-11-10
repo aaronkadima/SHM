@@ -8,12 +8,14 @@ on:
       - "engines/catalog.json"
       - ".github/workflows/frontend-ci.yml"
       - ".github/workflows/pages.yml"
+      - "aulas/**"
   pull_request:
     paths:
       - "frontend/**"
       - "engines/catalog.json"
       - ".github/workflows/frontend-ci.yml"
       - ".github/workflows/pages.yml"
+      - "aulas/**"
   workflow_dispatch:
 
 permissions:

@@ -399,6 +399,11 @@ jobs:
           "$CHROME_BIN" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --dump-dom "${URL}#site" > /tmp/shm-aulas-site-dom.html
           grep -q 'id="ctitle">Sites estáticos: Project Card</h2>' /tmp/shm-aulas-site-dom.html
           echo "AULAS OK: page served, catalog rendered by JavaScript."
+          DEV_URL="https://aaronkadima.github.io/SHM/dev/aulas/"
+          curl --fail --silent --show-error --location --retry 4 --retry-delay 3 "$DEV_URL" -o /tmp/shm-dev-aulas.html
+          grep -q 'Trilha Dev SHM' /tmp/shm-dev-aulas.html
+          cmp -s /tmp/shm-aulas.html /tmp/shm-dev-aulas.html || { echo "Aulas de produção e /dev divergem"; exit 1; }
+          echo "AULAS DEV OK: /SHM/dev/aulas/ servido e idêntico à produção."
 
       - name: PROD · YOLOv8n · mobile full-app smoke
         working-directory: frontend

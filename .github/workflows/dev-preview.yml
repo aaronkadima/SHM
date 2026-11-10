@@ -1,11 +1,10 @@
 name: Publish SHM combined static snapshot
 
+# DESATIVADO por push: este snapshot (branch gh-pages-dev) não contém /aulas nem os modelos ONNX e,
+# ao ser publicado, substituía o site completo gerado por pages.yml — causando 404 em /aulas e
+# falha no download dos modelos até o próximo deploy. O pages.yml já publica produção + /dev juntos.
+# Mantido apenas para execução manual de diagnóstico.
 on:
-  push:
-    branches: ["dev"]
-    paths:
-      - "frontend/**"
-      - ".github/workflows/dev-preview.yml"
   workflow_dispatch:
 
 permissions:

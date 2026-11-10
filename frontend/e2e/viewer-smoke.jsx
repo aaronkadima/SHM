@@ -16,6 +16,11 @@ function setNativeValue(input,value){
   input.dispatchEvent(new Event("input",{bubbles:true}));
   input.dispatchEvent(new Event("change",{bubbles:true}));
 }
+// Configurações por camada ficam no botão ⚙ de cada linha (abre o painel em linha).
+function openLayerSettings(name){
+  if(document.querySelector(".layerSettingsPanel"))return;
+  document.querySelector('[aria-label="Configurar exibição de '+name+'"]')?.click();
+}
 function canvasTransformValues(element){
   const text=element?.style.transform||"";
   const match=text.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)\s*scale\(([\d.]+)\)/);
@@ -167,7 +172,7 @@ function App(){
               pathologyGroup.querySelector("summary")?.click();
               await sleep(40);
             }
-            const pathologyGroupInteractiveOk=!!pathologyGroup?.open&&!!document.querySelector(".layerInspector");
+            const pathologyGroupInteractiveOk=!!pathologyGroup?.open&&!!document.querySelector(".layerSettingsToggle");
             const hideAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Ocultar todas");
             const showAll=[...document.querySelectorAll(".pathologyLayerGroup .layerGroupActions button")].find(b=>b.textContent.trim()==="Mostrar todas");
             const layerBefore=document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)").length;
@@ -189,15 +194,17 @@ function App(){
             await sleep(40);
             const orderAfter=[...document.querySelectorAll(".pathologyOverlay:not(.temporalOverlay)")].map(img=>img.alt).join(">");
             const layerOrderOk=orderBefore==="Corrosão>Fissuras"&&orderAfter==="Fissuras>Corrosão";
-            const layerOpacityInput=[...document.querySelectorAll('.layerInspector input[type="range"]')][0];
+            openLayerSettings("Fissuras");
+            await sleep(40);
+            const layerOpacityInput=[...document.querySelectorAll('.layerSettingsPanel input[type="range"]')][0];
             setNativeValue(layerOpacityInput,.4);
             await sleep(60);
             const selectedLayer=document.querySelector('.pathologyOverlay[data-layer-id="cracks"]');
             const layerOpacityOk=!!selectedLayer&&Math.abs(Number(selectedLayer.style.opacity)-0.3)<0.01;
-            const lockToggle=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
+            const lockToggle=[...document.querySelectorAll(".layerSettingsActions button")].find(b=>b.textContent.includes("Bloquear"));
             lockToggle?.click();
             await sleep(40);
-            const lockedInput=[...document.querySelectorAll('.layerInspector input[type="range"]')][0];
+            const lockedInput=[...document.querySelectorAll('.layerSettingsPanel input[type="range"]')][0];
             const lockIcon=document.querySelector(".layerLockState");
             const lockedMove=[...document.querySelectorAll(".layerOrderControls button")].find(b=>b.title==="Subir Fissuras");
             const lockStateOk=!!lockIcon&&lockedInput?.disabled===true&&lockedMove?.disabled===true;
@@ -500,7 +507,9 @@ function App(){
             const resetZoom=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim();
             const resetOpacity=document.querySelector('.pathologyOverlay[data-layer-id="cracks"]')?.style.opacity;
             const resetLock=document.querySelector(".layerLockState");
-            const resetLockButton=[...document.querySelectorAll(".layerInspectorActions button")].find(b=>b.textContent.includes("Bloquear"));
+            openLayerSettings("Fissuras");
+            await sleep(40);
+            const resetLockButton=[...document.querySelectorAll(".layerSettingsActions button")].find(b=>b.textContent.includes("Bloquear"));
             const savedPrefs=JSON.parse(localStorage.getItem("shm.viewer.preferences.v1")||"{}");
             const resetDrawerOk=!narrowSidebar||!document.querySelector(".editorLayers");
             const resetLockControlOk=narrowSidebar

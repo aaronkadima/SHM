@@ -109,4 +109,8 @@ if(failures.length){
   failures.forEach(x=>console.error(" - "+x));
   process.exit(1);
 }
+const LIVE_IDS=["cdm_1","opencv_crack","yolov8n_public_crack_seg","segformer_public_crack","crackenpy_public_crack"];
+for(const id of LIVE_IDS){const e=engines.find(x=>x.id===id);check(e?.live_ready===true&&e?.browser_ready===true,id+" must be live_ready and browser_ready")}
+for(const e of engines)if(e.live_ready)check(LIVE_IDS.includes(e.id),e.id+" is live_ready but has no live runtime in liveEngines.js");
+check(crackenpyBrowser?.backend_adapter===false&&crackenpyBrowser?.cloud_verified===false,"CrackenPy has no backend adapter: must be backend_adapter=false and cloud_verified=false");
 console.log("Engine catalog passed:",{count:engines.length,version:catalog.version,cdm:{id:cdm.id,browser_ready:cdm.browser_ready},segformer:{id:segformer.id,browser_ready:segformer.browser_ready,browser_runtime:segformer.browser_runtime},yoloBrowser:{id:yoloBrowser.id,browser_ready:yoloBrowser.browser_ready,browser_stage:yoloBrowser.browser_stage},unetBrowser:{id:unetBrowser.id,browser_ready:unetBrowser.browser_ready,browser_stage:unetBrowser.browser_stage},crackenpyBrowser:{id:crackenpyBrowser.id,browser_ready:crackenpyBrowser.browser_ready,browser_stage:crackenpyBrowser.browser_stage}});

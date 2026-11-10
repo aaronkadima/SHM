@@ -3,5 +3,7 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins:[react()],
+  // Workers em ESM: o worker do modo Live importa onnxruntime-web (code-splitting).
+  worker:{format:"es"},
   base:process.env.VITE_BASE_PATH||"/SHM/"
 });

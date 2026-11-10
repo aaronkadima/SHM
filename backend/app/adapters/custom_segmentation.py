@@ -27,7 +27,12 @@ class CustomSegAdapter(EngineAdapter):
         p=os.getenv(self.env)
         if not p or not os.path.exists(p): raise FileNotFoundError("Defina "+self.env)
         if self.model is None:
-            self.model=(UNet(len(CLASSES)) if self.kind=="unet" else SegNet(len(CLASSES))).eval(); st=torch.load(p,map_location="cpu"); self.model.load_state_dict(st.get("state_dict",st),strict=False)
+            model=(UNet(len(CLASSES)) if self.kind=="unet" else SegNet(len(CLASSES))).eval(); st=torch.load(p,map_location="cpu")
+            # strict=False sozinho aceitaria um checkpoint incompatível e rodaria com pesos aleatórios:
+            # camadas ausentes invalidam a inferência e precisam falhar explicitamente.
+            res=model.load_state_dict(st.get("state_dict",st),strict=False)
+            if res.missing_keys: raise RuntimeError(f"Checkpoint {self.meta.name} incompatível: {len(res.missing_keys)} tensores ausentes (ex.: {res.missing_keys[:3]})")
+            self.model=model
         return self.model
     def predict(self,image):
         a=np.asarray(image.convert("RGB").resize((512,512)),dtype=np.float32)/255; x=torch.from_numpy(a).permute(2,0,1).unsqueeze(0)

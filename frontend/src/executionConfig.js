@@ -20,5 +20,7 @@ export function analysisExecutionIssue({selected=[],engines=[],individualApi="",
     if(engine?.browser_ready&&browserSupported(id))return "";
     return executionEndpointIssue(individualApi,{label:"backend individual de "+(engine?.name||id),hostname});
   }
+  const browserOnly=ids.map(id=>engines.find(item=>item.id===id)).filter(engine=>engine?.backend_adapter===false);
+  if(browserOnly.length)return browserOnly.map(engine=>engine.name||engine.id).join(", ")+" executa somente no navegador e não tem adaptador no comparador cloud; remova-o da seleção para comparar ou rode-o individualmente.";
   return executionEndpointIssue(comparatorApi,{label:"comparador cloud",hostname});
 }

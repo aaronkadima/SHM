@@ -85,6 +85,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-execution-config.mjs
 
+      - name: Live mode engines (worker-safe classical runtimes + catalog contract)
+        working-directory: frontend
+        run: node scripts/check-live-engines.mjs
+
       - name: Result export
         working-directory: frontend
         run: node scripts/check-result-export.mjs

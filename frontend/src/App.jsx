@@ -3,13 +3,14 @@ import{Layers3}from"lucide-react";
 import catalog from"./engines.json";
 import AnalysisWorkspace from"./AnalysisWorkspace.jsx";
 import AnalysisSettings from"./AnalysisSettings.jsx";
+import LiveView from"./LiveView.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
 import{analysisExecutionIssue,executionEndpointIssue}from"./executionConfig.js";
 import{buildComparisonCsv}from"./resultExport.js";
 import{detectAsset,isCdm3SpatialAsset}from"./assetDetection.js";
 import{sortEngines,engineMatchesFilter,engineMatchesQuery}from"./engineCatalog.js";
 import{buildCdmSvg,buildCdmCsv,buildCdmCoco,buildCdmDxf,buildCdmBimJson,buildCdmIfc,buildCdmHtml}from"./cdmExports.js";
-import{NavRail,DashboardView,CamerasView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
+import{NavRail,DashboardView,EnginesView,AlertsView,ReportsView}from"./views.jsx";
 import{saveInspection,listInspectionSummaries,getInspection,deleteInspection,clearInspections,requestPersistentStorage,getStorageStatus}from"./historyStore.js";
 import{createPhotometricDetectionFile}from"./cdm3PhotometricFusion.js";
 
@@ -21,6 +22,7 @@ const APP_INFO={channel:APP_CHANNEL,buildSha:BUILD_SHA,catalogVersion:CATALOG_VE
 
 const DEFAULT_COMPARATOR="https://shm-api-production-01f8.up.railway.app";
 const DEFAULT_INDIVIDUAL="";
+const VIEWS=["dashboard","live","analysis","alerts","reports","engines","settings"];
 const EMPTY_INSPECTION={oae_id:"",element_id:"",source_id:"",inspection_label:""};
 const CDM_DEFAULTS={cdm_threshold:35,cdm_kernel_size:15,cdm_min_area:30,cdm_min_aspect_ratio:2,cdm_mm_per_px:0,cdm_element_family:"lajes_vigas_secundarias_apoios",cdm_alignment_method:"translation_auto"};
 
@@ -147,7 +149,8 @@ export default function App(){
   const activeRun=useRef(null),runSeq=useRef(0),referencePickSeq=useRef(0),historyOpenSeq=useRef(0),spatialPhotoViewsRef=useRef([]);
   const[activeView,setActiveView]=useState(()=>{
     const v=window.location.hash.replace(/^#\//,"");
-    return ["dashboard","cameras","analysis","alerts","reports","engines","settings"].includes(v)?v:"analysis";
+    if(v==="cameras")return"live";
+    return VIEWS.includes(v)?v:"analysis";
   });
 
   useEffect(()=>()=>{if(prev)URL.revokeObjectURL(prev)},[prev]);
@@ -194,7 +197,8 @@ export default function App(){
   useEffect(()=>{
     const sync=()=>{
       const v=window.location.hash.replace(/^#\//,"");
-      if(["dashboard","cameras","analysis","alerts","reports","engines","settings"].includes(v))setActiveView(v);
+      if(v==="cameras")setActiveView("live");
+      else if(VIEWS.includes(v))setActiveView(v);
     };
     window.addEventListener("hashchange",sync);
     return()=>window.removeEventListener("hashchange",sync);
@@ -705,7 +709,7 @@ export default function App(){
     }
   }
 
-  return <div className={"appShell "+(["analysis","settings"].includes(activeView)?"editorShell ":"")+(activeView==="settings"?"settingsShell":"")}>
+  return <div className={"appShell "+(["analysis","settings"].includes(activeView)?"editorShell ":"")+(activeView==="settings"?"settingsShell":"")+(activeView==="live"?" liveShell":"")}>
     {! ["analysis","settings"].includes(activeView)&&<NavRail active={activeView} onSelect={navigate}/>}
     <main className="appMain">
     {! ["analysis","settings"].includes(activeView)&&<header className="topbar">
@@ -724,9 +728,9 @@ export default function App(){
     </header>}
 
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
-    {activeView==="cameras"&&<CamerasView prev={prev} res={res} inspection={inspectionMeta} onNavigate={navigate}/>}
+    {activeView==="live"&&<LiveView engines={engines} selected={selected} cdmOptions={cdmOptions} inspectionMeta={inspectionMeta} appInfo={APP_INFO} onNavigate={navigate} onAnalyzeFrame={f=>{pick(f);navigate("analysis")}}/>}
     {activeView==="analysis"&&<>
-    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} spatialRegistration={spatialRegistration} spatialTransform={spatialTransform} spatialFrameAssets={spatialFrameAssets} onSolveSpatialFrameAlignment={solveSpatialFrameAlignment} spatialRgbAnalysis={spatialRgbAnalysis} spatialPhotoViews={spatialPhotoViews} activeSpatialPhotoId={activeSpatialPhotoId} onAddSpatialPhotos={addSpatialPhotos} onSelectSpatialPhoto={selectSpatialPhoto} onRemoveSpatialPhoto={removeSpatialPhoto} spatialAutoRegistrationBusy={spatialAutoRegistrationBusy} spatialAutoRegistrationStatus={spatialAutoRegistrationStatus} onAutoRegisterSpatialPhotos={autoRegisterSpatialPhotos} spatialRegistrationPointCount={Number(spatialRegistrationSample?.sampled_point_count||0)} photometricSummary={photometricSummary} onPhotometricSummary={setPhotometricSummary} onSpatialRegistrationSample={setSpatialRegistrationSample} spatialPathologyRecords={spatialPathologyRecords} onSpatialPathologyRecords={handleSpatialPathologyRecords} onSolveSpatialRegistration={solveSpatialRegistration} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)} onExportCdm3={exportSpatialPathologies}/>
+    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} spatialRegistration={spatialRegistration} spatialTransform={spatialTransform} spatialFrameAssets={spatialFrameAssets} onSolveSpatialFrameAlignment={solveSpatialFrameAlignment} spatialRgbAnalysis={spatialRgbAnalysis} spatialPhotoViews={spatialPhotoViews} activeSpatialPhotoId={activeSpatialPhotoId} onAddSpatialPhotos={addSpatialPhotos} onSelectSpatialPhoto={selectSpatialPhoto} onRemoveSpatialPhoto={removeSpatialPhoto} spatialAutoRegistrationBusy={spatialAutoRegistrationBusy} spatialAutoRegistrationStatus={spatialAutoRegistrationStatus} onAutoRegisterSpatialPhotos={autoRegisterSpatialPhotos} spatialRegistrationPointCount={Number(spatialRegistrationSample?.sampled_point_count||0)} photometricSummary={photometricSummary} onPhotometricSummary={setPhotometricSummary} onSpatialRegistrationSample={setSpatialRegistrationSample} spatialPathologyRecords={spatialPathologyRecords} onSpatialPathologyRecords={handleSpatialPathologyRecords} onSolveSpatialRegistration={solveSpatialRegistration} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} onLive={()=>navigate("live")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)} onExportCdm3={exportSpatialPathologies}/>
     </>}
     {activeView==="engines"&&<EnginesView appInfo={APP_INFO} engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 

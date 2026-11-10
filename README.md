@@ -120,6 +120,17 @@ Atualmente o catálogo contém **33 motores/configurações**, incluindo:
 
 Alguns possuem checkpoints públicos de patologia estrutural já integrados; outros exigem dependências, configuração e/ou checkpoints específicos do usuário.
 
+## Modo Live (tempo real)
+
+Rota `#/live` (o antigo `#/cameras` redireciona). Também acessível pelo botão **Live** do editor de Análise.
+
+- **Fontes:** câmera do dispositivo (720p/1080p/4K, troca frontal/traseira, lanterna quando suportada) ou arquivo de vídeo (ex.: voo de drone).
+- **Motores:** `cdm_1`, `opencv_crack`, `yolov8n_public_crack_seg`, `segformer_public_crack`, `crackenpy_public_crack` (campo `live_ready` no catálogo).
+- **Execução:** um Web Worker persistente (`frontend/src/liveWorker.js`) mantém as sessões ONNX e processa um quadro por vez (o mais recente); a thread principal só compõe vídeo + camadas, então a gravação não trava durante a inferência. Nenhum quadro sai do navegador.
+- **Captura:** foto (PNG com camadas e HUD + JPEG original + JSON de metadados/detecções) e vídeo (MP4 quando o navegador suporta, senão WebM) com linha do tempo JSON das detecções. O botão **Analisar** envia o quadro original para a análise completa.
+- **Escala:** o Live processa ≈512–640 px. No CDM-1, kernel e área mínima são escalados pela razão entre a resolução do Live e a resolução que a análise completa usaria (min(1600, lado original)). Resultados do Live são triagem; laudo e medições devem usar a Análise completa.
+- Paridade Live × pipeline completo verificada na mesma imagem (YOLOv8n: área 0,0391 × 0,0389, mesmas caixas; CrackenPy: 0,0539 × 0,0540; CDM-1: 8 × 8 registros). CI: `frontend/scripts/check-live-engines.mjs`.
+
 ## Resultados
 
 A plataforma apresenta:

@@ -1,5 +1,5 @@
 {
-  "version": "1.7.1",
+  "version": "1.8.0",
   "engines": [
     {
       "id": "opencv_crack",
@@ -11,7 +11,8 @@
       "cloud_verified": true,
       "domain_mode": "classical",
       "browser_ready": true,
-      "browser_runtime": "builtin-js"
+      "browser_runtime": "builtin-js",
+      "live_ready": true
     },
     {
       "id": "cdm_1",
@@ -29,7 +30,8 @@
       "temporal_quality_gate": "cdm_temporal_quality_v1",
       "catalog_visibility": "always",
       "catalog_group": "CDM / determinístico",
-      "catalog_owned": true
+      "catalog_owned": true,
+      "live_ready": true
     },
     {
       "id": "cdm_3",
@@ -161,7 +163,8 @@
       "browser_release_dev": "browser-models-dev",
       "browser_release_stable": "browser-models-stable",
       "browser_release_asset": "yolov8n_public_crack_seg.onnx",
-      "browser_manifest_asset": "yolov8n_public_crack_seg.json"
+      "browser_manifest_asset": "yolov8n_public_crack_seg.json",
+      "live_ready": true
     },
     {
       "id": "unet_public_crack",
@@ -196,7 +199,7 @@
       "task": "semantic_segmentation",
       "description": "FPN com encoder ResNeXt50-32x4d para materiais cimentícios; execução individual validada no navegador via ONNX Runtime Web/WASM, com licença BSD, quantização INT8 e quality gate em máscara rotulada de concreto.",
       "recommended": true,
-      "cloud_verified": true,
+      "cloud_verified": false,
       "domain_mode": "public_shm_checkpoint",
       "license": "BSD",
       "source_url": "https://huggingface.co/rievil/crackenpy",
@@ -215,7 +218,10 @@
       "browser_size_reduction_percent": 74.25,
       "browser_quality_gate": "labeled-concrete-mask",
       "browser_quality_iou": 0.648371,
-      "browser_quality_dice": 0.786681
+      "browser_quality_dice": 0.786681,
+      "backend_adapter": false,
+      "backend_note": "Sem adaptador no backend Python: executa somente no navegador (individual ou Live); não participa do comparador Railway.",
+      "live_ready": true
     },
     {
       "id": "segformer_public_crack",
@@ -236,7 +242,8 @@
       "browser_release_dev": "browser-models-dev",
       "browser_release_stable": "browser-models-stable",
       "browser_release_asset": "segformer_public_crack.onnx",
-      "browser_manifest_asset": "segformer_public_crack.json"
+      "browser_manifest_asset": "segformer_public_crack.json",
+      "live_ready": true
     },
     {
       "id": "grounding_dino",

@@ -4,9 +4,10 @@ import {analysisExecutionIssue,executionEndpointIssue} from "../src/executionCon
 const engines=[
   {id:"cdm_1",name:"CDM-1",browser_ready:true},
   {id:"opencv_crack",name:"OpenCV Crack Baseline",browser_ready:true},
-  {id:"backend_model",name:"Backend Model",browser_ready:false}
+  {id:"backend_model",name:"Backend Model",browser_ready:false},
+  {id:"browser_only",name:"Browser Only",browser_ready:true,backend_adapter:false}
 ];
-const browserSupported=id=>id==="cdm_1"||id==="opencv_crack";
+const browserSupported=id=>id==="cdm_1"||id==="opencv_crack"||id==="browser_only";
 
 assert.match(analysisExecutionIssue({selected:[],engines,browserSupported,hostname:"aaronkadima.github.io"}),/Selecione pelo menos um motor/);
 assert.equal(analysisExecutionIssue({selected:["cdm_1"],engines,browserSupported,hostname:"aaronkadima.github.io"}),"");
@@ -17,6 +18,8 @@ assert.match(analysisExecutionIssue({selected:["backend_model"],engines,individu
 assert.equal(analysisExecutionIssue({selected:["cdm_1","backend_model"],engines,comparatorApi:"https://compare.example.com",browserSupported,hostname:"aaronkadima.github.io"}),"");
 assert.match(analysisExecutionIssue({selected:["cdm_1","backend_model"],engines,comparatorApi:"http://127.0.0.1:8000",browserSupported,hostname:"aaronkadima.github.io"}),/site público exige/);
 assert.equal(analysisExecutionIssue({selected:["backend_model"],engines,individualApi:"http://127.0.0.1:8000",browserSupported,hostname:"localhost"}),"");
+assert.equal(analysisExecutionIssue({selected:["browser_only"],engines,browserSupported,hostname:"aaronkadima.github.io"}),"");
+assert.match(analysisExecutionIssue({selected:["cdm_1","browser_only"],engines,comparatorApi:"https://compare.example.com",browserSupported,hostname:"aaronkadima.github.io"}),/somente no navegador/);
 assert.match(executionEndpointIssue("notaurl",{label:"comparador cloud",hostname:"aaronkadima.github.io"}),/não é uma URL válida/);
 assert.match(executionEndpointIssue("ftp://example.com",{label:"comparador cloud",hostname:"aaronkadima.github.io"}),/HTTP ou HTTPS/);
 

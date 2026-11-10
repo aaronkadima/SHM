@@ -2,6 +2,7 @@ import * as bundledOrt from "onnxruntime-web";
 const ORT_VERSION="1.30.0";
 let ortPromise=null;
 const sessionCache=new Map();
+const manifestCache=new Map();
 
 function ortAssetBase(){
   const base=String(import.meta.env.BASE_URL||"/").replace(/\/?$/,"/");
@@ -70,13 +71,15 @@ async function sha256Hex(bytes){
   const digest=await crypto.subtle.digest("SHA-256",bytes);
   return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,"0")).join("");
 }
-async function getSession(engineId,control={}){
+export async function getSession(engineId,control={}){
   const signal=control.signal,onProgress=control.onProgress,channel=control.channel;
   const tag=control.releaseTag||activeReleaseTag(channel),base=modelBaseUrl(control),stem=control.assetStem||engineId;
   const label=engineId+" · ONNX";
   ensureActive(signal);progress(onProgress,3,label,"manifest");
   const manifestUrl=assetUrl(base,stem+".json")+"?build="+encodeURIComponent(String(control.buildSha||Date.now()));
-  const manifest=await fetchJson(manifestUrl,signal);
+  // O manifesto é imutável por build: buscar uma vez por sessão evita uma requisição por execução/quadro (modo Live).
+  let manifest=manifestCache.get(manifestUrl);
+  if(!manifest){manifest=await fetchJson(manifestUrl,signal);manifestCache.set(manifestUrl,manifest)}
   if(manifest.engine_id!==engineId)throw new Error("Manifesto ONNX pertence a outro motor.");
   const expectedSha=String(manifest.sha256||"").toLowerCase();
   if(!/^[0-9a-f]{64}$/.test(expectedSha))throw new Error("Manifesto ONNX não contém SHA-256 válido.");
@@ -297,12 +300,12 @@ export async function runSegformerBrowser(file,control={}){
   const crackId=Math.max(0,Math.min(classes-1,Number(manifest.crack_id??1))),threshold=Number(manifest.threshold??.5);
   const canvas=prepared.source,ctx=canvas.getContext("2d",{willReadFrequently:true}),img=ctx.getImageData(0,0,prepared.width,prepared.height);
   let area=0,sumMask=0,sumAll=0,maxProb=0;
+  const logits=new Float32Array(classes);
   for(let y=0;y<prepared.height;y++){
     const sy=(y+.5)*oh/prepared.height-.5;
     for(let x=0;x<prepared.width;x++){
       const sx=(x+.5)*ow/prepared.width-.5;
       let maxLog=-Infinity,best=0,crackLog=0;
-      const logits=new Float32Array(classes);
       for(let cls=0;cls<classes;cls++){
         const v=bilinear(out.data,cls*plane,ow,oh,sx,sy);logits[cls]=v;
         if(v>maxLog){maxLog=v;best=cls}
@@ -449,11 +452,11 @@ export async function runYolov8nCrackSegBrowser(file,control={}){
       engine_id:"yolov8n_public_crack_seg",name:"YOLOv8n Crack Segmentation · navegador",task:"instance_segmentation",status:"ok",
       latency_ms:performance.now()-started,detections,overlay_png_base64:canvasBase64(canvas),
       metrics:{detections:detections.length,crack_area_ratio:Number((maskArea/Math.max(1,union.length)).toFixed(6)),confidence_threshold:threshold,nms_iou:.45,source_repo:manifest.source_repo,overlay_semantics:"composite_image",runtime:"onnxruntime-web-wasm",runtime_version:ORT_VERSION,model_sha256:loaded.digest,model_bytes:Number(manifest.bytes||0),processed_scale:Number(prepared.processedScale.toFixed(4))},
-      message:"YOLOv8n-Seg executado no navegador com artefato ONNX verificado por SHA-256; runtime ainda em validação de paridade antes da promoção browser_ready."
+      message:"YOLOv8n-Seg executado no navegador com artefato ONNX verificado por SHA-256; paridade quantitativa aprovada contra o backend Ultralytics/PyTorch."
     }],
     consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,
     metadata:{analysis_id:"browser-"+crypto.randomUUID(),api_version:"browser-onnx-1.0",generated_at:new Date().toISOString(),mode:"browser",engine_ids:["yolov8n_public_crack_seg"],implementation:"yolov8n-seg-onnxruntime-web-v1",model_release:loaded.tag}
   };
 }
 
-export function clearOnnxSessionCache(){sessionCache.clear()}
+export function clearOnnxSessionCache(){sessionCache.clear();manifestCache.clear()}

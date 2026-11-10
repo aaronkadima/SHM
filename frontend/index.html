@@ -1,4 +1,18 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><script>
+/* Recuperação após deploy: o GitHub Pages pode servir um index.html em cache (até 10 min) que aponta
+   para assets com hash já substituídos. Se o script do app falhar ou o app não montar, recarrega uma
+   vez com parâmetro novo (fura o cache e busca o index.html atual). */
+(function(){
+  var KEY="shmBootRetry",MAX=2;
+  function retry(){
+    try{var n=+(sessionStorage.getItem(KEY)||0);if(n>=MAX)return;sessionStorage.setItem(KEY,String(n+1));
+      var u=new URL(location.href);u.searchParams.set("v",String(Date.now()));location.replace(u.toString())}catch(e){}
+  }
+  window.addEventListener("error",function(e){var t=e&&e.target;if(t&&t.tagName==="SCRIPT"&&/\/assets\//.test(t.src||""))retry()},true);
+  window.addEventListener("unhandledrejection",function(e){if(/dynamically imported module|Importing a module script failed|Failed to fetch/i.test(String(e&&e.reason&&e.reason.message||"")))retry()});
+  setTimeout(function(){var r=document.getElementById("root");if(r&&!r.childElementCount)retry();else try{sessionStorage.removeItem(KEY)}catch(e){}},10000);
+})();
+</script><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/><title>SHM Vision Lab</title></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>

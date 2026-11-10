@@ -72,16 +72,21 @@ async function main(){
   await request("Runtime.enable");
   const evaluate=async expression=>{const r=await request("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});if(r?.exceptionDetails)throw new Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r?.result?.value};
   const report=[];
+  const diag=()=>evaluate('JSON.stringify({href:location.href,ready:document.readyState,root:(document.getElementById("root")?.innerHTML||"").slice(0,300),text:(document.body?.innerText||"").slice(0,300)})').catch(e=>String(e));
+  // Espera o app montar (o index.html pode recarregar uma vez para furar cache após deploy).
+  const bootDeadline=Date.now()+60000;let booted=false;
+  while(Date.now()<bootDeadline){try{booted=await evaluate('!!document.querySelector(".appShell")||!!document.querySelector(".appRuntimeError")')}catch{}if(booted)break;await sleep(500)}
+  if(!booted)throw new Error("App não montou em 60 s. "+await diag());
   for(const [route,selector] of ROUTES){
     await evaluate(`(()=>{location.hash="#/${route}";return true})()`);
     const deadline=Date.now()+Math.min(timeoutMs,45000);let state=null;
     while(Date.now()<deadline){
-      state=await evaluate(`(()=>({ok:!!document.querySelector(${JSON.stringify(selector)}),crash:document.querySelector(".appRuntimeError")?.innerText||""}))()`);
+      try{state=await evaluate(`(()=>({ok:!!document.querySelector(${JSON.stringify(selector)}),crash:document.querySelector(".appRuntimeError")?.innerText||""}))()`)}catch{state=null;await sleep(500);continue}
       if(state.crash)throw new Error("Rota #/"+route+" derrubou o app: "+state.crash);
       if(state.ok)break;
       await sleep(250);
     }
-    if(!state?.ok)throw new Error("Rota #/"+route+" não montou "+selector);
+    if(!state?.ok)throw new Error("Rota #/"+route+" não montou "+selector+". "+await diag());
     report.push(route);
   }
   if(!(await evaluate('!!document.querySelector(".liveCam")'))){/* saiu do Live corretamente */}

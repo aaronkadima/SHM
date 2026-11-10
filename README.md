@@ -131,6 +131,16 @@ Rota `#/live` (o antigo `#/cameras` redireciona). Também acessível pelo botão
 - **Escala:** o Live processa ≈512–640 px. No CDM-1, kernel e área mínima são escalados pela razão entre a resolução do Live e a resolução que a análise completa usaria (min(1600, lado original)). Resultados do Live são triagem; laudo e medições devem usar a Análise completa.
 - Paridade Live × pipeline completo verificada na mesma imagem (YOLOv8n: área 0,0391 × 0,0389, mesmas caixas; CrackenPy: 0,0539 × 0,0540; CDM-1: 8 × 8 registros). CI: `frontend/scripts/check-live-engines.mjs`.
 
+## CDM 2.9 · fissuras contínuas
+
+A fissura mantém a forma e a continuidade da máscara candidata (etapa 4), de forma idêntica no navegador (`frontend/src/cdmBrowser.js`) e no Python (`backend/app/cdm_v285.py`):
+
+1. **Abertura por reconstrução**: a abertura 3×3 só escolhe os componentes candidatos com núcleo robusto; cada um volta com a forma completa (trechos de 1–2 px preservados). Depois, fechamento 3×3.
+2. **Fragmentos**: pontilhado e manchas compactas (poros) ficam fora; trechos alongados a ≤ 4 px uns dos outros formam **uma** fissura (um registro, uma caixa).
+3. **Geometria**: linha central pelo esqueleto (Zhang-Suen) com poda de esporões ≤ 12 px, exportada como uma polilinha que percorre também as ramificações. Comprimento = metade do percurso suavizado (≈ linha central euclidiana); largura média = área/comprimento; alongamento = L²/A ≥ `cdm_min_aspect_ratio`; comprimento mínimo = 3% do maior lado da imagem.
+
+Antes (2.8.5) a abertura apagava trechos finos e cada pedaço virava uma reta PCA com caixa própria. Testes: `check-cdm-parity.mjs` (Python ⇄ navegador) e `check-cdm-crack-continuity.mjs` (uma fissura curva com lacunas e ramificação → um registro, erro de comprimento < 10%).
+
 ## Studio: imagem, qualidade e etapas dos motores
 
 - **Painel Imagem** (botão flutuante no canvas): histograma RGB/luminância com a curva tonal (curva S), propriedades do arquivo e da imagem, **laudo de adequação** e **correção antes da análise** (exposição, contraste, curva S, gama, saturação, balanço de branco, redução de ruído, nitidez, rotação). A prévia aparece no canvas; ao aplicar, a análise usa a imagem corrigida e o original pode ser restaurado.

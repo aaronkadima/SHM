@@ -46,7 +46,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialCompactLayout?false:initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
   const [inspectorOpen,setInspectorOpen]=useState(()=>{try{return localStorage.getItem("shmImageInspectorOpen")==="1"}catch{return false}}),[inspectorTab,setInspectorTab]=useState("histogram"),[correctionPreview,setCorrectionPreview]=useState(null);
   const [imageQuality,setImageQuality]=useState(null),[qualityAck,setQualityAck]=useState(false),[renaming,setRenaming]=useState(false),[nameDraft,setNameDraft]=useState(""),[stagesActive,setStagesActive]=useState(false);
-  const aulasFrame=useRef(null);
+  const aulasFrame=useRef(null),aulasLockRef=useRef(false);
+  aulasLockRef.current=aulasOpen;
   const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(""),[cameraReady,setCameraReady]=useState(false),[cameraFacing,setCameraFacing]=useState("environment"),[cameraCapturing,setCameraCapturing]=useState(false),[cameraResolution,setCameraResolution]=useState("");
   const [registrationOpen,setRegistrationOpen]=useState(false),[registrationPairs,setRegistrationPairs]=useState([]),[registrationPendingUv,setRegistrationPendingUv]=useState(null),[registrationBusy,setRegistrationBusy]=useState(false),[registrationError,setRegistrationError]=useState("");
   const [registrationIntrinsics,setRegistrationIntrinsics]=useState({fx:"",fy:"",cx:"",cy:""});
@@ -84,6 +85,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   },[]);
   useEffect(()=>{
     const onPaste=e=>{
+      if(aulasLockRef.current)return;
       const target=e.target;
       if(target instanceof HTMLInputElement||target instanceof HTMLTextAreaElement||target?.isContentEditable)return;
       const files=[...(e.clipboardData?.files||[])].filter(item=>detectAsset(item)==="2d");
@@ -100,6 +102,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   useEffect(()=>{
     const onShortcut=e=>{
       if(!(e.ctrlKey||e.metaKey)||e.altKey)return;
+      if(aulasLockRef.current)return;
       const target=e.target;
       if(target instanceof HTMLInputElement||target instanceof HTMLTextAreaElement||target instanceof HTMLSelectElement||target?.isContentEditable)return;
       if(cameraOpen)return;
@@ -983,7 +986,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         :referenceValidating
           ?"Validando referência t0…"
           :executionIssue;
-  const statusMessage=error
+  const statusMessage=aulasOpen?"Aulas · ferramentas de análise desativadas · progresso salvo neste navegador":error
     ||previewError
     ||(progress?.state==="cancelled"?"Análise cancelada":"")
     ||(persisting?"Análise concluída · salvando histórico local":"")
@@ -1032,7 +1035,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   }
   return <section className="analysisEditor" aria-label="Workspace de análise">
     <div className="editorTop">
-      <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><nav className="editorMenus" aria-label="Menu do editor">
+      <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><nav className={"editorMenus"+(aulasOpen?" studioLocked":"")} aria-label="Menu do editor" inert={aulasOpen||undefined} aria-disabled={aulasOpen||undefined}>
         <details className="editorMenu" name="shm-editor-menu"><summary>Arquivo</summary><div className="editorMenuPanel" role="menu">
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>picker.current?.click())}><span>Importar…</span><small>Ctrl/Cmd+O</small></button>
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>setCameraOpen(true))}><span>Câmera</span></button>
@@ -1061,7 +1064,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         </div></details>
       </nav></div>
       <div className="editorFileTitle">{aulasOpen?<span className="editorFileName static">Aulas · Trilha Dev SHM{aulasCrumb?" · "+aulasCrumb:""}</span>:renaming?<input className="editorFileNameInput" autoFocus value={nameDraft} aria-label="Nome do arquivo" onChange={e=>setNameDraft(e.target.value)} onBlur={commitRename} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();commitRename()}else if(e.key==="Escape"){e.preventDefault();setRenaming(false)}}}/>:<button type="button" className="editorFileName" disabled={!file||busy} onClick={startRename} title={file?"Clique para renomear":"Nenhum arquivo"}>{file?.name||"Nova inspeção"}</button>} {!aulasOpen&&kind&&"· "+(kind==="unknown"?"NÃO SUPORTADO":kind.toUpperCase())}{!aulasOpen&&file&&onSaveFile&&<button type="button" className="editorFileSave" onClick={()=>{onSaveFile();showStatusNotice("Arquivo salvo · "+file.name,1600)}} title="Salvar (Ctrl/Cmd+S)" aria-label="Salvar arquivo"><Save size={13}/></button>}{!aulasOpen&&<span className="editorEngineState">{selectedEngineLabels.length===0?"Nenhum motor":selectedEngineLabels.length===1?selectedEngineLabels[0].name+(selectedEngineLabels[0].browser_ready?" · browser local":""):selectedEngineLabels.length+" motores · comparação"}</span>}</div>
-      <div className="editorTopActions">
+      <div className={"editorTopActions"+(aulasOpen?" studioLocked":"")} inert={aulasOpen||undefined} aria-disabled={aulasOpen||undefined} title={aulasOpen?"Ferramentas de análise desativadas durante as aulas":undefined}>
         <input ref={picker} hidden type="file" accept={ASSET_ACCEPT} onChange={e=>{const next=e.target.files?.[0]||null;e.target.value="";onFile(next)}}/>
         <input ref={referencePicker} hidden type="file" accept={IMAGE_ACCEPT} onChange={e=>{const next=e.target.files?.[0]||null;e.target.value="";onReferenceFile(next)}}/>
         <input ref={spatialRgbPicker} hidden type="file" accept={IMAGE_ACCEPT} onChange={e=>{const next=e.target.files?.[0]||null;e.target.value="";onSpatialRgbFile?.(next)}}/>
@@ -1076,7 +1079,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     </div>
     <div className="editorBody">
       <div className="editorTools" aria-label="Ferramentas">
-        <div className="editorToolButtons">
+        <div className={"editorToolButtons"+(aulasOpen?" studioLocked":"")} inert={aulasOpen||undefined} aria-disabled={aulasOpen||undefined}>
           <button aria-label="Mostrar ou ocultar painel de camadas" title="Mostrar ou ocultar camadas" onClick={()=>setLayersPanelOpen(v=>{const next=!v;showStatusNotice(next?"Camadas abertas":"Camadas recolhidas",900);return next})}><Layers3/></button>
           <button aria-label="Ampliar zoom" title={kind==="2d"?"Ampliar":"Zoom 2D indisponível"} disabled={kind!=="2d"} onClick={()=>changeZoom(.25)}><Plus/></button>
           <button aria-label="Reduzir zoom" title={kind==="2d"?"Reduzir":"Zoom 2D indisponível"} disabled={kind!=="2d"} onClick={()=>changeZoom(-.25)}><Minus/></button>

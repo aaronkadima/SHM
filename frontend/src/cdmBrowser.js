@@ -278,7 +278,10 @@ function detectMasks(imageData,cfg){
 
   const crackResponse=blackhat(gray,w,h,k),crackRaw=new Uint8Array(n);
   for(let i=0;i<n;i++)crackRaw[i]=crackResponse[i]>cfg.threshold?1:0;
-  masks.cracks=cleanup(crackRaw,w,h,3);
+  // Fissuras (CDM 2.9): abertura por reconstrução. A abertura 3×3 só escolhe os componentes
+  // candidatos que têm núcleo robusto; cada componente escolhido volta com a forma completa da
+  // máscara candidata (trechos de 1–2 px preservados). Depois, fechamento 3×3.
+  masks.cracks=filterMask(filterMask(reconstructByOpening(crackRaw,w,h),w,h,3,true),w,h,3,false);
 
   const p18=percentileFloat(gray,18),p45=percentileFloat(gray,45);
   const darkCut=Math.min(120,p18+Math.max(8,cfg.threshold*.25));
@@ -314,7 +317,182 @@ function isBoundary(mask,w,h,p){
   for(let yy=Math.max(0,y-1);yy<=Math.min(h-1,y+1);yy++)for(let xx=Math.max(0,x-1);xx<=Math.min(w-1,x+1);xx++)if(!mask[yy*w+xx])return true;
   return false;
 }
+function reconstructByOpening(candidate,w,h){
+  const opened=filterMask(filterMask(candidate,w,h,3,false),w,h,3,true),n=w*h,out=new Uint8Array(n),queue=new Int32Array(n);
+  for(let s=0;s<n;s++){
+    if(!(opened[s]&&candidate[s])||out[s])continue;
+    let head=0,tail=0;queue[tail++]=s;out[s]=1;
+    while(head<tail){
+      const p=queue[head++],y=(p/w)|0,x=p-y*w;
+      for(let ny=Math.max(0,y-1);ny<=Math.min(h-1,y+1);ny++)for(let nx=Math.max(0,x-1);nx<=Math.min(w-1,x+1);nx++){const q=ny*w+nx;if(candidate[q]&&!out[q]){out[q]=1;queue[tail++]=q}}
+    }
+  }
+  return out;
+}
+// ---------- Fissuras: continuidade e geometria pelo esqueleto (CDM 2.9) ----------
+// Mesma implementação em backend/app/cdm_v285.py (crack_records_from_mask); paridade testada em CI.
+const CRACK_GAP_PX=4,CRACK_BRIDGE_KERNEL=2*CRACK_GAP_PX+1,CRACK_MIN_FRAGMENT=3,CRACK_SPUR_PX=12,CRACK_COMPACT_FACTOR=4,CRACK_MIN_LENGTH_FRACTION=.03;
+// Poda de esporões: ramos terminais com ≤ CRACK_SPUR_PX pixels até uma junção (≥ 3 vizinhos) são
+// removidos. Decisão tomada sobre o esqueleto original (independe da ordem de varredura).
+function pruneSpurs(skel,w,h){
+  const n=w*h,deg=new Uint8Array(n),out=new Uint8Array(skel);
+  const nbs=i=>{const y=(i/w)|0,x=i-y*w,r=[];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<w&&ny<h&&skel[ny*w+nx])r.push(ny*w+nx)}return r};
+  for(let i=0;i<n;i++)if(skel[i])deg[i]=nbs(i).length;
+  for(let i=0;i<n;i++){
+    if(!skel[i]||deg[i]!==1)continue;
+    const path=[i];let prev=-1,cur=i,hitJunction=false;
+    while(path.length<=CRACK_SPUR_PX){
+      const next=nbs(cur).filter(q=>q!==prev&&!path.includes(q));
+      if(!next.length)break;
+      const q=next[0];if(deg[q]>=3){hitJunction=true;break}
+      prev=cur;cur=q;path.push(q);
+    }
+    if(hitJunction&&path.length<=CRACK_SPUR_PX)for(const p of path)out[p]=0;
+  }
+  return out;
+}
+// Afinamento de Zhang-Suen (paralelo por subiteração; vizinhança fora da imagem = 0).
+function zhangSuen(src,w,h){
+  const img=new Uint8Array(src);let changed=true;
+  const at=(x,y)=>x<0||y<0||x>=w||y>=h?0:img[y*w+x];
+  let on=[];for(let i=0;i<img.length;i++)if(img[i])on.push(i);
+  while(changed){
+    changed=false;
+    for(let pass=0;pass<2;pass++){
+      const del=[];
+      for(const i of on){
+        if(!img[i])continue;
+        const y=(i/w)|0,x=i-y*w;
+        const p2=at(x,y-1),p3=at(x+1,y-1),p4=at(x+1,y),p5=at(x+1,y+1),p6=at(x,y+1),p7=at(x-1,y+1),p8=at(x-1,y),p9=at(x-1,y-1);
+        const B=p2+p3+p4+p5+p6+p7+p8+p9;if(B<2||B>6)continue;
+        const A=(!p2&&p3)+(!p3&&p4)+(!p4&&p5)+(!p5&&p6)+(!p6&&p7)+(!p7&&p8)+(!p8&&p9)+(!p9&&p2);if(A!==1)continue;
+        if(pass===0?(p2*p4*p6||p4*p6*p8):(p2*p4*p8||p2*p6*p8))continue;
+        del.push(i);
+      }
+      if(del.length){changed=true;for(const i of del)img[i]=0}
+    }
+    on=on.filter(i=>img[i]);
+  }
+  return img;
+}
+// Comprimento do esqueleto: arestas 4-vizinhas valem 1; diagonais valem √2 só quando não há
+// atalho pelos dois pixels de canto (evita contar triângulos duas vezes).
+function skeletonLength(skel,w,h,pixels){
+  let L=0;
+  for(const i of pixels){
+    const y=(i/w)|0,x=i-y*w;
+    const right=x+1<w&&skel[i+1],down=y+1<h&&skel[i+w];
+    if(right)L+=1;if(down)L+=1;
+    if(x+1<w&&y+1<h&&skel[i+w+1]&&!right&&!down)L+=Math.SQRT2;
+    if(x>0&&y+1<h&&skel[i+w-1]&&!(x>0&&skel[i-1])&&!down)L+=Math.SQRT2;
+  }
+  return L;
+}
+function rdp(points,eps){
+  if(points.length<3)return points;
+  const keep=new Uint8Array(points.length);keep[0]=keep[points.length-1]=1;
+  const stack=[[0,points.length-1]];
+  while(stack.length){
+    const[a,b]=stack.pop();let best=-1,idx=-1;
+    const[ax,ay]=points[a],[bx,by]=points[b],dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy);
+    // segmento degenerado (percurso que volta ao início): usa a distância euclidiana
+    for(let i=a+1;i<b;i++){const d=len<1e-9?Math.hypot(points[i][0]-ax,points[i][1]-ay):Math.abs(dy*(points[i][0]-ax)-dx*(points[i][1]-ay))/len;if(d>best){best=d;idx=i}}
+    if(best>eps){keep[idx]=1;stack.push([a,idx],[idx,b])}
+  }
+  return points.filter((_,i)=>keep[i]);
+}
+// Percorre o esqueleto em profundidade a partir de uma extremidade, voltando pelos ramos:
+// uma única polilinha desenha a fissura inteira (com ramificações) em SVG/DXF/IFC/canvas.
+function skeletonWalk(skel,w,h,pixels){
+  if(!pixels.length)return{points:[],length:0};
+  const set=new Set(pixels),nb=i=>{const y=(i/w)|0,x=i-y*w,out=[];for(const[dx,dy]of[[0,-1],[1,0],[0,1],[-1,0],[1,-1],[1,1],[-1,1],[-1,-1]]){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<w&&ny<h&&set.has(ny*w+nx))out.push(ny*w+nx)}return out};
+  const visited=new Set(),walk=[],parts=[];
+  for(const seed of pixels){
+    if(visited.has(seed))continue;
+    // começa numa extremidade (1 vizinho) da parte, se existir
+    let start=seed;const comp=[seed],seen=new Set([seed]);
+    for(let k=0;k<comp.length;k++)for(const n of nb(comp[k]))if(!seen.has(n)){seen.add(n);comp.push(n)}
+    for(const c of comp)if(nb(c).length===1){start=c;break}
+    const part=[],stack=[[start,0]];visited.add(start);part.push(start);
+    while(stack.length){
+      const top=stack[stack.length-1],ns=nb(top[0]);let advanced=false;
+      while(top[1]<ns.length){const n=ns[top[1]++];if(!visited.has(n)){visited.add(n);part.push(n);stack.push([n,0]);advanced=true;break}}
+      if(!advanced){stack.pop();if(stack.length)part.push(stack[stack.length-1][0])}
+    }
+    parts.push(part);
+  }
+  parts.sort((a,b)=>b.length-a.length);
+  // Cada aresta da árvore DFS é percorrida duas vezes (ida e volta): comprimento = metade da
+  // polilinha já suavizada (Douglas-Peucker), por parte — aproxima a linha central euclidiana.
+  let length=0;
+  for(const part of parts){
+    const simplified=rdp(part.map(i=>{const y=(i/w)|0;return[i-y*w,y]}),.8);
+    for(let k=1;k<simplified.length;k++)length+=Math.hypot(simplified[k][0]-simplified[k-1][0],simplified[k][1]-simplified[k-1][1])/2;
+    walk.push(...simplified);// partes separadas por < 2·gap são unidas (continuidade)
+  }
+  return{points:walk,length};
+}
+// Fragmentos: pontilhado e manchas compactas (poros: caixa com proporção < 2 e área < 4×área mínima)
+// não entram no agrupamento; trechos alongados seguem, preservando a forma da etapa 4.
+function crackFragments(mask,w,h,minArea){
+  const n=w*h,seen=new Uint8Array(n),queue=new Int32Array(n),kept=new Uint8Array(n);
+  for(let s=0;s<n;s++){
+    if(!mask[s]||seen[s])continue;
+    let head=0,tail=0;queue[tail++]=s;seen[s]=1;let minX=w,minY=h,maxX=0,maxY=0;
+    while(head<tail){
+      const p=queue[head++],y=(p/w)|0,x=p-y*w;
+      if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+      for(let ny=Math.max(0,y-1);ny<=Math.min(h-1,y+1);ny++)for(let nx=Math.max(0,x-1);nx<=Math.min(w-1,x+1);nx++){const q=ny*w+nx;if(mask[q]&&!seen[q]){seen[q]=1;queue[tail++]=q}}
+    }
+    const bw=maxX-minX+1,bh=maxY-minY+1,elong=Math.max(bw,bh)/Math.max(1,Math.min(bw,bh));
+    if(tail>=CRACK_MIN_FRAGMENT&&(elong>=2||tail>=CRACK_COMPACT_FACTOR*minArea))for(let k=0;k<tail;k++)kept[queue[k]]=1;
+  }
+  return kept;
+}
+function crackRecords(rawMask,w,h,timeLabel,cfg){
+  const mask=crackFragments(rawMask,w,h,Math.max(1,cfg.minArea));
+  const n=w*h,bridged=filterMask(filterMask(mask,w,h,CRACK_BRIDGE_KERNEL,true),w,h,CRACK_BRIDGE_KERNEL,false);
+  for(let i=0;i<n;i++)bridged[i]=bridged[i]|mask[i];
+  const skel=pruneSpurs(zhangSuen(bridged,w,h),w,h),grow=filterMask(mask,w,h,CRACK_BRIDGE_KERNEL,true);
+  // grupos: fragmentos a ≤ CRACK_GAP_PX px uns dos outros formam a mesma fissura
+  const label=new Int32Array(n).fill(-1),queue=new Int32Array(n),groups=[];
+  for(let s=0;s<n;s++){
+    if(!mask[s]||label[s]>=0)continue;
+    const id=groups.length,g={crack:[],skel:[]};groups.push(g);
+    let head=0,tail=0;queue[tail++]=s;label[s]=id;
+    while(head<tail){
+      const p=queue[head++],y=(p/w)|0,x=p-y*w;
+      for(let ny=Math.max(0,y-1);ny<=Math.min(h-1,y+1);ny++)for(let nx=Math.max(0,x-1);nx<=Math.min(w-1,x+1);nx++){
+        const q=ny*w+nx;if(grow[q]&&label[q]<0){label[q]=id;queue[tail++]=q}
+      }
+    }
+  }
+  for(let i=0;i<n;i++){const id=label[i];if(id<0)continue;if(mask[i])groups[id].crack.push(i);if(skel[i])groups[id].skel.push(i)}
+  const records=[],minArea=Math.max(1,cfg.minArea),minAspect=cfg.minAspect;let componentNumber=0;
+  for(const g of groups){
+    const area=g.crack.length;if(area<minArea)continue;
+    let minX=w,minY=h,maxX=0,maxY=0;
+    for(const p of g.crack){const y=(p/w)|0,x=p-y*w;if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y}
+    componentNumber++;
+    const bw=maxX-minX+1,bh=maxY-minY+1;
+    // Alongamento pela forma real (comprimento do esqueleto ÷ largura média = L²/A), válido para fissuras curvas.
+    const walk=skeletonWalk(skel,w,h,g.skel),points=walk.points,length=Math.max(1,walk.length),aspect=length*length/area;
+    // comprimento mínimo de fissura: 3% do maior lado da imagem processada (grão/textura curtos)
+    if(aspect<minAspect||length<CRACK_MIN_LENGTH_FRACTION*Math.max(w,h))continue;
+    let perimeter=0;for(const p of g.crack)if(isBoundary(mask,w,h,p))perimeter++;
+    if(points.length<2)continue;
+    records.push({
+      id:timeLabel+"_cracks_"+String(componentNumber).padStart(4,"0"),
+      time_label:timeLabel,class:"cracks",source_class:"cracks",bbox:[minX,minY,bw,bh],points,closed:false,
+      area_px2:area,perimeter_px:perimeter,length_px:length,width_px:area/length,aspect_ratio:aspect,
+      geometry_method:"skeleton_polyline_v1",
+      confidence_note:"Browser CDM 2.9: fissura pela linha central do esqueleto (Zhang-Suen), fragmentos a ≤ "+CRACK_GAP_PX+" px unidos; largura média = área/comprimento."
+    });
+  }
+  return records;
+}
 function recordsFromMask(mask,w,h,damageClass,timeLabel,cfg){
+  if(damageClass==="cracks")return crackRecords(mask,w,h,timeLabel,cfg);
   const seen=new Uint8Array(mask.length),queue=new Uint32Array(mask.length),records=[],minArea=Math.max(1,cfg.minArea),minAspect=cfg.minAspect;
   let componentNumber=0;
   for(let start=0;start<mask.length;start++){
@@ -598,7 +776,7 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
   const detections=records.map(r=>({label:r.class,canonical_label:r.class,score:null,box:[r.bbox[0],r.bbox[1],r.bbox[0]+r.bbox[2],r.bbox[1]+r.bbox[3]],polygon:r.points,area_px:r.area_px2}));
   const composite=document.createElement("canvas");composite.width=w;composite.height=h;const cctx=composite.getContext("2d");
   for(const cls of ORDER){
-    const rec=records.filter(r=>r.class===cls),tmp=document.createElement("canvas");tmp.width=w;tmp.height=h;const tctx=tmp.getContext("2d");
+    const rec=records.filter(r=>r.class===cls),tmp=document.createElement("canvas");tmp.width=w;tmp.height=h;const tctx=tmp.getContext("2d");tctx.lineCap="round";tctx.lineJoin="round";
     for(const r of rec){
       if(!r.points.length)continue;tctx.beginPath();tctx.moveTo(...r.points[0]);for(let i=1;i<r.points.length;i++)tctx.lineTo(...r.points[i]);
       if(r.closed){tctx.closePath();tctx.fillStyle="rgba("+COLORS[cls].join(",")+",.59)";tctx.fill()}
@@ -613,7 +791,7 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     engine_id:"cdm_1",name:"CDM-1",task:"classical",status:"ok",latency_ms:totalMs,detections,
     overlay_png_base64:composite.toDataURL("image/png").split(",")[1],
     metrics:{
-      implementation:"CDM 2.8.5 browser parity",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,
+      implementation:"CDM 2.9 browser parity (fissuras contínuas por esqueleto)",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,
       performance_ms:{decode:decodeMs,core:coreMs,render:renderMs,total:totalMs},
       overlay_semantics:"transparent_layers",
       geometry_units:"processed_pixels",processed_width:w,processed_height:h,mm_per_px:cfg.mmPerPx||null,
@@ -625,4 +803,4 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
 }
 
 // Test hooks: pure functions used by CI parity checks; not part of the UI API.
-export const __cdmTest={grayAndRgb,detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,registerPrevious,estimateTranslationRegistration,applyTranslationRegistration,temporalQualityAssessment,percentileFloat,blackhat,cleanup,ORDER,LABELS};
+export const __cdmTest={pruneSpurs,reconstructByOpening,zhangSuen,skeletonLength,crackRecords,grayAndRgb,detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,registerPrevious,estimateTranslationRegistration,applyTranslationRegistration,temporalQualityAssessment,percentileFloat,blackhat,cleanup,ORDER,LABELS};

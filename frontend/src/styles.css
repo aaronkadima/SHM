@@ -886,3 +886,8 @@ body:has(.liveCam){overflow:hidden}
 .imgRename button{display:inline-flex;align-items:center;gap:5px;border:1px solid #dbe4e8;background:#fff;color:#263e4b;border-radius:7px;padding:6px 9px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap}
 .imgRename button.imgPrimary{background:#0d766e;border-color:#0d766e;color:#fff}
 .imgRename button:disabled{opacity:.45;cursor:not-allowed}
+
+/* Aulas: controles do Studio relativos à análise desativados (inert) */
+.studioLocked{opacity:.38;filter:grayscale(.4);pointer-events:none;user-select:none}
+.editorViewport.hasStages .editorResultsTab{right:126px}
+@media(max-width:720px){.editorViewport.hasStages .editorResultsTab{right:15px}}

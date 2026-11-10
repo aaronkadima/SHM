@@ -79,8 +79,8 @@ async function cdmStages(file,options={}){
     stage("base_image","2 · Imagem base normalizada","Cinza com estiramento p2–p98. Em superfícies de baixo contraste este passo amplifica o ruído.",grayUrl(gray,w,h,{normalize:false})),
     stage("family_response","3 · Resposta black-hat","Kernel "+cfg.kernel+"×"+cfg.kernel+": realça estruturas escuras mais finas que o kernel.",grayUrl(response,w,h)),
     stage("candidate_mask","4 · Máscara candidata","Resposta > limiar "+cfg.threshold+" (fissuras, antes da limpeza).",maskUrl(raw,w,h)),
-    stage("open_close_mask","5 · Máscaras por família","Após abertura/fechamento: fissura, desplacamento, armadura, corrosão e eflorescência.",overlayUrl(base,(ctx,W,H)=>{for(const c of CDM_LIVE_CLASSES)maskOverlay(ctx,masks[c.id],w,h,W,H,c.color)})),
-    stage("connected_components","6 · Componentes vetorizados",CDM_LIVE_CLASSES.map(c=>c.label+" "+counts[c.id]).join(" · ")+" (área ≥ "+cfg.minArea+" px, alongamento ≥ "+cfg.minAspect+" para fissuras).",overlayUrl(base,(ctx)=>{
+    stage("open_close_mask","5 · Máscaras por família","Fissura: abertura por reconstrução (mantém a forma da etapa 4) + fechamento 3×3. Demais famílias: abertura/fechamento.",overlayUrl(base,(ctx,W,H)=>{for(const c of CDM_LIVE_CLASSES)maskOverlay(ctx,masks[c.id],w,h,W,H,c.color)})),
+    stage("connected_components","6 · Componentes vetorizados",CDM_LIVE_CLASSES.map(c=>c.label+" "+counts[c.id]).join(" · ")+". Fissuras: fragmentos a ≤ 4 px unidos e linha central pelo esqueleto (área ≥ "+cfg.minArea+" px, alongamento L²/A ≥ "+cfg.minAspect+").",overlayUrl(base,(ctx)=>{
       ctx.lineCap="round";ctx.lineJoin="round";
       for(const r of records){
         if(!r.points?.length)continue;const col="rgb("+color[r.class].join(",")+")";

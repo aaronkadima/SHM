@@ -70,6 +70,18 @@ function linePolygon(points,width){
   const nx=-dy/length*half,ny=dx/length*half;
   return [[a[0]+nx,a[1]+ny],[b[0]+nx,b[1]+ny],[b[0]-nx,b[1]-ny],[a[0]-nx,a[1]-ny]];
 }
+// Fissura como polilinha (CDM 2.9): um quadrilátero por segmento, para que a segmentação COCO
+// siga a forma e as ramificações em vez de uma reta entre as pontas.
+function polylineSegments(points,width){
+  const out=[],half=Math.max(.5,number(width)/2);
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i],dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy);
+    if(length<1e-6)continue;
+    const nx=-dy/length*half,ny=dx/length*half;
+    out.push([[a[0]+nx,a[1]+ny],[b[0]+nx,b[1]+ny],[b[0]-nx,b[1]-ny],[a[0]-nx,a[1]-ny]]);
+  }
+  return out.length?out:[linePolygon(points,width)];
+}
 export function buildCdmCoco(result,fileName="inspecao.png"){
   const records=currentRecords(result);
   return {
@@ -78,7 +90,7 @@ export function buildCdmCoco(result,fileName="inspecao.png"){
     categories:categories.map(([_,name],i)=>({id:i+1,name,supercategory:"concrete_damage"})),
     annotations:records.map((r,i)=>({
       id:i+1,image_id:1,category_id:Math.max(1,categories.findIndex(([id])=>id===r.class)+1),
-      segmentation:[(r.closed?r.points:linePolygon(r.points||[],r.width_px)).flat().map(number)],
+      segmentation:r.closed?[r.points.flat().map(number)]:polylineSegments(r.points||[],r.width_px).map(poly=>poly.flat().map(number)),
       area:number(r.area_px2),bbox:(r.bbox||[]).map(number),iscrowd:0,
       attributes:{record_id:r.id,time_label:r.time_label||"t1_current",damage_class:r.class,perimeter_px:r.perimeter_px,length_px:r.length_px,width_px:r.width_px,aspect_ratio:r.aspect_ratio,note:r.confidence_note},
     })),

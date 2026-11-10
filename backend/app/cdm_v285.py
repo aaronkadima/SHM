@@ -1099,8 +1099,12 @@ def detect_masks(rgb: np.ndarray, cfg: DetectorConfig, profiler: Optional[Perfor
         with _profile_stage(profiler, f"{run_tag} | fissuras | resposta + máscara candidata"):
             response = morphology_blackhat(gray, k)
             candidate = response > float(cfg.threshold)
-        with _profile_stage(profiler, f"{run_tag} | fissuras | abertura + fechamento"):
-            opened, cleaned = cleanup_mask_steps(candidate, 3)
+        with _profile_stage(profiler, f"{run_tag} | fissuras | fechamento"):
+            # CDM 2.9: abertura por reconstrução. A abertura 3×3 só escolhe os componentes
+            # candidatos com núcleo robusto; cada um volta com a forma completa da máscara
+            # candidata (trechos de 1–2 px preservados). Depois, fechamento 3×3.
+            opened = reconstruct_by_opening(candidate)
+            cleaned = close_bool(opened, 3)
         masks["cracks"] = cleaned
         pipeline["cracks"] = {"base_kind": "grayscale", "response_label": "Black-hat response BHₖ(I)", "candidate_label": "M_0 = 1[BH_k(I) > T]", "rule": "dark elongated residuals; aspect-ratio filter after connected components", "response": response, "raw_mask": candidate, "open_mask": opened, "clean_mask": cleaned, "threshold": float(cfg.threshold)}
 
@@ -1396,7 +1400,267 @@ def export_segmentation_pipeline_figures(image_path: str, rgb: np.ndarray, pipel
     return paths
 
 
+# ---------- Fissuras: continuidade e geometria pelo esqueleto (CDM 2.9) ----------
+# Mesma implementação em frontend/src/cdmBrowser.js (crackRecords); paridade testada em CI.
+CRACK_GAP_PX = 4
+CRACK_BRIDGE_KERNEL = 2 * CRACK_GAP_PX + 1
+CRACK_MIN_FRAGMENT = 3
+CRACK_SPUR_PX = 12
+CRACK_COMPACT_FACTOR = 4
+CRACK_MIN_LENGTH_FRACTION = 0.03
+
+
+def prune_spurs(skel: np.ndarray) -> np.ndarray:
+    """Remove ramos terminais com ≤ CRACK_SPUR_PX pixels até uma junção (≥ 3 vizinhos), decidindo sobre o esqueleto original."""
+    s = skel.astype(bool)
+    h, w = s.shape
+    out = s.copy()
+    def nbs(y, x):
+        r = []
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                ny, nx = y + dy, x + dx
+                if 0 <= ny < h and 0 <= nx < w and s[ny, nx]:
+                    r.append((ny, nx))
+        return r
+    ys, xs = np.nonzero(s)
+    deg = {(y, x): len(nbs(y, x)) for y, x in zip(ys.tolist(), xs.tolist())}
+    for (y, x), d in deg.items():
+        if d != 1:
+            continue
+        path = [(y, x)]; prev = None; cur = (y, x); hit = False
+        while len(path) <= CRACK_SPUR_PX:
+            nxt = [q for q in nbs(*cur) if q != prev and q not in path]
+            if not nxt:
+                break
+            q = nxt[0]
+            if deg[q] >= 3:
+                hit = True
+                break
+            prev, cur = cur, q
+            path.append(q)
+        if hit and len(path) <= CRACK_SPUR_PX:
+            for py, px in path:
+                out[py, px] = False
+    return out
+
+
+def reconstruct_by_opening(candidate: np.ndarray) -> np.ndarray:
+    """Componentes 8-conexos de `candidate` que contêm ao menos um pixel da abertura 3×3."""
+    candidate = candidate.astype(bool)
+    seeds = open_bool(candidate, 3) & candidate
+    labels, n = _label_from_seeds(candidate, seeds)
+    return labels >= 0
+
+
+def crack_fragments(mask: np.ndarray, min_area: float) -> np.ndarray:
+    """Pontilhado e manchas compactas (poros) não entram no agrupamento; trechos alongados seguem."""
+    kept = np.zeros(mask.shape, dtype=bool)
+    for pts in connected_components(mask, 1):
+        xs = pts[:, 0].astype(int); ys = pts[:, 1].astype(int)
+        bw = int(xs.max() - xs.min() + 1); bh = int(ys.max() - ys.min() + 1)
+        elong = max(bw, bh) / max(1, min(bw, bh))
+        if len(pts) >= CRACK_MIN_FRAGMENT and (elong >= 2 or len(pts) >= CRACK_COMPACT_FACTOR * min_area):
+            kept[ys, xs] = True
+    return kept
+
+
+def zhang_suen(mask: np.ndarray) -> np.ndarray:
+    """Afinamento de Zhang-Suen (paralelo por subiteração; vizinhança fora da imagem = 0)."""
+    img = np.pad(mask.astype(np.uint8), 1)
+    while True:
+        changed = False
+        for step in (0, 1):
+            p2 = img[:-2, 1:-1]; p3 = img[:-2, 2:]; p4 = img[1:-1, 2:]; p5 = img[2:, 2:]
+            p6 = img[2:, 1:-1]; p7 = img[2:, :-2]; p8 = img[1:-1, :-2]; p9 = img[:-2, :-2]
+            c = img[1:-1, 1:-1]
+            seq = [p2, p3, p4, p5, p6, p7, p8, p9, p2]
+            b = sum(x.astype(np.int16) for x in seq[:8])
+            a = sum(((seq[i] == 0) & (seq[i + 1] == 1)).astype(np.int16) for i in range(8))
+            if step == 0:
+                cond = ((p2 * p4 * p6) == 0) & ((p4 * p6 * p8) == 0)
+            else:
+                cond = ((p2 * p4 * p8) == 0) & ((p2 * p6 * p8) == 0)
+            delete = (c == 1) & (b >= 2) & (b <= 6) & (a == 1) & cond
+            if delete.any():
+                changed = True
+                c[delete] = 0
+        if not changed:
+            break
+    return img[1:-1, 1:-1].astype(bool)
+
+
+def skeleton_length(skel: np.ndarray) -> float:
+    """Arestas 4-vizinhas valem 1; diagonais √2 só sem atalho pelos dois pixels de canto."""
+    s = skel.astype(bool)
+    h, w = s.shape
+    right = np.zeros_like(s); right[:, :-1] = s[:, :-1] & s[:, 1:]
+    down = np.zeros_like(s); down[:-1, :] = s[:-1, :] & s[1:, :]
+    total = float(right.sum() + down.sum())
+    has_right = np.zeros_like(s); has_right[:, :-1] = s[:, 1:]
+    has_down = np.zeros_like(s); has_down[:-1, :] = s[1:, :]
+    has_left = np.zeros_like(s); has_left[:, 1:] = s[:, :-1]
+    dr = np.zeros_like(s); dr[:-1, :-1] = s[1:, 1:]
+    dl = np.zeros_like(s); dl[:-1, 1:] = s[1:, :-1]
+    diag = (s & dr & ~has_right & ~has_down).sum() + (s & dl & ~has_left & ~has_down).sum()
+    return total + float(diag) * math.sqrt(2.0)
+
+
+def _rdp(points: List[Tuple[float, float]], eps: float) -> List[Tuple[float, float]]:
+    if len(points) < 3:
+        return points
+    keep = [False] * len(points)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(points) - 1)]
+    while stack:
+        a, b = stack.pop()
+        ax, ay = points[a]; bx, by = points[b]
+        dx, dy = bx - ax, by - ay
+        length = math.hypot(dx, dy)
+        best, idx = -1.0, -1
+        for i in range(a + 1, b):
+            # segmento degenerado (percurso que volta ao início): distância euclidiana
+            if length < 1e-9:
+                d = math.hypot(points[i][0] - ax, points[i][1] - ay)
+            else:
+                d = abs(dy * (points[i][0] - ax) - dx * (points[i][1] - ay)) / length
+            if d > best:
+                best, idx = d, i
+        if best > eps:
+            keep[idx] = True
+            stack.append((a, idx)); stack.append((idx, b))
+    return [p for p, k in zip(points, keep) if k]
+
+
+def skeleton_walk(pixels: List[Tuple[int, int]]) -> Tuple[List[Tuple[float, float]], float]:
+    """Percurso em profundidade do esqueleto voltando pelos ramos: uma polilinha desenha a fissura inteira.
+
+    Cada aresta da árvore DFS é percorrida duas vezes, então o comprimento é metade da polilinha
+    suavizada (Douglas-Peucker), por parte — aproxima a linha central euclidiana."""
+    if not pixels:
+        return [], 0.0
+    pset = set(pixels)
+    offs = [(0, -1), (1, 0), (0, 1), (-1, 0), (1, -1), (1, 1), (-1, 1), (-1, -1)]
+    def nb(p):
+        return [(p[0] + dx, p[1] + dy) for dx, dy in offs if (p[0] + dx, p[1] + dy) in pset]
+    visited = set()
+    parts = []
+    for seed in pixels:
+        if seed in visited:
+            continue
+        comp, seen = [seed], {seed}
+        k = 0
+        while k < len(comp):
+            for n in nb(comp[k]):
+                if n not in seen:
+                    seen.add(n); comp.append(n)
+            k += 1
+        start = next((c for c in comp if len(nb(c)) == 1), seed)
+        part = [start]; visited.add(start)
+        stack = [[start, 0]]
+        while stack:
+            top = stack[-1]; ns = nb(top[0]); advanced = False
+            while top[1] < len(ns):
+                n = ns[top[1]]; top[1] += 1
+                if n not in visited:
+                    visited.add(n); part.append(n); stack.append([n, 0]); advanced = True
+                    break
+            if not advanced:
+                stack.pop()
+                if stack:
+                    part.append(stack[-1][0])
+        parts.append(part)
+    parts.sort(key=len, reverse=True)
+    walk: List[Tuple[float, float]] = []
+    length = 0.0
+    for part in parts:
+        simplified = _rdp([(float(x), float(y)) for x, y in part], 0.8)
+        for k in range(1, len(simplified)):
+            length += math.hypot(simplified[k][0] - simplified[k - 1][0], simplified[k][1] - simplified[k - 1][1]) / 2.0
+        walk.extend(simplified)
+    return walk, length
+
+
+def _label_from_seeds(grow: np.ndarray, seeds: np.ndarray) -> Tuple[np.ndarray, int]:
+    """Rótulos 8-conexos de `grow`, numerados pela ordem (linha a linha) do primeiro pixel-semente."""
+    h, w = grow.shape
+    if _HAVE_SCIPY:
+        from scipy.ndimage import label as _nd_label
+        raw, _ = _nd_label(grow, structure=np.ones((3, 3), dtype=bool))
+        order: Dict[int, int] = {}
+        flat_raw = raw.ravel(); flat_seed = seeds.ravel()
+        for i in np.flatnonzero(flat_seed).tolist():
+            r = int(flat_raw[i])
+            if r and r not in order:
+                order[r] = len(order)
+        out = np.full(raw.shape, -1, dtype=np.int32)
+        for r, idx in order.items():
+            out[raw == r] = idx
+        return out, len(order)
+    out = np.full((h, w), -1, dtype=np.int32)
+    n = 0
+    ys, xs = np.nonzero(seeds)
+    for y0, x0 in zip(ys.tolist(), xs.tolist()):
+        if out[y0, x0] >= 0:
+            continue
+        q = deque([(y0, x0)]); out[y0, x0] = n
+        while q:
+            y, x = q.popleft()
+            for ny in range(max(0, y - 1), min(h, y + 2)):
+                for nx in range(max(0, x - 1), min(w, x + 2)):
+                    if grow[ny, nx] and out[ny, nx] < 0:
+                        out[ny, nx] = n; q.append((ny, nx))
+        n += 1
+    return out, n
+
+
+def crack_records_from_mask(raw_mask: np.ndarray, time_label: str, cfg: DetectorConfig) -> List[DamageRecord]:
+    mask = crack_fragments(raw_mask.astype(bool), max(1.0, float(cfg.min_area)))
+    bridged = close_bool(mask, CRACK_BRIDGE_KERNEL) | mask
+    skel = prune_spurs(zhang_suen(bridged))
+    grow = dilate_bool(mask, CRACK_BRIDGE_KERNEL)
+    labels, n = _label_from_seeds(grow, mask)
+    records: List[DamageRecord] = []
+    number = 0
+    min_area = max(1.0, float(cfg.min_area))
+    for gid in range(n):
+        region = labels == gid
+        crack = region & mask
+        area = float(crack.sum())
+        if area < min_area:
+            continue
+        ys, xs = np.nonzero(crack)
+        x, y = int(xs.min()), int(ys.min())
+        w, h = int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)
+        number += 1
+        gskel = skel & region
+        sy, sx = np.nonzero(gskel)
+        # A ordem dos pixels segue a varredura linha a linha, como no navegador.
+        geom, walk_length = skeleton_walk(list(zip(sx.tolist(), sy.tolist())))
+        length = max(1.0, walk_length)
+        # Alongamento pela forma real (comprimento da linha central ÷ largura média = L²/A).
+        aspect = float(length * length / area)
+        # comprimento mínimo de fissura: 3% do maior lado da imagem processada (grão/textura curtos)
+        if aspect < float(cfg.min_aspect_ratio) or length < CRACK_MIN_LENGTH_FRACTION * max(mask.shape):
+            continue
+        pts = np.stack([xs, ys], axis=1).astype(np.float32)
+        perim = mask_perimeter(pts, mask.shape)
+        if len(geom) < 2:
+            continue
+        records.append(DamageRecord(
+            record_id=f"{time_label}_cracks_{number:04d}", damage_class="cracks", time_label=time_label,
+            points=geom, is_closed=False, area_px2=area, perimeter_px=perim, bbox=(x, y, w, h),
+            aspect_ratio=aspect, length_px=length, width_px=float(area / length),
+            confidence_note=f"CDM 2.9: fissura pela linha central do esqueleto (Zhang-Suen), fragmentos a ≤ {CRACK_GAP_PX} px unidos; largura média = área/comprimento.",
+        ))
+    return records
+
+
 def records_from_mask(mask: np.ndarray, damage_class: str, time_label: str, cfg: DetectorConfig) -> List[DamageRecord]:
+    if damage_class == "cracks":
+        return crack_records_from_mask(mask, time_label, cfg)
     comps = connected_components(mask, cfg.min_area)
     records: List[DamageRecord] = []
     for idx, pts in enumerate(comps, start=1):

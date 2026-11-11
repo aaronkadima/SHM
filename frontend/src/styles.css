@@ -1036,3 +1036,33 @@ body:has(.liveCam){overflow:hidden}
 .studioContextMenu button small{color:#8a9ba2;font-size:10.5px}
 .studioContextMenu button:hover:not(:disabled),.studioContextMenu button:focus-visible{background:#e9f4f2;outline:none}
 .studioContextMenu button:disabled{opacity:.42;cursor:not-allowed}
+
+/* Caixas delimitadoras: contorno e preenchimento na cor da camada, com a opacidade da camada */
+.editorOverlayStack .editorDetection{opacity:1;border:2px solid var(--box-stroke,#0d766e)!important;background:var(--box-fill,rgba(13,118,110,.14))!important;box-shadow:0 0 0 1px rgba(255,255,255,.55)}
+.editorOverlayStack .editorDetection:hover{background:color-mix(in srgb,var(--box-color,#0d766e) 26%,transparent)!important}
+.editorOverlayStack .editorDetection.selected{border-color:#f3b342!important;background:#f3b34240!important}
+.editorOverlayStack .editorDetection.boxesHidden{border-color:transparent!important;background:transparent!important;box-shadow:none!important}
+.editorOverlayStack .editorDetection.boxesHidden:hover,.editorOverlayStack .editorDetection.boxesHidden.selected{border-color:var(--box-stroke,#0d766e)!important}
+/* Rótulos: tamanho constante na tela, independente do zoom */
+.editorDetectionLabel{position:absolute;left:-2px;bottom:calc(100% + 2px);transform-origin:left bottom;transform:scale(calc(1 / var(--canvas-zoom,1)));padding:1px 5px;border-radius:4px;background:var(--label-bg,rgba(13,118,110,.9));color:#fff;font:700 9.5px/1.35 system-ui,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.25);text-shadow:0 1px 1px rgba(0,0,0,.25)}
+.editorDetection.selected .editorDetectionLabel{background:#f3b342;color:#3d2a06;text-shadow:none}
+
+/* Resultados: linhas clicáveis e listas de achados */
+.editorMetricToggle{width:100%;border:0;border-left:3px solid transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.editorMetricToggle .editorMetricLabel{display:inline-flex;align-items:center;gap:4px}
+.editorMetricToggle svg{transition:transform .15s;color:#7b8f97}
+.editorMetricToggle.open svg{transform:rotate(90deg)}
+.editorMetricToggle:hover{filter:brightness(.97)}
+.editorFindingList{display:grid;max-height:220px;overflow:auto;margin:-1px 0 4px;padding:3px;border:1px solid #e2eaed;border-radius:6px;background:rgba(255,255,255,.7);font-size:10.5px}
+.editorFindingHead,.editorFindingItem{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(0,1fr);gap:6px;align-items:center;padding:3px 5px}
+.editorFindingHead{position:sticky;top:0;background:#f4f8f9;color:#7b8f97;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-radius:4px}
+.editorFindingItem{border:0;background:transparent;border-radius:4px;font:inherit;color:#33505b;text-align:left;cursor:pointer;font-variant-numeric:tabular-nums}
+.editorFindingItem>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editorFindingItem:hover{background:#eef6f4}.editorFindingItem.selected{background:#fbefd6}
+.editorFindingItem .code{display:inline-flex;align-items:center;gap:4px;font-weight:800}
+.editorFindingItem .code:before{content:"";width:7px;height:7px;border-radius:2px;background:var(--dot);flex:none}
+.editorFindingNote,.editorFindingEmpty{display:block;padding:4px 5px 2px;color:#8a9ba2;font-size:9.5px;margin:0}
+/* Muitos achados: rótulos dos pequenos só ao passar o mouse ou selecionar (evita poluição) */
+.editorDetection.labelOnHover .editorDetectionLabel{display:none}
+.editorDetection.labelOnHover:hover .editorDetectionLabel,.editorDetection.labelOnHover.selected .editorDetectionLabel{display:block;z-index:2}
+.editorDetection:hover,.editorDetection.selected{z-index:4}

@@ -31,14 +31,12 @@ const FAMILY_LABELS={
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const oddKernel=k=>{k=Math.max(3,Math.round(k));return k%2?k:k+1};
 function swap(a,i,j){const v=a[i];a[i]=a[j];a[j]=v}
+// Quickselect com partição em três vias: valores repetidos (fundo liso, saturação) não degeneram em O(n²).
 function quickselect(a,k,left=0,right=a.length-1){
   while(left<right){
-    let pivotIndex=(left+right)>>1,pivot=a[pivotIndex];swap(a,pivotIndex,right);
-    let store=left;
-    for(let i=left;i<right;i++)if(a[i]<pivot){swap(a,store,i);store++}
-    swap(a,right,store);
-    if(k===store)return a[k];
-    if(k<store)right=store-1;else left=store+1;
+    const pivot=a[(left+right)>>1];let lt=left,i=left,gt=right;
+    while(i<=gt){if(a[i]<pivot)swap(a,lt++,i++);else if(a[i]>pivot)swap(a,i,gt--);else i++}
+    if(k<lt)right=lt-1;else if(k>gt)left=gt+1;else return a[k];
   }
   return a[k];
 }

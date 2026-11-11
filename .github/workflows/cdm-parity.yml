@@ -9,6 +9,8 @@ on:
       - "frontend/src/cdmBrowser.js"
       - "frontend/src/cdmWorker.js"
       - "frontend/scripts/check-cdm-parity.mjs"
+      - "frontend/scripts/build-cdm-parity-report.mjs"
+      - "backend/tests/generate_cdm_parity_report_cases.py"
       - ".github/workflows/cdm-parity.yml"
   push:
     branches: ["main","dev"]
@@ -19,6 +21,8 @@ on:
       - "frontend/src/cdmBrowser.js"
       - "frontend/src/cdmWorker.js"
       - "frontend/scripts/check-cdm-parity.mjs"
+      - "frontend/scripts/build-cdm-parity-report.mjs"
+      - "backend/tests/generate_cdm_parity_report_cases.py"
       - ".github/workflows/cdm-parity.yml"
   workflow_dispatch:
 
@@ -50,3 +54,17 @@ jobs:
 
       - name: Compare browser implementation
         run: node frontend/scripts/check-cdm-parity.mjs /tmp/cdm-parity.json
+
+      - name: Build stage-level parity report (indicators + chart data)
+        run: |
+          python backend/tests/generate_cdm_parity_report_cases.py /tmp/cdm-parity-cases.json
+          cd frontend && node scripts/build-cdm-parity-report.mjs /tmp/cdm-parity-cases.json /tmp/cdm-parity-report.json
+          node -e 'const r=require("/tmp/cdm-parity-report.json");if(r.status==="fail"){console.error("Parity report FAIL");process.exit(1)}'
+
+      - name: Upload parity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdm-parity-report
+          path: /tmp/cdm-parity-report.json
+          if-no-files-found: ignore

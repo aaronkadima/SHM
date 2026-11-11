@@ -1,9 +1,10 @@
 import React,{Suspense,useCallback,useEffect,useRef,useState} from "react";
-import {Ruler,SquareDashed,Tag,Layers2,FlipHorizontal2,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
+import {ChartNoAxesCombined,Ruler,SquareDashed,Tag,Layers2,FlipHorizontal2,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
 import ImageInspector from "./ImageInspector.jsx";
 import EngineStages from "./EngineStages.jsx";
 import CanvasRulers,{RULER_UNITS} from "./CanvasRulers.jsx";
 import ContextMenu from "./ContextMenu.jsx";
+const ParityPanel=React.lazy(()=>import("./ParityPanel.jsx"));
 import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint,CANVAS_ZOOM_MIN,CANVAS_ZOOM_MAX}from"./viewerPreferences.js";
 import{detectAsset,isCdm3SpatialAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./assetDetection.js";
 import{buildDamageTimeline,matchTemporalDamageCampaigns}from"./cdm3RegisteredProjection.js";
@@ -476,7 +477,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   }
   useEffect(()=>{try{localStorage.setItem("shmImageInspectorOpen",inspectorOpen?"1":"0")}catch{}},[inspectorOpen]);
   // Resultados ficam logo abaixo do botão/painel "Imagem" (coluna esquerda do canvas).
-  const [contextMenu,setContextMenu]=useState(null);
+  const [contextMenu,setContextMenu]=useState(null),[parityOpen,setParityOpen]=useState(false);
   const closeContextMenu=useCallback(()=>setContextMenu(null),[]);
   const [leftStackTop,setLeftStackTop]=useState(null);
   const resultUserMoved=useRef(!!(initialViewerPrefs.resultPanelPosition?.x||initialViewerPrefs.resultPanelPosition?.y));
@@ -1231,6 +1232,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       {label:"Importar…",hint:"Ctrl+O",disabled:busy,onSelect:()=>picker.current?.click()},
       onLive&&{label:"Live detecção",disabled:busy,onSelect:onLive},
       {label:"Câmera",disabled:busy,onSelect:()=>setCameraOpen(true)},
+      {label:"Paridade CDM (Python ⇄ navegador)",checked:parityOpen,onSelect:()=>setParityOpen(v=>!v)},
       {label:"Configurações",hint:"Ctrl+,",onSelect:()=>onSettings?.()},
     ]});
     setContextMenu({x:e.clientX,y:e.clientY,sections});
@@ -1272,6 +1274,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         <details className="editorMenu" name="shm-editor-menu"><summary>Análise</summary><div className="editorMenuPanel editorMenuPanelRight" role="menu">
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onSettings)}><span>Configurações</span><small>Ctrl/Cmd+,</small></button>
           <button type="button" role="menuitem" disabled={analysisDisabled} onClick={e=>runEditorMenuAction(e,()=>analyzeButton.current?.click())}><span>Executar análise</span><small>Ctrl/Cmd+Enter</small></button>
+          <button type="button" role="menuitem" aria-checked={parityOpen} onClick={e=>runEditorMenuAction(e,()=>setParityOpen(v=>!v))}><span>Paridade CDM (Python ⇄ navegador)</span><small>indicadores</small></button>
         </div></details>
       </nav></div>
       <div className="editorFileTitle">{aulasOpen?<span className="editorFileName static">Aulas · Trilha Dev SHM{aulasCrumb?" · "+aulasCrumb:""}</span>:renaming?<input className="editorFileNameInput" autoFocus value={nameDraft} aria-label="Nome do arquivo" onChange={e=>setNameDraft(e.target.value)} onBlur={commitRename} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();commitRename()}else if(e.key==="Escape"){e.preventDefault();setRenaming(false)}}}/>:<button type="button" className="editorFileName" disabled={!file||busy} onClick={startRename} title={file?"Clique para renomear":"Nenhum arquivo"}>{file?.name||"Nova inspeção"}</button>} {!aulasOpen&&<span className="editorEngineState srOnly">{selectedEngineLabels.length===0?"Nenhum motor":selectedEngineLabels.length===1?selectedEngineLabels[0].name+(selectedEngineLabels[0].browser_ready?" · browser local":""):selectedEngineLabels.length+" motores · comparação"}</span>}</div>
@@ -1301,6 +1304,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <span className="editorToolSep" aria-hidden="true"/>
           {[["original",ImageIcon,"Original"],["overlay",Layers2,"Sobrepor (original + detecções)"],["wipe",FlipHorizontal2,"Deslizar"],["side",Columns2,"Lado a lado"]].map(([id,Icon,label])=><button key={id} className={"editorToolMode"+(comparison===id?" active":"")} aria-label={"Visualização: "+label} aria-pressed={comparison===id} title={id!=="original"&&!res?label+" · disponível após a análise":label} disabled={kind!=="2d"||(id!=="original"&&!res)} onClick={()=>changeComparison(id)}><Icon/></button>)}
           <span className="editorToolSep" aria-hidden="true"/>
+          <button className={parityOpen?"active":""} aria-label="Paridade CDM Python ⇄ navegador" aria-pressed={parityOpen} title="Paridade CDM · indicadores e gráficos Python ⇄ navegador" onClick={()=>setParityOpen(v=>!v)}><ChartNoAxesCombined/></button>
           <button aria-label="Abrir modo câmera" title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button>
           {onLive&&<button className="editorToolLive" aria-label="Abrir Live detecção" title="Live detecção · tempo real com câmera ou vídeo" disabled={busy} onClick={onLive}><Radio/></button>}
         </div>
@@ -1335,6 +1339,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       </aside><div className="editorLayerResizeHandle" role="separator" tabIndex="0" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" aria-valuemin="340" aria-valuemax="600" aria-valuenow={Math.round(layersWidth)} aria-valuetext={Math.round(layersWidth)+" pixels"} title="Arraste ou use ← →, Home e End" onKeyDown={resizeLayersKey} onPointerDown={beginLayersResize}/></>}
       {aulasOpen?<div className="editorViewport editorAulasViewport"><iframe ref={aulasFrame} src={aulasHref} title="Trilha Dev SHM · aulas" className="editorAulasFrame" onLoad={()=>onAulasNav?.(aulasFrame.current)}/></div>:
       <div className={"editorViewport "+(fileDragActive?"fileDragActive":"")+(stagesActive?" hasStages":"")+(inspectorOpen&&kind==="2d"?" hasInspector":"")+(resultOpen&&(busy||results.length>0)?" hasResultStack":"")+(showRulers?" hasRulers":"")} style={leftStackTop!=null?{"--left-stack-top":leftStackTop+"px"}:undefined} ref={surface} onDragEnter={fileDragEnter} onDragOver={fileDragOver} onDragLeave={fileDragLeave} onDrop={fileDrop}>
+        {parityOpen&&!aulasOpen&&<React.Suspense fallback={null}><ParityPanel onClose={()=>setParityOpen(false)} boundsRef={surface}/></React.Suspense>}
         {showRulers&&<CanvasRulers viewportRef={surface} mmPerPx={rulerMmPerPx} unit={rulers.unit||"mm"} onCycleUnit={cycleRulerUnit}/>}
         <div className="editorCanvasEntries">
           {onLive&&<button className="editorLiveEntry" disabled={busy} title="Live · detecção em tempo real com câmera ou vídeo (foto e gravação)" aria-label="Abrir Live detecção" onClick={onLive}><Radio size={16}/> Live detecção</button>}

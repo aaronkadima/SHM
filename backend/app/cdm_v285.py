@@ -958,7 +958,9 @@ def morphology_blackhat(gray: np.ndarray, k: int) -> np.ndarray:
 
 
 def rgb_to_hsv_basic(rgb: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    arr = rgb.astype(np.float32) / 255.0
+    # float64 (IEEE double), como o motor JavaScript: limiares de saturação/valor (ex.: S < 0,20)
+    # caem nos mesmos pixels nas duas implementações (paridade determinística).
+    arr = rgb.astype(np.float64) / 255.0
     r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
     cmax = np.maximum.reduce([r, g, b])
     cmin = np.minimum.reduce([r, g, b])

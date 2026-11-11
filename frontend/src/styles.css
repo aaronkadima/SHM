@@ -1077,3 +1077,42 @@ body:has(.liveCam){overflow:hidden}
 .pathologyLayer label{min-width:0;overflow:hidden}
 .pathologyLayer .pathologyName{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
 .pathologyLayer label>small{flex:none;margin-left:3px}
+
+/* Painel flutuante de paridade CDM (Python ⇄ navegador) */
+.parityPanel{position:absolute;z-index:22;top:64px;left:50%;margin-left:min(-340px,calc(-50% + 18px));width:min(680px,calc(100% - 36px));max-height:calc(100% - 128px);display:flex;flex-direction:column;background:rgba(255,255,255,.985);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid #dbe4e8;border-radius:12px;box-shadow:0 18px 50px rgba(30,50,60,.24);color:#263e4b;font-size:12px;overflow:hidden}
+.parityPanel header{display:flex;align-items:center;gap:8px;padding:10px 10px 8px 14px;cursor:grab;user-select:none;border-bottom:1px solid #e6edf0}
+.parityPanel header>div{display:flex;flex-direction:column;margin-right:auto;min-width:0}
+.parityPanel header b{font-size:13.5px}.parityPanel header small{color:#7b8f97;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.parityPanel header button{border:0;background:transparent;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#5d7380;cursor:pointer}
+.parityPanel header button:hover{background:#eef3f5}
+.parityStatus{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-weight:700;font-size:11px}
+.parityStatus.pass{background:#e2f3ec;color:#0b6b52}.parityStatus.warn{background:#fbf0df;color:#8a5a12}.parityStatus.fail{background:#fbe5e3;color:#a3312b}
+.parityTabs{display:flex;gap:2px;padding:6px 10px 0;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid #e6edf0}
+.parityTabs button{border:0;background:transparent;padding:7px 10px;border-radius:7px 7px 0 0;font:inherit;font-size:11.5px;font-weight:600;color:#6f8590;white-space:nowrap;cursor:pointer;border-bottom:2px solid transparent}
+.parityTabs button.active{color:#0d766e;border-bottom-color:#0d766e}
+.parityBody{padding:12px 14px;overflow:auto;min-height:0}
+.parityBody>svg{display:block;width:100%;height:auto}
+.parityPanel>header,.parityTabs,.parityExport{flex:none}
+.parityControls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;color:#6f8590;font-size:11px}
+.parityControls label{display:flex;align-items:center;gap:6px;color:#263e4b;font-weight:600}
+.parityControls select{font:inherit;font-size:11.5px;padding:4px 6px;border:1px solid #dbe4e8;border-radius:6px;background:#fff}
+.parityKpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.parityKpi{padding:8px 10px;border-radius:8px;background:#f4f8f9;border:1px solid #e6edf0}.parityKpi small{display:block;color:#7b8f97;font-size:10px}.parityKpi b{font-size:15px;font-variant-numeric:tabular-nums}
+.parityTable{width:100%;border-collapse:collapse;margin-bottom:10px;font-variant-numeric:tabular-nums}
+.parityTable th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:#7b8f97;padding:5px 6px;border-bottom:1px solid #e3eaed}
+.parityTable td{padding:5px 6px;border-bottom:1px solid #f0f4f5}
+.parityTable td{color:#263e4b}.parityTable tr.parityOk svg{color:#0b6b52}.parityTable tr.parityBad td{color:#a3312b}.parityTable tr.parityBad svg{color:#a3312b}
+.parityTable td svg{display:block}
+.parityTable.compact td{font-size:11px}
+.parityMeta{margin:0;color:#8a9ba2;font-size:10.5px}
+.parityKey{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;font-size:11px}.parityKey i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.parityDiff{display:flex;flex-direction:column;gap:8px}
+.parityDiffCanvas{width:100%;max-height:360px;object-fit:contain;image-rendering:pixelated;border-radius:8px;background:#1d2b31}
+.parityDiffLegend{display:flex;flex-wrap:wrap;gap:14px;font-size:11px}.parityDiffLegend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;border:1px solid #c9d4d8}
+.parityEmpty{padding:18px 6px;color:#5d7380;line-height:1.5}.parityEmpty code{font-size:10.5px;background:#f1f5f6;padding:1px 4px;border-radius:4px}
+.parityExport{display:flex;align-items:center;gap:6px;padding:8px 12px;border-top:1px solid #e6edf0;background:rgba(250,252,252,.9)}
+.parityExport span{display:inline-flex;align-items:center;gap:5px;color:#6f8590;font-size:11px;margin-right:auto}
+.parityExport button{border:1px solid #dbe4e8;background:#fff;color:#263e4b;border-radius:7px;padding:5px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.parityExport button:hover{background:#eef6f4;border-color:#b7d6cf}
+@media(max-width:720px){.parityPanel{left:8px;right:8px;margin-left:0;width:auto;top:56px;max-height:calc(100% - 110px)}.parityKpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.parityBody>svg.parityMatrix{max-width:440px;margin:0 auto}

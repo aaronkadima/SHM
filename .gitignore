@@ -7,3 +7,4 @@ models/*
 frontend/node_modules/
 frontend/dist/
 frontend/public/ort/
+frontend/public/reports/

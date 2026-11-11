@@ -66,6 +66,24 @@ jobs:
           VITE_APP_CHANNEL: development
         run: VITE_BUILD_SHA=$(git rev-parse --short HEAD) npm run build
 
+      - name: Setup Python (relatório de paridade CDM)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: CDM parity report (Python ⇄ navegador) for production and development
+        run: |
+          python -m pip install --quiet "numpy==2.1.3" "pillow==11.1.0" "lxml>=5,<7" "scipy>=1.14,<2"
+          for pair in "prod-src:main" "dev-src:dev"; do
+            src="${pair%%:*}"; branch="${pair##*:}"
+            if [ -f "$src/backend/tests/generate_cdm_parity_report_cases.py" ] && [ -f "$src/frontend/scripts/build-cdm-parity-report.mjs" ]; then
+              python "$src/backend/tests/generate_cdm_parity_report_cases.py" "/tmp/$src-cases.json"
+              (cd "$src/frontend" && PARITY_COMMIT="$(git rev-parse HEAD)" PARITY_BRANCH="$branch" node scripts/build-cdm-parity-report.mjs "/tmp/$src-cases.json" dist/reports/cdm-parity.json)
+            else
+              echo "::notice::$src sem gerador de relatório de paridade"
+            fi
+          done
+
       - name: Validate development catalog
         run: |
           DEV_CATALOG="$(node -p "require('./dev-src/frontend/src/engines.json').version")"

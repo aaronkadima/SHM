@@ -203,7 +203,9 @@ function temporalQualityAssessment(current,alignedPrevious,alignment={}){
 }
 
 function hsvArrays(rgba,n){
-  const hue=new Float32Array(n),sat=new Float32Array(n),val=new Float32Array(n);
+  // Float64 (como numpy float64 em cdm_v285.rgb_to_hsv_basic): sem arredondamento para float32
+  // perto dos limiares de saturação/valor.
+  const hue=new Float64Array(n),sat=new Float64Array(n),val=new Float64Array(n);
   for(let i=0,j=0;i<n;i++,j+=4){
     const r=rgba[j]/255,g=rgba[j+1]/255,b=rgba[j+2]/255;
     const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;
@@ -270,22 +272,29 @@ function blackhat(gray,w,h,k){
   for(let i=0;i<out.length;i++)out[i]=clamp(closed[i]-gray[i],0,255);
   return out;
 }
-function detectMasks(imageData,cfg){
+// trace (opcional, usado só pela paridade): guarda cinza, resposta, candidata, abertura e máscara final
+// de cada família — as mesmas etapas de pipeline[...] em cdm_v285.detect_masks.
+function detectMasks(imageData,cfg,trace=null){
   const w=imageData.width,h=imageData.height,n=w*h,{gray,rgb}=grayAndRgb(imageData),{hue,sat,val}=hsvArrays(rgb,n);
   const k=oddKernel(cfg.kernel),masks={};
+  const opened=(m,kk)=>filterMask(filterMask(m,w,h,kk,false),w,h,kk,true);
+  if(trace)trace.gray=gray;
 
   const crackResponse=blackhat(gray,w,h,k),crackRaw=new Uint8Array(n);
   for(let i=0;i<n;i++)crackRaw[i]=crackResponse[i]>cfg.threshold?1:0;
   // Fissuras (CDM 2.9): abertura por reconstrução. A abertura 3×3 só escolhe os componentes
   // candidatos que têm núcleo robusto; cada componente escolhido volta com a forma completa da
   // máscara candidata (trechos de 1–2 px preservados). Depois, fechamento 3×3.
-  masks.cracks=filterMask(filterMask(reconstructByOpening(crackRaw,w,h),w,h,3,true),w,h,3,false);
+  const crackOpen=reconstructByOpening(crackRaw,w,h);
+  masks.cracks=filterMask(filterMask(crackOpen,w,h,3,true),w,h,3,false);
+  if(trace)trace.cracks={response:crackResponse,raw:crackRaw,open:crackOpen,clean:masks.cracks};
 
   const p18=percentileFloat(gray,18),p45=percentileFloat(gray,45);
   const darkCut=Math.min(120,p18+Math.max(8,cfg.threshold*.25));
   const texture=blackhat(gray,w,h,Math.max(5,Math.min(k,21))),spRaw=new Uint8Array(n);
   for(let i=0;i<n;i++)spRaw[i]=(gray[i]<darkCut||(texture[i]>Math.max(10,cfg.threshold*.55)&&gray[i]<p45))?1:0;
   const spalling=cleanup(spRaw,w,h,5);masks.spalling_dark=spalling;
+  if(trace){const response=new Float32Array(n);for(let i=0;i<n;i++)response[i]=Math.max(clamp(darkCut-gray[i],0,255),texture[i]);trace.spalling_dark={response,raw:spRaw,open:opened(spRaw,5),clean:spalling}}
 
   const corrosionRaw=new Uint8Array(n),effRaw=new Uint8Array(n),p72=percentileFloat(gray,72);
   for(let i=0,j=0;i<n;i++,j+=4){
@@ -295,11 +304,22 @@ function detectMasks(imageData,cfg){
   }
   masks.corrosion_rust=cleanup(corrosionRaw,w,h,5);
   masks.efflorescence_white=cleanup(effRaw,w,h,5);
+  if(trace){
+    const cor=new Float32Array(n),eff=new Float32Array(n);
+    for(let i=0,j=0;i<n;i++,j+=4){
+      const r=rgb[j],g=rgb[j+1],b=rgb[j+2],gate=(hue[i]<55||hue[i]>330)?1:0;
+      cor[i]=clamp(clamp(r-Math.max(g,b),0,255)*(.35+.65*sat[i])*(.35+.65*gate),0,255);
+      eff[i]=clamp(val[i]*255*(1-sat[i]),0,255);
+    }
+    trace.corrosion_rust={response:cor,raw:corrosionRaw,open:opened(corrosionRaw,5),clean:masks.corrosion_rust};
+    trace.efflorescence_white={response:eff,raw:effRaw,open:opened(effRaw,5),clean:masks.efflorescence_white};
+  }
 
   const localThresh=spalling.some(v=>v)?percentileFloat(gray,40,spalling):percentileFloat(gray,12);
   const rebarRaw=new Uint8Array(n);
   for(let i=0;i<n;i++)rebarRaw[i]=(spalling[i]&&(gray[i]<localThresh||(sat[i]<.20&&val[i]<.55)))?1:0;
   masks.exposed_rebar=cleanup(rebarRaw,w,h,3);
+  if(trace){const response=new Float32Array(n);for(let i=0;i<n;i++)response[i]=spalling[i]?clamp(localThresh-gray[i],0,255):0;trace.exposed_rebar={response,raw:rebarRaw,open:opened(rebarRaw,3),clean:masks.exposed_rebar}}
   return masks;
 }
 function convexHull(points){
@@ -447,11 +467,15 @@ function crackFragments(mask,w,h,minArea){
   }
   return kept;
 }
-function crackRecords(rawMask,w,h,timeLabel,cfg){
+// Esqueleto podado das fissuras (fragmentos → ponte de 4 px → Zhang-Suen → poda). Exposto para a paridade.
+function crackSkeleton(rawMask,w,h,cfg){
   const mask=crackFragments(rawMask,w,h,Math.max(1,cfg.minArea));
   const n=w*h,bridged=filterMask(filterMask(mask,w,h,CRACK_BRIDGE_KERNEL,true),w,h,CRACK_BRIDGE_KERNEL,false);
   for(let i=0;i<n;i++)bridged[i]=bridged[i]|mask[i];
-  const skel=pruneSpurs(zhangSuen(bridged,w,h),w,h),grow=filterMask(mask,w,h,CRACK_BRIDGE_KERNEL,true);
+  return{mask,skel:pruneSpurs(zhangSuen(bridged,w,h),w,h)};
+}
+function crackRecords(rawMask,w,h,timeLabel,cfg){
+  const{mask,skel}=crackSkeleton(rawMask,w,h,cfg),n=w*h,grow=filterMask(mask,w,h,CRACK_BRIDGE_KERNEL,true);
   // grupos: fragmentos a ≤ CRACK_GAP_PX px uns dos outros formam a mesma fissura
   const label=new Int32Array(n).fill(-1),queue=new Int32Array(n),groups=[];
   for(let s=0;s<n;s++){
@@ -818,4 +842,4 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
 }
 
 // Test hooks: pure functions used by CI parity checks; not part of the UI API.
-export const __cdmTest={pruneSpurs,reconstructByOpening,zhangSuen,skeletonLength,crackRecords,grayAndRgb,detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,registerPrevious,estimateTranslationRegistration,applyTranslationRegistration,temporalQualityAssessment,percentileFloat,blackhat,cleanup,ORDER,LABELS};
+export const __cdmTest={crackSkeleton,crackFragments,pruneSpurs,reconstructByOpening,zhangSuen,skeletonLength,crackRecords,grayAndRgb,detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,registerPrevious,estimateTranslationRegistration,applyTranslationRegistration,temporalQualityAssessment,percentileFloat,blackhat,cleanup,ORDER,LABELS};

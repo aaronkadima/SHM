@@ -48,6 +48,7 @@ function shortFileName(name){
 }
 // Largura comum da coluna esquerda: propriedades da imagem e resultados.
 export const IMAGE_PANEL_WIDTH=340;
+const LEFT_DOCK_QUERY="(min-width:741px) and (min-height:621px)";
 
 export default function AnalysisWorkspace({appInfo=null,executionIssue="",referenceValidating=false,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,spatialRgbFile=null,spatialRgbPrev=null,onSpatialRgbFile=null,spatialRegistration=null,spatialTransform=null,spatialFrameAssets=null,onSolveSpatialFrameAlignment=null,spatialRgbAnalysis=null,spatialPhotoViews=[],activeSpatialPhotoId=null,onAddSpatialPhotos=null,onSelectSpatialPhoto=null,onRemoveSpatialPhoto=null,spatialAutoRegistrationBusy=false,spatialAutoRegistrationStatus=null,onAutoRegisterSpatialPhotos=null,spatialRegistrationPointCount=0,photometricSummary=null,onPhotometricSummary=null,onSpatialRegistrationSample=null,spatialPathologyRecords=[],onSpatialPathologyRecords=null,onSolveSpatialRegistration=null,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,onLive=null,onRenameFile=null,onSaveFile=null,onApplyCorrection=null,onRestoreOriginal=null,hasOriginalFile=false,appliedCorrection=null,onImageDiagnostics=null,cdmOptions={},stageControl={},rulers={visible:false,unit:"mm"},onRulersChange=null,aulasOpen=false,onToggleAulas=null,recentHistory=[],onOpenRecent=null,aulasHref="",onAulasNav=null,aulasCrumb="",error,onExport,onExportCsv,onExportMap,onExportCdm,onExportCdm3=null}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
@@ -598,7 +599,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     return{
       minWidth:340,
       minHeight:65,
-      maxWidth:Math.max(1,Math.min(900,viewportRect.right-panelRect.left-8)),
+      // Encaixado à esquerda (desktop) cresce para a direita; no compacto, ancorado à direita, cresce para a esquerda.
+      maxWidth:Math.max(1,Math.min(900,window.matchMedia(LEFT_DOCK_QUERY).matches?viewportRect.right-panelRect.left-8:panelRect.right-viewportRect.left-8)),
       maxHeight:Math.max(1,Math.min(900,viewport.clientHeight*.75,viewportRect.bottom-8-panelRect.top))
     };
   }

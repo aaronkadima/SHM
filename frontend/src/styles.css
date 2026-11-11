@@ -1066,3 +1066,5 @@ body:has(.liveCam){overflow:hidden}
 .editorDetection.labelOnHover .editorDetectionLabel{display:none}
 .editorDetection.labelOnHover:hover .editorDetectionLabel,.editorDetection.labelOnHover.selected .editorDetectionLabel{display:block;z-index:2}
 .editorDetection:hover,.editorDetection.selected{z-index:4}
+.editorMetricValue .editorMetricCount{font-style:normal;font-size:9.5px;font-weight:800;padding:1px 6px;margin-right:6px;border-radius:999px;background:rgba(13,118,110,.1);color:#2f5f64}
+.editorToolButtons button.active{background:#e3f1ee;color:#0d766e}

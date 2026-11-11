@@ -1116,3 +1116,4 @@ body:has(.liveCam){overflow:hidden}
 .parityExport button:hover{background:#eef6f4;border-color:#b7d6cf}
 @media(max-width:720px){.parityPanel{left:8px;right:8px;margin-left:0;width:auto;top:56px;max-height:calc(100% - 110px)}.parityKpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .parityBody>svg.parityMatrix{max-width:440px;margin:0 auto}
+.parityNote{margin:8px 0 0;padding:7px 9px;border-radius:7px;background:#fff6e8;color:#7c4f0e;font-size:11px;line-height:1.45}

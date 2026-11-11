@@ -97,7 +97,7 @@ function ScatterChart({report,metric,svgRef}){
 }
 function ConfusionChart({report,svgRef}){
   const labels=report.confusion.labels,mat=report.confusion.matrix,n=labels.length,cell=44,m={l:112,t:66},W=m.l+cell*n+16,H=m.t+cell*n+28;
-  const rowSum=mat.map(r=>r.reduce((a,b)=>a+b,0));
+  const rowSum=report.confusion.row_totals||mat.map(r=>r.reduce((a,b)=>a+b,0)),multi=report.confusion.mode==="multilabel";
   return <svg ref={svgRef} className="parityMatrix" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Matriz de confusão cruzada por pixel: classe no Python (linhas) versus classe no JavaScript (colunas)">
     <rect width={W} height={H} fill="#fff"/>
     <g fontFamily={FONT} fontSize="10" fill={INK}>
@@ -106,8 +106,8 @@ function ConfusionChart({report,svgRef}){
       {labels.map((l,i)=><text key={"c"+l} transform={`translate(${m.l+i*cell+cell/2} ${m.t-8}) rotate(-35)`} fontSize="9.5">{CLASS_NAMES[l]||l}</text>)}
       {labels.map((l,i)=><text key={"r"+l} x={m.l-8} y={m.t+i*cell+cell/2+3} textAnchor="end" fontSize="9.5">{CLASS_NAMES[l]||l}</text>)}
       {mat.map((row,i)=>row.map((v,j)=>{const share=rowSum[i]?v/rowSum[i]:0,dark=share>.55;
-        return <g key={i+"-"+j}><rect x={m.l+j*cell+1} y={m.t+i*cell+1} width={cell-2} height={cell-2} rx="4" fill={v?`rgba(13,118,110,${(.08+.92*Math.sqrt(share)).toFixed(3)})`:"#f4f7f8"} stroke={i===j?"none":v?"#c2413b":"none"} strokeWidth="1.5"><title>Python {CLASS_NAMES[labels[i]]} → JS {CLASS_NAMES[labels[j]]}: {v.toLocaleString("pt-BR")} px ({pct(share,3)} da linha)</title></rect>
-          <text x={m.l+j*cell+cell/2} y={m.t+i*cell+cell/2+4} textAnchor="middle" fontSize="10" fontWeight="700" fill={dark?"#fff":v?INK:"#b4c2c8"}>{v?pct(share,share<1&&share>.999?3:1):"0"}</text></g>}))}
+        return <g key={i+"-"+j}><rect x={m.l+j*cell+1} y={m.t+i*cell+1} width={cell-2} height={cell-2} rx="4" fill={v?`rgba(13,118,110,${(.08+.92*Math.sqrt(share)).toFixed(3)})`:"#f4f7f8"} stroke={i===j||(multi&&i<n-1&&j<n-1)?"none":v?"#c2413b":"none"} strokeWidth="1.5"><title>Python {CLASS_NAMES[labels[i]]} → JS {CLASS_NAMES[labels[j]]}: {v.toLocaleString("pt-BR")} px ({pct(share,3)} da linha)</title></rect>
+          <text x={m.l+j*cell+cell/2} y={m.t+i*cell+cell/2+4} textAnchor="middle" fontSize="10" fontWeight="700" fill={dark?"#fff":v?INK:"#b4c2c8"}>{v?pct(share,share<1&&share>.999?3:1):rowSum[i]?"0":"—"}</text></g>}))}
     </g>
   </svg>;
 }
@@ -197,7 +197,8 @@ export default function ParityPanel({onClose,boundsRef}){
         {(tab==="bland"||tab==="scatter")&&<><div className="parityControls"><label>Medida<select value={metric} onChange={e=>setMetric(e.target.value)}>{METRICS.map(([id,l])=><option key={id} value={id}>{l}</option>)}</select></label><span>{tab==="bland"?"Viés sistemático: pontos sobre a linha 0 = paridade.":"Cada ponto é uma cena × família; fora da diagonal = divergência."}</span></div>
           {tab==="bland"?<BlandAltmanChart report={report} metric={metric} svgRef={svgRef}/>:<ScatterChart report={report} metric={metric} svgRef={svgRef}/>}
           <div className="parityKey">{report.classes.map(c=><span key={c}><i style={{background:CLASS_COLORS[c]}}/>{CLASS_NAMES[c]}</span>)}</div></>}
-        {tab==="confusion"&&<><div className="parityControls"><span>Pixel a pixel, todas as cenas. Diagonal = mesma classe nos dois motores; contorno vermelho = troca de classe.</span></div><ConfusionChart report={report} svgRef={svgRef}/></>}
+        {tab==="confusion"&&<><div className="parityControls"><span>{report.confusion.mode==="multilabel"?"Pixel a pixel, todas as cenas, multirrótulo: cada linha são os pixels que o Python marca naquela família; as colunas, quanto deles o JS marca em cada família (uma linha pode somar mais de 100% quando famílias se sobrepõem). Diagonal = paridade; vermelho = pixel sem família em um dos motores.":"Pixel a pixel, todas as cenas. Diagonal = mesma classe nos dois motores; contorno vermelho = troca de classe."}</span></div><ConfusionChart report={report} svgRef={svgRef}/>
+          {report.confusion.overlaps&&Object.entries(report.confusion.overlaps).some(([,o])=>Object.keys(o).length)&&<p className="parityNote">Sobreposições entre famílias no próprio modelo: {Object.entries(report.confusion.overlaps).filter(([,o])=>Object.keys(o).length).map(([c,o])=>CLASS_NAMES[c]+" também marcada como "+Object.entries(o).map(([d,v])=>CLASS_NAMES[d]+" ("+pct(v/((report.confusion.row_totals||[])[report.classes.indexOf(c)]||1),0)+")").join(", ")).join(" · ")}.</p>}</>}
         {tab==="diff"&&<><div className="parityControls"><label>Cena<select value={caseIndex} onChange={e=>setCaseIndex(Number(e.target.value))}>{report.cases.map((c,i)=><option key={c.name} value={i}>{c.name} ({c.width}×{c.height})</option>)}</select></label><label>Família<select value={diffClass} onChange={e=>setDiffClass(e.target.value)}><option value="all">Todas</option>{report.classes.map(c=><option key={c} value={c}>{CLASS_NAMES[c]}</option>)}</select></label></div><DiffMap report={report} caseIndex={caseIndex} cls={diffClass} canvasRef={canvasRef}/></>}
       </>}
     </div>

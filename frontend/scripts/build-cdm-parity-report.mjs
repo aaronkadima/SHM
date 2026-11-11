@@ -47,11 +47,19 @@ function skeletonNodes(skel,w,h){
 }
 // Máscaras de divergência em RLE: [início, comprimento, início, comprimento, …] sobre o índice linear.
 function runs(test,n){const out=[];let start=-1;for(let i=0;i<=n;i++){const on=i<n&&test(i);if(on&&start<0)start=i;else if(!on&&start>=0){out.push(start,i-start);start=-1}}return out}
-function labelMap(maskByClass,n){
-  // prioridade de leitura: fissura > armadura > desplacamento > corrosão > eflorescência > fundo
-  const order=["cracks","exposed_rebar","spalling_dark","corrosion_rust","efflorescence_white"],out=new Uint8Array(n).fill(CLASSES.length);
-  for(let i=0;i<n;i++)for(const c of order)if(maskByClass[c][i]){out[i]=CLASSES.indexOf(c);break}
-  return out;
+// Matriz cruzada multirrótulo: um pixel pode ter várias famílias (ex.: corrosão escura também é
+// desplacamento). Linha i = pixels que o Python marca como i; coluna j = desses, quantos o JS marca
+// como j ("background" = o JS não marca nenhuma família). Linhas podem somar mais de 100%.
+function addConfusion(mat,pyM,jsM,n){
+  const K=CLASSES.length;
+  for(let i=0;i<n;i++){
+    let jsAny=false;for(let b=0;b<K;b++)if(jsM[CLASSES[b]][i]){jsAny=true;break}
+    let pyAny=false;
+    for(let a=0;a<K;a++){if(!pyM[CLASSES[a]][i])continue;pyAny=true;
+      for(let b=0;b<K;b++)if(jsM[CLASSES[b]][i])mat[a][b]++;
+      if(!jsAny)mat[a][K]++;mat[a][K+1]++}
+    if(!pyAny){for(let b=0;b<K;b++)if(jsM[CLASSES[b]][i])mat[K][b]++;if(!jsAny)mat[K][K]++;mat[K][K+1]++}
+  }
 }
 function thumbnail(gray,w,h){
   const s=Math.max(1,Math.ceil(Math.max(w,h)/200)),tw=Math.ceil(w/s),th=Math.ceil(h/s),bytes=new Uint8Array(tw*th);
@@ -61,7 +69,7 @@ function thumbnail(gray,w,h){
 const relErr=(a,b)=>Math.abs(a-b)/Math.max(1e-9,Math.abs(b)||1);
 const round=(v,d=6)=>Number.isFinite(v)?Number(v.toFixed(d)):v;
 
-const cases=[],measures=[],confusion=Array.from({length:CLASSES.length+1},()=>new Array(CLASSES.length+1).fill(0));
+const cases=[],measures=[],confusion=Array.from({length:CLASSES.length+1},()=>new Array(CLASSES.length+2).fill(0));
 const cascade=Object.fromEntries(CLASSES.map(c=>[c,{}]));
 const agg={gray_linf:0,response_linf:0,raw_pmr:0,open_pmr:0,clean_iou:1,clean_pmr:0,dcc:0,skeleton_nodes:0,skeleton_rel:0,measure_rel:0};
 const bump=(cls,stage,key,val,worse)=>{const slot=cascade[cls][stage]||(cascade[cls][stage]={});slot[key]=slot[key]==null?val:worse(slot[key],val)};
@@ -108,7 +116,7 @@ for(const c of input.cases){
   agg.skeleton_nodes=Math.max(agg.skeleton_nodes,Math.abs(nj.ends-np.ends)+Math.abs(nj.branches-np.branches));
   if(np.len||nj.len)agg.skeleton_rel=Math.max(agg.skeleton_rel,relErr(nj.len,np.len));
   // matriz de confusão por pixel (classe dominante)
-  const lj=labelMap(jsMasks,n),lp=labelMap(pyClean,n);for(let i=0;i<n;i++)confusion[lp[i]][lj[i]]++;
+  addConfusion(confusion,pyClean,jsMasks,n);
   out.thumb=thumbnail(trace.gray,w,h);
   cases.push(out);
 }
@@ -138,7 +146,7 @@ const report={
   summary:{cases:cases.length,pixels:cases.reduce((s,c)=>s+c.width*c.height,0),...Object.fromEntries(Object.entries(agg).map(([k,v])=>[k,round(v,8)]))},
   cascade:Object.fromEntries(Object.entries(cascade).map(([cls,st])=>[cls,Object.fromEntries(Object.entries(st).map(([k,v])=>[k,{iou:round(v.iou??1,8),pmr:round(v.pmr??0,10),linf:v.linf==null?null:round(v.linf,6)}]))])),
   measures,
-  confusion:{labels:[...CLASSES,"background"],matrix:confusion},
+  confusion:{mode:"multilabel",labels:[...CLASSES,"background"],matrix:confusion.map(r=>r.slice(0,-1)),row_totals:confusion.map(r=>r.at(-1)),overlaps:Object.fromEntries(CLASSES.map((c,a)=>[c,Object.fromEntries(CLASSES.filter((_,b)=>b!==a&&confusion[a][b]>0).map(d=>[d,confusion[a][CLASSES.indexOf(d)]]))]))},
   cases,
 };
 fs.mkdirSync(path.dirname(outPath),{recursive:true});

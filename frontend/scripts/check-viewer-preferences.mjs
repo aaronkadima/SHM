@@ -76,7 +76,7 @@ check(normalized.pathologyOpacity.corrosion_rust===0.45,"pathology opacity must 
 check(!("bad" in normalized.pathologyOpacity)&&!("" in normalized.pathologyOpacity),"invalid pathology opacity entries must be removed");
 check(normalized.pathologyLocked.join(",")==="cracks","locked layers must keep unique non-empty string ids");
 check(normalized.resultPanelPosition.x===0&&normalized.resultPanelPosition.y===0,"missing Results panel position must use defaults");
-check(normalized.resultPanelSize.width===340&&normalized.resultPanelSize.height===null,"missing Results panel size must use defaults");
+check(normalized.resultPanelSize.width===248&&normalized.resultPanelSize.height===null,"missing Results panel size must use defaults");
 check(normalized.resultPanelOpen===true,"missing Results panel visibility must default to open");
 check(normalizeViewerPreferences({resultPanelOpen:false}).resultPanelOpen===false,"collapsed Results preference must remain false");
 const panelNormalized=normalizeViewerPreferences({resultPanelPosition:{x:9000,y:-9000},resultPanelSize:{width:1200,height:42}});

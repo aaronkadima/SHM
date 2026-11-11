@@ -11,7 +11,7 @@ export const DEFAULT_VIEWER_PREFERENCES={
   pathologyLocked:[],
   resultPanelOpen:true,
   resultPanelPosition:{x:0,y:0},
-  resultPanelSize:{width:340,height:null}
+  resultPanelSize:{width:248,height:null}
 };
 
 const VALID_COMPARISONS=new Set(["original","overlay","wipe","side"]);
@@ -45,7 +45,7 @@ export function normalizeViewerPreferences(value={}){
       y:Number.isFinite(panelY)?Math.min(5000,Math.max(-5000,panelY)):DEFAULT_VIEWER_PREFERENCES.resultPanelPosition.y
     },
     resultPanelSize:{
-      width:Number.isFinite(panelWidth)?Math.min(900,Math.max(340,panelWidth)):DEFAULT_VIEWER_PREFERENCES.resultPanelSize.width,
+      width:Number.isFinite(panelWidth)?Math.min(900,Math.max(248,panelWidth)):DEFAULT_VIEWER_PREFERENCES.resultPanelSize.width,
       height:Number.isFinite(panelHeight)&&panelHeight>=65?Math.min(900,panelHeight):DEFAULT_VIEWER_PREFERENCES.resultPanelSize.height
     }
   };
@@ -78,7 +78,7 @@ export function clampLayersPanelWidth(value){
 }
 
 export function clampResultPanelSize(next,geometry={}){
-  const minWidth=Math.max(1,Number(geometry.minWidth)||340);
+  const minWidth=Math.max(1,Number(geometry.minWidth)||248);
   const minHeight=Math.max(1,Number(geometry.minHeight)||65);
   const maxWidth=Math.max(1,Number(geometry.maxWidth)||900);
   const maxHeight=Math.max(1,Number(geometry.maxHeight)||900);

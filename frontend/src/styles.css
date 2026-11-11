@@ -1068,3 +1068,12 @@ body:has(.liveCam){overflow:hidden}
 .editorDetection:hover,.editorDetection.selected{z-index:4}
 .editorMetricValue .editorMetricCount{font-style:normal;font-size:9.5px;font-weight:800;padding:1px 6px;margin-right:6px;border-radius:999px;background:rgba(13,118,110,.1);color:#2f5f64}
 .editorToolButtons button.active{background:#e3f1ee;color:#0d766e}
+/* Barra lateral: separadores e rolagem quando a altura não comporta todos os botões */
+.editorToolButtons{flex:0 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.editorToolButtons::-webkit-scrollbar{display:none}
+.editorToolSep{display:block;width:24px;height:1px;background:#dce5e8;flex:none;margin:1px 0}
+.editorToolButtons .editorToolMode.active{background:#0d766e;color:#fff}
+/* Camadas: nome cortado com reticências antes da contagem (sem sobreposição) */
+.pathologyLayer label{min-width:0;overflow:hidden}
+.pathologyLayer .pathologyName{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
+.pathologyLayer label>small{flex:none;margin-left:3px}

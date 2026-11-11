@@ -1,5 +1,5 @@
 import React,{Suspense,useCallback,useEffect,useRef,useState} from "react";
-import {Ruler,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
+import {Ruler,SquareDashed,Tag,Layers2,FlipHorizontal2,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
 import ImageInspector from "./ImageInspector.jsx";
 import EngineStages from "./EngineStages.jsx";
 import CanvasRulers,{RULER_UNITS} from "./CanvasRulers.jsx";
@@ -1295,6 +1295,12 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button aria-label="Reduzir zoom" title={kind==="2d"?"Reduzir":"Zoom 2D indisponível"} disabled={kind!=="2d"} onClick={()=>changeZoom(-.25)}><Minus/></button>
           <button title={kind==="2d"?"Ajustar à tela":"Ajuste 2D indisponível"} aria-label="Ajustar à tela" disabled={kind!=="2d"} onClick={fitView}><Maximize2/></button>
           <button className={rulers.visible?"active":""} aria-label={rulers.visible?"Ocultar réguas":"Mostrar réguas"} aria-pressed={!!rulers.visible} title={(rulers.visible?"Ocultar":"Mostrar")+" réguas · Ctrl/Cmd+Shift+R"} disabled={kind!=="2d"} onClick={toggleRulers}><Ruler/></button>
+          <span className="editorToolSep" aria-hidden="true"/>
+          <button className={showBoxes?"active":""} aria-label={showBoxes?"Ocultar caixas delimitadoras":"Mostrar caixas delimitadoras"} aria-pressed={showBoxes} title={(showBoxes?"Ocultar":"Mostrar")+" caixas delimitadoras"} disabled={kind!=="2d"} onClick={()=>setShowBoxes(v=>{showStatusNotice(v?"Caixas ocultas":"Caixas visíveis",900);return !v})}><SquareDashed/></button>
+          <button className={showLabels?"active":""} aria-label={showLabels?"Ocultar rótulos":"Mostrar rótulos"} aria-pressed={showLabels} title={(showLabels?"Ocultar":"Mostrar")+" rótulos dos achados"} disabled={kind!=="2d"} onClick={()=>setShowLabels(v=>{showStatusNotice(v?"Rótulos ocultos":"Rótulos visíveis",900);return !v})}><Tag/></button>
+          <span className="editorToolSep" aria-hidden="true"/>
+          {[["original",ImageIcon,"Original"],["overlay",Layers2,"Sobrepor (original + detecções)"],["wipe",FlipHorizontal2,"Deslizar"],["side",Columns2,"Lado a lado"]].map(([id,Icon,label])=><button key={id} className={"editorToolMode"+(comparison===id?" active":"")} aria-label={"Visualização: "+label} aria-pressed={comparison===id} title={id!=="original"&&!res?label+" · disponível após a análise":label} disabled={kind!=="2d"||(id!=="original"&&!res)} onClick={()=>changeComparison(id)}><Icon/></button>)}
+          <span className="editorToolSep" aria-hidden="true"/>
           <button aria-label="Abrir modo câmera" title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button>
           {onLive&&<button className="editorToolLive" aria-label="Abrir Live detecção" title="Live detecção · tempo real com câmera ou vídeo" disabled={busy} onClick={onLive}><Radio/></button>}
         </div>

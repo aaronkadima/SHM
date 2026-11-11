@@ -489,6 +489,23 @@ function crackRecords(rawMask,w,h,timeLabel,cfg){
   }
   return records;
 }
+// Regiões (desplacamento, corrosão, eflorescência): ignora manchas irrelevantes e não repete caixas
+// contidas numa caixa maior da mesma patologia (a área contida é somada à maior).
+// Mesma regra em backend/app/cdm_v285.py (consolidate_area_records); paridade testada em CI.
+const AREA_CLASSES=new Set(["spalling_dark","corrosion_rust","efflorescence_white"]);
+const AREA_REGION_FRACTION=.0005,AREA_LARGEST_FRACTION=.08,AREA_CONTAIN_FRACTION=.8;
+function consolidateAreaRecords(records,w,h,cfg){
+  if(!records.length)return records;
+  const largest=Math.max(...records.map(r=>r.area_px2));
+  const minRegion=Math.max(Math.max(1,cfg.minArea),AREA_REGION_FRACTION*w*h,AREA_LARGEST_FRACTION*largest);
+  const big=records.filter(r=>r.area_px2>=minRegion).sort((a,b)=>b.area_px2-a.area_px2||(a.id<b.id?-1:1)),kept=[];
+  for(const r of big){
+    const[x,y,bw,bh]=r.bbox;
+    const host=kept.find(k=>{const[kx,ky,kw,kh]=k.bbox,ix=Math.max(0,Math.min(x+bw,kx+kw)-Math.max(x,kx)),iy=Math.max(0,Math.min(y+bh,ky+kh)-Math.max(y,ky));return ix*iy>=AREA_CONTAIN_FRACTION*bw*bh});
+    if(host)host.area_px2+=r.area_px2;else kept.push({...r});
+  }
+  return kept.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
+}
 function recordsFromMask(mask,w,h,damageClass,timeLabel,cfg){
   if(damageClass==="cracks")return crackRecords(mask,w,h,timeLabel,cfg);
   const seen=new Uint8Array(mask.length),queue=new Uint32Array(mask.length),records=[],minArea=Math.max(1,cfg.minArea),minAspect=cfg.minAspect;
@@ -532,7 +549,7 @@ function recordsFromMask(mask,w,h,damageClass,timeLabel,cfg){
       area_px2:tail,perimeter_px:perimeter,length_px:length,width_px:widthPx,aspect_ratio:aspect,confidence_note:note
     });
   }
-  return records;
+  return AREA_CLASSES.has(damageClass)?consolidateAreaRecords(records,w,h,cfg):records;
 }
 function renderLayer(records,w,h,color){
   const c=document.createElement("canvas");c.width=w;c.height=h;const ctx=c.getContext("2d");

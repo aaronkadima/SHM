@@ -1710,7 +1710,42 @@ def records_from_mask(mask: np.ndarray, damage_class: str, time_label: str, cfg:
             width_px=width_px,
             confidence_note=note,
         ))
+    if damage_class in AREA_CLASSES:
+        return consolidate_area_records(records, mask.shape[1], mask.shape[0], cfg)
     return records
+
+
+# Regiões (desplacamento, corrosão, eflorescência): ignora manchas irrelevantes e não repete caixas
+# contidas numa caixa maior da mesma patologia (a área contida é somada à maior).
+# Mesma regra em frontend/src/cdmBrowser.js (consolidateAreaRecords).
+AREA_CLASSES = {"spalling_dark", "corrosion_rust", "efflorescence_white"}
+AREA_REGION_FRACTION = 0.0005
+AREA_LARGEST_FRACTION = 0.08
+AREA_CONTAIN_FRACTION = 0.8
+
+
+def consolidate_area_records(records: List[DamageRecord], w: int, h: int, cfg: DetectorConfig) -> List[DamageRecord]:
+    if not records:
+        return records
+    largest = max(r.area_px2 for r in records)
+    min_region = max(max(1.0, float(cfg.min_area)), AREA_REGION_FRACTION * w * h, AREA_LARGEST_FRACTION * largest)
+    big = sorted((r for r in records if r.area_px2 >= min_region), key=lambda r: (-r.area_px2, r.record_id))
+    kept: List[DamageRecord] = []
+    for r in big:
+        x, y, bw, bh = r.bbox
+        host = None
+        for k in kept:
+            kx, ky, kw, kh = k.bbox
+            ix = max(0, min(x + bw, kx + kw) - max(x, kx))
+            iy = max(0, min(y + bh, ky + kh) - max(y, ky))
+            if ix * iy >= AREA_CONTAIN_FRACTION * bw * bh:
+                host = k
+                break
+        if host is not None:
+            host.area_px2 = float(host.area_px2 + r.area_px2)
+        else:
+            kept.append(r)
+    return sorted(kept, key=lambda r: r.record_id)
 
 
 def damage_D_from_fi_fp(fi: float, fp: float) -> float:

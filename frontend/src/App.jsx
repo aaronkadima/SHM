@@ -5,6 +5,7 @@ import AnalysisWorkspace from"./AnalysisWorkspace.jsx";
 import AnalysisSettings from"./AnalysisSettings.jsx";
 import LiveView from"./LiveView.jsx";
 import{AULAS_HREF}from"./aulasRoute.js";
+import ReplaceWorkDialog from"./ReplaceWorkDialog.jsx";
 import{browserEngineSupported,runBrowserEngine}from"./browserEngines.js";
 import{analysisExecutionIssue,executionEndpointIssue}from"./executionConfig.js";
 import{buildComparisonCsv}from"./resultExport.js";
@@ -140,6 +141,9 @@ export default function App(){
   const[correctionInfo,setCorrectionInfo]=useState(null);
   const[aulasCrumb,setAulasCrumb]=useState("");
   const imageDiagnosticsRef=useRef(null);
+  // Estado salvo do trabalho atual (para perguntar antes de substituí-lo por outro arquivo).
+  const[savedState,setSavedState]=useState(null);
+  const[replacePrompt,setReplacePrompt]=useState(null);
   const[busy,setBusy]=useState(false);
   const[jobId,setJobId]=useState(null);
   const[progress,setProgress]=useState(null);
@@ -284,6 +288,7 @@ export default function App(){
       setReferenceInspectionId(restoredReferenceFile?(record.reference_inspection_id||record.summary?.reference_inspection_id||null):null);
       setReferenceInspectionMeta(restoredReferenceFile?(record.reference_inspection_meta||linkedReferenceRecord?.inspection||null):null);
       setRes(record.result||null);
+      setSavedState({analysisId:record.result?.metadata?.analysis_id||null,name:restoredFile?.name||null});
       setInspectionMeta({...EMPTY_INSPECTION,...(record.inspection||{})});
       setSel(new Set(record.summary?.engine_ids||record.result?.metadata?.engine_ids||[]));
       setProgress(null);setJobId(null);setErr(referenceRestoreWarning);
@@ -430,9 +435,27 @@ export default function App(){
     if(!target)return;
     downloadBinaryBlob(target.name,target);
     if(res&&!busy){
-      try{await saveInspection({result:res,file:target,referenceFile,referenceInspectionId,referenceInspectionMeta,inspection:{...inspectionMeta}});await refreshHistory()}
+      try{await saveInspection({result:res,file:target,referenceFile,referenceInspectionId,referenceInspectionMeta,inspection:{...inspectionMeta}});setSavedState({analysisId:res.metadata?.analysis_id||null,name:target.name});await refreshHistory()}
       catch(e){setHistoryErr("Não foi possível atualizar o histórico local: "+String(e))}
     }
+  }
+  // Há trabalho aberto? Então perguntar antes de abrir outro arquivo/inspeção.
+  const workDirty=!!file&&(!res||!savedState||savedState.analysisId!==(res.metadata?.analysis_id||null)||savedState.name!==file.name);
+  function guardReplace(nextLabel,action){
+    if(!file){action();return}
+    setReplacePrompt({nextLabel,action});
+  }
+  const requestPick=f=>guardReplace(f?.name||"novo arquivo",()=>pick(f));
+  async function resolveReplace(choice){
+    const prompt=replacePrompt;setReplacePrompt(null);
+    if(!prompt||choice==="cancel")return;
+    if(choice==="save"){
+      if(res){
+        try{await saveInspection({result:res,file,referenceFile,referenceInspectionId,referenceInspectionMeta,inspection:{...inspectionMeta}});await refreshHistory()}
+        catch(e){setHistoryErr("Não foi possível salvar antes de abrir: "+String(e));return}
+      }else downloadBinaryBlob(file.name,file);
+    }
+    prompt.action();
   }
   function applyImageCorrection(next,info){
     const source=originalFile||file;
@@ -725,6 +748,7 @@ export default function App(){
         await requestPersistentStorage();
         if(controller.signal.aborted||activeRun.current?.id!==runId)return;
         await saveInspection({result,file:sourceFile,referenceFile:sourceReference,referenceInspectionId:sourceReferenceInspectionId,referenceInspectionMeta:sourceReferenceInspectionMeta,inspection});
+        setSavedState({analysisId:result.metadata?.analysis_id||null,name:sourceFile?.name||null});
         await refreshHistory();
       }catch(storageError){
         if(activeRun.current?.id===runId)setHistoryErr("A análise foi concluída, mas não pôde ser persistida no histórico local: "+String(storageError));
@@ -779,12 +803,13 @@ export default function App(){
     </header>}
 
     {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
-    {activeView==="live"&&<LiveView engines={engines} selected={selected} cdmOptions={cdmOptions} inspectionMeta={inspectionMeta} appInfo={APP_INFO} onClose={()=>navigate("analysis")} onAnalyzeFrame={f=>{pick(f);navigate("analysis")}}/>}
+    {replacePrompt&&<ReplaceWorkDialog current={file?.name} next={replacePrompt.nextLabel} analyzed={!!res} dirty={workDirty} onChoose={resolveReplace}/>}
+    {activeView==="live"&&<LiveView engines={engines} selected={selected} cdmOptions={cdmOptions} inspectionMeta={inspectionMeta} appInfo={APP_INFO} onClose={()=>navigate("analysis")} onAnalyzeFrame={f=>guardReplace(f.name,()=>{pick(f);navigate("analysis")})}/>}
     {(activeView==="analysis"||activeView==="aulas")&&<>
-    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} spatialRegistration={spatialRegistration} spatialTransform={spatialTransform} spatialFrameAssets={spatialFrameAssets} onSolveSpatialFrameAlignment={solveSpatialFrameAlignment} spatialRgbAnalysis={spatialRgbAnalysis} spatialPhotoViews={spatialPhotoViews} activeSpatialPhotoId={activeSpatialPhotoId} onAddSpatialPhotos={addSpatialPhotos} onSelectSpatialPhoto={selectSpatialPhoto} onRemoveSpatialPhoto={removeSpatialPhoto} spatialAutoRegistrationBusy={spatialAutoRegistrationBusy} spatialAutoRegistrationStatus={spatialAutoRegistrationStatus} onAutoRegisterSpatialPhotos={autoRegisterSpatialPhotos} spatialRegistrationPointCount={Number(spatialRegistrationSample?.sampled_point_count||0)} photometricSummary={photometricSummary} onPhotometricSummary={setPhotometricSummary} onSpatialRegistrationSample={setSpatialRegistrationSample} spatialPathologyRecords={spatialPathologyRecords} onSpatialPathologyRecords={handleSpatialPathologyRecords} onSolveSpatialRegistration={solveSpatialRegistration} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={pick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} onLive={()=>navigate("live")} onRenameFile={renameFile} onSaveFile={saveCurrentFile} onApplyCorrection={applyImageCorrection} onRestoreOriginal={restoreOriginalImage} hasOriginalFile={!!originalFile} appliedCorrection={correctionInfo} onImageDiagnostics={info=>{imageDiagnosticsRef.current=info}} cdmOptions={cdmOptions} stageControl={{channel:APP_CHANNEL,buildSha:BUILD_SHA}} aulasOpen={activeView==="aulas"} aulasHref={AULAS_HREF+"?embed=studio"} aulasCrumb={aulasCrumb} recentHistory={history} onOpenRecent={id=>openHistory(id,"analysis")} onToggleAulas={()=>navigate(activeView==="aulas"?"analysis":"aulas")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)} onExportCdm3={exportSpatialPathologies}/>
+    <AnalysisWorkspace appInfo={{...APP_INFO,deployment:deploymentCheck}} executionIssue={executionIssue} referenceValidating={temporalValidationBlocksRun} selectedEngineLabels={selectedEngineLabels} file={file} prev={prev} referenceFile={referenceFile} referencePrev={referencePrev} spatialRgbFile={spatialRgbFile} spatialRgbPrev={spatialRgbPrev} onSpatialRgbFile={pickSpatialRgb} spatialRegistration={spatialRegistration} spatialTransform={spatialTransform} spatialFrameAssets={spatialFrameAssets} onSolveSpatialFrameAlignment={solveSpatialFrameAlignment} spatialRgbAnalysis={spatialRgbAnalysis} spatialPhotoViews={spatialPhotoViews} activeSpatialPhotoId={activeSpatialPhotoId} onAddSpatialPhotos={addSpatialPhotos} onSelectSpatialPhoto={selectSpatialPhoto} onRemoveSpatialPhoto={removeSpatialPhoto} spatialAutoRegistrationBusy={spatialAutoRegistrationBusy} spatialAutoRegistrationStatus={spatialAutoRegistrationStatus} onAutoRegisterSpatialPhotos={autoRegisterSpatialPhotos} spatialRegistrationPointCount={Number(spatialRegistrationSample?.sampled_point_count||0)} photometricSummary={photometricSummary} onPhotometricSummary={setPhotometricSummary} onSpatialRegistrationSample={setSpatialRegistrationSample} spatialPathologyRecords={spatialPathologyRecords} onSpatialPathologyRecords={handleSpatialPathologyRecords} onSolveSpatialRegistration={solveSpatialRegistration} referenceInspectionId={referenceInspectionId} referenceInspectionMeta={referenceInspectionMeta} inspectionMeta={inspectionMeta} res={res} busy={busy} progress={progress} selected={selected} onFile={requestPick} onReferenceFile={pickReference} onRun={run} onCancel={busy&&!(runMode==="individual"&&selected[0]==="opencv_crack")?cancelRun:null} onSettings={()=>navigate("settings")} onLive={()=>navigate("live")} onRenameFile={renameFile} onSaveFile={saveCurrentFile} onApplyCorrection={applyImageCorrection} onRestoreOriginal={restoreOriginalImage} hasOriginalFile={!!originalFile} appliedCorrection={correctionInfo} onImageDiagnostics={info=>{imageDiagnosticsRef.current=info}} cdmOptions={cdmOptions} stageControl={{channel:APP_CHANNEL,buildSha:BUILD_SHA}} aulasOpen={activeView==="aulas"} aulasHref={AULAS_HREF+"?embed=studio"} aulasCrumb={aulasCrumb} recentHistory={history} onOpenRecent={id=>guardReplace(history.find(h=>h.id===id)?.file_meta?.name||"inspeção do histórico",()=>openHistory(id,"analysis"))} onToggleAulas={()=>navigate(activeView==="aulas"?"analysis":"aulas")} error={err} onExport={()=>res&&exportJson(res)} onExportCsv={()=>res&&exportCsv(res)} onExportMap={()=>res&&downloadConsensus(res)} onExportCdm={(result,format)=>exportCdm(result,file?.name||"inspecao.png",format,inspectionMeta)} onExportCdm3={exportSpatialPathologies}/>
     </>}
     {activeView==="engines"&&<EnginesView appInfo={APP_INFO} engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
-    {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={openHistory} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 
+    {activeView==="alerts"&&<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={(id,target)=>guardReplace(history.find(h=>h.id===id)?.file_meta?.name||"inspeção do histórico",()=>openHistory(id,target))} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>} 
     {activeView==="reports"&&<ReportsView res={res} inspection={inspectionMeta} onJson={()=>res&&exportJson(res)} onCsv={()=>res&&exportCsv(res)} onMap={()=>res&&downloadConsensus(res)} onNavigate={navigate}/>}
     {activeView==="settings"&&<AnalysisSettings appInfo={APP_INFO} engines={engines} selected={selected} toggle={toggle} onBack={()=>navigate("analysis")} individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} inspectionMeta={inspectionMeta} updateInspectionMeta={updateInspectionMeta} cdmOptions={cdmOptions} setCdmOptions={setCdmOptions} error={err}/>}
     </main>

@@ -372,17 +372,20 @@ function App(){
             let canvasWheelOk=true;
             if(!phoneSidebar&&canvas){
               const wheelViewportRect=canvas.closest(".editorViewport")?.getBoundingClientRect();
-              const fitBeforeWheel=canvas.style.transform||"";
-              canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,deltaX:0,deltaY:40}));
-              await sleep(20);
-              const wheelAtFitIgnored=(canvas.style.transform||"")===fitBeforeWheel;
+              // Roda simples = zoom no cursor (como CAD); depois volta ao ajuste com "0".
+              canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,deltaX:0,deltaY:-100,clientX:wheelViewportRect?(wheelViewportRect.left+wheelViewportRect.right)/2:0,clientY:wheelViewportRect?(wheelViewportRect.top+wheelViewportRect.bottom)/2:0}));
+              await sleep(30);
+              const cadZoom=canvasTransformValues(canvas);
+              const wheelAtFitIgnored=!!cadZoom&&cadZoom.zoom>1.05&&Math.abs(cadZoom.x)<=1&&Math.abs(cadZoom.y)<=1;
+              canvas.focus();canvas.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,key:"0"}));
+              await sleep(30);
               const wheelAnchorX=wheelViewportRect?(wheelViewportRect.left+wheelViewportRect.right)/2+80:80;
               const wheelAnchorY=wheelViewportRect?(wheelViewportRect.top+wheelViewportRect.bottom)/2+40:40;
               for(let n=0;n<3;n++)canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,ctrlKey:true,deltaX:0,deltaY:-100,clientX:wheelAnchorX,clientY:wheelAnchorY}));
               await sleep(40);
               const wheelZoomTransform=canvasTransformValues(canvas);
               const ctrlWheelZoomOk=[...document.querySelectorAll(".editorZoom span")][0]?.textContent?.trim()==="175%"&&!!wheelZoomTransform&&Math.abs(wheelZoomTransform.x+60)<=1&&Math.abs(wheelZoomTransform.y+30)<=1&&Math.abs(wheelZoomTransform.zoom-1.75)<.001;
-              canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,deltaX:12,deltaY:18}));
+              canvas.dispatchEvent(new WheelEvent("wheel",{bubbles:true,cancelable:true,shiftKey:true,deltaX:12,deltaY:18}));
               await sleep(30);
               const wheelPanTransform=canvasTransformValues(canvas);
               const wheelPanOk=!!wheelPanTransform&&Math.abs(wheelPanTransform.x+72)<=1&&Math.abs(wheelPanTransform.y+48)<=1&&Math.abs(wheelPanTransform.zoom-1.75)<.001;

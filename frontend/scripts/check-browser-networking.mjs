@@ -21,7 +21,7 @@ check(onnx.includes('+"?sha256="+expectedSha'),"ONNX model URLs must be versione
 check(onnx.includes('const key=base+":"+stem+":"+expectedSha'),"ONNX session cache must be keyed by the published model SHA-256");
 check(workspace.includes('for(const row of rows)next[row.engine_id]=true'),"fresh analysis results must force engine layers visible");
 check(workspace.includes('resultOpenPreference.current=true')&&workspace.includes('setResultOpen(true)'),"fresh analysis results must reopen the results panel");
-check(workspace.includes('?"overlay":current'),"fresh overlay results must become visible when viewer was on Original");
+check(workspace.includes('?preferredComparison:"overlay"):current'),"fresh overlay results must become visible when viewer was on Original");
 check(workspace.includes('Área fissura'),"semantic segmentation results must expose crack-area percentage in the results panel");
 const app=fs.readFileSync(new URL("../src/App.jsx",import.meta.url),"utf8");
 check(app.includes('const guardKey="shmAutoReloadBuild"'),"stale Pages bundles must use a one-shot auto-refresh guard");

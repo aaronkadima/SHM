@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState}from"react";
-import{Camera,Download,FileJson,FileVideo,Flashlight,ImageDown,Images,MapPin,Play,RefreshCw,ScanSearch,Settings2,SwitchCamera,Trash2,Video,X}from"lucide-react";
+import{Camera,CameraOff,Download,FileJson,FileVideo,Flashlight,ImageDown,Images,MapPin,Play,RefreshCw,ScanSearch,Settings2,SwitchCamera,Trash2,Video,X}from"lucide-react";
 import{LIVE_ENGINES,LIVE_ENGINE_IDS}from"./liveEngines.js";
 
 const RESOLUTIONS={"720p":[1280,720],"1080p":[1920,1080],"4K":[3840,2160]};
@@ -171,9 +171,17 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
 
   const requestWakeLock=useCallback(async()=>{try{wakeLockRef.current=await navigator.wakeLock?.request?.("screen")}catch{}},[]);
 
+  // Presença de câmera: verifica dispositivos antes de abrir e reage a conectar/desconectar.
+  const listCameras=useCallback(async()=>{
+    try{return(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==="videoinput")}catch{return null}
+  },[]);
+  const allowStaticRef=useRef(false),staticRef=useRef({prev:null,since:0,last:0}),staticCanvasRef=useRef(null);
   const startCamera=useCallback(async(opts={})=>{
     if(!navigator.mediaDevices?.getUserMedia){setStreamState({status:"error",error:"Câmera indisponível neste navegador ou fora de conexão HTTPS."});return}
     if(recorderRef.current?.state==="recording"){flash("Pare a gravação antes de trocar a fonte.");return}
+    allowStaticRef.current=!!opts.allowStatic;staticRef.current={prev:null,since:0,last:0};
+    const cams=await listCameras();
+    if(cams&&!cams.length){stopSource();setStreamState({status:"nocamera",error:"Nenhuma câmera foi encontrada neste dispositivo."});return}
     stopSource();setStreamState({status:"starting",error:""});
     const[w,h]=RESOLUTIONS[opts.resolution||resolution]||RESOLUTIONS["1080p"];
     const dev=opts.deviceId??deviceId,face=opts.facing||facing;
@@ -182,6 +190,10 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
     try{
       const stream=await navigator.mediaDevices.getUserMedia({video,audio:false});
       streamRef.current=stream;
+      stream.getVideoTracks()[0]?.addEventListener("ended",()=>{
+        if(streamRef.current!==stream)return;
+        stopSource();setStreamState({status:"nocamera",error:"A câmera foi desconectada."});
+      });
       const v=videoRef.current;v.srcObject=stream;v.muted=true;await v.play().catch(()=>{});
       const track=stream.getVideoTracks()[0],settings=track?.getSettings?.()||{},caps=track?.getCapabilities?.()||{};
       setTorch({supported:!!caps.torch,on:false});
@@ -193,10 +205,24 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
       requestWakeLock();
     }catch(error){
       const name=error?.name;
-      const msg=name==="NotAllowedError"?"Permissão de câmera negada. Libere o acesso nas configurações do navegador.":name==="NotFoundError"?"Nenhuma câmera encontrada.":name==="OverconstrainedError"?"A câmera não aceita essa resolução; tente uma menor.":String(error?.message||error);
-      setStreamState({status:"error",error:msg});
+      const msg=name==="NotAllowedError"?"Permissão de câmera negada. Libere o acesso nas configurações do navegador.":name==="NotFoundError"||name==="DevicesNotFoundError"?"Nenhuma câmera foi encontrada neste dispositivo.":name==="NotReadableError"?"A câmera está em uso por outro aplicativo ou não responde.":name==="OverconstrainedError"?"A câmera não aceita essa resolução; tente uma menor.":String(error?.message||error);
+      setStreamState({status:name==="NotFoundError"||name==="DevicesNotFoundError"?"nocamera":"error",error:msg});
     }
-  },[deviceId,facing,resolution,stopSource,requestWakeLock,flash]);
+  },[deviceId,facing,resolution,stopSource,requestWakeLock,flash,listCameras]);
+
+  // Ao conectar uma câmera com o aviso aberto, inicia sozinho; ao remover a câmera em uso, avisa.
+  const streamStatusRef=useRef(streamState.status);streamStatusRef.current=streamState.status;
+  useEffect(()=>{
+    const md=navigator.mediaDevices;if(!md?.addEventListener)return;
+    const onChange=async()=>{
+      const cams=await listCameras();if(!cams)return;
+      const st=streamStatusRef.current;
+      if((st==="nocamera"||st==="error")&&cams.length)startCamera();
+      else if(st==="live"&&streamRef.current&&!cams.length){stopSource();setStreamState({status:"nocamera",error:"A câmera foi desconectada."})}
+      else setDevices(cams.map((d,i)=>({id:d.deviceId,label:d.label||"Câmera "+(i+1)})));
+    };
+    md.addEventListener("devicechange",onChange);return()=>md.removeEventListener("devicechange",onChange);
+  },[listCameras,startCamera,stopSource]);
 
   const startFile=useCallback(async file=>{
     if(!file)return;
@@ -294,6 +320,22 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
       if(rc&&recorderRef.current?.state==="recording")drawComposite(rc.getContext("2d"),rc.width,rc.height,{hud:true});
       frameCountRef.current.display++;
       const s=settingsRef.current,now=performance.now();
+      // Câmera virtual/placeholder: quadros idênticos (sem ruído de sensor) por 3 s → não é câmera real.
+      const st=staticRef.current;
+      if(streamRef.current&&!allowStaticRef.current&&now-st.last>=250){
+        st.last=now;
+        let pc=staticCanvasRef.current;if(!pc){pc=document.createElement("canvas");pc.width=48;pc.height=27;staticCanvasRef.current=pc}
+        const pctx=pc.getContext("2d",{willReadFrequently:true});pctx.drawImage(v,0,0,48,27);
+        const d=pctx.getImageData(0,0,48,27).data;let diff=0;
+        if(st.prev)for(let i=0;i<d.length;i+=4)diff+=Math.abs(d[i]-st.prev[i])+Math.abs(d[i+1]-st.prev[i+1]);
+        st.prev=new Uint8ClampedArray(d);
+        if(diff>0||!st.since)st.since=now;
+        else if(now-st.since>3000){
+          const label=streamRef.current.getVideoTracks()[0]?.label||"Câmera";
+          stopSource();setStreamState({status:"static",error:"“"+label+"” está enviando uma imagem parada — parece uma câmera virtual ou sem sinal, não uma câmera real."});
+          return;
+        }
+      }
       if(s.detecting&&!inflightRef.current&&now-lastSendRef.current>=1000/Math.max(1,s.fpsCap))sendFrame();
       if(now-lastStats>=400){
         const fc=frameCountRef.current,dt=(now-fc.t)/1000,r=resultRef.current;
@@ -305,7 +347,7 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
     };
     rafRef.current=requestAnimationFrame(tick);
     return()=>cancelAnimationFrame(rafRef.current);
-  },[drawComposite,sendFrame]);
+  },[drawComposite,sendFrame,stopSource]);
 
   // ---------- Captura de foto ----------
   const metadataFor=useCallback((kind,extra={})=>{
@@ -426,7 +468,13 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
 
     {!live&&<div className="liveCamEmpty">
       <div className="liveCamCard">
-        {streamState.status==="error"?<>
+        {streamState.status==="nocamera"?<>
+          <span className="liveCamCardIcon warn"><CameraOff size={26}/></span><b>Conecte uma câmera</b><p>{streamState.error} Conecte uma webcam ou câmera USB — o Live inicia sozinho quando ela for detectada.</p>
+          <div className="liveCamCardActions"><button className="primary" onClick={()=>startCamera()}><RefreshCw size={15}/> Verificar novamente</button><button onClick={()=>fileInputRef.current?.click()}><FileVideo size={15}/> Abrir vídeo</button></div>
+        </>:streamState.status==="static"?<>
+          <span className="liveCamCardIcon warn"><CameraOff size={26}/></span><b>Nenhuma câmera real detectada</b><p>{streamState.error} Conecte uma câmera para detectar em tempo real.</p>
+          <div className="liveCamCardActions"><button className="primary" onClick={()=>startCamera()}><RefreshCw size={15}/> Verificar novamente</button><button onClick={()=>fileInputRef.current?.click()}><FileVideo size={15}/> Abrir vídeo</button><button onClick={()=>startCamera({allowStatic:true})}>Usar mesmo assim</button></div>
+        </>:streamState.status==="error"?<>
           <Camera size={28}/><b>Câmera indisponível</b><p>{streamState.error}</p>
           <div className="liveCamCardActions"><button className="primary" onClick={()=>startCamera()}><RefreshCw size={15}/> Tentar novamente</button><button onClick={()=>fileInputRef.current?.click()}><FileVideo size={15}/> Abrir vídeo</button></div>
         </>:streamState.status==="idle"?<>

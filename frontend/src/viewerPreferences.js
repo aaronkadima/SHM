@@ -95,9 +95,12 @@ export function clampResultPanelSize(next,geometry={}){
   };
 }
 
+// Faixa de zoom do canvas (10%–3200%): permite inspecionar fissuras milimétricas, como em CAD.
+export const CANVAS_ZOOM_MIN=.1,CANVAS_ZOOM_MAX=32;
+const clampZoom=z=>Math.max(CANVAS_ZOOM_MIN,Math.min(CANVAS_ZOOM_MAX,Number(z)||1));
 export function zoomCanvasPanAroundPoint(pan,fromZoom,toZoom,startPoint,endPoint=startPoint){
-  const from=Math.max(.25,Math.min(4,Number(fromZoom)||1));
-  const to=Math.max(.25,Math.min(4,Number(toZoom)||1));
+  const from=clampZoom(fromZoom);
+  const to=clampZoom(toZoom);
   const ratio=to/from;
   const startX=Number(startPoint?.x)||0,startY=Number(startPoint?.y)||0;
   const endX=Number(endPoint?.x)||0,endY=Number(endPoint?.y)||0;
@@ -113,7 +116,7 @@ export function clampCanvasPan(next,geometry={}){
   const viewportHeight=Math.max(1,Number(geometry.viewportHeight)||1);
   const canvasWidth=Math.max(1,Number(geometry.canvasWidth)||1);
   const canvasHeight=Math.max(1,Number(geometry.canvasHeight)||1);
-  const zoom=Math.max(.25,Math.min(4,Number(geometry.zoom)||1));
+  const zoom=clampZoom(geometry.zoom);
   const minVisible=Math.max(24,Number(geometry.minVisible)||56);
   const scaledWidth=canvasWidth*zoom;
   const scaledHeight=canvasHeight*zoom;

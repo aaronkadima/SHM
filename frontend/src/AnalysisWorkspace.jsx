@@ -2,7 +2,7 @@ import React,{Suspense,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
 import ImageInspector from "./ImageInspector.jsx";
 import EngineStages from "./EngineStages.jsx";
-import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint}from"./viewerPreferences.js";
+import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint,CANVAS_ZOOM_MIN,CANVAS_ZOOM_MAX}from"./viewerPreferences.js";
 import{detectAsset,isCdm3SpatialAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./assetDetection.js";
 import{buildDamageTimeline,matchTemporalDamageCampaigns}from"./cdm3RegisteredProjection.js";
 const IMAGE_ACCEPT=SUPPORTED_IMAGE_EXTENSIONS.map(ext=>"."+ext).join(",");
@@ -52,6 +52,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const [inspectorOpen,setInspectorOpen]=useState(()=>{try{return localStorage.getItem("shmImageInspectorOpen")==="1"}catch{return false}}),[inspectorTab,setInspectorTab]=useState("histogram"),[correctionPreview,setCorrectionPreview]=useState(null);
   const [imageQuality,setImageQuality]=useState(null),[qualityAck,setQualityAck]=useState(false),[renaming,setRenaming]=useState(false),[nameDraft,setNameDraft]=useState(""),[stagesActive,setStagesActive]=useState(false);
   const [recentOpen,setRecentOpen]=useState(false);
+  const [wheelMode,setWheelMode]=useState(()=>{try{return localStorage.getItem("shmWheelMode")==="pan"?"pan":"zoom"}catch{return"zoom"}});
+  const lastMiddleDown=useRef(null);
   const [showBoxes,setShowBoxes]=useState(()=>{try{return localStorage.getItem("shmShowDetectionBoxes")!=="0"}catch{return true}}),[layerSettingsId,setLayerSettingsId]=useState(null);
   const aulasFrame=useRef(null),aulasLockRef=useRef(false);
   aulasLockRef.current=aulasOpen;
@@ -215,7 +217,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     showStatusNotice(`Imagem carregada · ${file.name} · ${imageSize.width}×${imageSize.height} px`,1800);
   },[file,kind,imageDecoded,imageSize.width,imageSize.height,previewError]);
   useEffect(()=>()=>{if(statusTimer.current)clearTimeout(statusTimer.current);if(wipeDirectionTimer.current)clearTimeout(wipeDirectionTimer.current)},[]);
-  useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});applyCanvasZoom(1);setCanvasPan({x:0,y:0});setComparison(preferredComparison);setShowRawT0(false)},[file,referenceFile]);
+  // Arquivo novo sem análise abre em "Original": modos com detecções só depois de analisar.
+  useEffect(()=>{setSelectedDetection(null);setActive(null);setVisible({});applyCanvasZoom(1);setCanvasPan({x:0,y:0});setComparison(res||preferredComparison==="temporal"?preferredComparison:"original");setShowRawT0(false)},[file,referenceFile]);
+  useEffect(()=>{if(!res&&(comparison==="overlay"||comparison==="wipe"||comparison==="side"))setComparison("original")},[res,comparison]);
   useEffect(()=>{
     const rows=Array.isArray(res?.results)?res.results:[];
     if(!rows.length)return;
@@ -229,7 +233,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       return next;
     });
     const hasResultOverlay=rows.some(row=>!!row?.overlay_png_base64||Number(row?.detections?.length||0)>0);
-    if(hasResultOverlay)setComparison(current=>(current==="original"||(current==="temporal"&&!referenceFile))?"overlay":current);
+    if(hasResultOverlay)setComparison(current=>(current==="original"||(current==="temporal"&&!referenceFile))?(["overlay","wipe","side"].includes(preferredComparison)?preferredComparison:"overlay"):current);
   },[res,referenceFile]);
   useEffect(()=>{if(!surface.current)return;const observer=new ResizeObserver(([entry])=>setViewportSize({width:entry.contentRect.width,height:entry.contentRect.height}));observer.observe(surface.current);return()=>observer.disconnect()},[]);
   useEffect(()=>{
@@ -450,6 +454,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   }
   useEffect(()=>{try{localStorage.setItem("shmImageInspectorOpen",inspectorOpen?"1":"0")}catch{}},[inspectorOpen]);
   useEffect(()=>{try{localStorage.setItem("shmShowDetectionBoxes",showBoxes?"1":"0")}catch{}},[showBoxes]);
+  useEffect(()=>{try{localStorage.setItem("shmWheelMode",wheelMode)}catch{}},[wheelMode]);
   useEffect(()=>{setQualityAck(false);setCorrectionPreview(null);setImageQuality(null);setRenaming(false)},[file]);
   function handleDiagnostics(info){setImageQuality(info?.quality||null);onImageDiagnostics?.(info)}
   // Barreira de qualidade: imagem inadequada exige confirmação explícita (segundo clique).
@@ -485,14 +490,26 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     return{x:clientX-(rect.left+rect.width/2),y:clientY-(rect.top+rect.height/2)};
   }
   function applyCanvasZoom(next){
-    const value=Math.max(.25,Math.min(4,Number(next)||1));
+    const value=Math.max(CANVAS_ZOOM_MIN,Math.min(CANVAS_ZOOM_MAX,Number(next)||1));
     zoomRef.current=value;
     setZoom(value);
     return value;
   }
+  // Zoom absoluto ancorado num ponto (roda do mouse no estilo CAD).
+  function zoomTo(target,anchor=null){
+    const current=zoomRef.current;
+    const next=Math.max(CANVAS_ZOOM_MIN,Math.min(CANVAS_ZOOM_MAX,Number(target)||1));
+    if(Math.abs(next-current)<1e-4)return;
+    const focus=anchor||{x:0,y:0};
+    setCanvasPan(currentPan=>clampCanvasPosition(zoomCanvasPanAroundPoint(currentPan,current,next,focus),next));
+    applyCanvasZoom(next);
+    showStatusNotice("Zoom · "+Math.round(next*100)+"%",900);
+  }
   function changeZoom(delta,anchor=null){
     const current=zoomRef.current;
-    const next=Math.max(.25,Math.min(4,current+delta));
+    // Acima de 400% os passos são multiplicativos (+25% do valor atual) para chegar a 3200%.
+    const step=current>=4?current*.25*Math.sign(delta):delta;
+    const next=Math.max(CANVAS_ZOOM_MIN,Math.min(CANVAS_ZOOM_MAX,current+step));
     if(next===current)return;
     const focus=anchor||{x:0,y:0};
     setCanvasPan(currentPan=>clampCanvasPosition(zoomCanvasPanAroundPoint(currentPan,current,next,focus),next));
@@ -649,6 +666,12 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     const spacePrimary=e.button===0&&spacePan.current;
     if((e.button!==1&&!spacePrimary)||e.isPrimary===false)return;
     e.preventDefault();
+    if(e.button===1){
+      const now=performance.now();
+      const last=lastMiddleDown.current;
+      if(last&&now-last.t<350&&Math.hypot(e.clientX-last.x,e.clientY-last.y)<6){lastMiddleDown.current=null;fitView();showStatusNotice("Enquadrar · duplo clique no botão do meio",1000);return}
+      lastMiddleDown.current={t:now,x:e.clientX,y:e.clientY};
+    }
     canvasDrag.current={pointerId:e.pointerId,x:e.clientX-canvasPan.x,y:e.clientY-canvasPan.y,source:spacePrimary?"space":"middle"};
     setCanvasPointerPanning(true);
     try{e.currentTarget.setPointerCapture?.(e.pointerId)}catch{}
@@ -663,7 +686,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         const points=[...gesture.points.values()].slice(0,2);
         const distance=Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y)||1;
         const midpoint=canvasViewportPoint((points[0].x+points[1].x)/2,(points[0].y+points[1].y)/2);
-        const nextZoom=Math.max(1,Math.min(4,gesture.startZoom*distance/gesture.startDistance));
+        const nextZoom=Math.max(1,Math.min(CANVAS_ZOOM_MAX,gesture.startZoom*distance/gesture.startDistance));
         const nextPan=clampCanvasPosition(
           zoomCanvasPanAroundPoint(gesture.startPan,gesture.startZoom,nextZoom,gesture.startMidpoint,midpoint),
           nextZoom
@@ -767,10 +790,19 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       changeZoom(e.deltaY<0?.25:-.25,canvasViewportPoint(e.clientX,e.clientY));
       return;
     }
-    if(zoomRef.current>1&&(Math.abs(e.deltaX)>.1||Math.abs(e.deltaY)>.1)){
-      e.preventDefault();
-      setCanvasPan(current=>clampCanvasPosition({x:current.x-e.deltaX,y:current.y-e.deltaY}));
+    // Shift+roda (ou preferência "rolagem") move o canvas; a roda sozinha dá zoom no cursor (CAD).
+    if(e.shiftKey||wheelMode==="pan"){
+      if(zoomRef.current>1&&(Math.abs(e.deltaX)>.1||Math.abs(e.deltaY)>.1)){
+        e.preventDefault();
+        setCanvasPan(current=>clampCanvasPosition({x:current.x-e.deltaX,y:current.y-e.deltaY}));
+      }
+      return;
     }
+    if(Math.abs(e.deltaY)<.01)return;
+    e.preventDefault();
+    const unit=e.deltaMode===1?40:e.deltaMode===2?800:1;
+    const factor=Math.max(.5,Math.min(2,Math.exp(-e.deltaY*unit*.0015)));
+    zoomTo(zoomRef.current*factor,canvasViewportPoint(e.clientX,e.clientY));
   }
   function beginLayersResize(e){
     if(e.button!==0||e.isPrimary===false)return;
@@ -1076,12 +1108,13 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         </div></details>
         <details className="editorMenu" name="shm-editor-menu"><summary>Visualizar</summary><div className="editorMenuPanel" role="menu">
           <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setLayersPanelOpen(v=>!v))}><span>{layersOpen?"Recolher camadas":"Mostrar camadas"}</span></button>
-          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,fitView)}><span>Ajustar à tela</span><small>0</small></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,fitView)}><span>Ajustar à tela</span><small>0 · duplo clique no meio</small></button>
+          <button type="button" role="menuitem" aria-checked={wheelMode==="zoom"} onClick={e=>runEditorMenuAction(e,()=>{const next=wheelMode==="zoom"?"pan":"zoom";setWheelMode(next);showStatusNotice(next==="zoom"?"Roda do mouse: zoom no cursor (CAD) · Shift+roda move":"Roda do mouse: rolagem · Ctrl+roda dá zoom",2200)})}><span>Roda do mouse: {wheelMode==="zoom"?"zoom (CAD)":"rolagem"}</span><small>alternar</small></button>
           <hr/>
           <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("original"))}><span>Original</span></button>
-          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("overlay"))}><span>Sobrepor</span></button>
-          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("wipe"))}><span>Deslizar</span></button>
-          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("side"))}><span>Lado a lado</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"||!res} title={res?undefined:"Disponível após a análise"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("overlay"))}><span>Sobrepor</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"||!res} title={res?undefined:"Disponível após a análise"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("wipe"))}><span>Deslizar</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"||!res} title={res?undefined:"Disponível após a análise"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("side"))}><span>Lado a lado</span></button>
         </div></details>
         <details className="editorMenu" name="shm-editor-menu"><summary>Análise</summary><div className="editorMenuPanel editorMenuPanelRight" role="menu">
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onSettings)}><span>Configurações</span><small>Ctrl/Cmd+,</small></button>
@@ -1176,9 +1209,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           {detail&&<div className="editorFinding"><b>{pathologyLayers.find(l=>l.id===detail.label)?.name||detail.label||detail.canonical_label||"Achado"} #{selectedDetection.index+1}</b><span>Motor: {chosen.name}</span><span>Confiança: {chosen.engine_id==="cdm_1"?"não calibrada":detail.score==null?"não informada":(Number(detail.score)*100).toFixed(1)+"%"}</span><span>Coordenadas: {detail.box.map(v=>Math.round(v)).join(", ")} px</span></div>}
           {results.length>0&&<div className="editorCompare editorViewActions">
             <button className={"editorIconButton "+(comparison==="original"?"active":"")} aria-label="Original" title="Original" data-tooltip="Original" onClick={()=>changeComparison("original")}><ImageIcon size={15}/></button>
-            <button className={"editorIconButton "+(comparison==="overlay"?"active":"")} aria-label="Sobrepor" title="Sobrepor" data-tooltip="Sobrepor" onClick={()=>changeComparison("overlay")}><Layers3 size={15}/></button>
-            <button className={"editorIconButton "+(comparison==="wipe"?"active":"")} aria-label="Deslizar" title="Deslizar" data-tooltip="Deslizar" onClick={()=>changeComparison("wipe")}><MoveHorizontal size={15}/></button>
-            <button className={"editorIconButton "+(comparison==="side"?"active":"")} aria-label="Lado a lado" title="Lado a lado" data-tooltip="Lado a lado" onClick={()=>changeComparison("side")}><Columns2 size={15}/></button>
+            <button className={"editorIconButton "+(comparison==="overlay"?"active":"")} aria-label="Sobrepor" title="Sobrepor" data-tooltip={res?"Sobrepor":"Sobrepor · disponível após a análise"} disabled={!res} onClick={()=>changeComparison("overlay")}><Layers3 size={15}/></button>
+            <button className={"editorIconButton "+(comparison==="wipe"?"active":"")} aria-label="Deslizar" title="Deslizar" data-tooltip={res?"Deslizar":"Deslizar · disponível após a análise"} disabled={!res} onClick={()=>changeComparison("wipe")}><MoveHorizontal size={15}/></button>
+            <button className={"editorIconButton "+(comparison==="side"?"active":"")} aria-label="Lado a lado" title="Lado a lado" data-tooltip={res?"Lado a lado":"Lado a lado · disponível após a análise"} disabled={!res} onClick={()=>changeComparison("side")}><Columns2 size={15}/></button>
             {temporal?.enabled&&referencePrev&&<button className={comparison==="temporal"?"active temporalModeButton":"temporalModeButton"} title="Comparação temporal t0 / t1" onClick={()=>changeComparison("temporal")}>t0 / t1</button>}
             {comparison==="temporal"&&temporalAlignedPreview&&<button title={showRawT0?"Usar t0 alinhado":"Ver t0 bruto"} onClick={()=>setShowRawT0(v=>!v)}>{showRawT0?"Alinhado":"Bruto"}</button>}
             <details ref={exportMenu} className="editorExportMenu editorExportUnified">

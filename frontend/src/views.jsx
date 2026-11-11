@@ -8,7 +8,7 @@ import{campaignChainAudit,CHAIN_STATUS_LABELS}from"./campaignAudit.js";
 
 const NAV=[
   ["dashboard",LayoutDashboard,"Dashboard"],
-  ["live",Camera,"Live"],
+  ["live",Camera,"Live detecção"],
   ["analysis",Activity,"Análise"],
   ["alerts",Bell,"Alertas"],
   ["reports",FileText,"Relatórios"],

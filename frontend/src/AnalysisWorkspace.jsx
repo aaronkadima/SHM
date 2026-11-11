@@ -1,8 +1,9 @@
-import React,{Suspense,useEffect,useRef,useState} from "react";
+import React,{Suspense,useCallback,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
 import ImageInspector from "./ImageInspector.jsx";
 import EngineStages from "./EngineStages.jsx";
 import CanvasRulers,{RULER_UNITS} from "./CanvasRulers.jsx";
+import ContextMenu from "./ContextMenu.jsx";
 import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint,CANVAS_ZOOM_MIN,CANVAS_ZOOM_MAX}from"./viewerPreferences.js";
 import{detectAsset,isCdm3SpatialAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./assetDetection.js";
 import{buildDamageTimeline,matchTemporalDamageCampaigns}from"./cdm3RegisteredProjection.js";
@@ -464,6 +465,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   }
   useEffect(()=>{try{localStorage.setItem("shmImageInspectorOpen",inspectorOpen?"1":"0")}catch{}},[inspectorOpen]);
   // Resultados ficam logo abaixo do botão/painel "Imagem" (coluna esquerda do canvas).
+  const [contextMenu,setContextMenu]=useState(null);
+  const closeContextMenu=useCallback(()=>setContextMenu(null),[]);
   const [leftStackTop,setLeftStackTop]=useState(null);
   const resultUserMoved=useRef(!!(initialViewerPrefs.resultPanelPosition?.x||initialViewerPrefs.resultPanelPosition?.y));
   useEffect(()=>{
@@ -1131,7 +1134,55 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     }catch(e){setRegistrationError(e?.message||String(e))}
     finally{setRegistrationBusy(false)}
   }
-  return <section className="analysisEditor" aria-label="Workspace de análise">
+  // Menu de contexto (botão direito): opções do elemento sob o cursor + atalhos gerais.
+  function openContextMenu(e){
+    const t=e.target;
+    if(e.shiftKey||t.closest?.("input,textarea,select,[contenteditable=true],.editorAulasFrame,.studioContextMenu"))return;
+    e.preventDefault();
+    const is2d=file&&kind==="2d",sections=[];
+    const anchor=surface.current&&surface.current.contains(t)?canvasViewportPoint(e.clientX,e.clientY):null;
+    if(t.closest(".editorFloating,.editorResultsTab")&&results.length){
+      sections.push({title:"Resultados",items:[
+        {label:resultOpen?"Recolher resultados":"Abrir resultados",onSelect:()=>setResultOpenPreference(!resultOpen)},
+        {label:"Restaurar tamanho e posição",onSelect:()=>{resultUserMoved.current=false;setPosition({x:0,y:0});setResultPanelSize({width:IMAGE_PANEL_WIDTH,height:null})}},
+        {label:layersOpen?"Ocultar camadas":"Mostrar camadas",onSelect:()=>setLayersPanelOpen(!layersOpen)},
+      ]});
+    }else if(t.closest(".imgInspector,.editorImageEntry")&&is2d){
+      sections.push({title:"Imagem",items:[
+        ...[["histogram","Histograma e curva S"],["properties","Propriedades"],["quality","Qualidade para análise"],["correction","Correção da imagem"]].map(([id,label])=>({label,checked:inspectorOpen&&inspectorTab===id,onSelect:()=>{setInspectorTab(id);setInspectorOpen(true)}})),
+        inspectorOpen&&{label:"Fechar painel Imagem",onSelect:()=>setInspectorOpen(false)},
+      ]});
+    }else if(t.closest(".editorLayers")){
+      sections.push({title:"Camadas",items:[
+        pathologyLayers.length>0&&{label:"Mostrar todas as patologias",onSelect:()=>setPathologyGroupVisible(true)},
+        pathologyLayers.length>0&&{label:"Ocultar todas as patologias",onSelect:()=>setPathologyGroupVisible(false)},
+        pathologyLayers.length>0&&{label:"Caixas de detecção",checked:showBoxes,onSelect:()=>setShowBoxes(v=>!v)},
+        {label:"Recolher painel de camadas",onSelect:()=>setLayersPanelOpen(false)},
+      ]});
+    }
+    if(is2d&&surface.current?.contains(t)){
+      sections.push({title:"Visualização",items:[
+        {label:"Ajustar à tela",hint:"0",onSelect:fitView},
+        {label:"Ampliar aqui",hint:"roda ↑",onSelect:()=>zoomTo(zoomRef.current*2,anchor)},
+        {label:"Reduzir aqui",hint:"roda ↓",onSelect:()=>zoomTo(zoomRef.current/2,anchor)},
+        {label:"Réguas",hint:"Ctrl+Shift+R",checked:!!rulers.visible,onSelect:toggleRulers},
+        {label:"Roda do mouse faz zoom",checked:wheelMode==="zoom",onSelect:()=>setWheelMode(m=>m==="zoom"?"pan":"zoom")},
+        pathologyLayers.length>0&&{label:"Caixas de detecção",checked:showBoxes,onSelect:()=>setShowBoxes(v=>!v)},
+      ]});
+      sections.push({title:"Modo de exibição",items:[["original","Original"],["overlay","Original + detecções"],["wipe","Deslizar"],["side","Lado a lado"]].map(([id,label])=>({label,checked:comparison===id,disabled:id!=="original"&&!res,title:id!=="original"&&!res?"Disponível após a análise":undefined,onSelect:()=>changeComparison(id)}))});
+      if(!t.closest(".imgInspector,.editorImageEntry"))sections.push({title:"Imagem",items:[{label:"Propriedades e qualidade",onSelect:()=>{setInspectorTab("properties");setInspectorOpen(true)}},{label:"Corrigir imagem",onSelect:()=>{setInspectorTab("correction");setInspectorOpen(true)}}]});
+    }
+    sections.push({title:"Studio",items:[
+      {label:"Executar análise",hint:"Ctrl+Enter",disabled:analysisDisabled,onSelect:runWithQualityGate},
+      {label:"Importar…",hint:"Ctrl+O",disabled:busy,onSelect:()=>picker.current?.click()},
+      onLive&&{label:"Live detecção",disabled:busy,onSelect:onLive},
+      {label:"Câmera",disabled:busy,onSelect:()=>setCameraOpen(true)},
+      {label:"Configurações",hint:"Ctrl+,",onSelect:()=>onSettings?.()},
+    ]});
+    setContextMenu({x:e.clientX,y:e.clientY,sections});
+  }
+  return <section className="analysisEditor" aria-label="Workspace de análise" onContextMenu={aulasOpen?undefined:openContextMenu}>
+    {contextMenu&&<ContextMenu x={contextMenu.x} y={contextMenu.y} sections={contextMenu.sections} onClose={closeContextMenu}/>}
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><nav className={"editorMenus"+(aulasOpen?" studioLocked":"")} aria-label="Menu do editor" inert={aulasOpen||undefined} aria-disabled={aulasOpen||undefined}>
         <details className="editorMenu" name="shm-editor-menu"><summary>Arquivo</summary><div className="editorMenuPanel" role="menu">
@@ -1190,6 +1241,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button aria-label="Reduzir zoom" title={kind==="2d"?"Reduzir":"Zoom 2D indisponível"} disabled={kind!=="2d"} onClick={()=>changeZoom(-.25)}><Minus/></button>
           <button title={kind==="2d"?"Ajustar à tela":"Ajuste 2D indisponível"} aria-label="Ajustar à tela" disabled={kind!=="2d"} onClick={fitView}><Maximize2/></button>
           <button aria-label="Abrir modo câmera" title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button>
+          {onLive&&<button className="editorToolLive" aria-label="Abrir Live detecção" title="Live detecção · tempo real com câmera ou vídeo" disabled={busy} onClick={onLive}><Radio/></button>}
         </div>
         <button type="button" className={"editorAulasLink"+(aulasOpen?" active":"")} onClick={onToggleAulas} aria-pressed={aulasOpen} aria-label={aulasOpen?"Voltar à análise":"Abrir aulas da Trilha Dev SHM"} title={aulasOpen?"Voltar à análise":"Aulas · Trilha Dev SHM"}><BookOpen size={20} aria-hidden="true"/></button>
       </div>
@@ -1223,7 +1275,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       <div className={"editorViewport "+(fileDragActive?"fileDragActive":"")+(stagesActive?" hasStages":"")+(inspectorOpen&&kind==="2d"?" hasInspector":"")+(resultOpen&&(busy||results.length>0)?" hasResultStack":"")+(showRulers?" hasRulers":"")} style={leftStackTop!=null?{"--left-stack-top":leftStackTop+"px"}:undefined} ref={surface} onDragEnter={fileDragEnter} onDragOver={fileDragOver} onDragLeave={fileDragLeave} onDrop={fileDrop}>
         {showRulers&&<CanvasRulers viewportRef={surface} mmPerPx={rulerMmPerPx} unit={rulers.unit||"mm"} onCycleUnit={cycleRulerUnit}/>}
         <div className="editorCanvasEntries">
-          {onLive&&<button className="editorLiveEntry" disabled={busy} title="Live · detecção em tempo real com câmera ou vídeo (foto e gravação)" aria-label="Abrir modo Live" onClick={onLive}><Radio size={16}/> Live</button>}
+          {onLive&&<button className="editorLiveEntry" disabled={busy} title="Live · detecção em tempo real com câmera ou vídeo (foto e gravação)" aria-label="Abrir Live detecção" onClick={onLive}><Radio size={16}/> Live detecção</button>}
           <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
         </div>
         {file&&kind==="2d"&&!inspectorOpen&&<button className={"editorImageEntry "+(imageQuality?"q-"+imageQuality.verdict:"")} onClick={()=>setInspectorOpen(true)} title="Histograma, propriedades, qualidade e correção da imagem"><SlidersHorizontal size={15}/> Imagem{imageQuality&&<i aria-label={"Qualidade "+imageQuality.score}>{imageQuality.score}</i>}</button>}

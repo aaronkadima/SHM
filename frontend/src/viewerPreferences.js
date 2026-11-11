@@ -11,7 +11,7 @@ export const DEFAULT_VIEWER_PREFERENCES={
   pathologyLocked:[],
   resultPanelOpen:true,
   resultPanelPosition:{x:0,y:0},
-  resultPanelSize:{width:360,height:null}
+  resultPanelSize:{width:340,height:null}
 };
 
 const VALID_COMPARISONS=new Set(["original","overlay","wipe","side"]);

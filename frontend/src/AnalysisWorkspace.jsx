@@ -2,6 +2,7 @@ import React,{Suspense,useEffect,useRef,useState} from "react";
 import {Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
 import ImageInspector from "./ImageInspector.jsx";
 import EngineStages from "./EngineStages.jsx";
+import CanvasRulers,{RULER_UNITS} from "./CanvasRulers.jsx";
 import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint,CANVAS_ZOOM_MIN,CANVAS_ZOOM_MAX}from"./viewerPreferences.js";
 import{detectAsset,isCdm3SpatialAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./assetDetection.js";
 import{buildDamageTimeline,matchTemporalDamageCampaigns}from"./cdm3RegisteredProjection.js";
@@ -45,7 +46,10 @@ function shortFileName(name){
   const s=String(name||""),m=s.match(/^(.*?)(\.[^.]{1,8})?$/),stem=m?.[1]||s,ext=m?.[2]||"";
   return stem.length>5?stem.slice(0,5)+"…"+ext:s;
 }
-export default function AnalysisWorkspace({appInfo=null,executionIssue="",referenceValidating=false,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,spatialRgbFile=null,spatialRgbPrev=null,onSpatialRgbFile=null,spatialRegistration=null,spatialTransform=null,spatialFrameAssets=null,onSolveSpatialFrameAlignment=null,spatialRgbAnalysis=null,spatialPhotoViews=[],activeSpatialPhotoId=null,onAddSpatialPhotos=null,onSelectSpatialPhoto=null,onRemoveSpatialPhoto=null,spatialAutoRegistrationBusy=false,spatialAutoRegistrationStatus=null,onAutoRegisterSpatialPhotos=null,spatialRegistrationPointCount=0,photometricSummary=null,onPhotometricSummary=null,onSpatialRegistrationSample=null,spatialPathologyRecords=[],onSpatialPathologyRecords=null,onSolveSpatialRegistration=null,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,onLive=null,onRenameFile=null,onSaveFile=null,onApplyCorrection=null,onRestoreOriginal=null,hasOriginalFile=false,appliedCorrection=null,onImageDiagnostics=null,cdmOptions={},stageControl={},aulasOpen=false,onToggleAulas=null,recentHistory=[],onOpenRecent=null,aulasHref="",onAulasNav=null,aulasCrumb="",error,onExport,onExportCsv,onExportMap,onExportCdm,onExportCdm3=null}){
+// Largura comum da coluna esquerda: propriedades da imagem e resultados.
+export const IMAGE_PANEL_WIDTH=340;
+
+export default function AnalysisWorkspace({appInfo=null,executionIssue="",referenceValidating=false,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,spatialRgbFile=null,spatialRgbPrev=null,onSpatialRgbFile=null,spatialRegistration=null,spatialTransform=null,spatialFrameAssets=null,onSolveSpatialFrameAlignment=null,spatialRgbAnalysis=null,spatialPhotoViews=[],activeSpatialPhotoId=null,onAddSpatialPhotos=null,onSelectSpatialPhoto=null,onRemoveSpatialPhoto=null,spatialAutoRegistrationBusy=false,spatialAutoRegistrationStatus=null,onAutoRegisterSpatialPhotos=null,spatialRegistrationPointCount=0,photometricSummary=null,onPhotometricSummary=null,onSpatialRegistrationSample=null,spatialPathologyRecords=[],onSpatialPathologyRecords=null,onSolveSpatialRegistration=null,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,onLive=null,onRenameFile=null,onSaveFile=null,onApplyCorrection=null,onRestoreOriginal=null,hasOriginalFile=false,appliedCorrection=null,onImageDiagnostics=null,cdmOptions={},stageControl={},rulers={visible:false,unit:"mm"},onRulersChange=null,aulasOpen=false,onToggleAulas=null,recentHistory=[],onOpenRecent=null,aulasHref="",onAulasNav=null,aulasCrumb="",error,onExport,onExportCsv,onExportMap,onExportCdm,onExportCdm3=null}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [initialCompactLayout]=useState(()=>typeof window!=="undefined"&&window.innerWidth<900);
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialCompactLayout?false:initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
@@ -128,6 +132,10 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         onSaveFile?.();showStatusNotice("Arquivo salvo · "+file.name,1600);
         return;
       }
+      if(key==="r"&&e.shiftKey){
+        e.preventDefault();toggleRulers();
+        return;
+      }
       if(key===","&&!e.shiftKey){
         e.preventDefault();
         if(busy){showStatusNotice("Configurações indisponíveis durante a análise.",1600,"warning");return}
@@ -143,7 +151,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     };
     window.addEventListener("keydown",onShortcut);
     return()=>window.removeEventListener("keydown",onShortcut);
-  },[busy,cameraOpen,onSettings,onSaveFile,file]);
+  },[busy,cameraOpen,onSettings,onSaveFile,file,rulers,onRulersChange,cdmOptions]);
   useEffect(()=>{
     const onEscape=e=>{
       if(e.key!=="Escape")return;
@@ -453,6 +461,29 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     showStatusNotice("Arquivo importado por arrastar e soltar",1600);
   }
   useEffect(()=>{try{localStorage.setItem("shmImageInspectorOpen",inspectorOpen?"1":"0")}catch{}},[inspectorOpen]);
+  // Resultados ficam logo abaixo do botão/painel "Imagem" (coluna esquerda do canvas).
+  const [leftStackTop,setLeftStackTop]=useState(null);
+  const resultUserMoved=useRef(!!(initialViewerPrefs.resultPanelPosition?.x||initialViewerPrefs.resultPanelPosition?.y));
+  useEffect(()=>{
+    const vp=surface.current;
+    if(!vp||kind!=="2d"||!file||typeof ResizeObserver==="undefined"){setLeftStackTop(null);return}
+    let anchor=null;
+    const measure=()=>{
+      const a=vp.querySelector(".imgInspector")||vp.querySelector(".editorImageEntry");
+      if(a!==anchor){if(anchor)ro.unobserve(anchor);anchor=a;if(a)ro.observe(a)}
+      if(!a){setLeftStackTop(null);return}
+      const next=Math.round(a.offsetTop+a.offsetHeight+8);setLeftStackTop(current=>current===next?current:next);
+    };
+    const ro=new ResizeObserver(measure);ro.observe(vp);
+    const mo=new MutationObserver(measure);mo.observe(vp,{childList:true});
+    measure();
+    return()=>{ro.disconnect();mo.disconnect()};
+  },[kind,file,inspectorOpen,aulasOpen]);
+  // Painel encaixado sob "Imagem": quando a coluna muda de altura, volta ao encaixe (salvo se o usuário o moveu).
+  useEffect(()=>{
+    if(leftStackTop==null||resultUserMoved.current)return;
+    setPosition(current=>current.x===0&&current.y===0?current:{x:0,y:0});
+  },[leftStackTop]);
   useEffect(()=>{try{localStorage.setItem("shmShowDetectionBoxes",showBoxes?"1":"0")}catch{}},[showBoxes]);
   useEffect(()=>{try{localStorage.setItem("shmWheelMode",wheelMode)}catch{}},[wheelMode]);
   useEffect(()=>{setQualityAck(false);setCorrectionPreview(null);setImageQuality(null);setRenaming(false)},[file]);
@@ -550,6 +581,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   function dragMove(e){
     const dragState=drag.current;
     if(!dragState||e.pointerId!==dragState.pointerId)return;
+    resultUserMoved.current=true;
     setPosition(clampResultPosition({x:dragState.startX+e.clientX-dragState.clientX,y:dragState.startY+e.clientY-dragState.clientY}));
   }
   function dragEnd(e){
@@ -566,7 +598,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     return{
       minWidth:340,
       minHeight:65,
-      maxWidth:Math.max(1,Math.min(900,panelRect.right-viewportRect.left-8)),
+      maxWidth:Math.max(1,Math.min(900,viewportRect.right-panelRect.left-8)),
       maxHeight:Math.max(1,Math.min(900,viewport.clientHeight*.75,viewportRect.bottom-8-panelRect.top))
     };
   }
@@ -630,7 +662,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     }
     const delta={ArrowLeft:[-24,0],ArrowRight:[24,0],ArrowUp:[0,-24],ArrowDown:[0,24]}[e.key];
     if(!delta)return;
-    e.preventDefault();
+    e.preventDefault();resultUserMoved.current=true;
     setPosition(current=>clampResultPosition({x:current.x+delta[0],y:current.y+delta[1]}));
   }
   function canvasTouchExcluded(target){
@@ -885,6 +917,17 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     e.currentTarget.closest(".editorMenu")?.removeAttribute("open");
     action?.();
   }
+  const showRulers=!!rulers.visible&&!!file&&kind==="2d"&&!aulasOpen;
+  const rulerMmPerPx=Math.max(0,Number(cdmOptions?.cdm_mm_per_px)||0);
+  function toggleRulers(){
+    const next=!rulers.visible;onRulersChange?.({...rulers,visible:next});
+    showStatusNotice(next?(rulerMmPerPx>0?"Réguas em "+(rulers.unit||"mm")+" · escala "+rulerMmPerPx+" mm/px":"Réguas em px · defina a escala mm/px em Configurações"):"Réguas ocultas",2000);
+  }
+  function cycleRulerUnit(){
+    const i=RULER_UNITS.indexOf(rulers.unit||"mm"),next=RULER_UNITS[(i+1)%RULER_UNITS.length];
+    onRulersChange?.({...rulers,unit:next});
+    showStatusNotice(next!=="px"&&!(rulerMmPerPx>0)?"Sem escala mm/px: as réguas continuam em px":"Réguas em "+next,1600);
+  }
   function fitView(){
     const rect=surface.current?.getBoundingClientRect();
     if(rect&&rect.width>0&&rect.height>0)setViewportSize({width:rect.width,height:rect.height});
@@ -981,6 +1024,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     setShowRawT0(false);
     resultOpenPreference.current=DEFAULT_VIEWER_PREFERENCES.resultPanelOpen;
     setResultOpen(DEFAULT_VIEWER_PREFERENCES.resultPanelOpen);
+    resultUserMoved.current=false;
     setPosition({...DEFAULT_VIEWER_PREFERENCES.resultPanelPosition});
     setResultPanelSize({...DEFAULT_VIEWER_PREFERENCES.resultPanelSize});
   }
@@ -1109,6 +1153,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         <details className="editorMenu" name="shm-editor-menu"><summary>Visualizar</summary><div className="editorMenuPanel" role="menu">
           <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setLayersPanelOpen(v=>!v))}><span>{layersOpen?"Recolher camadas":"Mostrar camadas"}</span></button>
           <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,fitView)}><span>Ajustar à tela</span><small>0 · duplo clique no meio</small></button>
+          <button type="button" role="menuitem" aria-checked={!!rulers.visible} disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,toggleRulers)}><span>{rulers.visible?"Ocultar réguas":"Mostrar réguas"}</span><small>Ctrl/Cmd+Shift+R</small></button>
           <button type="button" role="menuitem" aria-checked={wheelMode==="zoom"} onClick={e=>runEditorMenuAction(e,()=>{const next=wheelMode==="zoom"?"pan":"zoom";setWheelMode(next);showStatusNotice(next==="zoom"?"Roda do mouse: zoom no cursor (CAD) · Shift+roda move":"Roda do mouse: rolagem · Ctrl+roda dá zoom",2200)})}><span>Roda do mouse: {wheelMode==="zoom"?"zoom (CAD)":"rolagem"}</span><small>alternar</small></button>
           <hr/>
           <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("original"))}><span>Original</span></button>
@@ -1130,7 +1175,6 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         <button disabled={busy} aria-keyshortcuts="Control+O Meta+O" title="Importar arquivo · Ctrl/Cmd+O" onClick={()=>picker.current?.click()}><ImagePlus size={16}/> Importar</button>
         {kind==="2d"&&selected.length===1&&selected[0]==="cdm_1"&&<button disabled={busy||referenceValidating} title={referenceValidating?"Validando referência t0…":"Carregar imagem anterior para comparação temporal"} onClick={()=>referencePicker.current?.click()}><ImagePlus size={16}/> {referenceValidating?"Validando t0…":referenceFile?"t0: "+referenceFile.name:"Referência t0"}</button>}
         {kind==="3d"&&isCdm3SpatialAsset(file)&&selected.length===1&&selected[0]==="cdm_3"&&<button className={spatialPhotoViews.length?"spatialRgbAttached":""} disabled={busy} title="Adicionar até 8 fotografias para registro e texturização fotométrica multivista" onClick={()=>spatialMultiPicker.current?.click()}><ImagePlus size={16}/> {spatialPhotoViews.length?"Fotos 3D · "+spatialPhotoViews.length:"Adicionar fotos"}</button>}
-        {onLive&&<button disabled={busy} title="Detecção em tempo real com câmera ou vídeo (foto e gravação)" onClick={onLive}><Radio size={16}/> Live</button>}
         <button disabled={busy} aria-keyshortcuts="Control+, Meta+," title="Configurações · Ctrl/Cmd+," onClick={onSettings}><Settings2 size={16}/> Configurar</button>
         <button ref={analyzeButton} className="editorPrimary" aria-keyshortcuts="Control+Enter Meta+Enter" disabled={analysisDisabled} title={(analysisBlockedReason||"Executar análise")+" · Ctrl/Cmd+Enter"} onClick={runWithQualityGate}><Play size={16}/> {qualityAck&&imageQuality?.verdict==="bad"?"Analisar mesmo assim":"Analisar"}</button>
       </div>
@@ -1173,8 +1217,12 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         </div>
       </aside><div className="editorLayerResizeHandle" role="separator" tabIndex="0" aria-orientation="vertical" aria-label="Redimensionar painel de camadas" aria-valuemin="340" aria-valuemax="600" aria-valuenow={Math.round(layersWidth)} aria-valuetext={Math.round(layersWidth)+" pixels"} title="Arraste ou use ← →, Home e End" onKeyDown={resizeLayersKey} onPointerDown={beginLayersResize}/></>}
       {aulasOpen?<div className="editorViewport editorAulasViewport"><iframe ref={aulasFrame} src={aulasHref} title="Trilha Dev SHM · aulas" className="editorAulasFrame" onLoad={()=>onAulasNav?.(aulasFrame.current)}/></div>:
-      <div className={"editorViewport "+(fileDragActive?"fileDragActive":"")+(stagesActive?" hasStages":"")+(inspectorOpen&&kind==="2d"?" hasInspector":"")} ref={surface} onDragEnter={fileDragEnter} onDragOver={fileDragOver} onDragLeave={fileDragLeave} onDrop={fileDrop}>
-        <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
+      <div className={"editorViewport "+(fileDragActive?"fileDragActive":"")+(stagesActive?" hasStages":"")+(inspectorOpen&&kind==="2d"?" hasInspector":"")+(resultOpen&&(busy||results.length>0)?" hasResultStack":"")+(showRulers?" hasRulers":"")} style={leftStackTop!=null?{"--left-stack-top":leftStackTop+"px"}:undefined} ref={surface} onDragEnter={fileDragEnter} onDragOver={fileDragOver} onDragLeave={fileDragLeave} onDrop={fileDrop}>
+        {showRulers&&<CanvasRulers viewportRef={surface} mmPerPx={rulerMmPerPx} unit={rulers.unit||"mm"} onCycleUnit={cycleRulerUnit}/>}
+        <div className="editorCanvasEntries">
+          {onLive&&<button className="editorLiveEntry" disabled={busy} title="Live · detecção em tempo real com câmera ou vídeo (foto e gravação)" aria-label="Abrir modo Live" onClick={onLive}><Radio size={16}/> Live</button>}
+          <button className="editorCameraEntry" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera size={16}/> Câmera</button>
+        </div>
         {file&&kind==="2d"&&!inspectorOpen&&<button className={"editorImageEntry "+(imageQuality?"q-"+imageQuality.verdict:"")} onClick={()=>setInspectorOpen(true)} title="Histograma, propriedades, qualidade e correção da imagem"><SlidersHorizontal size={15}/> Imagem{imageQuality&&<i aria-label={"Qualidade "+imageQuality.score}>{imageQuality.score}</i>}</button>}
         {file&&kind==="2d"&&<ImageInspector file={file} open={inspectorOpen} tab={inspectorTab} onTab={setInspectorTab} onClose={()=>setInspectorOpen(false)} onPreview={setCorrectionPreview} onApplyCorrection={(next,info)=>{setCorrectionPreview(null);onApplyCorrection?.(next,info);showStatusNotice("Correção aplicada · "+info.description,2600)}} onRestoreOriginal={()=>{onRestoreOriginal?.();showStatusNotice("Imagem original restaurada",1600)}} hasOriginal={hasOriginalFile} appliedCorrection={appliedCorrection} onDiagnostics={handleDiagnostics} onRename={name=>{const f=onRenameFile?.(name);showStatusNotice("Arquivo renomeado",1400);return f}} onSave={f=>{onSaveFile?.(f);showStatusNotice("Arquivo salvo · "+(f?.name||file.name),1600)}}/>}
         {file&&kind==="2d"&&chosen&&<EngineStages engineId={chosen.engine_id} engineName={chosen.name} file={file} result={chosen} options={cdmOptions} control={stageControl} hidden={busy} onState={setStagesActive}/>}
@@ -1237,7 +1285,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
             </details>
           </div>}
         </div>}
-        {!resultOpen&&(busy||results.length>0)&&<button className={"editorResultsTab "+(persisting?"persisting":busy?"busy":"")} aria-live={busy?"polite":undefined} aria-label={persisting?"Reabrir resultados · salvando histórico":busy?"Reabrir resultados · análise em andamento":"Reabrir resultados · "+results.length+" resultado"+(results.length===1?"":"s")} onClick={()=>setResultOpenPreference(true)}>
+        {!resultOpen&&(busy||results.length>0)&&<button className={"editorResultsTab "+(persisting?"persisting":busy?"busy":"")} aria-live={busy?"polite":undefined} aria-label={persisting?"Reabrir resultados · salvando histórico":busy?"Reabrir resultados · análise em andamento":"Reabrir resultados · "+results.length+" resultado"+(results.length===1?"":"s")} onClick={()=>{setResultPanelSize(current=>({...current,width:IMAGE_PANEL_WIDTH}));setResultOpenPreference(true)}}>
           <span>Resultados</span>
           <strong>{persisting?"100%":busy?(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length)):results.length}</strong>
           {busy&&<i aria-hidden="true"><b style={{width:(persisting?100:pct)+"%"}}/></i>}

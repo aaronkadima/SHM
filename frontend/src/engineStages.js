@@ -124,7 +124,7 @@ async function onnxStages(engineId,file,control={}){
   return stages;
 }
 
-const THUMB_SIDE=220;
+const THUMB_SIDE=520;
 function toBlobUrl(c,type="image/jpeg",quality=.9){return new Promise(res=>c.toBlob(b=>res(b?URL.createObjectURL(b):c.toDataURL(type,quality)),type,quality))}
 function thumbCanvas(src){const k=Math.min(1,THUMB_SIDE/Math.max(src.width,src.height)),t=canvas(Math.max(1,Math.round(src.width*k)),Math.max(1,Math.round(src.height*k))),ctx=t.getContext("2d");ctx.imageSmoothingQuality="high";ctx.drawImage(src,0,0,t.width,t.height);return t}
 async function imageCanvas(dataUrl){const img=new Image();img.src=dataUrl;await img.decode();const c=canvas(img.naturalWidth,img.naturalHeight);c.getContext("2d").drawImage(img,0,0);return c}

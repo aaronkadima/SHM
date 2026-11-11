@@ -3,7 +3,7 @@ import {ArrowLeft,Check,Code2,Download,ExternalLink,Info,RefreshCw,Settings2,X} 
 import {engineCodePackage} from "./engineCodeCatalog.js";
 import "./analysis-settings.css";
 
-export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,cdmOptions,setCdmOptions,error}){
+export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,cdmOptions,setCdmOptions,rulers={visible:false,unit:"mm"},setRulers=null,error}){
   const ownedEngines=engines.filter(e=>e.catalog_owned===true);
   const otherEngines=engines.filter(e=>e.catalog_owned!==true);
   const selectedEngine=selected.length===1?engines.find(e=>e.id===selected[0]):null;
@@ -142,6 +142,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
         <label className="settingsField">Tipo de elemento<select value={cdmOptions.cdm_element_family} onChange={e=>setCdmOptions(v=>({...v,cdm_element_family:e.target.value}))}><option value="barreiras_guarda_corpo_pista">Barreiras/pista · Fr=1</option><option value="juntas_dilatacao">Juntas · Fr=2</option><option value="transversinas_cortinas_alas">Transversinas/cortinas · Fr=3</option><option value="lajes_vigas_secundarias_apoios">Lajes/vigas secundárias/apoios · Fr=4</option><option value="vigas_pilares_principais">Vigas/pilares principais · Fr=5</option></select></label>
         <label className="settingsField">Alinhamento temporal<select value={cdmOptions.cdm_alignment_method||"translation_auto"} onChange={e=>setCdmOptions(v=>({...v,cdm_alignment_method:e.target.value}))}><option value="translation_auto">Automático · translação t0→t1</option><option value="resize">Somente redimensionar</option></select><small>O modo automático corrige translação da câmera antes de medir crescimento/redução e recua para redimensionamento quando não encontra ganho confiável. O CDM-1 também verifica sobreposição, iluminação, nitidez e exposição antes de considerar a mudança temporal válida. Rotação, mudança de escala e perspectiva ainda exigem captura compatível ou revisão externa.</small></label>
       </div></details>}
+      <RulerScaleCard cdmOptions={cdmOptions} setCdmOptions={setCdmOptions} rulers={rulers} setRulers={setRulers}/>
       <details className="analysisSettingsCard" open={needsIndividual||needsComparator}><summary>Conexão de execução</summary>
         {selected.length===0&&<p>Selecione pelo menos um motor para definir o modo de execução.</p>}
         {localBrowser&&<div className="settingsRuntimeNotice"><b>{selectedEngine.name} · execução local</b><p>Este motor roda diretamente no navegador. Não é necessário configurar backend individual e a imagem não é enviada ao Railway.</p></div>}
@@ -153,4 +154,27 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
     </main>
     <footer className="settingsBottom" aria-label="Barra de status das configurações"><span className="settingsStatusMessage">Configurações da análise</span><span className="settingsStatusEngines" title={selectedStatus}>{selectedStatus}</span><button className="settingsApply" onClick={onBack}><Check size={14}/> Aplicar</button></footer>
   </section>
+}
+
+// Réguas do canvas e escala da imagem (mm/px). A mesma calibração alimenta as medidas do CDM-1.
+function RulerScaleCard({cdmOptions,setCdmOptions,rulers,setRulers}){
+  const mm=Math.max(0,Number(cdmOptions?.cdm_mm_per_px)||0);
+  const[refPx,setRefPx]=React.useState(""),[refMm,setRefMm]=React.useState("");
+  const pxN=Number(String(refPx).replace(",",".")),mmN=Number(String(refMm).replace(",","."));
+  const derived=pxN>0&&mmN>0?mmN/pxN:null;
+  const setScale=v=>setCdmOptions(o=>({...o,cdm_mm_per_px:Math.max(0,Math.min(1000,Number(v)||0))}));
+  return <details className="analysisSettingsCard rulerScaleCard" open><summary>Réguas e escala do canvas</summary>
+    <p>Réguas horizontal e vertical no canvas, como no Inkscape, com origem no canto superior esquerdo da imagem. Em mm ou cm usam a escala abaixo; sem escala, mostram pixels da imagem. Atalho: Ctrl/Cmd+Shift+R.</p>
+    <div className="settingsMeta">
+      <label className="settingsField settingsCheck"><input type="checkbox" checked={!!rulers.visible} onChange={e=>setRulers?.(r=>({...r,visible:e.target.checked}))}/> Mostrar réguas no canvas</label>
+      <label className="settingsField">Unidade<select value={rulers.unit||"mm"} onChange={e=>setRulers?.(r=>({...r,unit:e.target.value}))}><option value="mm">Milímetros (mm)</option><option value="cm">Centímetros (cm)</option><option value="px">Pixels da imagem (px)</option></select></label>
+      <label className="settingsField">Escala (mm por pixel; 0 = sem escala)<input type="number" min="0" max="1000" step="0.0001" value={mm} onChange={e=>setScale(e.target.value)}/><small>{mm>0?"1 px = "+mm.toLocaleString("pt-BR",{maximumFractionDigits:6})+" mm · 1 mm = "+(1/mm).toLocaleString("pt-BR",{maximumFractionDigits:3})+" px. Também usada nas medidas do CDM-1 (comprimento, abertura, área).":"Sem escala: as réguas ficam em px e o CDM-1 mede em pixels."}</small></label>
+      <div className="settingsField rulerCalibrate"><span>Calibrar por uma medida conhecida</span>
+        <div><input type="number" min="0" step="any" inputMode="decimal" placeholder="px" aria-label="Comprimento de referência em pixels" value={refPx} onChange={e=>setRefPx(e.target.value)}/><b>px =</b><input type="number" min="0" step="any" inputMode="decimal" placeholder="mm" aria-label="Comprimento de referência em milímetros" value={refMm} onChange={e=>setRefMm(e.target.value)}/><b>mm</b>
+        <button type="button" disabled={!derived} onClick={()=>{setScale(derived.toFixed(6));setRefPx("");setRefMm("")}}>Aplicar{derived?" · "+derived.toLocaleString("pt-BR",{maximumFractionDigits:5})+" mm/px":""}</button>
+        {mm>0&&<button type="button" onClick={()=>setScale(0)}>Remover escala</button>}</div>
+        <small>Ex.: uma régua ou trena de 200 mm que ocupa 1 450 px na foto → 0,13793 mm/px. Meça os pixels com as réguas em px.</small>
+      </div>
+    </div>
+  </details>;
 }

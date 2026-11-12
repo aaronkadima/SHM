@@ -103,6 +103,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-context-filter.mjs
 
+      - name: Ground Truth annotation (raster, COCO, metrics, multiscale tiles, ZIP)
+        working-directory: frontend
+        run: node scripts/check-annotation.mjs
+
       - name: Result export
         working-directory: frontend
         run: node scripts/check-result-export.mjs

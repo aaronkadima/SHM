@@ -217,6 +217,27 @@ function chapters(shortcuts){
     <Note>A escala vale para o plano da superfície fotografada. Fotos oblíquas distorcem medidas; para larguras de fissura, fotografe perpendicularmente e inclua a referência no mesmo plano.</Note>
   </>},
 
+  {id:"gt",title:"Anotação Ground Truth (few-shot)",kw:"anotação ground truth few-shot multiescala coco máscara recorte avaliar iou dice cldice",body:<>
+    <p>A ferramenta de anotação (ícone de caneta na barra lateral ou <i>Análise › Anotação Ground Truth</i>) cria o Ground Truth de poucas imagens bem anotadas, usado para medir o CDM e treinar pesos próprios.</p>
+    <h3>Três níveis de escala</h3>
+    <Tbl head={["Nível","Zoom","Classes","Ferramentas"]} rows={[
+      ["Cena","1×","estrutura · irrelevante","polígono, pincel"],
+      ["Região","2–4×","desplacamento, armadura, corrosão, eflorescência","polígono, pincel"],
+      ["Detalhe","≥ 8×","fissura","linha central com largura, pincel"]]}/>
+    <p>Os vetores são guardados nas coordenadas da imagem, então um polígono feito a 2× e uma fissura traçada a 16× ficam alinhados. O pincel tem tamanho fixo na tela: com mais zoom o traço fica mais fino na imagem, permitindo anotar fissuras de 1–2 px. Cada anotação registra o zoom em que foi feita.</p>
+    <h3>Few-shot com sugestão do CDM</h3>
+    <p><i>Sugerir do CDM</i> converte os achados da última análise em anotações tracejadas; aceite, rejeite ou apague cada uma (ferramenta Selecionar) ou todas de uma vez. Só anotações manuais e sugestões aceitas entram nas máscaras e nas métricas.</p>
+    <h3>Avaliar CDM</h3>
+    <Eq n={e()}>{"IoU = \\frac{TP}{TP + FP + FN}, \\quad Dice = \\frac{2TP}{2TP + FP + FN}, \\quad clDice = \\frac{2\\, T_{prec}\\, T_{sens}}{T_{prec} + T_{sens}}"}</Eq>
+    <p>com <M>{"T_{prec} = |S_{pred} \\cap V_{GT}| / |S_{pred}|"}</M> e <M>{"T_{sens} = |S_{GT} \\cap V_{pred}| / |S_{GT}|"}</M>, sendo <M>{"S"}</M> o esqueleto e <M>{"V"}</M> a máscara: o clDice mede se a continuidade das fissuras foi preservada.</p>
+    <h3>Exportação (ZIP)</h3>
+    <ul>
+      <li><code>annotations/*_coco.json</code> — COCO: polígonos; traços e fissuras em RLE, com a polilinha e a largura em <code>shm</code>.</li>
+      <li><code>masks/*_label.png</code> — índice da classe por pixel (1 estrutura … 7 fissura), na resolução original.</li>
+      <li><code>tiles/s1, s2, s4</code> — recortes de até 512 px da imagem inteira, da grade 2×2 e da 4×4, para treino multiescala.</li>
+    </ul>
+  </>},
+
   {id:"parity",title:"Paridade JS ⇄ Python",kw:"paridade pyodide python javascript métricas bland altman iou pmr",body:<>
     <p>O motor do navegador (JavaScript) é verificado contra a implementação de referência em Python (<code>cdm_v285.py</code>). O ícone <b>CDM</b> da barra lateral abre o painel de Paridade com duas fontes: <b>Cenas de teste</b> (relatório gerado na integração contínua) e <b>Esta imagem</b> (executa o Python no próprio navegador via Pyodide, em 24 variações da imagem atual ≤ 384 px).</p>
     <Eq n={e()}>{"PMR = \\frac{\\#\\{p : M_{JS}(p) = M_{Py}(p)\\}}{N}, \\qquad IoU_{cls} = \\frac{|M_{JS} \\cap M_{Py}|}{|M_{JS} \\cup M_{Py}|}"}</Eq>

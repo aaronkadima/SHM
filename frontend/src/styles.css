@@ -1323,3 +1323,47 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 /* Achados descartados pelo filtro de contexto IA */
 .editorOverlayStack .editorDetection.editorDiscarded.editorDiscarded{position:absolute;border:1.5px dashed rgba(96,110,118,.9)!important;border-style:dashed!important;background:rgba(140,150,156,.10)!important;box-shadow:none;pointer-events:auto;cursor:help}
 .editorFindingList.discarded .editorFindingItem{cursor:default;color:#5d6d75}
+
+/* ---------- Anotação Ground Truth (few-shot multiescala) ---------- */
+.gtLayer{position:absolute;inset:0;width:100%;height:100%;z-index:6;touch-action:none;cursor:crosshair;overflow:visible}
+.gtLayer.tool-select{cursor:default}
+.gtLayer.tool-brush{cursor:none}
+.gtLayer .gtShape{pointer-events:visiblePainted}
+.gtLayer.tool-select .gtShape{cursor:pointer}
+.gtLayer .gtShape.suggested{stroke-dasharray:6 4}
+.gtLayer path.gtShape.suggested[fill="none"]{stroke-dasharray:none;filter:drop-shadow(0 0 1px #fff)}
+.gtLayer .gtShape.rejected{opacity:.18}
+.gtLayer .gtShape.selected{filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 3px #f3b342)}
+.gtLayer .gtDraft,.gtLayer .gtCursor{pointer-events:none}
+.gtPanel{position:absolute;top:58px;right:12px;z-index:40;width:min(318px,calc(100% - 24px));max-height:calc(100% - 76px);overflow:auto;background:rgba(255,255,255,.97);border:1px solid #dbe4e8;border-radius:12px;box-shadow:0 12px 32px rgba(28,48,58,.16);padding:10px;display:flex;flex-direction:column;gap:8px;font-size:12px;color:#263e4b}
+.gtHead{display:flex;align-items:center;justify-content:space-between}
+.gtHead b{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.gtHead button{border:0;background:transparent;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;cursor:pointer;color:#637986}
+.gtHead button:hover{background:#eef3f5}
+.gtLevels{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#f2f6f7;padding:3px;border-radius:9px}
+.gtLevels button{border:0;background:transparent;border-radius:7px;padding:5px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;font:inherit;color:#567080}
+.gtLevels button span{font-weight:700}
+.gtLevels button small{font-size:10px;opacity:.8}
+.gtLevels button[aria-selected="true"]{background:#fff;color:#0b5f58;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.gtHint{margin:0;color:#5b707b;line-height:1.4}
+.gtZoomHint{border:1px dashed #e0b45a;background:#fff8e8;color:#6b4f12;border-radius:8px;padding:5px 8px;font:inherit;display:flex;align-items:center;gap:6px;cursor:pointer;text-align:left}
+.gtTools,.gtClasses,.gtActions{display:flex;flex-wrap:wrap;gap:4px}
+.gtTools button,.gtClasses button,.gtActions button,.gtSelected button,.gtFoot button{border:1px solid #dbe4e8;background:#fff;border-radius:7px;padding:5px 8px;font:inherit;font-size:11.5px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;color:#33505d}
+.gtTools button.active{background:#e3f1ee;border-color:#9fcfc6;color:#0b5f58;font-weight:700}
+.gtClasses button i,.gtSelected i,.gtEval i{width:10px;height:10px;border-radius:3px;background:var(--gt);display:inline-block}
+.gtClasses button.active{border-color:var(--gt);box-shadow:inset 0 0 0 1px var(--gt);font-weight:700}
+.gtClasses button small{color:#7d919b;font-weight:600}
+.gtRange{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;color:#567080}
+.gtRange span{font-variant-numeric:tabular-nums;color:#7d919b;font-size:11px}
+.gtSelected{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px;border-radius:8px;background:#fdf6e6;border:1px solid #f0dcae}
+.gtSelected>span{display:inline-flex;align-items:center;gap:5px;flex:1 1 100%;font-weight:600}
+.gtShow{display:flex;gap:10px;align-items:center;color:#567080}
+.gtShow label{display:inline-flex;gap:4px;align-items:center}
+.gtFoot{display:flex;align-items:center;gap:6px;border-top:1px solid #e6edf0;padding-top:8px}
+.gtFoot>span{flex:1;color:#7d919b}
+.gtFoot button.primary{background:#0d766e;border-color:#0d766e;color:#fff;font-weight:700}
+.gtFoot button:disabled,.gtActions button:disabled{opacity:.45;cursor:default}
+.gtEval table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.gtEval th,.gtEval td{padding:4px 4px;border-bottom:1px solid #edf2f4;text-align:right}
+.gtEval th:first-child,.gtEval td:first-child{text-align:left;display:flex;align-items:center;gap:5px}
+.gtEval small{color:#7d919b;display:block;margin-top:4px}

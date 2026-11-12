@@ -1,5 +1,5 @@
 import React,{Suspense,useCallback,useEffect,useRef,useState} from "react";
-import {GraduationCap,FolderOpen,History,PencilLine,Save,Printer,LogOut,RotateCcw,Trash2,Mouse,CircleHelp,MousePointerClick,Lightbulb,Info,Search,Keyboard,Cpu,Globe,Bug,ExternalLink,Ruler,SquareDashed,Tag,Layers2,FlipHorizontal2,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
+import {PenTool,GraduationCap,FolderOpen,History,PencilLine,Save,Printer,LogOut,RotateCcw,Trash2,Mouse,CircleHelp,MousePointerClick,Lightbulb,Info,Search,Keyboard,Cpu,Globe,Bug,ExternalLink,Ruler,SquareDashed,Tag,Layers2,FlipHorizontal2,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
 import ImageInspector from "./ImageInspector.jsx";
 import EngineStages from "./EngineStages.jsx";
 import CanvasRulers,{RULER_UNITS} from "./CanvasRulers.jsx";
@@ -7,6 +7,7 @@ import ContextMenu from "./ContextMenu.jsx";
 import {CdmIcon,MenuIcon,TipOfDayDialog,AboutDialog,ShortcutsDialog,CommandPalette,describeElement,AulasDialog} from "./StudioHelp.jsx";
 const ParityPanel=React.lazy(()=>import("./ParityPanel.jsx"));
 const UserManual=React.lazy(()=>import("./UserManual.jsx"));
+import {AnnotationLayer,AnnotationPanel,useGroundTruth,DEFAULT_GT_STATE} from "./AnnotationTool.jsx";
 import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint,CANVAS_ZOOM_MIN,CANVAS_ZOOM_MAX}from"./viewerPreferences.js";
 import{detectAsset,isCdm3SpatialAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./assetDetection.js";
 import{buildDamageTimeline,matchTemporalDamageCampaigns}from"./cdm3RegisteredProjection.js";
@@ -93,6 +94,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const [pathologyGroupOpen,setPathologyGroupOpen]=useState(()=>typeof window==="undefined"||window.innerHeight>=620);
   const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState(""),[statusNotice,setStatusNotice]=useState(""),[statusNoticeTone,setStatusNoticeTone]=useState("info"),[fileDragActive,setFileDragActive]=useState(false);
   const [imageSize,setImageSize]=useState({width:1,height:1});
+  const [annotating,setAnnotating]=useState(false),[gtState,setGtState]=useState(DEFAULT_GT_STATE);
+  const groundTruth=useGroundTruth(file||null);
   const imageDecoded=imageSize.width>1&&imageSize.height>1;
   const imageMegapixels=imageDecoded?(imageSize.width*imageSize.height/1e6):null;
   const imageLoad=imageDecoded?imageLoadProfile(imageSize.width,imageSize.height):null;
@@ -948,6 +951,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     action?.();
   }
   const showRulers=!!rulers.visible&&!!file&&kind==="2d"&&!aulasOpen;
+  const annotationActive=annotating&&!!file&&kind==="2d"&&!aulasOpen;
+  const gtCdmResult=results.find(r=>r.engine_id==="cdm_1")||results.find(r=>r.engine_id==="cdm_3")||null;
+  const gtPreviewMmPerPx=findingMmPerPx>0?findingMmPerPx*(Number(gtCdmResult?.metrics?.processed_width)||imageSize.width)/Math.max(1,imageSize.width):0;
   const rulerMmPerPx=Math.max(0,Number(cdmOptions?.cdm_mm_per_px)||0);
   // ---------- Arquivo: imprimir; Ajuda: contexto, comandos e atalhos ----------
   function printView(){
@@ -1176,6 +1182,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         onLoad={e=>{setPreviewError("");if(onMeasure)setImageSize({width:e.currentTarget.naturalWidth||1,height:e.currentTarget.naturalHeight||1})}}
         onError={()=>{if(resolvedSrc===prev&&localPreview&&localPreview!==prev)setPreviewError("Preview principal indisponível; usando cópia local do arquivo.");else setPreviewError("Não foi possível decodificar a imagem importada.")}}/>
       {withOverlay&&renderOverlayStack()}
+      {annotationActive&&onMeasure&&imageSize.width>1&&<AnnotationLayer gt={groundTruth} state={gtState} setState={setGtState} width={imageSize.width} height={imageSize.height} zoom={zoom}/>}
       {badge&&<span className="editorPaneBadge">{badge}</span>}
     </div>;
   }
@@ -1273,6 +1280,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     {group:"Editar",label:"Restaurar visualização",icon:RotateCcw,disabled:kind!=="2d",run:resetViewerPreferences},
     {group:"Visualizar",label:layersOpen?"Recolher camadas":"Mostrar camadas",icon:Layers3,run:()=>setLayersPanelOpen(v=>!v)},
     {group:"Visualizar",label:"Ajustar à tela",icon:Maximize2,hint:"0",disabled:kind!=="2d",run:fitView},
+    {group:"Análise",label:annotating?"Fechar anotação Ground Truth":"Anotação Ground Truth (few-shot)",icon:PenTool,disabled:kind!=="2d",run:()=>setAnnotating(v=>!v)},
     {group:"Visualizar",label:rulers.visible?"Ocultar réguas":"Mostrar réguas",icon:Ruler,hint:"Ctrl+Shift+R",disabled:kind!=="2d",run:toggleRulers},
     {group:"Visualizar",label:showBoxes?"Ocultar caixas delimitadoras":"Mostrar caixas delimitadoras",icon:SquareDashed,disabled:kind!=="2d",run:()=>setShowBoxes(v=>!v)},
     {group:"Visualizar",label:showLabels?"Ocultar rótulos":"Mostrar rótulos",icon:Tag,disabled:kind!=="2d",run:()=>setShowLabels(v=>!v)},
@@ -1391,6 +1399,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         <details className="editorMenu" name="shm-editor-menu"><summary>Análise</summary><div className="editorMenuPanel" role="menu">
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onSettings)}><MenuIcon icon={Settings2}/><span>Configurações</span><small>Ctrl/Cmd+,</small></button>
           <button type="button" role="menuitem" disabled={analysisDisabled} onClick={e=>runEditorMenuAction(e,()=>analyzeButton.current?.click())}><MenuIcon icon={Play}/><span>Executar análise</span><small>Ctrl/Cmd+Enter</small></button>
+          <button type="button" role="menuitem" aria-checked={annotationActive} disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>setAnnotating(v=>!v))}><MenuIcon icon={PenTool}/><span>Anotação Ground Truth (few-shot)</span><small>multiescala</small></button>
           <button type="button" role="menuitem" aria-checked={parityOpen} onClick={e=>runEditorMenuAction(e,()=>setParityOpen(v=>!v))}><MenuIcon icon={CdmIcon}/><span>Paridade CDM (Python ⇄ navegador)</span><small>indicadores</small></button>
         </div></details>
         <details className="editorMenu" name="shm-editor-menu"><summary>Ajuda</summary><div className="editorMenuPanel" role="menu">
@@ -1444,6 +1453,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button aria-label="Reduzir zoom" title={kind==="2d"?"Reduzir":"Zoom 2D indisponível"} disabled={kind!=="2d"} onClick={()=>changeZoom(-.25)}><Minus/></button>
           <button title={kind==="2d"?"Ajustar à tela":"Ajuste 2D indisponível"} aria-label="Ajustar à tela" disabled={kind!=="2d"} onClick={fitView}><Maximize2/></button>
           <button className={rulers.visible?"active":""} aria-label={rulers.visible?"Ocultar réguas":"Mostrar réguas"} aria-pressed={!!rulers.visible} title={(rulers.visible?"Ocultar":"Mostrar")+" réguas · Ctrl/Cmd+Shift+R"} disabled={kind!=="2d"} onClick={toggleRulers}><Ruler/></button>
+          <button className={annotationActive?"active":""} aria-label="Anotação Ground Truth (few-shot)" aria-pressed={annotationActive} title="Anotação Ground Truth multiescala (few-shot)" disabled={kind!=="2d"} onClick={()=>setAnnotating(v=>!v)}><PenTool/></button>
           <span className="editorToolSep" aria-hidden="true"/>
           <button className={showBoxes?"active":""} aria-label={showBoxes?"Ocultar caixas delimitadoras":"Mostrar caixas delimitadoras"} aria-pressed={showBoxes} title={(showBoxes?"Ocultar":"Mostrar")+" caixas delimitadoras"} disabled={kind!=="2d"} onClick={()=>setShowBoxes(v=>{showStatusNotice(v?"Caixas ocultas":"Caixas visíveis",900);return !v})}><SquareDashed/></button>
           <button className={showLabels?"active":""} aria-label={showLabels?"Ocultar rótulos":"Mostrar rótulos"} aria-pressed={showLabels} title={(showLabels?"Ocultar":"Mostrar")+" rótulos dos achados"} disabled={kind!=="2d"} onClick={()=>setShowLabels(v=>{showStatusNotice(v?"Rótulos ocultos":"Rótulos visíveis",900);return !v})}><Tag/></button>
@@ -1516,6 +1526,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           </>}
         </div>}
         {file&&kind==="2d"&&<div className="editorZoom"><button aria-label="Reduzir zoom" onClick={()=>changeZoom(-.25)}>−</button><span>{Math.round(zoom*100)}%</span><button aria-label="Ampliar zoom" onClick={()=>changeZoom(.25)}><Plus size={15}/></button></div>}
+        {annotationActive&&<AnnotationPanel gt={groundTruth} state={gtState} setState={setGtState} zoom={zoom} setZoom={z=>applyCanvasZoom(z)} file={file} previewSize={imageSize} cdmResult={gtCdmResult} mmPerPx={gtPreviewMmPerPx} onNotice={m=>showStatusNotice(m,2200)} onClose={()=>setAnnotating(false)}/>}
         {resultOpen&&(busy||results.length>0)&&<div ref={resultPanel} className="editorFloating" data-position-x={position.x} data-position-y={position.y} data-panel-width={resultPanelSize.width} data-panel-height={resultPanelSize.height||""} style={{transform:`translate(${position.x}px,${position.y}px)`,"--result-panel-width":resultPanelSize.width+"px",...(resultPanelSize.height?{"--result-panel-height":resultPanelSize.height+"px"}:{})}}>
           <div className="editorFloatHead"><button type="button" className="editorFloatMoveHandle" aria-label="Mover painel de resultados" title="Arraste ou use setas, Home e End para mover" onKeyDown={moveResultPanelKey} onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}><b>Resultados</b></button><button type="button" className="editorFloatResizeHandle" aria-label="Redimensionar painel de resultados" title="Arraste ou use setas; Home restaura e End maximiza" onKeyDown={resizeResultPanelKey} onPointerDown={beginResultResize}><Maximize2 size={13}/></button><button type="button" aria-label="Recolher painel de resultados" title="Recolher resultados" onClick={()=>setResultOpenPreference(false)}><Minus size={16}/></button></div>
           {busy&&<div className={"editorProgress "+(persisting?"persisting":"")}><span>{persisting?"Salvando histórico local":(progress?.current_engine||"Processando motores")+" · "+(progress?.total===100?pct+"%":(progress?.completed||0)+"/"+(progress?.total||selected.length))}</span><strong>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</strong><div><i style={{width:(persisting?100:pct)+"%"}}/></div>{onCancel&&!persisting&&<button onClick={onCancel} disabled={progress?.state==="cancel_requested"}>{progress?.state==="cancel_requested"?"Cancelando…":"Cancelar"}</button>}</div>}

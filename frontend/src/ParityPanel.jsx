@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState}from"react";
-import{CheckCircle2,AlertTriangle,XCircle,X,Download,RefreshCw}from"lucide-react";
+import{CheckCircle2,AlertTriangle,XCircle,X,Download,RefreshCw,Play,Square}from"lucide-react";
 
 // Painel flutuante "Paridade CDM": indicadores Python ⇄ navegador e gráficos em SVG nativo
 // (sem biblioteca de gráficos). O relatório é gerado no CI (cdm-parity-report.json) e só é
@@ -130,11 +130,35 @@ function DiffMap({report,caseIndex,cls,canvasRef}){
   </div>;
 }
 
+// Relatórios da imagem ficam em memória durante a sessão (por arquivo + parâmetros do CDM).
+const imageReportCache=new Map();
+const imageKey=(file,options)=>file?[file.name,file.size,file.lastModified,JSON.stringify(options||{})].join("|"):"";
+
 // ---------- Painel ----------
-export default function ParityPanel({onClose,boundsRef}){
-  const[report,setReport]=useState(null),[error,setError]=useState(""),[tab,setTab]=useState("summary"),[metric,setMetric]=useState("area_px2"),[cascadeMetric,setCascadeMetric]=useState("iou");
+export default function ParityPanel({onClose,boundsRef,file=null,cdmOptions={},imageReady=false}){
+  const key=imageKey(file,cdmOptions);
+  const[source,setSource]=useState(()=>imageReportCache.has(key)?"image":"ci"),[imageReport,setImageReport]=useState(()=>imageReportCache.get(key)||null),[imageRun,setImageRun]=useState(null),[imageError,setImageError]=useState("");
+  const workerRef=useRef(null);
+  useEffect(()=>{setImageReport(imageReportCache.get(key)||null);setImageError("")},[key]);
+  useEffect(()=>()=>workerRef.current?.terminate(),[]);
+  function runImageParity(){
+    if(!file||workerRef.current)return;
+    setSource("image");setImageError("");setImageRun({label:"Iniciando…",done:0,total:1});
+    const worker=new Worker(new URL("./parityImageWorker.js",import.meta.url),{type:"module"});workerRef.current=worker;
+    const finish=()=>{worker.terminate();workerRef.current=null;setImageRun(null)};
+    worker.onmessage=e=>{const m=e.data;
+      if(m.type==="progress")setImageRun({label:m.label,done:m.done,total:m.total,phase:m.phase});
+      else if(m.type==="done"){imageReportCache.set(key,m.report);setImageReport(m.report);finish()}
+      else if(m.type==="error"){setImageError(m.message);finish()}};
+    worker.onerror=e=>{setImageError(e.message||"Falha no worker de paridade");finish()};
+    worker.postMessage({type:"run",file,options:cdmOptions,fileName:file.name});
+  }
+  function cancelImageParity(){workerRef.current?.terminate();workerRef.current=null;setImageRun(null)}
+  const[ciReport,setReport]=useState(null),[error,setError]=useState(""),[tab,setTab]=useState("summary"),[metric,setMetric]=useState("area_px2"),[cascadeMetric,setCascadeMetric]=useState("iou");
   const[caseIndex,setCaseIndex]=useState(0),[diffClass,setDiffClass]=useState("all"),[pos,setPos]=useState({x:0,y:0}),[reload,setReload]=useState(0);
   const svgRef=useRef(null),canvasRef=useRef(null),panelRef=useRef(null);
+  const report=source==="image"?imageReport:ciReport;
+  useEffect(()=>{if(report)setCaseIndex(i=>Math.min(i,report.cases.length-1))},[report]);
   useEffect(()=>{
     let alive=true;setError("");
     fetch(`${import.meta.env.BASE_URL}reports/cdm-parity.json?t=${Date.now()}`,{cache:"no-store"})
@@ -154,7 +178,7 @@ export default function ParityPanel({onClose,boundsRef}){
     const up=()=>{window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up)};
     window.addEventListener("pointermove",move);window.addEventListener("pointerup",up);
   }
-  const name=`paridade-cdm-${tab}`;
+  const name=`paridade-cdm-${source==="image"?"imagem-":""}${tab}`;
   async function exportPng(){if(tab==="diff"){const src=canvasRef.current;if(!src)return;const k=Math.max(1,Math.ceil(1200/Math.max(src.width,src.height))),c=document.createElement("canvas");c.width=src.width*k;c.height=src.height*k;const ctx=c.getContext("2d");ctx.imageSmoothingEnabled=false;ctx.drawImage(src,0,0,c.width,c.height);c.toBlob(b=>b&&download(name+".png",b),"image/png");return}if(svgRef.current)download(name+".png",await svgToPng(svgRef.current))}
   function exportSvg(){if(svgRef.current)download(name+".svg",new Blob([svgText(svgRef.current)],{type:"image/svg+xml"}))}
   function exportCsv(){
@@ -172,14 +196,35 @@ export default function ParityPanel({onClose,boundsRef}){
   return <section ref={panelRef} className="parityPanel" style={{transform:`translate(${pos.x}px,${pos.y}px)`}} role="dialog" aria-label="Paridade CDM Python ⇄ navegador">
     <header onPointerDown={beginDrag}>
       <div><b>Paridade CDM</b><small>Python (cdm_v285.py) ⇄ navegador (cdmBrowser.js)</small></div>
+      <div className="paritySource" role="radiogroup" aria-label="Origem do relatório">
+        <button type="button" role="radio" aria-checked={source==="ci"} className={source==="ci"?"active":""} onClick={()=>setSource("ci")} title="Cenas sintéticas, geradas a cada deploy no CI">Cenas de teste</button>
+        <button type="button" role="radio" aria-checked={source==="image"} className={source==="image"?"active":""} onClick={()=>setSource("image")} disabled={!imageReady&&!imageReport} title={imageReady?"Variações da imagem aberta no canvas":"Abra uma imagem 2D para usar"}>Esta imagem</button>
+      </div>
       {report&&<span className={"parityStatus "+report.status}><StatusIcon size={13}/>{report.status==="pass"?"Paridade":report.status==="warn"?"Ressalvas":"Divergente"}</span>}
       <button type="button" onClick={()=>setReload(v=>v+1)} aria-label="Recarregar relatório" title="Recarregar relatório"><RefreshCw size={14}/></button>
       <button type="button" onClick={onClose} aria-label="Fechar painel de paridade" title="Fechar (Esc)"><X size={15}/></button>
     </header>
     <nav className="parityTabs" role="tablist">{TABS.map(([id,label])=><button key={id} type="button" role="tab" aria-selected={tab===id} className={tab===id?"active":""} onClick={()=>setTab(id)}>{label}</button>)}</nav>
     <div className="parityBody">
-      {error?<div className="parityEmpty"><b>Relatório indisponível</b><p>{error}</p><p>O relatório é gerado a cada deploy pelo CI (Python gera as etapas de referência; o Node roda o motor do navegador nas mesmas cenas). Localmente: <code>python backend/tests/generate_cdm_parity_report_cases.py /tmp/c.json</code> e <code>node scripts/build-cdm-parity-report.mjs /tmp/c.json public/reports/cdm-parity.json</code>.</p></div>
+      {source==="image"&&(imageRun||!imageReport)?<div className="parityImageRun">
+        {imageRun?<>
+          <b>Paridade desta imagem em andamento</b>
+          <p>{imageRun.label}</p>
+          <div className="parityProgress" role="progressbar" aria-valuemin={0} aria-valuemax={imageRun.total} aria-valuenow={imageRun.done}><i style={{width:(imageRun.phase==="pyodide"||imageRun.phase==="variants"?6:Math.max(6,100*imageRun.done/Math.max(1,imageRun.total)))+"%"}}/></div>
+          <small>{imageRun.phase==="python"?`Variação ${imageRun.done+1} de ${imageRun.total}`:imageRun.phase==="pyodide"?"Download de ~15 MB (fica em cache do navegador)":""}</small>
+          <button type="button" className="parityRunButton secondary" onClick={cancelImageParity}><Square size={13}/> Cancelar</button>
+        </>:<>
+          <b>Paridade desta imagem</b>
+          <p>Gera 24 variações da imagem aberta ({file?.name||"—"}) — recortes, deslocamento de grade, escalas, rotações, espelhos, brilho, contraste, gama, JPEG e ruído, até 384 px — e roda em cada uma o <code>cdm_v285.py</code> (Python via Pyodide, no seu navegador) e o <code>cdmBrowser.js</code>. Os indicadores e gráficos mostram só as patologias encontradas.</p>
+          <p className="parityHint">Na primeira vez o navegador baixa o Python (~15 MB, depois fica em cache). O processamento roda em segundo plano e leva de 1 a 3 minutos; nada é enviado a servidores.</p>
+          {imageError&&<p className="parityError">Falhou: {imageError}</p>}
+          <button type="button" className="parityRunButton" disabled={!imageReady} onClick={runImageParity}><Play size={14}/> Rodar paridade desta imagem</button>
+          {!imageReady&&<small>Abra uma imagem 2D no canvas para habilitar.</small>}
+        </>}
+      </div>
+      :error&&source==="ci"?<div className="parityEmpty"><b>Relatório indisponível</b><p>{error}</p><p>O relatório é gerado a cada deploy pelo CI (Python gera as etapas de referência; o Node roda o motor do navegador nas mesmas cenas). Localmente: <code>python backend/tests/generate_cdm_parity_report_cases.py /tmp/c.json</code> e <code>node scripts/build-cdm-parity-report.mjs /tmp/c.json public/reports/cdm-parity.json</code>.</p></div>
       :!report?<div className="parityEmpty"><p>Carregando relatório…</p></div>
+      :report.classes.length===0?<div className="parityEmpty"><b>Nenhuma patologia encontrada</b><p>Nenhum dos dois motores detectou patologias nas variações desta imagem — não há máscaras a comparar além do fundo (paridade trivial).</p></div>
       :<>
         {tab==="summary"&&<div className="paritySummary">
           <div className="parityKpis">
@@ -191,7 +236,8 @@ export default function ParityPanel({onClose,boundsRef}){
           <table className="parityTable compact"><thead><tr><th>Cena</th><th>px</th><th>IoU mín.</th><th>PMR máx.</th><th>ΔCC</th><th>Esqueleto (Py/JS)</th></tr></thead><tbody>
             {caseRows.map(r=><tr key={r.name} className={r.iou<.9999?"parityBad":"parityOk"}><td>{r.name}</td><td>{r.size}</td><td>{r.iou.toFixed(5).replace(".",",")}</td><td>{pct(r.pmr,3)}</td><td>{r.dcc}</td><td>{r.skel.py.len}/{r.skel.js.len} px</td></tr>)}
           </tbody></table>
-          <p className="parityMeta">{report.summary.cases} cenas · {report.summary.pixels.toLocaleString("pt-BR")} px · commit {String(report.commit||"").slice(0,8)} ({report.branch}) · {new Date(report.generated_at).toLocaleString("pt-BR")} · Node {report.runtimes.node} · numpy {report.runtimes.python?.numpy}</p>
+          {report.source==="image"&&<p className="parityMeta">Imagem <b>{report.image?.name}</b> · {report.image?.variants} variações (≤{Math.max(report.image?.analyzed_width||0,report.image?.analyzed_height||0)} px) · patologias encontradas: {report.classes.map(c=>CLASS_NAMES[c]).join(", ")||"nenhuma"} · Pyodide {report.runtimes?.pyodide} (Python {report.runtimes?.python_runtime}) · {Math.round((report.image?.elapsed_ms||0)/1000)} s <button type="button" className="parityLink" onClick={runImageParity} disabled={!imageReady||!!imageRun}>rodar de novo</button></p>}
+          {report.source!=="image"&&<p className="parityMeta">{report.summary.cases} cenas · {report.summary.pixels.toLocaleString("pt-BR")} px · commit {String(report.commit||"").slice(0,8)} ({report.branch}) · {new Date(report.generated_at).toLocaleString("pt-BR")} · Node {report.runtimes.node} · numpy {report.runtimes.python?.numpy}</p>}
         </div>}
         {tab==="cascade"&&<><div className="parityControls"><label>Indicador<select value={cascadeMetric} onChange={e=>setCascadeMetric(e.target.value)}><option value="iou">IoU cruzado (mínimo entre cenas)</option><option value="pmr">PMR — taxa de discordância (máximo)</option></select></label><span>Identifica em qual etapa a divergência nasce.</span></div><CascadeChart report={report} metric={cascadeMetric} svgRef={svgRef}/></>}
         {(tab==="bland"||tab==="scatter")&&<><div className="parityControls"><label>Medida<select value={metric} onChange={e=>setMetric(e.target.value)}>{METRICS.map(([id,l])=><option key={id} value={id}>{l}</option>)}</select></label><span>{tab==="bland"?"Viés sistemático: pontos sobre a linha 0 = paridade.":"Cada ponto é uma cena × família; fora da diagonal = divergência."}</span></div>

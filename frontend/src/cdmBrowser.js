@@ -779,10 +779,9 @@ async function imageDataFromFile(file,maxSide,target=null){
   let w,h;if(target){[w,h]=target}else{const s=Math.min(1,maxSide/Math.max(bmp.width,bmp.height));w=Math.max(1,Math.round(bmp.width*s));h=Math.max(1,Math.round(bmp.height*s))}
   const c=document.createElement("canvas");c.width=w;c.height=h;const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(bmp,0,0,w,h);bmp.close?.();return ctx.getImageData(0,0,w,h);
 }
-export async function runCdmBrowser(file,options={},previousFile=null,control={}){
-  const started=performance.now(),onProgress=control?.onProgress,signal=control?.signal;
-  if(signal?.aborted)throw abortError();
-  const cfg={
+// Configuração do CDM a partir das opções do usuário (mesma usada pela paridade da imagem).
+export function cdmConfig(options={}){
+  return{
     threshold:clamp(Number(options.cdm_threshold??35),1,255),
     kernel:oddKernel(Number(options.cdm_kernel_size??15)),
     minArea:clamp(Number(options.cdm_min_area??30),1,1e6),
@@ -790,7 +789,12 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     mmPerPx:Math.max(0,Number(options.cdm_mm_per_px??0)),
     elementFamily:options.cdm_element_family||"lajes_vigas_secundarias_apoios",
     alignmentMethod:options.cdm_alignment_method||"translation_auto"
-  };
+  };}
+export async function runCdmBrowser(file,options={},previousFile=null,control={}){
+  const started=performance.now(),onProgress=control?.onProgress,signal=control?.signal;
+  if(signal?.aborted)throw abortError();
+  const cfg=cdmConfig(options);
+
   emitProgress(onProgress,3,"CDM-1 · decodificando t1","decode_t1");
   const decodeStarted=performance.now();
   let current=await imageDataFromFile(file,1600),w=current.width,h=current.height;

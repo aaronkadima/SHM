@@ -1081,7 +1081,7 @@ body:has(.liveCam){overflow:hidden}
 /* Painel flutuante de paridade CDM (Python ⇄ navegador) */
 .parityPanel{position:absolute;z-index:22;top:64px;left:50%;margin-left:min(-340px,calc(-50% + 18px));width:min(680px,calc(100% - 36px));max-height:calc(100% - 128px);display:flex;flex-direction:column;background:rgba(255,255,255,.985);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid #dbe4e8;border-radius:12px;box-shadow:0 18px 50px rgba(30,50,60,.24);color:#263e4b;font-size:12px;overflow:hidden}
 .parityPanel header{display:flex;align-items:center;gap:8px;padding:10px 10px 8px 14px;cursor:grab;user-select:none;border-bottom:1px solid #e6edf0}
-.parityPanel header>div{display:flex;flex-direction:column;margin-right:auto;min-width:0}
+.parityPanel header>div:first-child{display:flex;flex-direction:column;margin-right:auto;min-width:0}
 .parityPanel header b{font-size:13.5px}.parityPanel header small{color:#7b8f97;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .parityPanel header button{border:0;background:transparent;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#5d7380;cursor:pointer}
 .parityPanel header button:hover{background:#eef3f5}
@@ -1117,3 +1117,16 @@ body:has(.liveCam){overflow:hidden}
 @media(max-width:720px){.parityPanel{left:8px;right:8px;margin-left:0;width:auto;top:56px;max-height:calc(100% - 110px)}.parityKpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .parityBody>svg.parityMatrix{max-width:440px;margin:0 auto}
 .parityNote{margin:8px 0 0;padding:7px 9px;border-radius:7px;background:#fff6e8;color:#7c4f0e;font-size:11px;line-height:1.45}
+.paritySource{display:inline-flex;padding:2px;border-radius:8px;background:#eef3f5;gap:2px}
+.paritySource button{width:auto!important;height:auto!important;padding:4px 9px!important;border-radius:6px!important;font:inherit;font-size:11px;font-weight:700;color:#5d7380!important}
+.paritySource button.active{background:#fff!important;color:#0d766e!important;box-shadow:0 1px 3px rgba(30,50,60,.15)}
+.paritySource button:disabled{opacity:.45;cursor:not-allowed}
+.parityImageRun{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:10px 4px 6px;line-height:1.5}
+.parityImageRun b{font-size:14px}.parityImageRun p{margin:0;color:#4a6370}.parityImageRun code{font-size:10.5px;background:#f1f5f6;padding:1px 4px;border-radius:4px}
+.parityHint{font-size:11px;color:#7b8f97!important}.parityError{color:#a3312b!important;font-weight:600}
+.parityRunButton{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:8px;padding:8px 14px;background:#0d766e;color:#fff!important;font:inherit;font-weight:700;cursor:pointer}
+.parityRunButton:disabled{opacity:.45;cursor:not-allowed}
+.parityRunButton.secondary{background:#fff;color:#263e4b!important;border:1px solid #dbe4e8}
+.parityProgress{width:100%;height:6px;border-radius:999px;background:#e6edf0;overflow:hidden}.parityProgress i{display:block;height:100%;background:#0d766e;border-radius:999px;transition:width .3s}
+.parityLink{border:0;background:none;padding:0;margin-left:6px;color:#0d766e;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}.parityLink:disabled{opacity:.45}
+@media(max-width:720px){.parityPanel header{flex-wrap:wrap}.paritySource{order:5;width:100%}.paritySource button{flex:1}}

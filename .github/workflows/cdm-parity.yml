@@ -11,6 +11,9 @@ on:
       - "frontend/scripts/check-cdm-parity.mjs"
       - "frontend/scripts/build-cdm-parity-report.mjs"
       - "backend/tests/generate_cdm_parity_report_cases.py"
+      - "frontend/src/parityMetrics.js"
+      - "frontend/src/parityPyDriver.js"
+      - "frontend/scripts/check-pyodide-parity.mjs"
       - ".github/workflows/cdm-parity.yml"
   push:
     branches: ["main","dev"]
@@ -23,6 +26,9 @@ on:
       - "frontend/scripts/check-cdm-parity.mjs"
       - "frontend/scripts/build-cdm-parity-report.mjs"
       - "backend/tests/generate_cdm_parity_report_cases.py"
+      - "frontend/src/parityMetrics.js"
+      - "frontend/src/parityPyDriver.js"
+      - "frontend/scripts/check-pyodide-parity.mjs"
       - ".github/workflows/cdm-parity.yml"
   workflow_dispatch:
 
@@ -60,6 +66,12 @@ jobs:
           python backend/tests/generate_cdm_parity_report_cases.py /tmp/cdm-parity-cases.json
           cd frontend && node scripts/build-cdm-parity-report.mjs /tmp/cdm-parity-cases.json /tmp/cdm-parity-report.json
           node -e 'const r=require("/tmp/cdm-parity-report.json");if(r.status==="fail"){console.error("Parity report FAIL");process.exit(1)}'
+
+      - name: Pyodide bridge parity (Python no navegador ⇄ cdmBrowser.js)
+        run: |
+          cd frontend
+          npm i --no-save --no-package-lock --ignore-scripts "pyodide@$(node -e 'import("./src/parityPyDriver.js").then(m=>console.log(m.PYODIDE_VERSION))')"
+          node scripts/check-pyodide-parity.mjs /tmp/cdm-parity-cases.json
 
       - name: Upload parity report
         if: always()

@@ -1,5 +1,5 @@
 import React,{Suspense,useCallback,useEffect,useRef,useState} from "react";
-import {PenTool,GraduationCap,FolderOpen,History,PencilLine,Save,Printer,LogOut,RotateCcw,Trash2,Mouse,CircleHelp,MousePointerClick,Lightbulb,Info,Search,Keyboard,Cpu,Globe,Bug,ExternalLink,Ruler,SquareDashed,Tag,Layers2,FlipHorizontal2,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
+import {ScanEye,PenTool,GraduationCap,FolderOpen,History,PencilLine,Save,Printer,LogOut,RotateCcw,Trash2,Mouse,CircleHelp,MousePointerClick,Lightbulb,Info,Search,Keyboard,Cpu,Globe,Bug,ExternalLink,Ruler,SquareDashed,Tag,Layers2,FlipHorizontal2,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
 import ImageInspector from "./ImageInspector.jsx";
 import EngineStages from "./EngineStages.jsx";
 import CanvasRulers,{RULER_UNITS} from "./CanvasRulers.jsx";
@@ -98,6 +98,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   useEffect(()=>{setOpenedAt(file?Date.now():null)},[file]);
   const [showSceneLabels,setShowSceneLabels]=useState(()=>{try{return localStorage.getItem("shmSceneLabels")!=="0"}catch{return true}});
   useEffect(()=>{try{localStorage.setItem("shmSceneLabels",showSceneLabels?"1":"0")}catch{}},[showSceneLabels]);
+  const toggleSceneLabels=()=>setShowSceneLabels(v=>{showStatusNotice(v?"Rótulos de contexto ocultos":"Rótulos de contexto visíveis",900);return !v});
   const [annotating,setAnnotating]=useState(false),[gtState,setGtState]=useState(DEFAULT_GT_STATE);
   const groundTruth=useGroundTruth(file||null);
   const imageDecoded=imageSize.width>1&&imageSize.height>1;
@@ -1305,6 +1306,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     {group:"Visualizar",label:rulers.visible?"Ocultar réguas":"Mostrar réguas",icon:Ruler,hint:"Ctrl+Shift+R",disabled:kind!=="2d",run:toggleRulers},
     {group:"Visualizar",label:showBoxes?"Ocultar caixas delimitadoras":"Mostrar caixas delimitadoras",icon:SquareDashed,disabled:kind!=="2d",run:()=>setShowBoxes(v=>!v)},
     {group:"Visualizar",label:showLabels?"Ocultar rótulos":"Mostrar rótulos",icon:Tag,disabled:kind!=="2d",run:()=>setShowLabels(v=>!v)},
+    {group:"Visualizar",label:showSceneLabels?"Ocultar rótulos de contexto (IA)":"Mostrar rótulos de contexto (IA)",icon:ScanEye,disabled:kind!=="2d",run:toggleSceneLabels},
     ...[["original","Original",ImageIcon],["overlay","Sobrepor (original + detecções)",Layers2],["wipe","Deslizar",FlipHorizontal2],["side","Lado a lado",Columns2]].map(([id,label,icon])=>({group:"Visualizar",label,icon,disabled:kind!=="2d"||(id!=="original"&&!res),run:()=>changeComparison(id)})),
     {group:"Análise",label:"Executar análise",icon:Play,hint:"Ctrl+Enter",disabled:analysisDisabled,run:()=>analyzeButton.current?.click()},
     {group:"Análise",label:"Configurações",icon:Settings2,hint:"Ctrl+,",disabled:busy,run:()=>onSettings?.()},
@@ -1341,6 +1343,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         pathologyLayers.length>0&&{label:"Ocultar todas as patologias",onSelect:()=>setPathologyGroupVisible(false)},
         pathologyLayers.length>0&&{label:"Caixas de detecção",checked:showBoxes,onSelect:()=>setShowBoxes(v=>!v)},
         pathologyLayers.length>0&&{label:"Rótulos dos achados",checked:showLabels,onSelect:()=>setShowLabels(v=>!v)},
+        sceneObjects.length>0&&{label:"Rótulos de contexto (IA)",checked:showSceneLabels,onSelect:toggleSceneLabels},
         {label:"Recolher painel de camadas",onSelect:()=>setLayersPanelOpen(false)},
       ]});
     }
@@ -1353,6 +1356,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         {label:"Roda do mouse faz zoom",checked:wheelMode==="zoom",onSelect:()=>setWheelMode(m=>m==="zoom"?"pan":"zoom")},
         pathologyLayers.length>0&&{label:"Caixas de detecção",checked:showBoxes,onSelect:()=>setShowBoxes(v=>!v)},
         pathologyLayers.length>0&&{label:"Rótulos dos achados",checked:showLabels,onSelect:()=>setShowLabels(v=>!v)},
+        sceneObjects.length>0&&{label:"Rótulos de contexto (IA)",checked:showSceneLabels,onSelect:toggleSceneLabels},
       ]});
       sections.push({title:"Modo de exibição",items:[["original","Original"],["overlay","Original + detecções"],["wipe","Deslizar"],["side","Lado a lado"]].map(([id,label])=>({label,checked:comparison===id,disabled:id!=="original"&&!res,title:id!=="original"&&!res?"Disponível após a análise":undefined,onSelect:()=>changeComparison(id)}))});
       if(!t.closest(".imgInspector,.editorImageEntry"))sections.push({title:"Imagem",items:[{label:"Propriedades e qualidade",onSelect:()=>{setInspectorTab("properties");setInspectorOpen(true)}},{label:"Corrigir imagem",onSelect:()=>{setInspectorTab("correction");setInspectorOpen(true)}}]});
@@ -1410,6 +1414,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button type="button" role="menuitem" aria-checked={!!rulers.visible} disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,toggleRulers)}><MenuIcon icon={Ruler}/><span>{rulers.visible?"Ocultar réguas":"Mostrar réguas"}</span><small>Ctrl/Cmd+Shift+R</small></button>
           <button type="button" role="menuitem" aria-checked={showBoxes} disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>setShowBoxes(v=>!v))}><MenuIcon icon={SquareDashed}/><span>{showBoxes?"Ocultar caixas delimitadoras":"Mostrar caixas delimitadoras"}</span></button>
           <button type="button" role="menuitem" aria-checked={showLabels} disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>setShowLabels(v=>!v))}><MenuIcon icon={Tag}/><span>{showLabels?"Ocultar rótulos":"Mostrar rótulos"}</span></button>
+          <button type="button" role="menuitem" aria-checked={showSceneLabels} disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,toggleSceneLabels)}><MenuIcon icon={ScanEye}/><span>{showSceneLabels?"Ocultar rótulos de contexto (IA)":"Mostrar rótulos de contexto (IA)"}</span></button>
           <button type="button" role="menuitem" aria-checked={wheelMode==="zoom"} onClick={e=>runEditorMenuAction(e,()=>{const next=wheelMode==="zoom"?"pan":"zoom";setWheelMode(next);showStatusNotice(next==="zoom"?"Roda do mouse: zoom no cursor (CAD) · Shift+roda move":"Roda do mouse: rolagem · Ctrl+roda dá zoom",2200)})}><MenuIcon icon={Mouse}/><span>Roda do mouse: {wheelMode==="zoom"?"zoom (CAD)":"rolagem"}</span><small>alternar</small></button>
           <hr/>
           <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("original"))}><MenuIcon icon={ImageIcon}/><span>Original</span></button>
@@ -1478,6 +1483,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <span className="editorToolSep" aria-hidden="true"/>
           <button className={showBoxes?"active":""} aria-label={showBoxes?"Ocultar caixas delimitadoras":"Mostrar caixas delimitadoras"} aria-pressed={showBoxes} title={(showBoxes?"Ocultar":"Mostrar")+" caixas delimitadoras"} disabled={kind!=="2d"} onClick={()=>setShowBoxes(v=>{showStatusNotice(v?"Caixas ocultas":"Caixas visíveis",900);return !v})}><SquareDashed/></button>
           <button className={showLabels?"active":""} aria-label={showLabels?"Ocultar rótulos":"Mostrar rótulos"} aria-pressed={showLabels} title={(showLabels?"Ocultar":"Mostrar")+" rótulos dos achados"} disabled={kind!=="2d"} onClick={()=>setShowLabels(v=>{showStatusNotice(v?"Rótulos ocultos":"Rótulos visíveis",900);return !v})}><Tag/></button>
+          <button className={showSceneLabels?"active":""} aria-label={showSceneLabels?"Ocultar rótulos de contexto (IA)":"Mostrar rótulos de contexto (IA)"} aria-pressed={showSceneLabels} title={(showSceneLabels?"Ocultar":"Mostrar")+" rótulos de contexto da IA (objetos da cena: céu, árvore, parede…)"} disabled={kind!=="2d"} onClick={toggleSceneLabels}><ScanEye/></button>
           <span className="editorToolSep" aria-hidden="true"/>
           {[["original",ImageIcon,"Original"],["overlay",Layers2,"Sobrepor (original + detecções)"],["wipe",FlipHorizontal2,"Deslizar"],["side",Columns2,"Lado a lado"]].map(([id,Icon,label])=><button key={id} className={"editorToolMode"+(comparison===id?" active":"")} aria-label={"Visualização: "+label} aria-pressed={comparison===id} title={id!=="original"&&!res?label+" · disponível após a análise":label} disabled={kind!=="2d"||(id!=="original"&&!res)} onClick={()=>changeComparison(id)}><Icon/></button>)}
           <span className="editorToolSep" aria-hidden="true"/>

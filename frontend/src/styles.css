@@ -1199,3 +1199,44 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
   body.shmPrinting .editorViewport>*:not(.editorImage){display:none!important}
   @page{margin:12mm}
 }
+
+/* Páginas do Studio dentro da moldura (histórico, motores, relatórios, configurações) — identidade clara do Figma */
+.studioPageViewport{display:block!important;place-items:initial;background:#f5f8f9!important;background-image:none!important;overflow:hidden}
+.studioPage{position:absolute;inset:0;overflow:auto;overscroll-behavior:contain;padding:18px max(18px,calc((100% - 1100px)/2)) 28px;color:#263e4b;
+  --bg:#f5f8f9;--panel:#ffffff;--panel-2:#f4f8f9;--panel-3:#eef3f5;--border:#dce5e8;--text:#263e4b;--muted:#6f8590;--cyan:#0d766e;--green:#1b8a5a;--amber:#a86f0c;--red:#c2413b;--blue:#2a78d6;--shadow:0 6px 18px rgba(36,58,68,.08)}
+.studioPage-settings{padding:0;overflow:hidden}
+.studioPageHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.studioPageHead small{display:block;color:#7b8f97;font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.studioPageHead b{font-size:18px;color:#1f3540}
+.studioPageHead button{display:inline-flex;align-items:center;gap:6px;border:1px solid #dbe4e8;background:#fff;color:#263e4b;border-radius:8px;padding:7px 12px;font:600 12px Inter,system-ui,sans-serif;cursor:pointer}
+.studioPageHead button:hover{background:#eef6f4;border-color:#b7d6cf}
+.studioPage .surface,.studioPage .kpiCard{background:#fff;border-color:#dce5e8;box-shadow:0 4px 14px rgba(36,58,68,.06)}
+.studioPage .surfaceHead{border-color:#e6edf0}
+.studioPage h1,.studioPage h2,.studioPage h3,.studioPage b,.studioPage strong{color:#1f3540}
+.studioPage .viewHead{display:none}
+.studioPage input,.studioPage select{background:#fff;color:#263e4b;border-color:#cfdde2}
+.studioPage button:not(.studioPageHead button){color:#1f5f5a}
+.studioPage table,.studioPage .engineTable{color:#263e4b}
+.studioPage .engineTableHead{background:#f4f8f9;color:#6f8590}
+.studioPage .engineTable>*:nth-child(even){background:#fbfcfd}
+.studioPage .compactEmpty,.studioPage .viewEmpty{color:#6f8590}
+.studioPage .statusPill,.studioPage .flagGroup span{background:#eef6f4;color:#0b5f58;border-color:#cfe5e0}
+/* configurações embutidas: sem a marca duplicada (a barra superior do Studio já aparece) */
+.analysisSettings.embedded{height:100%}
+.analysisSettings.embedded .settingsTop>div:first-child .editorMark,.analysisSettings.embedded .settingsTop>div:first-child>b,.analysisSettings.embedded .settingsTop>div:first-child>em,.analysisSettings.embedded .settingsTop>div:first-child>a{display:none}
+.analysisSettings.embedded .settingsTop{height:48px;flex-basis:48px;padding-top:0}
+.studioPage .viewEmpty,.studioPage .dashboardPreview,.studioPage .empty,.studioPage .card,.studioPage .drop,.studioPage .jobProgress,.studioPage .localHint{background:#f8fafb!important;border-color:#d7e2e6!important;color:#6f8590}
+.studioPage .viewEmpty svg{color:#9fb2ba}
+.studioPage .searchBox,.studioPage .searchBox input,.studioPage .catalogToolbar select,.studioPage .engineFilterBar input,.studioPage .engineFilterBar select,.studioPage .runtimeInputs input,.studioPage .inspectionIdentityGrid input,.studioPage .settingsCard>input{background:#fff!important;color:#263e4b!important;border-color:#cfdde2!important}
+.studioPage .engineTableRow{background:#fff}
+.studioPage .engineTableRow:hover{background:#f2f8f7}
+.studioPage .engineTableRow:has(input:checked){background:#e9f5f2}
+.studioPage .engineTableHead{font-size:9px}
+.studioAboutProject{margin:6px 18px 4px;padding:10px 12px;border-radius:9px;background:#f2f8f7;border:1px solid #d7ebe6;font-size:12px;line-height:1.5;color:#33505b}
+.studioAboutProject p{margin:0}.studioAboutProject p+p{margin-top:5px}
+/* Recentes: nome e data alinhados à esquerda; painel um pouco mais largo */
+.editorSubmenuPanel:has(.editorRecentItem){min-width:340px}
+.editorRecentText{align-items:flex-start;text-align:left}
+.editorRecentText b,.editorRecentText small{align-self:stretch;text-align:left;margin:0!important}
+.editorToolButtons button svg.cdmIcon{width:26px!important;height:26px!important}
+.editorMenuIcon svg.cdmIcon{width:18px;height:18px}

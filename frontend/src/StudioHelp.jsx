@@ -3,9 +3,9 @@ import{X,Search,Lightbulb,ChevronLeft,ChevronRight}from"lucide-react";
 
 // Ícone com as iniciais "CDM" (mesmo traço dos ícones lucide).
 export function CdmIcon({size=24,strokeWidth=2,className,...rest}){
-  return <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...rest}>
-    <rect x="1.75" y="5.25" width="20.5" height="13.5" rx="3"/>
-    <text x="12" y="15.1" textAnchor="middle" fontSize="7.6" fontWeight="800" fontFamily="system-ui,-apple-system,Segoe UI,sans-serif" fill="currentColor" stroke="none" letterSpacing="-.15">CDM</text>
+  // só as letras, sem moldura: ocupam quase toda a largura do ícone
+  return <svg className={"cdmIcon "+(className||"")} width={size} height={size} viewBox="0 0 24 24" fill="none" overflow="visible" aria-hidden="true" {...rest}>
+    <text x="12" y="16.8" textAnchor="middle" fontSize="13" fontWeight="800" fontFamily="system-ui,-apple-system,Segoe UI,sans-serif" fill="currentColor" stroke="currentColor" strokeWidth={Math.max(0,(Number(strokeWidth)||2)-1.7)} letterSpacing="-.6" textLength="24" lengthAdjust="spacingAndGlyphs">CDM</text>
   </svg>;
 }
 
@@ -51,6 +51,10 @@ export function AboutDialog({onClose,appInfo={}}){
   const rows=[["Canal",appInfo.channel==="development"?"Desenvolvimento":"Produção"],["Build",String(appInfo.buildSha||"—").slice(0,12)],["Catálogo de motores",appInfo.catalogVersion||"—"],["Motor morfológico","CDM 2.10 (JavaScript no navegador; referência Python cdm_v285.py)"],["Execução","No dispositivo — as imagens não saem do navegador"]];
   return <Modal title="Sobre o SHM Studio" onClose={onClose} className="about">
     <div className="studioAbout"><span className="studioAboutLogo">S</span><div><b>SHM Vision Lab · Studio</b><p>Detecção de patologias em estruturas de concreto (fissuras, desplacamento, armadura exposta, corrosão, eflorescência) com motores morfológicos e de aprendizado profundo.</p></div></div>
+    <div className="studioAboutProject">
+      <p>Projeto de pós-doutorado de <b>Aaron Kadima Lukanu Lwa Nzambi</b>, sob supervisão do <b>Prof. Dr. Túlio Nogueira Bittencourt</b> · subárea Infraestrutura de Transportes.</p>
+      <p>Financiamento: <b>FAPESP</b> · Pós-Doutorado, processo nº 2026/04082-1 (vigência 01/07/2026 a 30/06/2029).</p>
+    </div>
     <dl className="studioAboutRows">{rows.map(([k,v])=><React.Fragment key={k}><dt>{k}</dt><dd>{v}</dd></React.Fragment>)}</dl>
     <footer><a href="https://github.com/aaronkadima/SHM" target="_blank" rel="noreferrer">Repositório no GitHub</a><button type="button" className="primary" onClick={onClose}>Fechar</button></footer>
   </Modal>;

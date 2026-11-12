@@ -3,7 +3,7 @@ import {ArrowLeft,Check,Code2,Download,ExternalLink,Info,RefreshCw,Settings2,X} 
 import {engineCodePackage} from "./engineCodeCatalog.js";
 import "./analysis-settings.css";
 
-export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,cdmOptions,setCdmOptions,rulers={visible:false,unit:"mm"},setRulers=null,error}){
+export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,cdmOptions,setCdmOptions,embedded=false,rulers={visible:false,unit:"mm"},setRulers=null,error}){
   const ownedEngines=engines.filter(e=>e.catalog_owned===true);
   const otherEngines=engines.filter(e=>e.catalog_owned!==true);
   const selectedEngine=selected.length===1?engines.find(e=>e.id===selected[0]):null;
@@ -124,7 +124,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
   const rootBase=appBase.replace(/dev\/?$/,"");
   const environmentHref=appInfo?.channel==="development"?rootBase+"#/settings":rootBase+"dev/#/settings";
   const environmentLabel=appInfo?.channel==="development"?"Abrir PROD":"Abrir DEV";
-  return <section className="analysisSettings" aria-label="Configurações da análise">
+  return <section className={"analysisSettings"+(embedded?" embedded":"")} aria-label="Configurações da análise">
     <header className="settingsTop"><div><span className="editorMark">S</span><b>SHM Studio</b><em className={"settingsEnvBadge "+(appInfo?.channel||"production")}>{appInfo?.channel==="development"?"DEV":"PROD"} · v{appInfo?.catalogVersion||"—"} · {appInfo?.buildSha||"—"}</em><a className="settingsEnvSwitch" href={environmentHref} title={environmentLabel+" em outra rota"}><ExternalLink size={11}/>{environmentLabel}</a></div><button onClick={onBack}><ArrowLeft size={16}/> Voltar ao canvas</button></header>
     <main className="settingsContent">
       <div className="settingsHeading"><Settings2 size={22}/><div><h1>Configurações da análise</h1><p>Defina os motores antes de executar a inspeção.</p></div></div>

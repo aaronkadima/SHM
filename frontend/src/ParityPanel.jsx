@@ -211,12 +211,12 @@ export default function ParityPanel({onClose,boundsRef,file=null,cdmOptions={},i
           <b>Paridade desta imagem em andamento</b>
           <p>{imageRun.label}</p>
           <div className="parityProgress" role="progressbar" aria-valuemin={0} aria-valuemax={imageRun.total} aria-valuenow={imageRun.done}><i style={{width:(imageRun.phase==="pyodide"||imageRun.phase==="variants"?6:Math.max(6,100*imageRun.done/Math.max(1,imageRun.total)))+"%"}}/></div>
-          <small>{imageRun.phase==="python"?`Variação ${imageRun.done+1} de ${imageRun.total}`:imageRun.phase==="pyodide"?"Download de ~15 MB (fica em cache do navegador)":""}</small>
+          <small>{imageRun.phase==="python"?`Variação ${imageRun.done+1} de ${imageRun.total}`:imageRun.phase==="pyodide"?"Download de ~20 MB (fica em cache do navegador)":""}</small>
           <button type="button" className="parityRunButton secondary" onClick={cancelImageParity}><Square size={13}/> Cancelar</button>
         </>:<>
           <b>Paridade desta imagem</b>
           <p>Gera 24 variações da imagem aberta ({file?.name||"—"}) — recortes, deslocamento de grade, escalas, rotações, espelhos, brilho, contraste, gama, JPEG e ruído, até 384 px — e roda em cada uma o <code>cdm_v285.py</code> (Python via Pyodide, no seu navegador) e o <code>cdmBrowser.js</code>. Os indicadores e gráficos mostram só as patologias encontradas.</p>
-          <p className="parityHint">Na primeira vez o navegador baixa o Python (~15 MB, depois fica em cache). O processamento roda em segundo plano e leva de 1 a 3 minutos; nada é enviado a servidores.</p>
+          <p className="parityHint">Na primeira vez o navegador baixa o Python (~20 MB, depois fica em cache). O processamento roda em segundo plano e leva de 1 a 3 minutos; nada é enviado a servidores.</p>
           {imageError&&<p className="parityError">Falhou: {imageError}</p>}
           <button type="button" className="parityRunButton" disabled={!imageReady} onClick={runImageParity}><Play size={14}/> Rodar paridade desta imagem</button>
           {!imageReady&&<small>Abra uma imagem 2D no canvas para habilitar.</small>}

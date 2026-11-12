@@ -12,7 +12,7 @@ const post=(type,data)=>self.postMessage({type,...data});
 
 async function getPython(){
   if(!pyReady)pyReady=(async()=>{
-    post("progress",{phase:"pyodide",label:"Carregando Python (Pyodide "+PYODIDE_VERSION+") e numpy — só na primeira vez",done:0,total:1});
+    post("progress",{phase:"pyodide",label:"Carregando Python (Pyodide "+PYODIDE_VERSION+") , numpy, Pillow e lxml — só na primeira vez",done:0,total:1});
     const {loadPyodide}=await import(/* @vite-ignore */ PYODIDE_INDEX_URL+"pyodide.mjs");
     const py=await loadPyodide({indexURL:PYODIDE_INDEX_URL});
     const parityCase=await preparePyodide(py,cdmSource);

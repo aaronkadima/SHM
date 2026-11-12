@@ -44,7 +44,8 @@ def parity_case(rgb_js, w, h, threshold, kernel, min_area, min_aspect):
 
 // Prepara o interpretador: numpy + módulo cdm_v285.py no sistema de arquivos virtual.
 export async function preparePyodide(py,cdmSource){
-  await py.loadPackage("numpy");
+  // cdm_v285 exige Pillow e lxml na importação (usados nas exportações); a morfologia usa só numpy.
+  await py.loadPackage(["numpy","pillow","lxml"]);
   py.FS.mkdirTree("/home/pyodide");
   py.FS.writeFile("/home/pyodide/cdm_v285.py",cdmSource);
   py.runPython(PY_DRIVER);

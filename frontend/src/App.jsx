@@ -664,7 +664,7 @@ export default function App(){
       updateProgress({state:"running",completed:0,total:100,current_engine:(meta.name||engineId)+" · preparando"});
       return await runBrowserEngine(
         engineId,sourceFile,
-        engineId==="cdm_1"?cdmOptions:engineId==="cdm_3"?{rgbReferenceFile:spatialRgbFile,photometricViewCount:spatialPhotoViews.length}:{},
+        engineId==="cdm_1"?cdmOptions:engineId==="cdm_3"?{...cdmOptions,rgbReferenceFile:spatialRgbFile,photometricViewCount:spatialPhotoViews.length}:{},
         engineId==="cdm_1"?sourceReference:null,
         {signal,onProgress:updateProgress,channel:APP_CHANNEL,buildSha:BUILD_SHA}
       );

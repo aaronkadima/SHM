@@ -448,7 +448,7 @@ export default function App(){
   function exitApp(){
     pick(null);
     try{window.close()}catch{}
-    setTimeout(()=>{if(!window.closed){navigate("dashboard");setExitNotice(true)}},350);
+    setTimeout(()=>{if(!window.closed)setExitNotice(true)},350);
   }
   // Fechar visualização / Sair: mesma pergunta de salvar, no modo "fechar".
   function guardClose(action){if(!file){action();return}setReplacePrompt({nextLabel:null,action,mode:"close"})}
@@ -796,16 +796,15 @@ export default function App(){
   }
 
   // Páginas abertas a partir do Studio: renderizadas dentro da moldura do Studio (menus, barra lateral, status).
-  const studioPage=activeView==="dashboard"?{id:"dashboard",title:"Início · Painel da plataforma",node:<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
-    :activeView==="alerts"?{id:"alerts",title:"Histórico de inspeções",node:<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={(id,target)=>guardReplace(history.find(h=>h.id===id)?.file_meta?.name||"inspeção do histórico",()=>openHistory(id,target))} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>}
+  const studioPage=activeView==="alerts"?{id:"alerts",title:"Histórico de inspeções",node:<AlertsView res={res} history={history} historyBusy={historyBusy} historyErr={historyErr} storageStatus={storageStatus} onOpenHistory={(id,target)=>guardReplace(history.find(h=>h.id===id)?.file_meta?.name||"inspeção do histórico",()=>openHistory(id,target))} onUseAsReference={useHistoryAsReference} onDeleteHistory={removeHistory} onClearHistory={clearHistory} onNavigate={navigate}/>}
     :activeView==="engines"?{id:"engines",title:"Navegador de motores",node:<EnginesView appInfo={APP_INFO} engines={engines} visibleEng={visibleEng} engineQuery={engineQuery} setEngineQuery={setEngineQuery} engineFilter={engineFilter} setEngineFilter={setEngineFilter} browserReady={browserReady} recommended={recommended} cloudVerified={cloudVerified} sel={sel} toggle={toggle} selectRecommended={selectRecommended} selectVerified={selectVerified} clearSelection={clearSelection} individualOnline={individualOnline} comparatorOnline={comparatorOnline}/>}
     :activeView==="reports"?{id:"reports",title:"Relatórios e exportação",node:<ReportsView res={res} inspection={inspectionMeta} onJson={()=>res&&exportJson(res)} onCsv={()=>res&&exportCsv(res)} onMap={()=>res&&downloadConsensus(res)} onNavigate={navigate}/>}
     :activeView==="settings"?{id:"settings",title:"Configurações da análise",header:false,node:<AnalysisSettings embedded appInfo={APP_INFO} engines={engines} selected={selected} toggle={toggle} onBack={()=>navigate("analysis")} individualDraft={individualDraft} setIndividualDraft={setIndividualDraft} comparatorDraft={comparatorDraft} setComparatorDraft={setComparatorDraft} saveIndividual={saveIndividual} saveComparator={saveComparator} testIndividual={testIndividual} testComparator={testComparator} individualOnline={individualOnline} comparatorOnline={comparatorOnline} inspectionMeta={inspectionMeta} updateInspectionMeta={updateInspectionMeta} cdmOptions={cdmOptions} setCdmOptions={setCdmOptions} rulers={rulers} setRulers={setRulers} error={err}/>}
     :null;
-  return <div className={"appShell "+(["analysis","aulas","settings","alerts","engines","reports","dashboard"].includes(activeView)?"editorShell ":"")+(activeView==="settings"?"settingsShell":"")+(activeView==="live"?" liveShell":"")}>
-    {! ["analysis","aulas","settings","alerts","engines","reports","dashboard","live"].includes(activeView)&&<NavRail active={activeView} onSelect={navigate}/>}
+  return <div className={"appShell "+(["analysis","aulas","settings","alerts","engines","reports"].includes(activeView)?"editorShell ":"")+(activeView==="settings"?"settingsShell":"")+(activeView==="live"?" liveShell":"")}>
+    {! ["analysis","aulas","settings","alerts","engines","reports","live"].includes(activeView)&&<NavRail active={activeView} onSelect={navigate}/>}
     <main className="appMain">
-    {! ["analysis","aulas","settings","alerts","engines","reports","dashboard","live"].includes(activeView)&&<header className="topbar">
+    {! ["analysis","aulas","settings","alerts","engines","reports","live"].includes(activeView)&&<header className="topbar">
       <div className="brandBlock">
         <div className="eye"><Layers3 size={15}/> SHM · OAEs · COMPUTER VISION</div>
         <h1>PLATAFORMA SHM · OAE BRASIL</h1>
@@ -820,7 +819,8 @@ export default function App(){
       </div>
     </header>}
 
-    {exitNotice&&<div className="exitNotice" role="alertdialog" aria-label="Fechar o navegador"><b>Trabalho encerrado</b><p>Por segurança, o navegador só deixa um site fechar a própria aba em casos específicos (como janelas abertas pelo próprio site) — e bloqueou o fechamento desta. Feche agora com <kbd>Ctrl</kbd>+<kbd>W</kbd> (ou <kbd>⌘</kbd>+<kbd>W</kbd> no Mac).</p><button type="button" onClick={()=>setExitNotice(false)}>Continuar no Studio</button></div>}
+    {exitNotice&&<div className="exitNotice" role="alertdialog" aria-label="Fechar o navegador"><b>Feche a janela do navegador</b><p>O trabalho foi encerrado. Por segurança, o navegador só deixa um site fechar a própria aba em casos específicos (como janelas abertas pelo próprio site) — e bloqueou o fechamento desta. Feche agora com <kbd>Ctrl</kbd>+<kbd>W</kbd> (ou <kbd>⌘</kbd>+<kbd>W</kbd> no Mac).</p><button type="button" onClick={()=>setExitNotice(false)}>Entendi</button></div>}
+    {activeView==="dashboard"&&<DashboardView engines={engines} res={res} selected={selected} prev={prev} comparatorOnline={comparatorOnline} individualOnline={individualOnline} history={history} inspection={inspectionMeta} onNavigate={navigate}/>}
     {replacePrompt&&<ReplaceWorkDialog mode={replacePrompt.mode||"replace"} current={file?.name} next={replacePrompt.nextLabel} analyzed={!!res} dirty={workDirty} onChoose={resolveReplace}/>}
     {activeView==="live"&&<LiveView engines={engines} selected={selected} cdmOptions={cdmOptions} inspectionMeta={inspectionMeta} appInfo={APP_INFO} onClose={()=>navigate("analysis")} onAnalyzeFrame={f=>guardReplace(f.name,()=>{pick(f);navigate("analysis")})}/>}
     {(activeView==="analysis"||activeView==="aulas"||studioPage)&&<>

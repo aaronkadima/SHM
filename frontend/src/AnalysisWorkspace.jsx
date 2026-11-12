@@ -1258,7 +1258,6 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     {group:"Arquivo",label:"Fechar visualização",icon:X,hint:"Ctrl+Shift+W",disabled:!file||busy||!onCloseFile,run:()=>onCloseFile?.()},
     {group:"Arquivo",label:"Sair",icon:LogOut,hint:"Ctrl+Q",disabled:busy||!onExit,run:()=>onExit?.()},
     {group:"Arquivo",label:"Histórico de inspeções",icon:History,run:()=>onNavigate?.("alerts")},
-    {group:"Arquivo",label:"Painel inicial da plataforma",icon:Globe,keywords:"inicio dashboard",run:()=>onNavigate?.("dashboard")},
     {group:"Análise",label:"Relatórios e exportação",icon:Save,keywords:"relatorio exportar",run:()=>onNavigate?.("reports")},
     ...recentHistory.slice(0,10).map((item,k)=>({group:"Recentes",label:"Abrir "+(item.file_meta?.name||"inspeção"),keywords:"recente",icon:History,hint:"Alt+"+((k+1)%10),disabled:busy,run:()=>onOpenRecent?.(item.id)})),
     {group:"Editar",label:"Restaurar visualização",icon:RotateCcw,disabled:kind!=="2d",run:resetViewerPreferences},
@@ -1276,7 +1275,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     {group:"Ajuda",label:"Dica do dia",icon:Lightbulb,run:()=>setHelpDialog("tip")},
     {group:"Ajuda",label:"Atalhos de teclado e mouse",icon:Keyboard,hint:"?",run:()=>setHelpDialog("shortcuts")},
     {group:"Ajuda",label:"Sobre o SHM Studio",icon:Info,run:()=>setHelpDialog("about")},
-    {group:"Ajuda",label:"Navegador de motores",icon:Cpu,run:()=>onNavigate?.("engines")},
+    {group:"Ajuda",label:"Navegador de motores (Configurações)",icon:Cpu,keywords:"motores catalogo",run:()=>onSettings?.()},
   ].filter(Boolean);
   // Menu de contexto (botão direito): opções do elemento sob o cursor + atalhos gerais.
   function openContextMenu(e){
@@ -1376,12 +1375,12 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button type="button" role="menuitem" disabled={kind!=="2d"||!res} title={res?undefined:"Disponível após a análise"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("wipe"))}><MenuIcon icon={FlipHorizontal2}/><span>Deslizar</span></button>
           <button type="button" role="menuitem" disabled={kind!=="2d"||!res} title={res?undefined:"Disponível após a análise"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("side"))}><MenuIcon icon={Columns2}/><span>Lado a lado</span></button>
         </div></details>
-        <details className="editorMenu" name="shm-editor-menu"><summary>Análise</summary><div className="editorMenuPanel editorMenuPanelRight" role="menu">
+        <details className="editorMenu" name="shm-editor-menu"><summary>Análise</summary><div className="editorMenuPanel" role="menu">
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onSettings)}><MenuIcon icon={Settings2}/><span>Configurações</span><small>Ctrl/Cmd+,</small></button>
           <button type="button" role="menuitem" disabled={analysisDisabled} onClick={e=>runEditorMenuAction(e,()=>analyzeButton.current?.click())}><MenuIcon icon={Play}/><span>Executar análise</span><small>Ctrl/Cmd+Enter</small></button>
           <button type="button" role="menuitem" aria-checked={parityOpen} onClick={e=>runEditorMenuAction(e,()=>setParityOpen(v=>!v))}><MenuIcon icon={CdmIcon}/><span>Paridade CDM (Python ⇄ navegador)</span><small>indicadores</small></button>
         </div></details>
-        <details className="editorMenu" name="shm-editor-menu"><summary>Ajuda</summary><div className="editorMenuPanel editorMenuPanelRight" role="menu">
+        <details className="editorMenu" name="shm-editor-menu"><summary>Ajuda</summary><div className="editorMenuPanel" role="menu">
           <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>onToggleAulas?.())}><MenuIcon icon={CircleHelp}/><span>Ajuda</span><small>F1</small></button>
           <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,startContextHelp)}><MenuIcon icon={MousePointerClick}/><span>Ajuda por contexto</span><small>Shift+F1</small></button>
           <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("tip"))}><MenuIcon icon={Lightbulb}/><span>Dica do dia</span></button>
@@ -1390,7 +1389,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("palette"))}><MenuIcon icon={Search}/><span>Procurar e executar um comando</span><small>/</small></button>
           <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("shortcuts"))}><MenuIcon icon={Keyboard}/><span>Atalhos de teclado e mouse</span><small>?</small></button>
           <hr/>
-          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>onNavigate?.("engines"))}><MenuIcon icon={Cpu}/><span>Navegador de motores</span></button>
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>onSettings?.())}><MenuIcon icon={Cpu}/><span>Navegador de motores</span><small>Configurações</small></button>
           <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setParityOpen(true))}><MenuIcon icon={CdmIcon}/><span>Paridade CDM (Python ⇄ navegador)</span></button>
           <hr/>
           <div className={"editorSubmenu"+(helpSubmenu==="online"?" open":"")} onMouseEnter={()=>setHelpSubmenu("online")} onMouseLeave={()=>setHelpSubmenu(null)}>
@@ -1441,7 +1440,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button aria-label="Abrir modo câmera" title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button>
           {onLive&&<button className="editorToolLive" aria-label="Abrir Live detecção" title="Live detecção · tempo real com câmera ou vídeo" disabled={busy} onClick={onLive}><Radio/></button>}
         </div>
-        <button type="button" className={"editorAulasLink"+(aulasOpen?" active":"")} onClick={onToggleAulas} aria-pressed={aulasOpen} aria-label={aulasOpen?"Voltar à análise":"Abrir aulas da Trilha Dev SHM"} title={aulasOpen?"Voltar à análise":"Aulas · Trilha Dev SHM"}><BookOpen size={20} aria-hidden="true"/></button>
+        {aulasOpen?<button type="button" className="editorAulasLink active" onClick={onToggleAulas} aria-pressed="true" aria-label="Voltar à análise" title="Voltar à análise"><BookOpen size={20} aria-hidden="true"/></button>
+          :<button type="button" className="editorAulasLink editorAboutLink" onClick={()=>setHelpDialog("about")} aria-label="Sobre o SHM Studio" title="Sobre o SHM Studio · versão, projeto e financiamento"><Info size={20} aria-hidden="true"/></button>}
       </div>
       {layersOpen&&!aulasOpen&&!pageOpen&&<><button type="button" className="editorLayersScrim" aria-label="Fechar painel de camadas" title="Fechar camadas" onClick={()=>setLayersPanelOpen(false)}/><aside className={"editorLayers "+(selectedEngineLabels.length>=24?"engineDensityUltra":selectedEngineLabels.length>=12?"engineDensityDense":"")} data-engine-count={selectedEngineLabels.length} data-layer-width={layersWidth} style={{width:layersWidth,"--engine-count":Math.max(1,selectedEngineLabels.length)}}><div className="editorLayersContent"><div className="editorPanelTitle"><b>Camadas</b><button aria-label="Recolher painel de camadas" title="Recolher camadas" onClick={()=>setLayersPanelOpen(false)}><ChevronLeft size={17}/></button></div>
         <div className="layerRow"><span>◉</span> {kind==="2d"?"Imagem atual · t1":kind==="3d"?"Modelo 3D atual":"Arquivo atual"}</div>

@@ -1244,3 +1244,8 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .exitNotice b{font-size:14px}.exitNotice p{margin:6px 0 10px}
 .exitNotice kbd{font:600 10.5px ui-monospace,monospace;background:#f2f6f7;border:1px solid #dbe4e8;border-radius:4px;padding:1px 5px}
 .exitNotice button{border:0;background:#0d766e;color:#fff;border-radius:8px;padding:7px 12px;font:inherit;font-weight:700;cursor:pointer}
+/* Menu superior: item aberto com preenchimento visível; painéis alinhados à esquerda do título */
+.editorMenu>summary{padding:7px 10px;border-radius:7px;margin:0 -2px}
+.editorMenu>summary:hover{background:#eef4f5}
+.editorMenu[open]>summary{background:#e3f1ee;color:#0d766e}
+.editorMenu .editorMenuPanel{left:0}

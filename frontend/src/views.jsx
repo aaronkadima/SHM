@@ -294,7 +294,7 @@ function EmptyView({icon:Icon=Database,title,children,action}){
 export function NavRail({active,onSelect}){
   return <aside className="navRail">
     <button className="navLogo" onClick={()=>onSelect("dashboard")} title="SHM Vision Lab"><Layers3 size={22}/></button>
-    <nav>{NAV.map(([key,Icon,label])=><button key={key} onClick={()=>onSelect(key)} className={active===key?"active":""} title={label}><Icon size={19}/><span>{label}</span></button>)}<button className={"navAulasLink"+(active==="aulas"?" active":"")} onClick={()=>onSelect("aulas")} title="Aulas · Trilha Dev SHM" aria-label="Abrir aulas da Trilha Dev SHM"><BookOpen size={19} aria-hidden="true"/><span>Aulas</span></button></nav>
+    <nav>{NAV.map(([key,Icon,label])=><button key={key} onClick={()=>onSelect(key)} className={active===key?"active":""} title={label}><Icon size={19}/><span>{label}</span></button>)}<button className={"navAulasLink"+(active==="aulas"?" active":"")} onClick={()=>onSelect("aulas")} title="Aulas · Noções de Programação para SHM" aria-label="Abrir aulas da Noções de Programação para SHM"><BookOpen size={19} aria-hidden="true"/><span>Aulas</span></button></nav>
   </aside>
 }
 

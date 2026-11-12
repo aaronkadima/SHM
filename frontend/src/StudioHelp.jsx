@@ -29,13 +29,21 @@ export const STUDIO_TIPS=[
 
 function Modal({title,onClose,children,className=""}){
   const ref=useRef(null);
-  useEffect(()=>{const prev=document.activeElement;(ref.current?.querySelector("input")||ref.current?.querySelector("footer button,button"))?.focus();const key=e=>{if(e.key==="Escape"){e.preventDefault();e.stopPropagation();onClose()}};window.addEventListener("keydown",key,true);return()=>{window.removeEventListener("keydown",key,true);prev?.focus?.()}},[onClose]);
+  const closeRef=useRef(onClose);closeRef.current=onClose;
+  useEffect(()=>{const prev=document.activeElement;(ref.current?.querySelector("input")||ref.current?.querySelector("footer button,button"))?.focus();const key=e=>{if(e.key==="Escape"){e.preventDefault();e.stopPropagation();closeRef.current()}};window.addEventListener("keydown",key,true);return()=>{window.removeEventListener("keydown",key,true);prev?.focus?.()}},[]);
   return <div className="studioHelpScrim" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}>
     <div ref={ref} className={"studioHelpDialog "+className} role="dialog" aria-modal="true" aria-label={title}>
       <header><b>{title}</b><button type="button" onClick={onClose} aria-label="Fechar"><X size={16}/></button></header>
       {children}
     </div>
   </div>;
+}
+
+// Aulas (Noções de Programação para SHM) em popup grande, com o curso em iframe.
+export function AulasDialog({onClose,crumb="",children}){
+  return <Modal title={"Noções de Programação para SHM"+(crumb?" · "+crumb:"")} onClose={onClose} className="large aulas">
+    <div className="studioAulasBody">{children}</div>
+  </Modal>;
 }
 
 export function TipOfDayDialog({onClose}){

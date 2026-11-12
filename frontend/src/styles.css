@@ -647,7 +647,7 @@ body:has(.settingsShell){overflow:hidden;height:100dvh;max-height:100dvh}.settin
 .modelIfcSelection,.ifcSelectionCard{bottom:58px!important}
 @media(max-width:900px){.ifcBrimPanel.collapsed,.ifcBrimPanel.open{top:58px!important;left:8px!important}.spatialFramePanel.collapsed{right:8px!important;bottom:12px!important}}
 
-/* Trilha Dev SHM — acesso direto a /aulas no Studio.
+/* Noções de Programação para SHM — acesso direto a /aulas no Studio.
    Mesmo tamanho e estados de interação dos ícones do workspace Figma. */
 .editorTools .editorAulasLink{
   display:grid;place-items:center;flex:none;
@@ -1249,3 +1249,69 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .editorMenu>summary:hover{background:#eef4f5}
 .editorMenu[open]>summary{background:#e3f1ee;color:#0d766e}
 .editorMenu .editorMenuPanel{left:0}
+
+/* ---------- Popups grandes: Manual do usuário e Noções de Programação para SHM ---------- */
+.studioHelpDialog.large{width:min(1180px,96vw);height:min(92vh,960px);max-height:calc(100vh - 16px)}
+.studioHelpScrim:has(.studioHelpDialog.large){padding:8px}
+.studioAulasBody{flex:1;min-height:0;display:flex;background:#e5ebee}
+.studioAulasBody .editorAulasFrame{flex:1;width:100%;height:100%;border:0}
+.userManual>header b{display:inline-flex;align-items:center;gap:7px}
+.userManual .umHeadActions{display:flex;gap:2px}
+.userManual .umHeadActions button{border:0;background:transparent;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#637986;cursor:pointer}
+.userManual .umHeadActions button:hover{background:#eef3f5}
+.umLayout{flex:1;min-height:0;display:grid;grid-template-columns:236px minmax(0,1fr)}
+.umToc{border-right:1px solid #e6edf0;background:#f7fafb;overflow:auto;padding:10px 8px}
+.umSearch{display:flex;align-items:center;gap:6px;border:1px solid #dbe4e8;background:#fff;border-radius:8px;padding:6px 8px;margin-bottom:8px;color:#7d919b}
+.umSearch input{border:0;outline:0;font:inherit;flex:1;min-width:0;color:#263e4b;background:transparent}
+.umToc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.umToc li button{width:100%;display:flex;align-items:flex-start;gap:8px;text-align:left;border:0;background:transparent;border-radius:7px;padding:7px 8px;font:inherit;color:#33505d;cursor:pointer;line-height:1.3}
+.umToc li button span{flex:0 0 20px;height:20px;border-radius:6px;display:grid;place-items:center;background:#e3ebee;color:#567080;font-size:10.5px;font-weight:700}
+.umToc li button:hover{background:#eaf2f4}
+.umToc li button.active{background:#e3f1ee;color:#0b5f58;font-weight:700}
+.umToc li button.active span{background:#0d766e;color:#fff}
+.umEmpty{color:#8a9ba2;padding:8px}
+.umBody{overflow:auto;outline:0;scroll-behavior:smooth}
+.umPage{display:none;max-width:860px;margin:0 auto;padding:22px 34px 34px;font-size:13.5px;line-height:1.6;color:#263e4b}
+.umPage.current{display:block;animation:umSlide .22s ease-out}
+@keyframes umSlide{from{opacity:.2;transform:translateX(26px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.umPage.current{animation:none}}
+.umKicker{color:#0d766e;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:10.5px}
+.umPage h2{margin:2px 0 14px;font-size:22px;color:#1d3540}
+.umPage h3{margin:22px 0 8px;font-size:15px;color:#1d3540}
+.umPage p,.umPage ul,.umPage ol{margin:0 0 10px}
+.umPage ul,.umPage ol{padding-left:22px}
+.umPage li{margin:3px 0}
+.umPage code{background:#eef3f5;border-radius:4px;padding:1px 5px;font-size:12px}
+.umPage kbd,.umShortcuts kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;border:1px solid #cfdbe0;border-bottom-width:2px;border-radius:5px;padding:3px 6px;white-space:nowrap}
+.umLead{font-size:14.5px;color:#33505d}
+.umEq{position:relative;margin:12px 0;padding:12px 56px 12px 16px;background:#f7fafb;border:1px solid #e6edf0;border-left:3px solid #0d766e;border-radius:8px;overflow-x:auto}
+.umEq math{font-size:17px}
+.umEqN{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#7d919b;font-size:12px}
+.umInline{font-size:1.05em}
+.umFig{margin:16px 0;padding:12px;border:1px solid #e6edf0;border-radius:10px;background:#fff}
+.umFig svg{display:block;width:100%;height:auto;font-family:inherit}
+.umFig figcaption{margin-top:8px;font-size:12px;color:#5b707b;line-height:1.5}
+.umTableWrap{overflow-x:auto;margin:10px 0 14px}
+.umTable{border-collapse:collapse;width:100%;font-size:12.5px}
+.umTable th{text-align:left;background:#f2f6f7;color:#33505d;font-weight:700;padding:7px 10px;border-bottom:1px solid #dbe4e8}
+.umTable td{padding:6px 10px;border-bottom:1px solid #edf2f4;vertical-align:top}
+.umNote{margin:12px 0;padding:10px 14px;border-radius:8px;background:#eef6fb;border:1px solid #cfe3ef;color:#24485c;font-size:12.5px}
+.umNote.warn{background:#fff7e8;border-color:#f0dcae;color:#5d4614}
+.umKernels{display:flex;gap:24px;flex-wrap:wrap;margin:8px 0}
+.umKernel{border-collapse:collapse;font:600 12px ui-monospace,Menlo,monospace}
+.umKernel caption{font:600 11.5px system-ui,sans-serif;color:#5b707b;padding-bottom:4px;text-align:left}
+.umKernel td{width:34px;height:30px;text-align:center;border:1px solid #dbe4e8;background:#fafcfc}
+.umKernel td.pos{background:#e3f1ee;color:#0b5f58}.umKernel td.neg{background:#fbeaea;color:#a12a2a}
+.umShortcuts{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-top:12px}
+.umShortcuts section{border:1px solid #e6edf0;border-radius:8px;padding:10px 12px}
+.umShortcuts b{display:block;margin-bottom:6px;color:#0d766e}
+.umShortcuts div{display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:12.5px}
+.umRefs{font-size:12.5px}
+.userManual>footer{gap:10px}
+.userManual>footer button:disabled{opacity:.45;cursor:default}
+.umDots{display:flex;gap:4px;margin-right:4px}
+.studioHelpDialog>footer .umDots button{width:7px;height:7px;padding:0;border-radius:50%;border:0;background:#cfdbe0;cursor:pointer}
+.studioHelpDialog>footer .umDots button.on{background:#0d766e;width:18px;border-radius:4px}
+@media (max-width:760px){.umLayout{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.umToc{border-right:0;border-bottom:1px solid #e6edf0;max-height:150px}.umToc ol{display:flex;overflow-x:auto}.umToc li button{white-space:nowrap}.umPage{padding:16px}.umDots{display:none}}
+.umPrintDoc .umPage{display:block!important;animation:none;break-after:page;max-width:none;padding:0 0 12px}
+.umPrintDoc .umFig,.umPrintDoc .umEq,.umPrintDoc table{break-inside:avoid}

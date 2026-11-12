@@ -147,7 +147,8 @@ Antes (2.8.5) a abertura apagava trechos finos e cada pedaço virava uma reta PC
 - **Laudo de adequação** (`frontend/src/imageQuality.js`): resolução, nitidez (variância do Laplaciano), exposição, recorte de sombras/realces, faixa dinâmica p2–p98, ruído (Immerkær) e balanço de branco. Imagem reprovada exige confirmação ("Analisar mesmo assim"). Com ruído, a correção automática não aumenta contraste (amplificaria o grão). Nota e ajustes ficam em `metadata.image_quality` / `metadata.image_correction` do resultado.
 - **Etapas do motor**: miniaturas flutuantes à direita com as imagens intermediárias do motor escolhido (OpenCV: cinza → black-hat → suavização → Otsu → abertura → componentes; CDM-1: base normalizada → black-hat → máscara candidata → máscaras por família → componentes; ONNX: tensor de entrada → mapa de probabilidade/candidatos → máscara → resultado). Clique amplia; ← → navegam.
 - **Nome do arquivo**: clique no título (ou Imagem → Propriedades no celular) para renomear; Ctrl/Cmd+S salva o arquivo com o novo nome e atualiza o histórico.
-- **Aulas no Studio** (`#/aulas`): a Trilha Dev SHM abre dentro do Studio, mantendo barra superior, ferramentas laterais e barra de status; a página das aulas entra em modo `?embed=studio` (sem cabeçalho/rodapé próprios), com busca de cursos e "continuar de onde parou".
+- **Aulas no Studio** (`#/aulas`): as *Noções de Programação para SHM* abrem num popup grande sobre o Studio (`?embed=studio`), com o catálogo paginado na horizontal (Visão geral · uma página por fase · Projetos · Artigos; ← → ou deslizar), busca de cursos e "continuar de onde parou".
+- **Manual do usuário** (F1 ou *Ajuda › Manual do usuário › Manual do programa*): popup grande com capítulos paginados, equações (MathML) e ilustrações técnicas (SVG) do motor CDM 2.10 — qualidade de imagem, black-hat, esqueleto, critérios HSV, separação de famílias, GDE, comparação temporal, escala e paridade; imprimível/PDF.
 
 ## Resultados
 

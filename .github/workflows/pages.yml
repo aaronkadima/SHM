@@ -119,7 +119,7 @@ jobs:
           node --check site/aulas/figma-shell.js
           grep -q 'figma-theme.css' site/aulas/index.html
           grep -q 'figma-shell.js' site/aulas/index.html
-          grep -q 'Trilha Dev SHM' site/aulas/index.html
+          grep -q 'Noções de Programação para SHM' site/aulas/index.html
           grep -q 'id="catalog"' site/aulas/index.html
           grep -q 'id="player"' site/aulas/index.html
           node - <<'NODE'
@@ -397,7 +397,7 @@ jobs:
           set -euo pipefail
           URL="https://aaronkadima.github.io/SHM/aulas/"
           curl --fail --silent --show-error --location --retry 4 --retry-delay 3 "$URL" -o /tmp/shm-aulas.html
-          grep -q 'Trilha Dev SHM' /tmp/shm-aulas.html
+          grep -q 'Noções de Programação para SHM' /tmp/shm-aulas.html
           grep -q 'id="catalog"' /tmp/shm-aulas.html
           grep -q 'id="player"' /tmp/shm-aulas.html
           grep -q 'id="studyCourseList"' /tmp/shm-aulas.html
@@ -414,7 +414,7 @@ jobs:
           echo "AULAS OK: page served, catalog rendered by JavaScript."
           DEV_URL="https://aaronkadima.github.io/SHM/dev/aulas/"
           curl --fail --silent --show-error --location --retry 4 --retry-delay 3 "$DEV_URL" -o /tmp/shm-dev-aulas.html
-          grep -q 'Trilha Dev SHM' /tmp/shm-dev-aulas.html
+          grep -q 'Noções de Programação para SHM' /tmp/shm-dev-aulas.html
           cmp -s /tmp/shm-aulas.html /tmp/shm-dev-aulas.html || { echo "Aulas de produção e /dev divergem"; exit 1; }
           echo "AULAS DEV OK: /SHM/dev/aulas/ servido e idêntico à produção."
 

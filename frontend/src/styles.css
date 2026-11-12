@@ -1248,7 +1248,7 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .editorMenu>summary{padding:7px 10px;border-radius:7px;margin:0 -2px}
 .editorMenu>summary:hover{background:#eef4f5}
 .editorMenu[open]>summary{background:#e3f1ee;color:#0d766e}
-.editorMenu .editorMenuPanel{left:0}
+.editorMenu .editorMenuPanel:not(.editorSubmenuPanel){left:0}
 
 /* ---------- Popups grandes: Manual do usuário e Noções de Programação para SHM ---------- */
 .studioHelpDialog.large{width:min(1180px,96vw);height:min(92vh,960px);max-height:calc(100vh - 16px)}
@@ -1315,3 +1315,8 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 @media (max-width:760px){.umLayout{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.umToc{border-right:0;border-bottom:1px solid #e6edf0;max-height:150px}.umToc ol{display:flex;overflow-x:auto}.umToc li button{white-space:nowrap}.umPage{padding:16px}.umDots{display:none}}
 .umPrintDoc .umPage{display:block!important;animation:none;break-after:page;max-width:none;padding:0 0 12px}
 .umPrintDoc .umFig,.umPrintDoc .umEq,.umPrintDoc table{break-inside:avoid}
+
+/* Recentes: nome completo do arquivo (quebra em linhas se preciso), data logo abaixo */
+.editorSubmenuPanel:has(.editorRecentItem){min-width:340px;max-width:min(460px,calc(100vw - 24px))}
+.editorRecentItem{align-items:center}
+.editorRecentText b{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;line-height:1.3}

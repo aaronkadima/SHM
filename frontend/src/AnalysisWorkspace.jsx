@@ -46,10 +46,6 @@ const TEMPORAL_WARNING_LABELS={
   low_texture:"baixa textura para registro"
 };
 // Nome longo encurtado para 5 caracteres + "…" + extensão (ex.: "OAE-1….jpg").
-function shortFileName(name){
-  const s=String(name||""),m=s.match(/^(.*?)(\.[^.]{1,8})?$/),stem=m?.[1]||s,ext=m?.[2]||"";
-  return stem.length>5?stem.slice(0,5)+"…"+ext:s;
-}
 const FINDING_PREFIX={cracks:"F",spalling_dark:"D",exposed_rebar:"A",corrosion_rust:"C",efflorescence_white:"E"};
 function hexToRgba(hex,a){const m=/^#?([0-9a-f]{6})$/i.exec(String(hex||""));if(!m)return`rgba(13,118,110,${a})`;const n=parseInt(m[1],16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${Math.max(0,Math.min(1,a)).toFixed(3)})`}
 function formatMeasure(v,unit){const n=Number(v)||0,d=unit.startsWith("px")?(n<10?1:0):(n<10?2:n<100?1:0);return n.toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:d})+" "+unit}
@@ -1347,7 +1343,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           {recentHistory.length>0&&<div className={"editorSubmenu"+(recentOpen?" open":"")} onMouseEnter={()=>setRecentOpen(true)} onMouseLeave={()=>setRecentOpen(false)}>
             <button type="button" role="menuitem" aria-haspopup="menu" aria-expanded={recentOpen} disabled={busy} onClick={e=>{e.preventDefault();e.stopPropagation();setRecentOpen(v=>!v)}}><MenuIcon icon={History}/><span>Recentes</span><small aria-hidden="true">›</small></button>
             {recentOpen&&<div className="editorMenuPanel editorSubmenuPanel" role="menu" aria-label="Arquivos recentes">
-              {recentHistory.slice(0,10).map((item,recentIndex)=>{const name=item.file_meta?.name||"inspeção";const when=item.created_at?new Date(item.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}).replace(",",""):"";const where=[item.inspection?.oae_id,item.inspection?.element_id].filter(Boolean).join(" · ");return <button key={item.id} type="button" role="menuitem" className="editorRecentItem" title={name+(where?" · "+where:"")+(when?" · "+when:"")} onClick={e=>{setRecentOpen(false);runEditorMenuAction(e,()=>onOpenRecent?.(item.id))}}><span className="editorRecentThumb">{item.thumbnail?<img src={item.thumbnail} alt="" loading="lazy"/>:<ImageIcon size={16}/>}</span><span className="editorRecentText"><b>{shortFileName(name)}</b><small>{when}</small></span><kbd>Alt+{(recentIndex+1)%10}</kbd></button>})}
+              {recentHistory.slice(0,10).map((item,recentIndex)=>{const name=item.file_meta?.name||"inspeção";const when=item.created_at?new Date(item.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}).replace(",",""):"";const where=[item.inspection?.oae_id,item.inspection?.element_id].filter(Boolean).join(" · ");return <button key={item.id} type="button" role="menuitem" className="editorRecentItem" title={name+(where?" · "+where:"")+(when?" · "+when:"")} onClick={e=>{setRecentOpen(false);runEditorMenuAction(e,()=>onOpenRecent?.(item.id))}}><span className="editorRecentThumb">{item.thumbnail?<img src={item.thumbnail} alt="" loading="lazy"/>:<ImageIcon size={16}/>}</span><span className="editorRecentText"><b>{name}</b><small>{when}</small></span><kbd>Alt+{(recentIndex+1)%10}</kbd></button>})}
               <hr/>
               <button type="button" role="menuitem" className="editorRecentHistory" onClick={e=>{setRecentOpen(false);runEditorMenuAction(e,()=>onNavigate?.("alerts"))}}><MenuIcon icon={History}/><span>Histórico de inspeções</span></button>
             </div>}

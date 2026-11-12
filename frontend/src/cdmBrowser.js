@@ -1,4 +1,4 @@
-import{CONTEXT_MODES,DEFAULT_CONTEXT_SHARE,gateMasks}from"./contextFilter.js";
+import{CONTEXT_MODES,DEFAULT_CONTEXT_SHARE,gateMasks,sceneOf}from"./contextFilter.js";
 // Browser-native execution of Concrete Damage Morphology (CDM) 2.8.5.
 // Mirrors the deterministic Python/Inkscape pipeline closely enough to keep the
 // same five pathology families, record geometry contract and t0→t1 semantics.
@@ -708,11 +708,12 @@ function abortError(){
 function computeCdmCore(current,previous,cfg,onProgress=null){
   const w=current.width,h=current.height,records=[];
   emitProgress(onProgress,15,"CDM-1 · segmentando t1","segment_t1");
-  let masks=detectMasks(current,cfg),contextFilter=null;
+  let masks=detectMasks(current,cfg),contextFilter=null,discardedMasks=null;
   // Filtro de contexto IA (opcional): descarta componentes que caem em regiões irrelevantes.
   if(cfg.context?.mask&&!cfg.context.abstained){
     const gated=gateMasks(masks,w,h,cfg.context,{share:cfg.contextShare});
     masks={...masks,...gated.masks};
+    discardedMasks=gated.removedMasks;
     contextFilter={applied:true,removed:gated.removed,removed_total:gated.removed_total};
   }else if(cfg.context)contextFilter={applied:false,abstained:!!cfg.context.abstained};
   emitProgress(onProgress,35,"CDM-1 · máscaras t1","masks_t1");
@@ -720,6 +721,20 @@ function computeCdmCore(current,previous,cfg,onProgress=null){
     records.push(...recordsFromMask(masks[cls],w,h,cls,"t1_current",cfg));
     emitProgress(onProgress,35+Math.round((index+1)/ORDER.length*20),"CDM-1 · vetorizando "+LABELS[cls],"vectorize_t1");
   });
+  // Nomeia cada achado pela cena sob ele e vetoriza os componentes descartados (para listá-los).
+  let contextDiscarded=[];
+  if(cfg.context?.cls){
+    for(const r of records)r.scene=sceneOf(masks[r.class],w,h,r.bbox,cfg.context);
+    if(discardedMasks){
+      for(const cls of ORDER){
+        if(!discardedMasks[cls])continue;
+        for(const r of recordsFromMask(discardedMasks[cls],w,h,cls,"context_discarded",cfg)){r.scene=sceneOf(discardedMasks[cls],w,h,r.bbox,cfg.context);r.discarded_by_context=true;contextDiscarded.push(r)}
+      }
+      contextDiscarded.sort((a,b)=>(b.area_px2||0)-(a.area_px2||0));
+      contextDiscarded.forEach((r,i)=>{r.code="IA"+(i+1)});
+      if(contextFilter)contextFilter.discarded_records=contextDiscarded.length;
+    }
+  }
   let temporal={enabled:false,alignment_method:null,alignment:null,stats:{},records:[]};
   if(previous){
     emitProgress(onProgress,58,"CDM-1 · alinhando t0→t1","temporal_alignment");
@@ -737,7 +752,7 @@ function computeCdmCore(current,previous,cfg,onProgress=null){
   const resultSummary=summary(records,cfg,w*h);
   emitProgress(onProgress,96,"CDM-1 · finalizando núcleo","core_complete");
   return {
-    width:w,height:h,records,temporal,summary:resultSummary,context_filter:contextFilter,
+    width:w,height:h,records,temporal,summary:resultSummary,context_filter:contextFilter,context_discarded:contextDiscarded,
     protocol:{stages:["base_image","family_response","candidate_mask","open_close_mask","connected_components"],version:"unified_five_stage_v285_browser"}
   };
 }
@@ -837,7 +852,7 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     emitProgress(onProgress,9,"IA de contexto · SegFormer ADE20K","context_filter");
     try{
       const excl=await control.contextFilter(current,cfg.contextMode,{signal,onProgress});
-      cfg.context={mask:excl.mask,w:excl.w,h:excl.h,abstained:excl.abstained};
+      cfg.context={mask:excl.mask,cls:excl.cls,names:excl.names,w:excl.w,h:excl.h,abstained:excl.abstained};
       contextInfo={status:excl.abstained?"abstained":"ok",mode:cfg.contextMode,share:cfg.contextShare,excluded_ratio:excl.excluded_ratio,structure_ratio:excl.structure_ratio,top_classes:excl.top_classes,model:excl.model||null,model_sha256:excl.sha256||null,map_size:[excl.w,excl.h],overlay_png_base64:contextOverlay(current,excl)};
     }catch(error){
       if(error?.name==="AbortError"||signal?.aborted)throw abortError();
@@ -903,7 +918,7 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     metrics:{
       implementation:"CDM 2.10 browser parity (fissuras contínuas por esqueleto; famílias separadas)",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,
       performance_ms:{decode:decodeMs,context:contextMs,core:coreMs,render:renderMs,total:totalMs},
-      context_filter:contextInfo?{...contextInfo,...(core.context_filter||{})}:null,
+      context_filter:contextInfo?{...contextInfo,...(core.context_filter||{}),discarded:(core.context_discarded||[]).map(r=>({code:r.code,class:r.class,class_label:LABELS[r.class],bbox:r.bbox,area_px2:r.area_px2,length_px:r.length_px??null,width_px:r.width_px??null,scene:r.scene}))}:null,
       overlay_semantics:"transparent_layers",
       geometry_units:"processed_pixels",processed_width:w,processed_height:h,mm_per_px:cfg.mmPerPx||null,
       layers,summary:core.summary,records,temporal,protocol:core.protocol

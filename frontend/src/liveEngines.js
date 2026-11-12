@@ -4,7 +4,7 @@
 // em coordenadas normalizadas do quadro — nada de PNG/base64 por quadro.
 import{opencvCrackCore}from"./opencvCore.js";
 import{__cdmTest}from"./cdmBrowser.js";
-import{gateMasks}from"./contextFilter.js";
+import{gateMasks,sceneOf}from"./contextFilter.js";
 
 export const LIVE_ENGINES={
   cdm_1:{name:"CDM-1",kind:"classical",note:"5 famílias de patologia (fissura, desplacamento, armadura, corrosão, eflorescência)"},
@@ -89,7 +89,8 @@ function runCdmLive(frame,opts={}){
     minAspect:clamp(Number(opts.cdm_min_aspect_ratio??2),1,50)
   };
   let masks=__cdmTest.detectMasks(frame,cfg),contextRemoved=0;const layers=[],boxes=[],counts={};let total=0;
-  if(opts.contextExclusion&&!opts.contextExclusion.abstained){const g=gateMasks(masks,w,h,opts.contextExclusion,{share:Number(opts.cdm_context_share??.6)});masks={...masks,...g.masks};contextRemoved=g.removed_total}
+  let removedMasks=null;const ex=opts.contextExclusion;
+  if(ex&&!ex.abstained){const g=gateMasks(masks,w,h,ex,{share:Number(opts.cdm_context_share??.6)});masks={...masks,...g.masks};removedMasks=g.removedMasks;contextRemoved=g.removed_total}
   for(const cls of CDM_LIVE_CLASSES){
     const minAspect=cls.id==="cracks"?cfg.minAspect:cls.id==="exposed_rebar"?Math.max(2,cfg.minAspect):0;
     const comp=filteredComponents(masks[cls.id],w,h,{minArea:cfg.minArea,minAspect,maxItems:40});
@@ -97,6 +98,17 @@ function runCdmLive(frame,opts={}){
     counts[cls.label]=comp.count;total+=comp.count;
     for(const b of comp.boxes)boxes.push({...b,label:cls.label,score:null,color:cls.color});
   }
+  // Achados descartados pelo filtro de contexto: caixa cinza com o nome da patologia e da cena.
+  let discarded=0;
+  if(removedMasks)for(const cls of CDM_LIVE_CLASSES){
+    const m=removedMasks[cls.id];if(!m)continue;
+    const comp=filteredComponents(m,w,h,{minArea:cfg.minArea,maxItems:12});
+    for(const b of comp.boxes){
+      const sc=sceneOf(m,w,h,[b.x1*w,b.y1*h,(b.x2-b.x1)*w,(b.y2-b.y1)*h],ex);
+      boxes.push({...b,label:"Descartado · "+cls.label+(sc?" em "+sc.label_pt:""),score:null,color:[150,160,166],discarded:true});discarded++;
+    }
+  }
+  if(discarded)counts["Descartados pela IA"]=discarded;
   return{layers,boxes,counts,metrics:{cdm_live_cfg:cfg,total_records:total,processed:[w,h],context_removed:contextRemoved}};
 }
 

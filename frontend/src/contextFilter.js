@@ -18,6 +18,17 @@ const EXCLUDE=["sky","tree","grass","plant","flower","palm","field","earth","lan
   "awning","canopy","tent","apparel","bag","ashcan","bulletin board"];
 const STRUCTURE=["wall","building","floor","ceiling","road","sidewalk","path","runway","column","pier","bridge","stairs","stairway",
   "step","railing","bannister","fence","base","tower","skyscraper","house","hovel","grandstand","stage","rock","countertop"];
+// Nomes em português das classes ADE20K mais comuns em inspeção (as demais ficam em inglês).
+export const ADE_PT={wall:"parede",building:"edificação",sky:"céu",floor:"piso",tree:"árvore",ceiling:"teto",road:"pista/via",grass:"grama",
+  sidewalk:"calçada",person:"pessoa",earth:"solo",door:"porta",mountain:"montanha",plant:"vegetação",car:"carro",water:"água",painting:"pintura/quadro",
+  house:"casa",sea:"mar",field:"campo",fence:"cerca",rock:"rocha",railing:"guarda-corpo",base:"base",column:"pilar/coluna",signboard:"placa",
+  sand:"areia",skyscraper:"edifício alto",path:"caminho",stairs:"escada",runway:"pista",river:"rio",bridge:"ponte",flower:"flor",hill:"morro",
+  palm:"palmeira",boat:"barco",bus:"ônibus",truck:"caminhão",tower:"torre",streetlight:"poste de iluminação",airplane:"avião","dirt track":"estrada de terra",
+  pole:"poste",land:"terreno",bannister:"corrimão",poster:"cartaz",van:"van",ship:"navio",fountain:"fonte",canopy:"cobertura",tent:"tenda",
+  stairway:"escadaria",step:"degrau",animal:"animal",bicycle:"bicicleta",lake:"lago",minibike:"moto","traffic light":"semáforo",pier:"cais/píer",
+  flag:"bandeira",awning:"toldo","trade name":"letreiro",apparel:"roupa",bag:"bolsa",ashcan:"lixeira","bulletin board":"mural",window:"janela",
+  windowpane:"vidraça",grandstand:"arquibancada",stage:"palco",countertop:"bancada",waterfall:"cachoeira","swimming pool":"piscina",hovel:"barraco"};
+export const ptLabel=name=>ADE_PT[name]||name||"—";
 const norm=s=>String(s||"").toLowerCase().split(/[,;]/)[0].trim();
 
 export function contextGroups(labels){
@@ -84,13 +95,13 @@ export function exclusionFromClasses(map,labels,mode="conservative",minConfidenc
   // Segurança: se quase tudo foi julgado irrelevante e quase nada é estrutura (ex.: close-up de
   // textura que o modelo não reconhece), o filtro se abstém em vez de apagar a inspeção.
   const uncertain=excluded/n>.9&&structure/n<.03;
-  return{mask:excl,structure:struct,w:map.w,h:map.h,mode,excluded_ratio:+(excluded/n).toFixed(4),structure_ratio:+(structure/n).toFixed(4),top_classes:top,abstained:uncertain};
+  return{mask:excl,structure:struct,cls:map.cls,names,w:map.w,h:map.h,mode,excluded_ratio:+(excluded/n).toFixed(4),structure_ratio:+(structure/n).toFixed(4),top_classes:top,abstained:uncertain};
 }
 
 // Remove de uma máscara binária (w×h) os componentes 8-conexos cuja fração dentro da exclusão ≥ share.
 export function gateMask(mask,w,h,excl,{share=DEFAULT_CONTEXT_SHARE}={}){
-  if(!excl||excl.abstained)return{mask,removed:0,kept:0,removed_px:0};
-  const ex=excl.mask,ew=excl.w,eh=excl.h,out=new Uint8Array(mask),seen=new Uint8Array(w*h),queue=new Int32Array(w*h);
+  if(!excl||excl.abstained)return{mask,removedMask:null,removed:0,kept:0,removed_px:0};
+  const ex=excl.mask,ew=excl.w,eh=excl.h,out=new Uint8Array(mask),gone=new Uint8Array(w*h),seen=new Uint8Array(w*h),queue=new Int32Array(w*h);
   const mx=new Int32Array(w),my=new Int32Array(h);
   for(let x=0;x<w;x++)mx[x]=Math.min(ew-1,Math.floor((x+.5)*ew/w));
   for(let y=0;y<h;y++)my[y]=Math.min(eh-1,Math.floor((y+.5)*eh/h))*ew;
@@ -105,19 +116,19 @@ export function gateMask(mask,w,h,excl,{share=DEFAULT_CONTEXT_SHARE}={}){
         const q=ny*w+nx;if(mask[q]&&!seen[q]){seen[q]=1;queue[tail++]=q}
       }
     }
-    if(inside>=share*tail){for(let q=0;q<tail;q++)out[queue[q]]=0;removed++;removedPx+=tail}else kept++;
+    if(inside>=share*tail){for(let q=0;q<tail;q++){out[queue[q]]=0;gone[queue[q]]=1}removed++;removedPx+=tail}else kept++;
   }
-  return{mask:out,removed,kept,removed_px:removedPx};
+  return{mask:out,removedMask:gone,removed,kept,removed_px:removedPx};
 }
 
 // Aplica o filtro a todas as camadas {classe: Uint8Array}; devolve novas máscaras e estatísticas.
 export function gateMasks(masks,w,h,excl,opts={}){
-  const out={},removed={};let total=0;
+  const out={},removed={},removedMasks={};let total=0;
   for(const[k,m]of Object.entries(masks||{})){
     if(!(m instanceof Uint8Array)||m.length!==w*h){out[k]=m;continue}
-    const g=gateMask(m,w,h,excl,opts);out[k]=g.mask;removed[k]=g.removed;total+=g.removed;
+    const g=gateMask(m,w,h,excl,opts);out[k]=g.mask;removed[k]=g.removed;total+=g.removed;if(g.removedMask)removedMasks[k]=g.removedMask;
   }
-  return{masks:out,removed,removed_total:total};
+  return{masks:out,removed,removedMasks,removed_total:total};
 }
 
 // Carrega o modelo (sessão em cache, SHA-256 verificado) e devolve a exclusão para uma ImageData.
@@ -126,4 +137,18 @@ export async function contextExclusion(getSession,img,mode,control={}){
   const map=await runContextModel(loaded,img,{inputSide:Number(control.inputSide||512)});
   const excl=exclusionFromClasses(map,loaded.manifest.labels,mode);
   return{...excl,model:loaded.manifest.source_repo||CONTEXT_ENGINE_ID,sha256:loaded.digest||loaded.manifest.sha256||null};
+}
+
+// Cena dominante sob os pixels de uma máscara dentro da caixa [x,y,w,h] (nomeia achados mantidos e descartados).
+export function sceneOf(mask,w,h,bbox,excl){
+  if(!excl?.cls||!excl.names)return null;
+  const ew=excl.w,eh=excl.h,tally=new Map();let n=0,inEx=0;
+  const x0=Math.max(0,Math.floor(bbox[0])),y0=Math.max(0,Math.floor(bbox[1])),x1=Math.min(w,Math.ceil(bbox[0]+bbox[2])),y1=Math.min(h,Math.ceil(bbox[1]+bbox[3]));
+  for(let y=y0;y<y1;y++){const my=Math.min(eh-1,Math.floor((y+.5)*eh/h))*ew;for(let x=x0;x<x1;x++){
+    if(!mask[y*w+x])continue;const q=my+Math.min(ew-1,Math.floor((x+.5)*ew/w)),c=excl.cls[q];
+    tally.set(c,(tally.get(c)||0)+1);n++;if(excl.mask[q])inEx++;
+  }}
+  if(!n)return null;
+  const[best,k]=[...tally.entries()].sort((a,b)=>b[1]-a[1])[0],label=excl.names[best]||String(best);
+  return{label,label_pt:ptLabel(label),share:+(k/n).toFixed(3),irrelevant_share:+(inEx/n).toFixed(3)};
 }

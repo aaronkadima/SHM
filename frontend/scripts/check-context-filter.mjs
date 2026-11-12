@@ -53,6 +53,16 @@ const filtered=__cdmTest.computeCdmCore({...img,data:new Uint8ClampedArray(data)
 assert.equal(count(filtered),1,"com filtro: só a mancha sobre a estrutura");
 assert.ok(filtered.records.find(x=>x.class==="corrosion_rust").bbox[0]<W/2);
 assert.equal(filtered.context_filter.applied,true);assert.equal(filtered.context_filter.removed.corrosion_rust,1);
+// Achados mantidos e descartados recebem o nome da cena sob eles.
+const keptRust=filtered.records.find(x=>x.class==="corrosion_rust");
+const consFull=exclusionFromClasses({cls,conf,w:mw,h:mh},labels,"conservative");
+const filtered2=__cdmTest.computeCdmCore({...img,data:new Uint8ClampedArray(data)},null,{threshold:35,kernel:15,minArea:30,minAspect:2,context:{mask:consFull.mask,cls:consFull.cls,names:consFull.names,w:mw,h:mh,abstained:false},contextShare:.6});
+const k2=filtered2.records.find(x=>x.class==="corrosion_rust");
+assert.equal(k2.scene.label,"wall");assert.equal(k2.scene.label_pt,"parede");
+assert.equal(filtered2.context_discarded.length,1);
+const disc=filtered2.context_discarded[0];
+assert.equal(disc.code,"IA1");assert.equal(disc.class,"corrosion_rust");assert.equal(disc.scene.label_pt,"céu");assert.ok(disc.scene.irrelevant_share>=.6);
+assert.ok(keptRust);
 
 // Interface de inferência: modelo falso (logits) → mapa de classes com stride 4.
 const fake={ort:{Tensor:class{constructor(t,d,dims){this.type=t;this.data=d;this.dims=dims}}},manifest:{inputs:[{name:"pixel_values"}],outputs:[{name:"logits"}],preprocess:{}},

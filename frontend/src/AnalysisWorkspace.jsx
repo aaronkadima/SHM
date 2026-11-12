@@ -1,9 +1,10 @@
 import React,{Suspense,useCallback,useEffect,useRef,useState} from "react";
-import {ChartNoAxesCombined,Ruler,SquareDashed,Tag,Layers2,FlipHorizontal2,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
+import {FolderOpen,History,PencilLine,Save,Printer,LogOut,RotateCcw,Trash2,Mouse,CircleHelp,MousePointerClick,Lightbulb,Info,Search,Keyboard,Cpu,Globe,Bug,ExternalLink,Ruler,SquareDashed,Tag,Layers2,FlipHorizontal2,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
 import ImageInspector from "./ImageInspector.jsx";
 import EngineStages from "./EngineStages.jsx";
 import CanvasRulers,{RULER_UNITS} from "./CanvasRulers.jsx";
 import ContextMenu from "./ContextMenu.jsx";
+import {CdmIcon,MenuIcon,TipOfDayDialog,AboutDialog,ShortcutsDialog,CommandPalette,describeElement} from "./StudioHelp.jsx";
 const ParityPanel=React.lazy(()=>import("./ParityPanel.jsx"));
 import{DEFAULT_VIEWER_PREFERENCES,clampCanvasPan,clampFloatingPanelPosition,clampLayersPanelWidth,clampResultPanelSize,loadViewerPreferences,saveViewerPreferences,zoomCanvasPanAroundPoint,CANVAS_ZOOM_MIN,CANVAS_ZOOM_MAX}from"./viewerPreferences.js";
 import{detectAsset,isCdm3SpatialAsset,SUPPORTED_IMAGE_EXTENSIONS,SUPPORTED_MODEL_EXTENSIONS}from"./assetDetection.js";
@@ -52,12 +53,20 @@ const FINDING_PREFIX={cracks:"F",spalling_dark:"D",exposed_rebar:"A",corrosion_r
 function hexToRgba(hex,a){const m=/^#?([0-9a-f]{6})$/i.exec(String(hex||""));if(!m)return`rgba(13,118,110,${a})`;const n=parseInt(m[1],16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${Math.max(0,Math.min(1,a)).toFixed(3)})`}
 function formatMeasure(v,unit){const n=Number(v)||0,d=unit.startsWith("px")?(n<10?1:0):(n<10?2:n<100?1:0);return n.toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:d})+" "+unit}
 
+const HELP_LINKS=[["Repositório no GitHub","https://github.com/aaronkadima/SHM"],["SHM Studio · produção","https://aaronkadima.github.io/SHM/"],["SHM Studio · desenvolvimento","https://aaronkadima.github.io/SHM/dev/"],["Notas de versão (commits)","https://github.com/aaronkadima/SHM/commits/main"]];
+const SHORTCUTS=[
+  ["Arquivo",[["Ctrl/Cmd+O","Importar"],["Ctrl/Cmd+S","Salvar"],["Ctrl/Cmd+P","Imprimir"],["Ctrl/Cmd+Shift+W","Fechar visualização"],["Ctrl/Cmd+Q","Sair"],["Alt+1 … Alt+0","Abrir recente 1 a 10"]]],
+  ["Análise",[["Ctrl/Cmd+Enter","Executar análise"],["Ctrl/Cmd+,","Configurações"]]],
+  ["Visualização",[["Roda","Zoom no cursor (CAD)"],["Shift+roda","Mover a imagem"],["Botão do meio · arrastar","Mover"],["Duplo clique no meio · 0","Ajustar à tela"],["Espaço+arrastar","Mover"],["Ctrl/Cmd+Shift+R","Réguas"]]],
+  ["Ajuda",[["F1","Ajuda (Aulas)"],["Shift+F1","Ajuda por contexto"],["/","Procurar e executar um comando"],["?","Esta lista"],["Botão direito","Menu de contexto"],["Shift+botão direito","Menu do navegador"]]],
+];
+
 // Largura comum da coluna esquerda: propriedades da imagem e resultados.
 // Botões flutuantes Imagem/Resultados: 124 px; expandidos, o dobro.
 export const FLOAT_BUTTON_WIDTH=124,IMAGE_PANEL_WIDTH=FLOAT_BUTTON_WIDTH*2;
 const LEFT_DOCK_QUERY="(min-width:741px) and (min-height:621px)";
 
-export default function AnalysisWorkspace({appInfo=null,executionIssue="",referenceValidating=false,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,spatialRgbFile=null,spatialRgbPrev=null,onSpatialRgbFile=null,spatialRegistration=null,spatialTransform=null,spatialFrameAssets=null,onSolveSpatialFrameAlignment=null,spatialRgbAnalysis=null,spatialPhotoViews=[],activeSpatialPhotoId=null,onAddSpatialPhotos=null,onSelectSpatialPhoto=null,onRemoveSpatialPhoto=null,spatialAutoRegistrationBusy=false,spatialAutoRegistrationStatus=null,onAutoRegisterSpatialPhotos=null,spatialRegistrationPointCount=0,photometricSummary=null,onPhotometricSummary=null,onSpatialRegistrationSample=null,spatialPathologyRecords=[],onSpatialPathologyRecords=null,onSolveSpatialRegistration=null,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,onLive=null,onRenameFile=null,onSaveFile=null,onApplyCorrection=null,onRestoreOriginal=null,hasOriginalFile=false,appliedCorrection=null,onImageDiagnostics=null,cdmOptions={},stageControl={},rulers={visible:false,unit:"mm"},onRulersChange=null,aulasOpen=false,onToggleAulas=null,recentHistory=[],onOpenRecent=null,aulasHref="",onAulasNav=null,aulasCrumb="",error,onExport,onExportCsv,onExportMap,onExportCdm,onExportCdm3=null}){
+export default function AnalysisWorkspace({appInfo=null,executionIssue="",referenceValidating=false,selectedEngineLabels=[],file,prev,referenceFile,referencePrev,spatialRgbFile=null,spatialRgbPrev=null,onSpatialRgbFile=null,spatialRegistration=null,spatialTransform=null,spatialFrameAssets=null,onSolveSpatialFrameAlignment=null,spatialRgbAnalysis=null,spatialPhotoViews=[],activeSpatialPhotoId=null,onAddSpatialPhotos=null,onSelectSpatialPhoto=null,onRemoveSpatialPhoto=null,spatialAutoRegistrationBusy=false,spatialAutoRegistrationStatus=null,onAutoRegisterSpatialPhotos=null,spatialRegistrationPointCount=0,photometricSummary=null,onPhotometricSummary=null,onSpatialRegistrationSample=null,spatialPathologyRecords=[],onSpatialPathologyRecords=null,onSolveSpatialRegistration=null,referenceInspectionId,referenceInspectionMeta,inspectionMeta,res,busy,progress,selected,onFile,onReferenceFile,onRun,onCancel,onSettings,onLive=null,onRenameFile=null,onSaveFile=null,onApplyCorrection=null,onRestoreOriginal=null,hasOriginalFile=false,appliedCorrection=null,onImageDiagnostics=null,cdmOptions={},stageControl={},onNavigate=null,onCloseFile=null,onExit=null,rulers={visible:false,unit:"mm"},onRulersChange=null,aulasOpen=false,onToggleAulas=null,recentHistory=[],onOpenRecent=null,aulasHref="",onAulasNav=null,aulasCrumb="",error,onExport,onExportCsv,onExportMap,onExportCdm,onExportCdm3=null}){
   const [initialViewerPrefs]=useState(()=>loadViewerPreferences());
   const [initialCompactLayout]=useState(()=>typeof window!=="undefined"&&window.innerWidth<900);
   const [kind,setKind]=useState(null),[layersOpen,setLayersOpen]=useState(initialCompactLayout?false:initialViewerPrefs.layersOpen),[layersWidth,setLayersWidth]=useState(initialViewerPrefs.layersWidth??DEFAULT_VIEWER_PREFERENCES.layersWidth),[resultOpen,setResultOpen]=useState(initialViewerPrefs.resultPanelOpen);
@@ -478,6 +487,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   useEffect(()=>{try{localStorage.setItem("shmImageInspectorOpen",inspectorOpen?"1":"0")}catch{}},[inspectorOpen]);
   // Resultados ficam logo abaixo do botão/painel "Imagem" (coluna esquerda do canvas).
   const [contextMenu,setContextMenu]=useState(null),[parityOpen,setParityOpen]=useState(false);
+  const [helpDialog,setHelpDialog]=useState(null),[helpSubmenu,setHelpSubmenu]=useState(null),[contextHelp,setContextHelp]=useState(null);
   const closeContextMenu=useCallback(()=>setContextMenu(null),[]);
   const [leftStackTop,setLeftStackTop]=useState(null);
   const resultUserMoved=useRef(!!(initialViewerPrefs.resultPanelPosition?.x||initialViewerPrefs.resultPanelPosition?.y));
@@ -939,6 +949,54 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   }
   const showRulers=!!rulers.visible&&!!file&&kind==="2d"&&!aulasOpen;
   const rulerMmPerPx=Math.max(0,Number(cdmOptions?.cdm_mm_per_px)||0);
+  // ---------- Arquivo: imprimir; Ajuda: contexto, comandos e atalhos ----------
+  function printView(){
+    if(!file)return;
+    document.body.classList.add("shmPrinting");
+    const done=()=>{document.body.classList.remove("shmPrinting");window.removeEventListener("afterprint",done)};
+    window.addEventListener("afterprint",done);
+    setTimeout(()=>{window.print();setTimeout(done,1500)},60);
+  }
+  function startContextHelp(){setContextHelp({armed:true});showStatusNotice("Ajuda por contexto: clique em qualquer elemento · Esc cancela",2600)}
+  useEffect(()=>{
+    if(!contextHelp?.armed)return;
+    document.body.classList.add("shmContextHelp");
+    const pick=e=>{
+      if(e.target.closest?.(".studioContextHelpTip"))return;
+      e.preventDefault();e.stopPropagation();
+      const info=describeElement(e.target);
+      setContextHelp(info?{x:e.clientX,y:e.clientY,...info}:null);
+    };
+    const esc=e=>{if(e.key==="Escape"){e.preventDefault();setContextHelp(null)}};
+    window.addEventListener("pointerdown",pick,true);window.addEventListener("click",swallow,true);window.addEventListener("keydown",esc,true);
+    function swallow(e){if(!e.target.closest?.(".studioContextHelpTip")){e.preventDefault();e.stopPropagation()}}
+    return()=>{document.body.classList.remove("shmContextHelp");window.removeEventListener("pointerdown",pick,true);setTimeout(()=>window.removeEventListener("click",swallow,true),0);window.removeEventListener("keydown",esc,true)};
+  },[contextHelp?.armed]);
+  useEffect(()=>{
+    if(!contextHelp||contextHelp.armed)return;
+    const close=e=>{if(!e.target.closest?.(".studioContextHelpTip"))setContextHelp(null)};
+    const esc=e=>{if(e.key==="Escape")setContextHelp(null)};
+    const t=setTimeout(()=>{window.addEventListener("pointerdown",close,true);window.addEventListener("keydown",esc)},0);
+    return()=>{clearTimeout(t);window.removeEventListener("pointerdown",close,true);window.removeEventListener("keydown",esc)};
+  },[contextHelp]);
+  // Atalhos de Arquivo e Ajuda (fora de campos de texto e das Aulas)
+  const shortcutRef=useRef({});shortcutRef.current={printView,startContextHelp,onCloseFile,onExit,onToggleAulas,onOpenRecent,recentHistory,busy,file,kind};
+  useEffect(()=>{
+    const onKey=e=>{
+      if(e.defaultPrevented||aulasLockRef.current)return;
+      const t=e.target,typing=t?.closest?.("input,textarea,select,[contenteditable=true]");
+      const r=shortcutRef.current,mod=e.ctrlKey||e.metaKey;
+      if(e.key==="F1"){e.preventDefault();if(e.shiftKey)r.startContextHelp();else r.onToggleAulas?.();return}
+      if(typing)return;
+      if(mod&&!e.shiftKey&&e.key.toLowerCase()==="p"&&r.file&&r.kind==="2d"){e.preventDefault();r.printView();return}
+      if(mod&&e.shiftKey&&e.key.toLowerCase()==="w"&&r.file&&!r.busy&&r.onCloseFile){e.preventDefault();r.onCloseFile();return}
+      if(mod&&!e.shiftKey&&e.key.toLowerCase()==="q"&&r.onExit&&!r.busy){e.preventDefault();r.onExit();return}
+      if(e.altKey&&!mod&&/^Digit\d$/.test(e.code)){const n=Number(e.code.slice(5)),idx=n===0?9:n-1,item=r.recentHistory[idx];if(item&&!r.busy){e.preventDefault();r.onOpenRecent?.(item.id)}return}
+      if(!mod&&!e.altKey&&e.key==="/"){e.preventDefault();setHelpDialog("palette");return}
+      if(!mod&&!e.altKey&&e.key==="?"){e.preventDefault();setHelpDialog("shortcuts")}
+    };
+    window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey);
+  },[]);
   function toggleRulers(){
     const next=!rulers.visible;onRulersChange?.({...rulers,visible:next});
     showStatusNotice(next?(rulerMmPerPx>0?"Réguas em "+(rulers.unit||"mm")+" · escala "+rulerMmPerPx+" mm/px":"Réguas em px · defina a escala mm/px em Configurações"):"Réguas ocultas",2000);
@@ -1187,6 +1245,34 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     }catch(e){setRegistrationError(e?.message||String(e))}
     finally{setRegistrationBusy(false)}
   }
+  const studioCommands=[
+    {group:"Arquivo",label:"Importar…",icon:FolderOpen,hint:"Ctrl+O",disabled:busy,run:()=>picker.current?.click()},
+    {group:"Arquivo",label:"Câmera",icon:Camera,disabled:busy,run:()=>setCameraOpen(true)},
+    onLive&&{group:"Arquivo",label:"Live detecção",icon:Radio,disabled:busy,run:onLive},
+    {group:"Arquivo",label:"Renomear…",icon:PencilLine,disabled:!file||busy,run:startRename},
+    {group:"Arquivo",label:"Salvar",icon:Save,hint:"Ctrl+S",disabled:!file,run:()=>onSaveFile?.()},
+    {group:"Arquivo",label:"Imprimir…",icon:Printer,hint:"Ctrl+P",disabled:!file||kind!=="2d",run:printView},
+    {group:"Arquivo",label:"Fechar visualização",icon:X,hint:"Ctrl+Shift+W",disabled:!file||busy||!onCloseFile,run:()=>onCloseFile?.()},
+    {group:"Arquivo",label:"Sair",icon:LogOut,hint:"Ctrl+Q",disabled:busy||!onExit,run:()=>onExit?.()},
+    {group:"Arquivo",label:"Histórico de inspeções",icon:History,run:()=>onNavigate?.("alerts")},
+    ...recentHistory.slice(0,10).map((item,k)=>({group:"Recentes",label:"Abrir "+(item.file_meta?.name||"inspeção"),keywords:"recente",icon:History,hint:"Alt+"+((k+1)%10),disabled:busy,run:()=>onOpenRecent?.(item.id)})),
+    {group:"Editar",label:"Restaurar visualização",icon:RotateCcw,disabled:kind!=="2d",run:resetViewerPreferences},
+    {group:"Visualizar",label:layersOpen?"Recolher camadas":"Mostrar camadas",icon:Layers3,run:()=>setLayersPanelOpen(v=>!v)},
+    {group:"Visualizar",label:"Ajustar à tela",icon:Maximize2,hint:"0",disabled:kind!=="2d",run:fitView},
+    {group:"Visualizar",label:rulers.visible?"Ocultar réguas":"Mostrar réguas",icon:Ruler,hint:"Ctrl+Shift+R",disabled:kind!=="2d",run:toggleRulers},
+    {group:"Visualizar",label:showBoxes?"Ocultar caixas delimitadoras":"Mostrar caixas delimitadoras",icon:SquareDashed,disabled:kind!=="2d",run:()=>setShowBoxes(v=>!v)},
+    {group:"Visualizar",label:showLabels?"Ocultar rótulos":"Mostrar rótulos",icon:Tag,disabled:kind!=="2d",run:()=>setShowLabels(v=>!v)},
+    ...[["original","Original",ImageIcon],["overlay","Sobrepor (original + detecções)",Layers2],["wipe","Deslizar",FlipHorizontal2],["side","Lado a lado",Columns2]].map(([id,label,icon])=>({group:"Visualizar",label,icon,disabled:kind!=="2d"||(id!=="original"&&!res),run:()=>changeComparison(id)})),
+    {group:"Análise",label:"Executar análise",icon:Play,hint:"Ctrl+Enter",disabled:analysisDisabled,run:()=>analyzeButton.current?.click()},
+    {group:"Análise",label:"Configurações",icon:Settings2,hint:"Ctrl+,",disabled:busy,run:()=>onSettings?.()},
+    {group:"Análise",label:"Paridade CDM (Python ⇄ navegador)",icon:CdmIcon,keywords:"pyodide indicadores",run:()=>setParityOpen(true)},
+    {group:"Ajuda",label:"Ajuda (Aulas)",icon:CircleHelp,hint:"F1",run:()=>onToggleAulas?.()},
+    {group:"Ajuda",label:"Ajuda por contexto",icon:MousePointerClick,hint:"Shift+F1",run:startContextHelp},
+    {group:"Ajuda",label:"Dica do dia",icon:Lightbulb,run:()=>setHelpDialog("tip")},
+    {group:"Ajuda",label:"Atalhos de teclado e mouse",icon:Keyboard,hint:"?",run:()=>setHelpDialog("shortcuts")},
+    {group:"Ajuda",label:"Sobre o SHM Studio",icon:Info,run:()=>setHelpDialog("about")},
+    {group:"Ajuda",label:"Navegador de motores",icon:Cpu,run:()=>onNavigate?.("engines")},
+  ].filter(Boolean);
   // Menu de contexto (botão direito): opções do elemento sob o cursor + atalhos gerais.
   function openContextMenu(e){
     const t=e.target;
@@ -1238,43 +1324,85 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     setContextMenu({x:e.clientX,y:e.clientY,sections});
   }
   return <section className="analysisEditor" aria-label="Workspace de análise" onContextMenu={aulasOpen?undefined:openContextMenu}>
+    {helpDialog==="tip"&&<TipOfDayDialog onClose={()=>setHelpDialog(null)}/>}
+    {helpDialog==="about"&&<AboutDialog appInfo={appInfo||{}} onClose={()=>setHelpDialog(null)}/>}
+    {helpDialog==="shortcuts"&&<ShortcutsDialog shortcuts={SHORTCUTS} onClose={()=>setHelpDialog(null)}/>}
+    {helpDialog==="palette"&&<CommandPalette commands={studioCommands} onClose={()=>setHelpDialog(null)}/>}
+    {contextHelp&&!contextHelp.armed&&<div className="studioContextHelpTip" role="status" style={{left:Math.min(contextHelp.x+12,window.innerWidth-300),top:Math.min(contextHelp.y+12,window.innerHeight-120)}}><small>{contextHelp.area}</small><b>{contextHelp.label}</b>{contextHelp.extra&&<p>{contextHelp.extra}</p>}<button type="button" onClick={()=>startContextHelp()}>Outro elemento</button></div>}
     {contextMenu&&<ContextMenu x={contextMenu.x} y={contextMenu.y} sections={contextMenu.sections} onClose={closeContextMenu}/>}
     <div className="editorTop">
       <div className="editorBrand"><span className="editorMark">S</span><strong>SHM Studio</strong><nav className={"editorMenus"+(aulasOpen?" studioLocked":"")} aria-label="Menu do editor" inert={aulasOpen||undefined} aria-disabled={aulasOpen||undefined}>
         <details className="editorMenu" name="shm-editor-menu"><summary>Arquivo</summary><div className="editorMenuPanel" role="menu">
-          <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>picker.current?.click())}><span>Importar…</span><small>Ctrl/Cmd+O</small></button>
-          <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>setCameraOpen(true))}><span>Câmera</span></button>
-          {onLive&&<button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onLive)}><span>Modo Live (tempo real)</span></button>}
+          <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>picker.current?.click())}><MenuIcon icon={FolderOpen}/><span>Importar…</span><small>Ctrl/Cmd+O</small></button>
+          <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>setCameraOpen(true))}><MenuIcon icon={Camera}/><span>Câmera</span></button>
+          {onLive&&<button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onLive)}><MenuIcon icon={Radio}/><span>Live detecção</span></button>}
           {recentHistory.length>0&&<div className={"editorSubmenu"+(recentOpen?" open":"")} onMouseEnter={()=>setRecentOpen(true)} onMouseLeave={()=>setRecentOpen(false)}>
-            <button type="button" role="menuitem" aria-haspopup="menu" aria-expanded={recentOpen} disabled={busy} onClick={e=>{e.preventDefault();e.stopPropagation();setRecentOpen(v=>!v)}}><span>Recentes</span><small aria-hidden="true">›</small></button>
+            <button type="button" role="menuitem" aria-haspopup="menu" aria-expanded={recentOpen} disabled={busy} onClick={e=>{e.preventDefault();e.stopPropagation();setRecentOpen(v=>!v)}}><MenuIcon icon={History}/><span>Recentes</span><small aria-hidden="true">›</small></button>
             {recentOpen&&<div className="editorMenuPanel editorSubmenuPanel" role="menu" aria-label="Arquivos recentes">
-              {recentHistory.slice(0,10).map(item=>{const name=item.file_meta?.name||"inspeção";const when=item.created_at?new Date(item.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}).replace(",",""):"";const where=[item.inspection?.oae_id,item.inspection?.element_id].filter(Boolean).join(" · ");return <button key={item.id} type="button" role="menuitem" className="editorRecentItem" title={name+(where?" · "+where:"")+(when?" · "+when:"")} onClick={e=>{setRecentOpen(false);runEditorMenuAction(e,()=>onOpenRecent?.(item.id))}}><span>{shortFileName(name)}</span><small>{when}</small></button>})}
+              {recentHistory.slice(0,10).map((item,recentIndex)=>{const name=item.file_meta?.name||"inspeção";const when=item.created_at?new Date(item.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}).replace(",",""):"";const where=[item.inspection?.oae_id,item.inspection?.element_id].filter(Boolean).join(" · ");return <button key={item.id} type="button" role="menuitem" className="editorRecentItem" title={name+(where?" · "+where:"")+(when?" · "+when:"")} onClick={e=>{setRecentOpen(false);runEditorMenuAction(e,()=>onOpenRecent?.(item.id))}}><span className="editorRecentThumb">{item.thumbnail?<img src={item.thumbnail} alt="" loading="lazy"/>:<ImageIcon size={16}/>}</span><span className="editorRecentText"><b>{shortFileName(name)}</b><small>{when}</small></span><kbd>Alt+{(recentIndex+1)%10}</kbd></button>})}
+              <hr/>
+              <button type="button" role="menuitem" className="editorRecentHistory" onClick={e=>{setRecentOpen(false);runEditorMenuAction(e,()=>onNavigate?.("alerts"))}}><MenuIcon icon={History}/><span>Histórico de inspeções</span></button>
             </div>}
           </div>}
           <hr/>
-          <button type="button" role="menuitem" disabled={!file||busy} onClick={e=>runEditorMenuAction(e,startRename)}><span>Renomear…</span></button>
-          <button type="button" role="menuitem" disabled={!file} onClick={e=>runEditorMenuAction(e,()=>{onSaveFile?.();showStatusNotice("Arquivo salvo · "+file.name,1600)})}><span>Salvar</span><small>Ctrl/Cmd+S</small></button>
-          {kind==="2d"&&selected.length===1&&selected[0]==="cdm_1"&&<button type="button" role="menuitem" disabled={busy||referenceValidating} onClick={e=>runEditorMenuAction(e,()=>referencePicker.current?.click())}><span>Referência t0…</span></button>}
+          <button type="button" role="menuitem" disabled={!file||busy} onClick={e=>runEditorMenuAction(e,startRename)}><MenuIcon icon={PencilLine}/><span>Renomear…</span></button>
+          <button type="button" role="menuitem" disabled={!file} onClick={e=>runEditorMenuAction(e,()=>{onSaveFile?.();showStatusNotice("Arquivo salvo · "+file.name,1600)})}><MenuIcon icon={Save}/><span>Salvar</span><small>Ctrl/Cmd+S</small></button>
+          {kind==="2d"&&selected.length===1&&selected[0]==="cdm_1"&&<button type="button" role="menuitem" disabled={busy||referenceValidating} onClick={e=>runEditorMenuAction(e,()=>referencePicker.current?.click())}><MenuIcon icon={ImagePlus}/><span>Referência t0…</span></button>}
+          <hr/>
+          <button type="button" role="menuitem" disabled={!file||kind!=="2d"} onClick={e=>runEditorMenuAction(e,printView)}><MenuIcon icon={Printer}/><span>Imprimir…</span><small>Ctrl/Cmd+P</small></button>
+          <hr/>
+          <button type="button" role="menuitem" disabled={!file||busy||!onCloseFile} onClick={e=>runEditorMenuAction(e,()=>onCloseFile?.())}><MenuIcon icon={X}/><span>Fechar visualização</span><small>Ctrl/Cmd+Shift+W</small></button>
+          <button type="button" role="menuitem" disabled={busy||!onExit} onClick={e=>runEditorMenuAction(e,()=>onExit?.())}><MenuIcon icon={LogOut}/><span>Sair</span><small>Ctrl/Cmd+Q</small></button>
         </div></details>
         <details className="editorMenu" name="shm-editor-menu"><summary>Editar</summary><div className="editorMenuPanel" role="menu">
-          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,resetViewerPreferences)}><span>Restaurar visualização</span></button>
-          {kind==="2d"&&referenceFile&&<button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>onReferenceFile(null))}><span>Remover referência t0</span></button>}
+          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,resetViewerPreferences)}><MenuIcon icon={RotateCcw}/><span>Restaurar visualização</span></button>
+          {kind==="2d"&&referenceFile&&<button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,()=>onReferenceFile(null))}><MenuIcon icon={Trash2}/><span>Remover referência t0</span></button>}
         </div></details>
         <details className="editorMenu" name="shm-editor-menu"><summary>Visualizar</summary><div className="editorMenuPanel" role="menu">
-          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setLayersPanelOpen(v=>!v))}><span>{layersOpen?"Recolher camadas":"Mostrar camadas"}</span></button>
-          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,fitView)}><span>Ajustar à tela</span><small>0 · duplo clique no meio</small></button>
-          <button type="button" role="menuitem" aria-checked={!!rulers.visible} disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,toggleRulers)}><span>{rulers.visible?"Ocultar réguas":"Mostrar réguas"}</span><small>Ctrl/Cmd+Shift+R</small></button>
-          <button type="button" role="menuitem" aria-checked={wheelMode==="zoom"} onClick={e=>runEditorMenuAction(e,()=>{const next=wheelMode==="zoom"?"pan":"zoom";setWheelMode(next);showStatusNotice(next==="zoom"?"Roda do mouse: zoom no cursor (CAD) · Shift+roda move":"Roda do mouse: rolagem · Ctrl+roda dá zoom",2200)})}><span>Roda do mouse: {wheelMode==="zoom"?"zoom (CAD)":"rolagem"}</span><small>alternar</small></button>
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setLayersPanelOpen(v=>!v))}><MenuIcon icon={Layers3}/><span>{layersOpen?"Recolher camadas":"Mostrar camadas"}</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,fitView)}><MenuIcon icon={Maximize2}/><span>Ajustar à tela</span><small>0 · duplo clique no meio</small></button>
+          <button type="button" role="menuitem" aria-checked={!!rulers.visible} disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,toggleRulers)}><MenuIcon icon={Ruler}/><span>{rulers.visible?"Ocultar réguas":"Mostrar réguas"}</span><small>Ctrl/Cmd+Shift+R</small></button>
+          <button type="button" role="menuitem" aria-checked={showBoxes} disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>setShowBoxes(v=>!v))}><MenuIcon icon={SquareDashed}/><span>{showBoxes?"Ocultar caixas delimitadoras":"Mostrar caixas delimitadoras"}</span></button>
+          <button type="button" role="menuitem" aria-checked={showLabels} disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>setShowLabels(v=>!v))}><MenuIcon icon={Tag}/><span>{showLabels?"Ocultar rótulos":"Mostrar rótulos"}</span></button>
+          <button type="button" role="menuitem" aria-checked={wheelMode==="zoom"} onClick={e=>runEditorMenuAction(e,()=>{const next=wheelMode==="zoom"?"pan":"zoom";setWheelMode(next);showStatusNotice(next==="zoom"?"Roda do mouse: zoom no cursor (CAD) · Shift+roda move":"Roda do mouse: rolagem · Ctrl+roda dá zoom",2200)})}><MenuIcon icon={Mouse}/><span>Roda do mouse: {wheelMode==="zoom"?"zoom (CAD)":"rolagem"}</span><small>alternar</small></button>
           <hr/>
-          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("original"))}><span>Original</span></button>
-          <button type="button" role="menuitem" disabled={kind!=="2d"||!res} title={res?undefined:"Disponível após a análise"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("overlay"))}><span>Sobrepor</span></button>
-          <button type="button" role="menuitem" disabled={kind!=="2d"||!res} title={res?undefined:"Disponível após a análise"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("wipe"))}><span>Deslizar</span></button>
-          <button type="button" role="menuitem" disabled={kind!=="2d"||!res} title={res?undefined:"Disponível após a análise"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("side"))}><span>Lado a lado</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("original"))}><MenuIcon icon={ImageIcon}/><span>Original</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"||!res} title={res?undefined:"Disponível após a análise"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("overlay"))}><MenuIcon icon={Layers2}/><span>Sobrepor</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"||!res} title={res?undefined:"Disponível após a análise"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("wipe"))}><MenuIcon icon={FlipHorizontal2}/><span>Deslizar</span></button>
+          <button type="button" role="menuitem" disabled={kind!=="2d"||!res} title={res?undefined:"Disponível após a análise"} onClick={e=>runEditorMenuAction(e,()=>changeComparison("side"))}><MenuIcon icon={Columns2}/><span>Lado a lado</span></button>
         </div></details>
         <details className="editorMenu" name="shm-editor-menu"><summary>Análise</summary><div className="editorMenuPanel editorMenuPanelRight" role="menu">
-          <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onSettings)}><span>Configurações</span><small>Ctrl/Cmd+,</small></button>
-          <button type="button" role="menuitem" disabled={analysisDisabled} onClick={e=>runEditorMenuAction(e,()=>analyzeButton.current?.click())}><span>Executar análise</span><small>Ctrl/Cmd+Enter</small></button>
-          <button type="button" role="menuitem" aria-checked={parityOpen} onClick={e=>runEditorMenuAction(e,()=>setParityOpen(v=>!v))}><span>Paridade CDM (Python ⇄ navegador)</span><small>indicadores</small></button>
+          <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onSettings)}><MenuIcon icon={Settings2}/><span>Configurações</span><small>Ctrl/Cmd+,</small></button>
+          <button type="button" role="menuitem" disabled={analysisDisabled} onClick={e=>runEditorMenuAction(e,()=>analyzeButton.current?.click())}><MenuIcon icon={Play}/><span>Executar análise</span><small>Ctrl/Cmd+Enter</small></button>
+          <button type="button" role="menuitem" aria-checked={parityOpen} onClick={e=>runEditorMenuAction(e,()=>setParityOpen(v=>!v))}><MenuIcon icon={CdmIcon}/><span>Paridade CDM (Python ⇄ navegador)</span><small>indicadores</small></button>
+        </div></details>
+        <details className="editorMenu" name="shm-editor-menu"><summary>Ajuda</summary><div className="editorMenuPanel editorMenuPanelRight" role="menu">
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>onToggleAulas?.())}><MenuIcon icon={CircleHelp}/><span>Ajuda</span><small>F1</small></button>
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,startContextHelp)}><MenuIcon icon={MousePointerClick}/><span>Ajuda por contexto</span><small>Shift+F1</small></button>
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("tip"))}><MenuIcon icon={Lightbulb}/><span>Dica do dia</span></button>
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("about"))}><MenuIcon icon={Info}/><span>Sobre o SHM Studio</span></button>
+          <hr/>
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("palette"))}><MenuIcon icon={Search}/><span>Procurar e executar um comando</span><small>/</small></button>
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("shortcuts"))}><MenuIcon icon={Keyboard}/><span>Atalhos de teclado e mouse</span><small>?</small></button>
+          <hr/>
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>onNavigate?.("engines"))}><MenuIcon icon={Cpu}/><span>Navegador de motores</span></button>
+          <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setParityOpen(true))}><MenuIcon icon={CdmIcon}/><span>Paridade CDM (Python ⇄ navegador)</span></button>
+          <hr/>
+          <div className={"editorSubmenu"+(helpSubmenu==="online"?" open":"")} onMouseEnter={()=>setHelpSubmenu("online")} onMouseLeave={()=>setHelpSubmenu(null)}>
+            <button type="button" role="menuitem" aria-haspopup="menu" aria-expanded={helpSubmenu==="online"} onClick={e=>{e.preventDefault();e.stopPropagation();setHelpSubmenu(v=>v==="online"?null:"online")}}><MenuIcon icon={Globe}/><span>SHM online</span><small aria-hidden="true">›</small></button>
+            {helpSubmenu==="online"&&<div className="editorMenuPanel editorSubmenuPanel editorSubmenuLeft" role="menu" aria-label="SHM online">
+              {HELP_LINKS.map(([label,href])=><a key={href} role="menuitem" className="editorMenuLink" href={href} target="_blank" rel="noreferrer" onClick={e=>e.currentTarget.closest(".editorMenu")?.removeAttribute("open")}><MenuIcon icon={ExternalLink}/><span>{label}</span></a>)}
+            </div>}
+          </div>
+          <a role="menuitem" className="editorMenuLink" href="https://github.com/aaronkadima/SHM/issues/new" target="_blank" rel="noreferrer" onClick={e=>e.currentTarget.closest(".editorMenu")?.removeAttribute("open")}><MenuIcon icon={Bug}/><span>Relatórios de bugs e pedidos de recursos</span></a>
+          <div className={"editorSubmenu"+(helpSubmenu==="manual"?" open":"")} onMouseEnter={()=>setHelpSubmenu("manual")} onMouseLeave={()=>setHelpSubmenu(null)}>
+            <button type="button" role="menuitem" aria-haspopup="menu" aria-expanded={helpSubmenu==="manual"} onClick={e=>{e.preventDefault();e.stopPropagation();setHelpSubmenu(v=>v==="manual"?null:"manual")}}><MenuIcon icon={BookOpen}/><span>Manual do usuário</span><small aria-hidden="true">›</small></button>
+            {helpSubmenu==="manual"&&<div className="editorMenuPanel editorSubmenuPanel editorSubmenuLeft" role="menu" aria-label="Manual do usuário">
+              <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>onToggleAulas?.())}><MenuIcon icon={BookOpen}/><span>Aulas · Trilha Dev SHM</span></button>
+              <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("shortcuts"))}><MenuIcon icon={Keyboard}/><span>Atalhos de teclado e mouse</span></button>
+              <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("tip"))}><MenuIcon icon={Lightbulb}/><span>Dicas do Studio</span></button>
+            </div>}
+          </div>
         </div></details>
       </nav></div>
       <div className="editorFileTitle">{aulasOpen?<span className="editorFileName static">Aulas · Trilha Dev SHM{aulasCrumb?" · "+aulasCrumb:""}</span>:renaming?<input className="editorFileNameInput" autoFocus value={nameDraft} aria-label="Nome do arquivo" onChange={e=>setNameDraft(e.target.value)} onBlur={commitRename} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();commitRename()}else if(e.key==="Escape"){e.preventDefault();setRenaming(false)}}}/>:<button type="button" className="editorFileName" disabled={!file||busy} onClick={startRename} title={file?"Clique para renomear":"Nenhum arquivo"}>{file?.name||"Nova inspeção"}</button>} {!aulasOpen&&<span className="editorEngineState srOnly">{selectedEngineLabels.length===0?"Nenhum motor":selectedEngineLabels.length===1?selectedEngineLabels[0].name+(selectedEngineLabels[0].browser_ready?" · browser local":""):selectedEngineLabels.length+" motores · comparação"}</span>}</div>
@@ -1304,7 +1432,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <span className="editorToolSep" aria-hidden="true"/>
           {[["original",ImageIcon,"Original"],["overlay",Layers2,"Sobrepor (original + detecções)"],["wipe",FlipHorizontal2,"Deslizar"],["side",Columns2,"Lado a lado"]].map(([id,Icon,label])=><button key={id} className={"editorToolMode"+(comparison===id?" active":"")} aria-label={"Visualização: "+label} aria-pressed={comparison===id} title={id!=="original"&&!res?label+" · disponível após a análise":label} disabled={kind!=="2d"||(id!=="original"&&!res)} onClick={()=>changeComparison(id)}><Icon/></button>)}
           <span className="editorToolSep" aria-hidden="true"/>
-          <button className={parityOpen?"active":""} aria-label="Paridade CDM Python ⇄ navegador" aria-pressed={parityOpen} title="Paridade CDM · indicadores e gráficos Python ⇄ navegador" onClick={()=>setParityOpen(v=>!v)}><ChartNoAxesCombined/></button>
+          <button className={parityOpen?"active":""} aria-label="Paridade CDM Python ⇄ navegador" aria-pressed={parityOpen} title="Paridade CDM · indicadores e gráficos Python ⇄ navegador" onClick={()=>setParityOpen(v=>!v)}><CdmIcon/></button>
           <button aria-label="Abrir modo câmera" title="Modo câmera" disabled={busy} onClick={()=>setCameraOpen(true)}><Camera/></button>
           {onLive&&<button className="editorToolLive" aria-label="Abrir Live detecção" title="Live detecção · tempo real com câmera ou vídeo" disabled={busy} onClick={onLive}><Radio/></button>}
         </div>

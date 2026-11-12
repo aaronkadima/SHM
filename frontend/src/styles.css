@@ -1130,3 +1130,72 @@ body:has(.liveCam){overflow:hidden}
 .parityProgress{width:100%;height:6px;border-radius:999px;background:#e6edf0;overflow:hidden}.parityProgress i{display:block;height:100%;background:#0d766e;border-radius:999px;transition:width .3s}
 .parityLink{border:0;background:none;padding:0;margin-left:6px;color:#0d766e;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}.parityLink:disabled{opacity:.45}
 @media(max-width:720px){.parityPanel header{flex-wrap:wrap}.paritySource{order:5;width:100%}.paritySource button{flex:1}}
+
+/* Menus com ícones (coluna fixa à esquerda, como no GIMP) */
+.editorMenuPanel button,.editorMenuPanel .editorMenuLink{justify-content:flex-start}
+.editorMenuPanel button>span:not(.editorRecentThumb):not(.editorRecentText),.editorMenuLink>span{flex:1 1 auto;min-width:0}
+.editorMenuPanel button>small{margin-left:auto;flex:none}
+.editorMenuIcon{display:inline-grid;place-items:center;width:18px;flex:none;color:#5e7782}
+.editorMenuIcon svg{width:15px;height:15px}
+.editorMenuPanel button:disabled .editorMenuIcon{opacity:.55}
+.editorMenuPanel button[aria-checked="true"] .editorMenuIcon{color:#0d766e}
+.editorMenuLink{width:100%;min-height:32px;display:flex;align-items:center;gap:14px;border-radius:6px;padding:7px 9px;color:#38515c;font:500 11px Inter,system-ui,sans-serif;text-decoration:none;box-sizing:border-box}
+.editorMenuLink:hover{background:#eef6f4;color:#0d766e}
+.editorMenuPanelRight .editorSubmenuLeft{left:auto;right:calc(100% + 6px)}
+/* Recentes com miniaturas */
+.editorSubmenuPanel:has(.editorRecentItem){min-width:300px}
+.editorRecentItem{display:grid!important;grid-template-columns:34px minmax(0,1fr) auto;gap:10px!important;min-height:42px!important;padding:5px 9px!important}
+.editorRecentThumb{width:34px;height:34px;border-radius:5px;overflow:hidden;background:#eef3f5;display:grid;place-items:center;color:#8aa0a9;border:1px solid #e1e9ec}
+.editorRecentThumb img{width:100%;height:100%;object-fit:cover;display:block}
+.editorRecentText{display:flex;flex-direction:column;min-width:0;gap:1px}
+.editorRecentText b{font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.editorRecentText small{font-size:9.5px;color:#8a9ba2;font-variant-numeric:tabular-nums}
+.editorRecentItem kbd,.studioPaletteList kbd,.studioShortcuts kbd{font:600 9.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:#6f8590;background:#f2f6f7;border:1px solid #e1e9ec;border-radius:4px;padding:1px 5px;white-space:nowrap}
+/* Ícone CDM na barra lateral */
+.editorToolButtons button svg text{font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+
+/* Diálogos de Ajuda */
+.studioHelpScrim{position:fixed;inset:0;z-index:420;display:grid;place-items:center;padding:20px;background:rgba(20,36,44,.32);backdrop-filter:blur(2px)}
+.studioHelpDialog{width:min(480px,100%);max-height:calc(100vh - 40px);display:flex;flex-direction:column;background:#fff;border:1px solid #dbe4e8;border-radius:12px;box-shadow:0 24px 60px rgba(30,50,60,.28);color:#263e4b;font-size:12.5px;overflow:hidden}
+.studioHelpDialog.palette{width:min(560px,100%);align-self:start;margin-top:10vh}
+.studioHelpDialog.shortcuts{width:min(640px,100%)}
+.studioHelpDialog>header{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 8px 16px;border-bottom:1px solid #e6edf0}
+.studioHelpDialog>header b{font-size:14px}
+.studioHelpDialog>header button{border:0;background:transparent;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#637986;cursor:pointer}
+.studioHelpDialog>header button:hover{background:#eef3f5}
+.studioHelpDialog>footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid #e6edf0;background:#fafcfc}
+.studioHelpDialog>footer small{margin-right:auto;color:#8a9ba2}
+.studioHelpDialog>footer a{margin-right:auto;color:#0d766e;font-weight:600}
+.studioHelpDialog>footer button{display:inline-flex;align-items:center;gap:5px;border:1px solid #dbe4e8;background:#fff;color:#263e4b;border-radius:8px;padding:7px 12px;font:inherit;font-weight:600;cursor:pointer}
+.studioHelpDialog>footer button.primary{background:#0d766e;border-color:#0d766e;color:#fff}
+.studioTip{display:flex;gap:14px;padding:18px 18px 16px}.studioTip>span{flex:none;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:#fff6e0;color:#b47a0b}
+.studioTip b{font-size:14px}.studioTip p{margin:6px 0 0;line-height:1.55;color:#4a6370}
+.studioAbout{display:flex;gap:14px;padding:18px 18px 8px}.studioAboutLogo{flex:none;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:#0d766e;color:#fff;font:800 22px system-ui}
+.studioAbout b{font-size:14.5px}.studioAbout p{margin:5px 0 0;line-height:1.5;color:#4a6370}
+.studioAboutRows{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:6px 18px 16px;font-size:12px}.studioAboutRows dt{color:#7b8f97}.studioAboutRows dd{margin:0;font-weight:600}
+.studioShortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 22px;padding:14px 18px 18px;overflow:auto}
+.studioShortcuts section{display:flex;flex-direction:column;gap:5px}.studioShortcuts section>b{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#7b8f97;margin-bottom:2px}
+.studioShortcuts section>div{display:flex;align-items:baseline;justify-content:space-between;gap:10px}.studioShortcuts span{color:#38515c;text-align:right}
+.studioPaletteSearch{display:flex;align-items:center;gap:8px;margin:12px 14px 8px;padding:8px 11px;border:1px solid #cfdde2;border-radius:9px;color:#6f8590}
+.studioPaletteSearch:focus-within{border-color:#0d766e;box-shadow:0 0 0 3px rgba(13,118,110,.12)}
+.studioPaletteSearch input{flex:1;border:0;outline:0;font:inherit;font-size:13px;color:#263e4b;background:transparent}
+.studioPaletteList{display:flex;flex-direction:column;padding:0 8px 10px;max-height:50vh;overflow:auto}
+.studioPaletteList button{display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:8px;border:0;background:transparent;padding:7px 8px;border-radius:7px;font:inherit;color:#263e4b;text-align:left;cursor:pointer}
+.studioPaletteList button i{display:grid;place-items:center;color:#5e7782}
+.studioPaletteList button span{display:flex;flex-direction:column}.studioPaletteList button small{color:#8a9ba2;font-size:10px}
+.studioPaletteList button.active{background:#e9f4f2}.studioPaletteList button:disabled{opacity:.42;cursor:not-allowed}
+.studioPaletteEmpty{padding:12px;color:#8a9ba2;margin:0}
+/* Ajuda por contexto */
+body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
+.studioContextHelpTip{position:fixed;z-index:430;width:280px;padding:10px 12px;border-radius:10px;background:#1f3540;color:#fff;box-shadow:0 14px 34px rgba(0,0,0,.3);font-size:12px;line-height:1.45}
+.studioContextHelpTip small{display:block;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#9fd8cf}
+.studioContextHelpTip b{display:block;font-size:13px;margin:2px 0}.studioContextHelpTip p{margin:4px 0 0;color:#d5e3e8}
+.studioContextHelpTip button{margin-top:8px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;border-radius:6px;padding:4px 9px;font:inherit;font-size:11px;cursor:pointer}
+/* Imprimir: só o canvas (imagem + detecções visíveis) */
+@media print{
+  body.shmPrinting *{visibility:hidden!important}
+  body.shmPrinting .editorViewport,body.shmPrinting .editorViewport .editorImage,body.shmPrinting .editorViewport .editorImage *{visibility:visible!important}
+  body.shmPrinting .editorViewport{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;background:#fff!important;padding:0!important}
+  body.shmPrinting .editorViewport>*:not(.editorImage){display:none!important}
+  @page{margin:12mm}
+}

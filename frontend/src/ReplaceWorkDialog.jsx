@@ -2,7 +2,8 @@ import React,{useEffect,useRef}from"react";
 import{AlertTriangle,FolderOpen,Save,X}from"lucide-react";
 
 // Pergunta antes de substituir o trabalho aberto por outro arquivo ou inspeção do histórico.
-export default function ReplaceWorkDialog({current,next,analyzed=false,dirty=true,onChoose}){
+export default function ReplaceWorkDialog({current,next,analyzed=false,dirty=true,onChoose,mode="replace"}){
+  const closing=mode==="close";
   const saveRef=useRef(null),dialogRef=useRef(null);
   useEffect(()=>{
     const previous=document.activeElement;saveRef.current?.focus();
@@ -23,13 +24,13 @@ export default function ReplaceWorkDialog({current,next,analyzed=false,dirty=tru
     <div ref={dialogRef} className="replaceDialog" role="alertdialog" aria-modal="true" aria-labelledby="replaceDialogTitle" aria-describedby="replaceDialogText">
       <header><span className={"replaceDialogIcon"+(dirty?" warn":"")}>{dirty?<AlertTriangle size={18}/>:<FolderOpen size={18}/>}</span><b id="replaceDialogTitle">Fechar o trabalho atual?</b><button onClick={()=>onChoose("cancel")} aria-label="Cancelar"><X size={16}/></button></header>
       <div id="replaceDialogText" className="replaceDialogBody">
-        <p>Abrir <b title={next}>{next}</b> vai substituir <b title={current}>{current}</b> no canvas.</p>
+        {closing?<p>Fechar <b title={current}>{current}</b> e limpar o canvas.</p>:<p>Abrir <b title={next}>{next}</b> vai substituir <b title={current}>{current}</b> no canvas.</p>}
         <p className={"replaceDialogStatus"+(dirty?" warn":"")}>{status}</p>
       </div>
       <footer>
         <button onClick={()=>onChoose("cancel")}>Cancelar</button>
-        <button onClick={()=>onChoose("discard")}>{dirty?"Abrir sem salvar":"Abrir"}</button>
-        <button ref={saveRef} className="primary" onClick={()=>onChoose("save")}><Save size={14}/> Salvar e abrir</button>
+        <button onClick={()=>onChoose("discard")}>{closing?(dirty?"Fechar sem salvar":"Fechar"):(dirty?"Abrir sem salvar":"Abrir")}</button>
+        <button ref={saveRef} className="primary" onClick={()=>onChoose("save")}><Save size={14}/> {closing?"Salvar e fechar":"Salvar e abrir"}</button>
       </footer>
     </div>
   </div>;

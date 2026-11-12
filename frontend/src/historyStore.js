@@ -37,9 +37,22 @@ function requestResult(req,message="Falha ao acessar o histórico local."){
 function totalDetections(result){
   return (result?.results||[]).reduce((n,r)=>n+(r.detections?.length||0),0);
 }
+// Miniatura (JPEG ~72 px) para a lista de recentes, como no "Abrir recente" do GIMP.
+const THUMB_SIDE=72;
+export async function makeThumbnail(blob){
+  if(!blob||typeof createImageBitmap!=="function")return null;
+  try{
+    const bmp=await createImageBitmap(blob,{imageOrientation:"from-image"});
+    const k=Math.min(1,THUMB_SIDE/Math.max(bmp.width,bmp.height)),w=Math.max(1,Math.round(bmp.width*k)),h=Math.max(1,Math.round(bmp.height*k));
+    let url=null;
+    if(typeof document!=="undefined"){const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(bmp,0,0,w,h);url=c.toDataURL("image/jpeg",.72)}
+    bmp.close?.();return url;
+  }catch{return null}
+}
 function toSummary(record){
   return {
     id:record.id,
+    thumbnail:record.thumbnail||null,
     created_at:record.created_at,
     updated_at:record.updated_at,
     inspection:record.inspection||{},
@@ -135,8 +148,10 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
     reference_element_id:normalizedReferenceMeta.element_id,
     reference_source_id:normalizedReferenceMeta.source_id
   }:null;
+  const thumbnail=file&&/^image\//.test(file.type||"")?await makeThumbnail(file):null;
   const record={
     id,
+    thumbnail,
     created_at,
     updated_at:now,
     inspection:{...inspection},
@@ -220,6 +235,12 @@ export async function listInspectionSummaries(limit=75){
   await txDone(tx);
   db.close();
   records.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  // inspeções antigas sem miniatura: gera para as 10 mais recentes e grava (uma vez)
+  const missing=records.slice(0,10).filter(row=>!row.thumbnail&&row.image_blob&&/^image\//.test(row.image_blob.type||row.file_meta?.type||""));
+  if(missing.length){
+    for(const row of missing)row.thumbnail=await makeThumbnail(row.image_blob);
+    try{const wdb=await openDb(),wtx=wdb.transaction(STORE,"readwrite"),st=wtx.objectStore(STORE);for(const row of missing)if(row.thumbnail)st.put(row);await txDone(wtx);wdb.close()}catch{}
+  }
   const byId=new Map(records.map(row=>[row.id,row]));
   const selected=new Set(records.slice(0,limit).map(row=>row.id));
   let expanded=true;

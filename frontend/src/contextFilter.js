@@ -12,11 +12,11 @@ export const CONTEXT_MODES={off:"Desligado",conservative:"Conservador",strict:"E
 export const DEFAULT_CONTEXT_SHARE=.6;
 
 // Classes ADE20K (nomes do id2label) — grupos usados pelo filtro.
-const EXCLUDE=["sky","tree","grass","plant","flower","palm","field","earth","land","sand","mountain","hill","dirt track",
+export const DEFAULT_EXCLUDE=["sky","tree","grass","plant","flower","palm","field","earth","land","sand","mountain","hill","dirt track",
   "water","sea","river","lake","waterfall","fountain","swimming pool","person","animal","car","truck","bus","van","boat","ship",
   "airplane","bicycle","minibike","signboard","trade name","poster","painting","flag","streetlight","traffic light","pole",
   "awning","canopy","tent","apparel","bag","ashcan","bulletin board"];
-const STRUCTURE=["wall","building","floor","ceiling","road","sidewalk","path","runway","column","pier","bridge","stairs","stairway",
+export const DEFAULT_STRUCTURE=["wall","building","floor","ceiling","road","sidewalk","path","runway","column","pier","bridge","stairs","stairway",
   "step","railing","bannister","fence","base","tower","skyscraper","house","hovel","grandstand","stage","rock","countertop"];
 // Nomes em português das classes ADE20K mais comuns em inspeção (as demais ficam em inglês).
 export const ADE_PT={wall:"parede",building:"edificação",sky:"céu",floor:"piso",tree:"árvore",ceiling:"teto",road:"pista/via",bed:"cama",
@@ -42,12 +42,24 @@ export const ADE_PT={wall:"parede",building:"edificação",sky:"céu",floor:"pis
 export const ptLabel=name=>ADE_PT[String(name||"").trim()]||String(name||"").trim()||"—";
 const norm=s=>String(s||"").toLowerCase().split(/[,;]/)[0].trim();
 
-export function contextGroups(labels){
+export const ADE_CLASS_NAMES=()=>Object.keys(ADE_PT);
+// Opções do filtro (Configurações › IA de contexto), com padrões seguros.
+export function contextOptionsFrom(o={}){
+  const list=(v,d)=>Array.isArray(v)&&v.length?v.map(norm).filter(Boolean):d;
+  return{
+    exclude:list(o.cdm_context_exclude,DEFAULT_EXCLUDE),structure:list(o.cdm_context_structure,DEFAULT_STRUCTURE),
+    minConfidence:Math.max(0,Math.min(.95,Number(o.cdm_context_min_confidence??.35))),
+    abstain:o.cdm_context_abstain!==false,
+    inputSide:[384,512,768].includes(Number(o.cdm_context_input))?Number(o.cdm_context_input):512,
+    liveEvery:Math.max(1,Math.min(30,Math.round(Number(o.cdm_context_live_every??6))))
+  };
+}
+export function contextGroups(labels,{exclude=DEFAULT_EXCLUDE,structure=DEFAULT_STRUCTURE}={}){
   const entries=Object.entries(labels||{}).map(([k,v])=>[Number(k),norm(v)]).filter(([k])=>Number.isFinite(k));
   const n=entries.reduce((m,[k])=>Math.max(m,k+1),0);
   const group=new Uint8Array(n);// 0 neutro · 1 estrutura · 2 irrelevante
   const names=new Array(n).fill("");
-  for(const[k,name]of entries){names[k]=name;group[k]=STRUCTURE.includes(name)?1:EXCLUDE.includes(name)?2:0}
+  for(const[k,name]of entries){names[k]=name;group[k]=structure.includes(name)?1:exclude.includes(name)?2:0}
   return{group,names};
 }
 
@@ -92,8 +104,8 @@ export async function runContextModel(loaded,img,{inputSide=512}={}){
 }
 
 // Máscara de exclusão (1 = região irrelevante) na resolução do mapa de classes.
-export function exclusionFromClasses(map,labels,mode="conservative",minConfidence=.35){
-  const{group,names}=contextGroups(labels),n=map.w*map.h,excl=new Uint8Array(n),struct=new Uint8Array(n);
+export function exclusionFromClasses(map,labels,mode="conservative",minConfidence=.35,opts={}){
+  const{group,names}=contextGroups(labels,opts),n=map.w*map.h,excl=new Uint8Array(n),struct=new Uint8Array(n);
   const counts=new Map();let excluded=0,structure=0;
   for(let i=0;i<n;i++){
     const c=map.cls[i],g=group[c]??0;
@@ -105,8 +117,8 @@ export function exclusionFromClasses(map,labels,mode="conservative",minConfidenc
   const top=[...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8).map(([c,k])=>({label:names[c]||String(c),label_pt:ptLabel(names[c]),group:["neutro","estrutura","irrelevante"][group[c]??0],share:+(k/n).toFixed(4)}));
   // Segurança: se quase tudo foi julgado irrelevante e quase nada é estrutura (ex.: close-up de
   // textura que o modelo não reconhece), o filtro se abstém em vez de apagar a inspeção.
-  const uncertain=excluded/n>.9&&structure/n<.03;
-  return{mask:excl,structure:struct,cls:map.cls,names,w:map.w,h:map.h,mode,excluded_ratio:+(excluded/n).toFixed(4),structure_ratio:+(structure/n).toFixed(4),top_classes:top,abstained:uncertain};
+  const uncertain=opts.abstain!==false&&excluded/n>.9&&structure/n<.03;
+  return{mask:excl,structure:struct,cls:map.cls,names,groups:{exclude:opts.exclude||DEFAULT_EXCLUDE,structure:opts.structure||DEFAULT_STRUCTURE},w:map.w,h:map.h,mode,excluded_ratio:+(excluded/n).toFixed(4),structure_ratio:+(structure/n).toFixed(4),top_classes:top,abstained:uncertain};
 }
 
 // Remove de uma máscara binária (w×h) os componentes 8-conexos cuja fração dentro da exclusão ≥ share.
@@ -145,8 +157,9 @@ export function gateMasks(masks,w,h,excl,opts={}){
 // Carrega o modelo (sessão em cache, SHA-256 verificado) e devolve a exclusão para uma ImageData.
 export async function contextExclusion(getSession,img,mode,control={}){
   const loaded=await getSession(CONTEXT_ENGINE_ID,control);
-  const map=await runContextModel(loaded,img,{inputSide:Number(control.inputSide||512)});
-  const excl=exclusionFromClasses(map,loaded.manifest.labels,mode);
+  const o=control.contextOptions||contextOptionsFrom({});
+  const map=await runContextModel(loaded,img,{inputSide:o.inputSide});
+  const excl=exclusionFromClasses(map,loaded.manifest.labels,mode,o.minConfidence,o);
   return{...excl,model:loaded.manifest.source_repo||CONTEXT_ENGINE_ID,sha256:loaded.digest||loaded.manifest.sha256||null};
 }
 
@@ -169,7 +182,7 @@ export function sceneOf(mask,w,h,bbox,excl){
 export function sceneObjects(excl,imgW,imgH,{minShare=.004,maxPerClass=4,maxTotal=24}={}){
   if(!excl?.cls||!excl.names)return[];
   const{w,h,cls}=excl,n=w*h,seen=new Uint8Array(n),queue=new Int32Array(n),sx=imgW/w,sy=imgH/h,out=[];
-  const{group}=contextGroups(Object.fromEntries(excl.names.map((v,i)=>[i,v])));
+  const{group}=contextGroups(Object.fromEntries(excl.names.map((v,i)=>[i,v])),excl.groups||{});
   for(let s=0;s<n;s++){
     if(seen[s])continue;const c=cls[s];let head=0,tail=0,minX=w,minY=h,maxX=0,maxY=0,cx=0,cy=0;queue[tail++]=s;seen[s]=1;
     while(head<tail){const p=queue[head++],y=(p/w)|0,x=p-y*w;cx+=x;cy+=y;if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;

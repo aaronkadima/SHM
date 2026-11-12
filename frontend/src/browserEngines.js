@@ -6,9 +6,9 @@ import{getSession,runCrackenPyBrowser,runSegformerBrowser,runUnetCrackBrowser,ru
 import{contextExclusion}from"./contextFilter.js";
 // Filtro de contexto IA para o CDM: o progresso do download do modelo é repassado ao Studio.
 function withContext(control){
-  const contextFilter=(img,mode,{signal,onProgress}={})=>{
+  const contextFilter=(img,mode,{signal,onProgress,contextOptions}={})=>{
     const relay=p=>onProgress?.({...p,completed:Math.min(14,9+Math.round((p.completed||0)/20)),current_engine:"IA de contexto · "+(p.stage==="model_download"?"baixando modelo":"preparando")});
-    return contextExclusion(getSession,img,mode,{...control,signal,onProgress:relay});
+    return contextExclusion(getSession,img,mode,{...control,signal,onProgress:relay,contextOptions});
   };
   return{...control,contextFilter};
 }

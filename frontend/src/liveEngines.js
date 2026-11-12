@@ -100,7 +100,7 @@ function runCdmLive(frame,opts={}){
   }
   // Achados descartados pelo filtro de contexto: caixa cinza com o nome da patologia e da cena.
   let discarded=0;
-  if(removedMasks)for(const cls of CDM_LIVE_CLASSES){
+  if(removedMasks&&opts.cdm_context_show_discarded===true)for(const cls of CDM_LIVE_CLASSES){
     const m=removedMasks[cls.id];if(!m)continue;
     const comp=filteredComponents(m,w,h,{minArea:cfg.minArea,maxItems:12});
     for(const b of comp.boxes){

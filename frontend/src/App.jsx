@@ -26,7 +26,7 @@ const DEFAULT_COMPARATOR="https://shm-api-production-01f8.up.railway.app";
 const DEFAULT_INDIVIDUAL="";
 const VIEWS=["dashboard","live","analysis","aulas","alerts","reports","engines","settings"];
 const EMPTY_INSPECTION={oae_id:"",element_id:"",source_id:"",inspection_label:""};
-const CDM_DEFAULTS={cdm_threshold:35,cdm_kernel_size:15,cdm_min_area:30,cdm_min_aspect_ratio:2,cdm_mm_per_px:0,cdm_element_family:"lajes_vigas_secundarias_apoios",cdm_alignment_method:"translation_auto",cdm_context_filter:"conservative",cdm_context_share:0.6};
+const CDM_DEFAULTS={cdm_threshold:35,cdm_kernel_size:15,cdm_min_area:30,cdm_min_aspect_ratio:2,cdm_mm_per_px:0,cdm_element_family:"lajes_vigas_secundarias_apoios",cdm_alignment_method:"translation_auto",cdm_context_filter:"conservative",cdm_context_share:0.6,cdm_context_min_confidence:0.35,cdm_context_input:512,cdm_context_abstain:true,cdm_context_show_discarded:false,cdm_context_live_every:6,cdm_context_exclude:null,cdm_context_structure:null};
 
 function stored(key,fallback){
   const v=localStorage.getItem(key);

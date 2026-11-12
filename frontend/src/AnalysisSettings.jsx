@@ -2,6 +2,38 @@ import React,{useEffect,useRef,useState} from "react";
 import {ArrowLeft,Check,Code2,Download,ExternalLink,Info,RefreshCw,Settings2,X} from "lucide-react";
 import {engineCodePackage} from "./engineCodeCatalog.js";
 import "./analysis-settings.css";
+import {ADE_CLASS_NAMES,DEFAULT_EXCLUDE,DEFAULT_STRUCTURE,ptLabel} from "./contextFilter.js";
+
+// Configurações › IA de contexto (filtro SegFormer-B0 ADE20K aplicado após a morfologia do CDM).
+const CONTEXT_DEFAULTS={cdm_context_filter:"conservative",cdm_context_share:0.6,cdm_context_min_confidence:0.35,cdm_context_input:512,cdm_context_abstain:true,cdm_context_show_discarded:false,cdm_context_live_every:6,cdm_context_exclude:null,cdm_context_structure:null};
+function ClassChips({title,hint,value,fallback,onChange,disabled}){
+  const list=Array.isArray(value)&&value.length?value:fallback;
+  const avail=ADE_CLASS_NAMES().filter(n=>!list.includes(n)).sort((a,b)=>ptLabel(a).localeCompare(ptLabel(b),"pt"));
+  return <div className={"settingsField contextChips"+(disabled?" disabled":"")}><span>{title}</span><small>{hint}</small>
+    <div className="contextChipList">{list.map(n=><button key={n} type="button" disabled={disabled} title={n+" (ADE20K) · remover"} onClick={()=>onChange(list.filter(x=>x!==n))}>{ptLabel(n)} <b aria-hidden="true">×</b></button>)}</div>
+    <div className="contextChipAdd"><select value="" disabled={disabled} aria-label={"Adicionar a "+title} onChange={e=>{if(e.target.value)onChange([...list,e.target.value])}}><option value="">+ adicionar classe…</option>{avail.map(n=><option key={n} value={n}>{ptLabel(n)} · {n}</option>)}</select>
+      <button type="button" disabled={disabled} onClick={()=>onChange(null)}>Padrão</button></div>
+  </div>;
+}
+function ContextAiCard({cdmOptions,setCdmOptions}){
+  const o={...CONTEXT_DEFAULTS,...cdmOptions},off=(o.cdm_context_filter||"off")==="off";
+  const set=(k,v)=>setCdmOptions(x=>({...x,[k]:v}));
+  return <details className="analysisSettingsCard contextAiCard" open><summary>IA de contexto · filtro de cena</summary>
+    <p>Segmentação semântica por pixel (SegFormer-B0 · ADE20K, 150 classes) executada no navegador. O CDM roda na imagem inteira e, depois, cada achado com a fração mínima da área em região irrelevante é descartado — a IA nunca cria nem altera medidas. Vale para CDM-1, CDM-3 (2D) e Live detecção (CDM-1).</p>
+    <div className="settingsGrid">
+      <label className="settingsField">Modo<select value={o.cdm_context_filter} onChange={e=>set("cdm_context_filter",e.target.value)}><option value="conservative">Conservador · descarta só o que está em classes irrelevantes</option><option value="strict">Estrito · mantém só achados sobre classes de estrutura</option><option value="off">Desligado · só morfologia</option></select></label>
+      <label className="settingsField">Fração mínima em região irrelevante<input type="number" min="0.2" max="1" step="0.05" value={o.cdm_context_share} disabled={off} onChange={e=>set("cdm_context_share",Math.max(.2,Math.min(1,Number(e.target.value)||.6)))}/><small>Achado é descartado se ≥ {Math.round(100*o.cdm_context_share)} % da área cair em região irrelevante.</small></label>
+      <label className="settingsField">Confiança mínima do pixel<input type="range" min="0.1" max="0.9" step="0.05" value={o.cdm_context_min_confidence} disabled={off} onChange={e=>set("cdm_context_min_confidence",Number(e.target.value))}/><small>{Math.round(100*o.cdm_context_min_confidence)} % — pixels com probabilidade menor não contam como irrelevantes.</small></label>
+      <label className="settingsField">Resolução de entrada do modelo<select value={o.cdm_context_input} disabled={off} onChange={e=>set("cdm_context_input",Number(e.target.value))}><option value="384">384 px · mais rápido</option><option value="512">512 px · padrão</option><option value="768">768 px · mais detalhe, mais lento</option></select></label>
+      <label className="settingsField">Live · recalcular a cena a cada<input type="number" min="1" max="30" step="1" value={o.cdm_context_live_every} disabled={off} onChange={e=>set("cdm_context_live_every",Math.max(1,Math.min(30,Math.round(Number(e.target.value)||6))))}/><small>quadros (o mapa de cena muda devagar; valores maiores aliviam o processamento).</small></label>
+      <label className="settingsCheck"><input type="checkbox" checked={o.cdm_context_abstain!==false} disabled={off} onChange={e=>set("cdm_context_abstain",e.target.checked)}/> Abster-se em cenas não reconhecidas <small>(&gt; 90 % irrelevante e &lt; 3 % estrutura, típico de close-ups)</small></label>
+      <label className="settingsCheck"><input type="checkbox" checked={o.cdm_context_show_discarded===true} disabled={off} onChange={e=>set("cdm_context_show_discarded",e.target.checked)}/> Exibir caixas dos achados descartados no canvas e no Live <small>(IA1, IA2… continuam listados em Resultados)</small></label>
+    </div>
+    <ClassChips title="Classes irrelevantes (modo conservador)" hint="Achados sobre estas classes são descartados." value={o.cdm_context_exclude} fallback={DEFAULT_EXCLUDE} disabled={off} onChange={v=>set("cdm_context_exclude",v)}/>
+    <ClassChips title="Classes de estrutura (modo estrito)" hint="No modo estrito, só achados sobre estas classes são mantidos." value={o.cdm_context_structure} fallback={DEFAULT_STRUCTURE} disabled={off} onChange={v=>set("cdm_context_structure",v)}/>
+    <div className="contextAiFoot"><button type="button" onClick={()=>setCdmOptions(x=>({...x,...CONTEXT_DEFAULTS}))}>Restaurar padrões da IA de contexto</button></div>
+  </details>;
+}
 
 export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,cdmOptions,setCdmOptions,embedded=false,rulers={visible:false,unit:"mm"},setRulers=null,error}){
   const ownedEngines=engines.filter(e=>e.catalog_owned===true);
@@ -140,10 +172,9 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
       {selected.includes("cdm_1")&&<details className="analysisSettingsCard"><summary>CDM-1 · Parâmetros morfológicos</summary><p>Valores iniciais da extensão CDM 2.8.5. Na análise individual, o CDM-1 executa localmente no navegador; na comparação com outros motores, o comparador usa os valores iniciais.</p><div className="settingsMeta">
         {[["cdm_threshold","Limiar T",1,255,1],["cdm_kernel_size","Kernel black-hat",3,99,1],["cdm_min_area","Área mínima (px²)",1,1000000,1],["cdm_min_aspect_ratio","Alongamento mínimo",1,50,.1],["cdm_mm_per_px","Calibração (mm/px; 0 = sem escala)",0,1000,.001]].map(([key,label,min,max,step])=><label key={key} className="settingsField">{label}<input type="number" min={min} max={max} step={step} value={cdmOptions[key]} onChange={e=>setCdmOptions(v=>({...v,[key]:Number(e.target.value)}))}/></label>)}
         <label className="settingsField">Tipo de elemento<select value={cdmOptions.cdm_element_family} onChange={e=>setCdmOptions(v=>({...v,cdm_element_family:e.target.value}))}><option value="barreiras_guarda_corpo_pista">Barreiras/pista · Fr=1</option><option value="juntas_dilatacao">Juntas · Fr=2</option><option value="transversinas_cortinas_alas">Transversinas/cortinas · Fr=3</option><option value="lajes_vigas_secundarias_apoios">Lajes/vigas secundárias/apoios · Fr=4</option><option value="vigas_pilares_principais">Vigas/pilares principais · Fr=5</option></select></label>
-        <label className="settingsField">Filtro de contexto IA<select value={cdmOptions.cdm_context_filter||"off"} onChange={e=>setCdmOptions(v=>({...v,cdm_context_filter:e.target.value}))}><option value="conservative">Conservador · descarta achados em céu, vegetação, solo, água, veículos, pessoas, placas e postes</option><option value="strict">Estrito · mantém só achados sobre estrutura (parede, pilar, ponte, piso, teto…)</option><option value="off">Desligado · só morfologia</option></select><small>SegFormer-B0 (ADE20K, 150 classes de cena, ONNX no navegador, ≈ 4–15 MB baixados uma vez). O CDM roda na imagem inteira e, depois, cada componente com ≥ {Math.round(100*Number(cdmOptions.cdm_context_share??.6))} % da área em região irrelevante é descartado — a IA só remove falsos positivos, nunca cria patologia, e as medidas continuam determinísticas. Também vale no Live (mapa de cena a cada 6 quadros). Se o modelo não reconhecer a cena (close-up de textura), o filtro se abstém.</small></label>
-        <label className="settingsField">Fração mínima em região irrelevante<input type="number" min="0.2" max="1" step="0.05" value={cdmOptions.cdm_context_share??0.6} disabled={(cdmOptions.cdm_context_filter||"off")==="off"} onChange={e=>setCdmOptions(v=>({...v,cdm_context_share:Math.max(.2,Math.min(1,Number(e.target.value)||.6))}))}/></label>
         <label className="settingsField">Alinhamento temporal<select value={cdmOptions.cdm_alignment_method||"translation_auto"} onChange={e=>setCdmOptions(v=>({...v,cdm_alignment_method:e.target.value}))}><option value="translation_auto">Automático · translação t0→t1</option><option value="resize">Somente redimensionar</option></select><small>O modo automático corrige translação da câmera antes de medir crescimento/redução e recua para redimensionamento quando não encontra ganho confiável. O CDM-1 também verifica sobreposição, iluminação, nitidez e exposição antes de considerar a mudança temporal válida. Rotação, mudança de escala e perspectiva ainda exigem captura compatível ou revisão externa.</small></label>
       </div></details>}
+      {(selected.includes("cdm_1")||selected.includes("cdm_3"))&&<ContextAiCard cdmOptions={cdmOptions} setCdmOptions={setCdmOptions}/>}
       <RulerScaleCard cdmOptions={cdmOptions} setCdmOptions={setCdmOptions} rulers={rulers} setRulers={setRulers}/>
       <details className="analysisSettingsCard" open={needsIndividual||needsComparator}><summary>Conexão de execução</summary>
         {selected.length===0&&<p>Selecione pelo menos um motor para definir o modo de execução.</p>}

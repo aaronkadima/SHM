@@ -1,4 +1,4 @@
-import{CONTEXT_MODES,DEFAULT_CONTEXT_SHARE,gateMasks,sceneObjects,sceneOf}from"./contextFilter.js";
+import{CONTEXT_MODES,DEFAULT_CONTEXT_SHARE,contextOptionsFrom,gateMasks,sceneObjects,sceneOf}from"./contextFilter.js";
 // Browser-native execution of Concrete Damage Morphology (CDM) 2.8.5.
 // Mirrors the deterministic Python/Inkscape pipeline closely enough to keep the
 // same five pathology families, record geometry contract and t0→t1 semantics.
@@ -827,7 +827,8 @@ export function cdmConfig(options={}){
     elementFamily:options.cdm_element_family||"lajes_vigas_secundarias_apoios",
     alignmentMethod:options.cdm_alignment_method||"translation_auto",
     contextMode:CONTEXT_MODES[options.cdm_context_filter]?options.cdm_context_filter:"off",
-    contextShare:clamp(Number(options.cdm_context_share??DEFAULT_CONTEXT_SHARE),.2,1)
+    contextShare:clamp(Number(options.cdm_context_share??DEFAULT_CONTEXT_SHARE),.2,1),
+    contextOptions:contextOptionsFrom(options)
   };}
 export async function runCdmBrowser(file,options={},previousFile=null,control={}){
   const started=performance.now(),onProgress=control?.onProgress,signal=control?.signal;
@@ -851,9 +852,9 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     const t0=performance.now();
     emitProgress(onProgress,9,"IA de contexto · SegFormer ADE20K","context_filter");
     try{
-      const excl=await control.contextFilter(current,cfg.contextMode,{signal,onProgress});
+      const excl=await control.contextFilter(current,cfg.contextMode,{signal,onProgress,contextOptions:cfg.contextOptions});
       cfg.context={mask:excl.mask,cls:excl.cls,names:excl.names,w:excl.w,h:excl.h,abstained:excl.abstained};
-      contextInfo={status:excl.abstained?"abstained":"ok",mode:cfg.contextMode,share:cfg.contextShare,excluded_ratio:excl.excluded_ratio,structure_ratio:excl.structure_ratio,top_classes:excl.top_classes,model:excl.model||null,model_sha256:excl.sha256||null,map_size:[excl.w,excl.h],method:"semantic_segmentation",method_label:"Segmentação semântica por pixel (SegFormer-B0 · ADE20K, 150 classes)",scene_objects:sceneObjects(excl,current.width,current.height),overlay_png_base64:contextOverlay(current,excl)};
+      contextInfo={status:excl.abstained?"abstained":"ok",mode:cfg.contextMode,share:cfg.contextShare,min_confidence:cfg.contextOptions.minConfidence,input_side:cfg.contextOptions.inputSide,excluded_ratio:excl.excluded_ratio,structure_ratio:excl.structure_ratio,top_classes:excl.top_classes,model:excl.model||null,model_sha256:excl.sha256||null,map_size:[excl.w,excl.h],method:"semantic_segmentation",method_label:"Segmentação semântica por pixel (SegFormer-B0 · ADE20K, 150 classes)",scene_objects:sceneObjects(excl,current.width,current.height),overlay_png_base64:contextOverlay(current,excl)};
     }catch(error){
       if(error?.name==="AbortError"||signal?.aborted)throw abortError();
       contextInfo={status:"unavailable",mode:cfg.contextMode,error:String(error?.message||error)};

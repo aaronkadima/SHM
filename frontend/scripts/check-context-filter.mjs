@@ -1,7 +1,7 @@
 // Filtro de contexto IA do CDM: grupos ADE20K, exclusão por classe, abstenção e descarte de
 // componentes (pós-morfologia). Usa um "modelo" falso com a mesma interface do ONNX Runtime.
 import assert from "node:assert/strict";
-import {contextGroups,exclusionFromClasses,gateMask,gateMasks,runContextModel} from "../src/contextFilter.js";
+import {contextOptionsFrom,contextGroups,exclusionFromClasses,gateMask,gateMasks,runContextModel} from "../src/contextFilter.js";
 import {__cdmTest} from "../src/cdmBrowser.js";
 
 const labels={0:"wall",1:"building",2:"sky",3:"floor",4:"tree",12:"person",20:"car",42:"column",43:"signboard",61:"bridge",93:"pole",34:"rock",27:"mirror"};
@@ -76,4 +76,13 @@ assert.equal(map.input[0]%32,0);assert.equal(map.input[1]%32,0);
 assert.equal(map.w,map.input[0]/4);assert.equal(map.cls[0],0);assert.equal(map.cls[map.w-1],2);
 assert.ok(map.conf[0]>.9);
 
-console.log("Context filter passed: ADE20K groups, conservative/strict/abstain, post-morphology component gating and CDM core integration.");
+// Opções configuráveis: listas próprias, confiança mínima e abstenção desligável.
+const co=contextOptionsFrom({cdm_context_exclude:["wall"],cdm_context_min_confidence:.8,cdm_context_abstain:false,cdm_context_input:999,cdm_context_live_every:0});
+assert.deepEqual(co.exclude,["wall"]);assert.equal(co.minConfidence,.8);assert.equal(co.abstain,false);assert.equal(co.inputSide,512);assert.equal(co.liveEvery,1);
+const custom=exclusionFromClasses({cls,conf,w:mw,h:mh},labels,"conservative",.35,{exclude:["wall"],structure:["bridge"]});
+assert.ok(custom.mask[1]===1&&custom.mask[5]===0,"lista própria: parede vira irrelevante, céu não");
+const noAbstain=exclusionFromClasses({cls:new Uint8Array(mw*mh).fill(2),conf,w:mw,h:mh},labels,"conservative",.35,{abstain:false});
+assert.equal(noAbstain.abstained,false);
+const strictConf=exclusionFromClasses({cls,conf,w:mw,h:mh},labels,"conservative",.95);
+assert.equal(strictConf.excluded_ratio,0,"confiança 0,9 < 0,95 → nada excluído");
+console.log("Context filter passed: options (lists, confidence, abstain), ADE20K groups, conservative/strict/abstain, post-morphology component gating and CDM core integration.");

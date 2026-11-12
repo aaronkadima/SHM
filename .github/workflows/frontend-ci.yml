@@ -99,6 +99,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-live-engines.mjs
 
+      - name: CDM context filter (AI scene gating after morphology)
+        working-directory: frontend
+        run: node scripts/check-context-filter.mjs
+
       - name: Result export
         working-directory: frontend
         run: node scripts/check-result-export.mjs

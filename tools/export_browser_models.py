@@ -5,6 +5,7 @@ Usage:
   python tools/export_browser_models.py --engine yolov8n_public_crack_seg
   python tools/export_browser_models.py --engine unet_public_crack
   python tools/export_browser_models.py --engine segformer_public_crack
+  python tools/export_browser_models.py --engine segformer_ade_context
 """
 import argparse,hashlib,json,shutil,sys
 from pathlib import Path
@@ -34,6 +35,16 @@ SOURCE_META={
         "license":"MIT",
         "input_size":[512,512],
         "postprocess":"segformer-softmax-crack-v1",
+    },
+    # Filtro de contexto do CDM: segmentação de cena ADE20K (150 classes) para descartar
+    # achados em céu, vegetação, solo, veículos, placas etc. Pesos NVIDIA SegFormer-B0.
+    "segformer_ade_context":{
+        "source_repo":"nvidia/segformer-b0-finetuned-ade-512-512",
+        "source_file":"pytorch_model.bin",
+        "license":"NVIDIA Source Code License for SegFormer (uso de pesquisa/não comercial)",
+        "input_size":[512,512],
+        "postprocess":"segformer-ade20k-argmax-context-v1",
+        "role":"context_filter",
     },
 }
 
@@ -83,6 +94,23 @@ def runtime_metadata(engine):
             "threshold":.50,
             "labels":labels,
             "crack_id":crack_id,
+        }
+    if engine=="segformer_ade_context":
+        from transformers import AutoConfig,AutoImageProcessor
+        repo="nvidia/segformer-b0-finetuned-ade-512-512"
+        processor=AutoImageProcessor.from_pretrained(repo)
+        config=AutoConfig.from_pretrained(repo)
+        return {
+            "preprocess":{
+                "resize":{"height":512,"width":512},
+                "rescale_factor":float(getattr(processor,"rescale_factor",1/255)),
+                "image_mean":[float(x) for x in getattr(processor,"image_mean",[.485,.456,.406])],
+                "image_std":[float(x) for x in getattr(processor,"image_std",[.229,.224,.225])],
+                "channel_order":"rgb_chw",
+                "dynamic_hw_multiple":32
+            },
+            "labels":{str(k):str(v) for k,v in (getattr(config,"id2label",{}) or {}).items()},
+            "output_stride":4,
         }
     if engine=="yolov8n_public_crack_seg":
         return {
@@ -148,11 +176,35 @@ def segformer():
         opset_version=17,dynamic_axes={"pixel_values":{0:"batch",2:"height",3:"width"},"logits":{0:"batch",2:"out_height",3:"out_width"}})
     return out
 
+def segformer_ade_context():
+    import numpy as np,torch
+    from transformers import SegformerForSemanticSegmentation
+    model=SegformerForSemanticSegmentation.from_pretrained("nvidia/segformer-b0-finetuned-ade-512-512").eval()
+    class Wrapper(torch.nn.Module):
+        def __init__(self,m):super().__init__();self.m=m
+        def forward(self,pixel_values):return self.m(pixel_values=pixel_values).logits
+    wrapped=Wrapper(model).eval()
+    out=OUTROOT/"segformer_ade_context"/"model.onnx";out.parent.mkdir(parents=True,exist_ok=True)
+    torch.onnx.export(wrapped,torch.randn(1,3,512,512),out,input_names=["pixel_values"],output_names=["logits"],
+        opset_version=17,dynamic_axes={"pixel_values":{0:"batch",2:"height",3:"width"},"logits":{0:"batch",2:"out_height",3:"out_width"}})
+    # Paridade PyTorch ⇄ ONNX em duas resoluções usadas no navegador (análise 512 e Live 256).
+    import onnxruntime as ort
+    sess=ort.InferenceSession(str(out),providers=["CPUExecutionProvider"])
+    rng=np.random.default_rng(12112026)
+    for h,w in ((512,512),(256,384)):
+        x=rng.normal(0,1,size=(1,3,h,w)).astype(np.float32)
+        with torch.no_grad():ref=wrapped(torch.from_numpy(x)).numpy()
+        got=sess.run(None,{"pixel_values":x})[0]
+        agree=float((ref.argmax(1)==got.argmax(1)).mean())
+        print(f"segformer_ade_context parity {h}x{w}: argmax agreement {agree:.4f}, max|diff| {float(np.abs(ref-got).max()):.2e}")
+        if agree<.995:raise SystemExit("ONNX export diverges from PyTorch")
+    return out
+
 def main():
-    choices=["yolov8n_public_crack_seg","unet_public_crack","segformer_public_crack"]
+    choices=["yolov8n_public_crack_seg","unet_public_crack","segformer_public_crack","segformer_ade_context"]
     p=argparse.ArgumentParser();p.add_argument("--engine",required=True,choices=choices)
     a=p.parse_args();OUTROOT.mkdir(parents=True,exist_ok=True)
-    out={"yolov8n_public_crack_seg":yolo,"unet_public_crack":unet,"segformer_public_crack":segformer}[a.engine]()
+    out={"yolov8n_public_crack_seg":yolo,"unet_public_crack":unet,"segformer_public_crack":segformer,"segformer_ade_context":segformer_ade_context}[a.engine]()
     manifest_path,manifest=write_manifest(a.engine,out)
     print(json.dumps({"model":str(out),"manifest":str(manifest_path),"manifest_data":manifest},indent=2,ensure_ascii=False))
 

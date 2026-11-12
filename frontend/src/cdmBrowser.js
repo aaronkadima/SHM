@@ -1,3 +1,4 @@
+import{CONTEXT_MODES,DEFAULT_CONTEXT_SHARE,gateMasks}from"./contextFilter.js";
 // Browser-native execution of Concrete Damage Morphology (CDM) 2.8.5.
 // Mirrors the deterministic Python/Inkscape pipeline closely enough to keep the
 // same five pathology families, record geometry contract and t0→t1 semantics.
@@ -707,7 +708,13 @@ function abortError(){
 function computeCdmCore(current,previous,cfg,onProgress=null){
   const w=current.width,h=current.height,records=[];
   emitProgress(onProgress,15,"CDM-1 · segmentando t1","segment_t1");
-  const masks=detectMasks(current,cfg);
+  let masks=detectMasks(current,cfg),contextFilter=null;
+  // Filtro de contexto IA (opcional): descarta componentes que caem em regiões irrelevantes.
+  if(cfg.context?.mask&&!cfg.context.abstained){
+    const gated=gateMasks(masks,w,h,cfg.context,{share:cfg.contextShare});
+    masks={...masks,...gated.masks};
+    contextFilter={applied:true,removed:gated.removed,removed_total:gated.removed_total};
+  }else if(cfg.context)contextFilter={applied:false,abstained:!!cfg.context.abstained};
   emitProgress(onProgress,35,"CDM-1 · máscaras t1","masks_t1");
   ORDER.forEach((cls,index)=>{
     records.push(...recordsFromMask(masks[cls],w,h,cls,"t1_current",cfg));
@@ -719,7 +726,8 @@ function computeCdmCore(current,previous,cfg,onProgress=null){
     const registration=registerPrevious(current,previous,cfg.alignmentMethod||"translation_auto");
     const quality=temporalQualityAssessment(current,registration.image,registration.metrics);
     emitProgress(onProgress,65,"CDM-1 · segmentando t0 alinhado","segment_t0");
-    const prevMasks=detectMasks(registration.image,cfg);
+    let prevMasks=detectMasks(registration.image,cfg);
+    if(contextFilter?.applied)prevMasks={...prevMasks,...gateMasks(prevMasks,w,h,cfg.context,{share:cfg.contextShare}).masks};
     emitProgress(onProgress,78,"CDM-1 · comparando t0→t1","temporal_compare");
     const change=temporalCompare(masks,prevMasks,w,h,cfg);
     temporal={enabled:true,alignment_method:registration.metrics.method_applied,alignment:registration.metrics,quality,aligned_previous:registration.image,stats:change.stats,records:change.records};
@@ -729,7 +737,7 @@ function computeCdmCore(current,previous,cfg,onProgress=null){
   const resultSummary=summary(records,cfg,w*h);
   emitProgress(onProgress,96,"CDM-1 · finalizando núcleo","core_complete");
   return {
-    width:w,height:h,records,temporal,summary:resultSummary,
+    width:w,height:h,records,temporal,summary:resultSummary,context_filter:contextFilter,
     protocol:{stages:["base_image","family_response","candidate_mask","open_close_mask","connected_components"],version:"unified_five_stage_v285_browser"}
   };
 }
@@ -767,6 +775,20 @@ function runCoreWorker(current,previous,cfg,{signal,onProgress}={}){
     worker.postMessage(payload,transfer);
   });
 }
+// Mapa do filtro de contexto sobre a imagem: vermelho = irrelevante (descartado), verde = estrutura.
+function contextOverlay(img,excl){
+  try{
+    const W=Math.min(img.width,800),H=Math.max(1,Math.round(img.height*W/img.width));
+    const c=document.createElement("canvas");c.width=W;c.height=H;const ctx=c.getContext("2d");
+    const src=document.createElement("canvas");src.width=img.width;src.height=img.height;
+    src.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(img.data),img.width,img.height),0,0);
+    ctx.drawImage(src,0,0,W,H);
+    const m=document.createElement("canvas");m.width=excl.w;m.height=excl.h;const mctx=m.getContext("2d"),md=mctx.createImageData(excl.w,excl.h);
+    for(let i=0;i<excl.mask.length;i++){const p=i*4;if(excl.mask[i]){md.data[p]=230;md.data[p+1]=40;md.data[p+2]=40;md.data[p+3]=125}else if(excl.structure?.[i]){md.data[p]=13;md.data[p+1]=150;md.data[p+2]=110;md.data[p+3]=70}}
+    mctx.putImageData(md,0,0);ctx.imageSmoothingEnabled=false;ctx.drawImage(m,0,0,W,H);
+    return c.toDataURL("image/jpeg",.85).split(",")[1];
+  }catch{return null}
+}
 function imageDataToPngB64(imageData){
   const c=document.createElement("canvas");c.width=imageData.width;c.height=imageData.height;
   const ctx=c.getContext("2d");
@@ -788,7 +810,9 @@ export function cdmConfig(options={}){
     minAspect:clamp(Number(options.cdm_min_aspect_ratio??2),1,50),
     mmPerPx:Math.max(0,Number(options.cdm_mm_per_px??0)),
     elementFamily:options.cdm_element_family||"lajes_vigas_secundarias_apoios",
-    alignmentMethod:options.cdm_alignment_method||"translation_auto"
+    alignmentMethod:options.cdm_alignment_method||"translation_auto",
+    contextMode:CONTEXT_MODES[options.cdm_context_filter]?options.cdm_context_filter:"off",
+    contextShare:clamp(Number(options.cdm_context_share??DEFAULT_CONTEXT_SHARE),.2,1)
   };}
 export async function runCdmBrowser(file,options={},previousFile=null,control={}){
   const started=performance.now(),onProgress=control?.onProgress,signal=control?.signal;
@@ -806,6 +830,21 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     if(signal?.aborted)throw abortError();
   }
   let decodeMs=performance.now()-decodeStarted,core,coreStarted=performance.now();
+  // IA de contexto antes do núcleo (o buffer da imagem é transferido ao worker em seguida).
+  let contextInfo=null,contextMs=0;
+  if(cfg.contextMode!=="off"&&typeof control?.contextFilter==="function"){
+    const t0=performance.now();
+    emitProgress(onProgress,9,"IA de contexto · SegFormer ADE20K","context_filter");
+    try{
+      const excl=await control.contextFilter(current,cfg.contextMode,{signal,onProgress});
+      cfg.context={mask:excl.mask,w:excl.w,h:excl.h,abstained:excl.abstained};
+      contextInfo={status:excl.abstained?"abstained":"ok",mode:cfg.contextMode,share:cfg.contextShare,excluded_ratio:excl.excluded_ratio,structure_ratio:excl.structure_ratio,top_classes:excl.top_classes,model:excl.model||null,model_sha256:excl.sha256||null,map_size:[excl.w,excl.h],overlay_png_base64:contextOverlay(current,excl)};
+    }catch(error){
+      if(error?.name==="AbortError"||signal?.aborted)throw abortError();
+      contextInfo={status:"unavailable",mode:cfg.contextMode,error:String(error?.message||error)};
+    }
+    contextMs=performance.now()-t0;coreStarted=performance.now();
+  }
   try{
     core=await runCoreWorker(current,previous,cfg,{signal,onProgress});
   }catch(workerError){
@@ -863,12 +902,13 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     overlay_png_base64:composite.toDataURL("image/png").split(",")[1],
     metrics:{
       implementation:"CDM 2.10 browser parity (fissuras contínuas por esqueleto; famílias separadas)",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,
-      performance_ms:{decode:decodeMs,core:coreMs,render:renderMs,total:totalMs},
+      performance_ms:{decode:decodeMs,context:contextMs,core:coreMs,render:renderMs,total:totalMs},
+      context_filter:contextInfo?{...contextInfo,...(core.context_filter||{})}:null,
       overlay_semantics:"transparent_layers",
       geometry_units:"processed_pixels",processed_width:w,processed_height:h,mm_per_px:cfg.mmPerPx||null,
       layers,summary:core.summary,records,temporal,protocol:core.protocol
     },
-    message:"CDM-1 executado integralmente no navegador; nenhum dado foi enviado ao Railway. Resultados morfológicos preliminares e confiança não calibrada."
+    message:"CDM-1 executado integralmente no navegador; nenhum dado foi enviado ao Railway. Resultados morfológicos preliminares e confiança não calibrada."+(contextInfo?(contextInfo.status==="ok"?" Filtro de contexto IA ("+(contextInfo.mode==="strict"?"estrito":"conservador")+"): "+(core.context_filter?.removed_total||0)+" componentes descartados em regiões irrelevantes.":contextInfo.status==="abstained"?" Filtro de contexto IA: cena não reconhecida, filtro absteve-se.":" Filtro de contexto IA indisponível ("+contextInfo.error+"); resultado só morfológico."):"")
   };
   return {image_width:w,image_height:h,results:[engine],consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,metadata:{analysis_id:"browser-cdm-"+crypto.randomUUID(),api_version:"browser-1.5",generated_at:new Date().toISOString(),mode:"individual",engine_ids:["cdm_1"],implementation:"cdm-2.8.5-browser-parity-worker"}};
 }

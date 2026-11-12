@@ -2,7 +2,16 @@ import{runCdmBrowser}from"./cdmBrowser.js";
 import{runCdm3SpatialBrowser}from"./cdm3SpatialBrowser.js";
 import{spatialExtension}from"./spatialAsset.js";
 import{opencvCrackCore}from"./opencvCore.js";
-import{runCrackenPyBrowser,runSegformerBrowser,runUnetCrackBrowser,runYolov8nCrackSegBrowser}from"./onnxBrowser.js";
+import{getSession,runCrackenPyBrowser,runSegformerBrowser,runUnetCrackBrowser,runYolov8nCrackSegBrowser}from"./onnxBrowser.js";
+import{contextExclusion}from"./contextFilter.js";
+// Filtro de contexto IA para o CDM: o progresso do download do modelo é repassado ao Studio.
+function withContext(control){
+  const contextFilter=(img,mode,{signal,onProgress}={})=>{
+    const relay=p=>onProgress?.({...p,completed:Math.min(14,9+Math.round((p.completed||0)/20)),current_engine:"IA de contexto · "+(p.stage==="model_download"?"baixando modelo":"preparando")});
+    return contextExclusion(getSession,img,mode,{...control,signal,onProgress:relay});
+  };
+  return{...control,contextFilter};
+}
 function canvasB64(canvas){return canvas.toDataURL("image/png").split(",")[1]}
 
 async function runOpenCVBaseline(file){
@@ -33,10 +42,10 @@ async function runOpenCVBaseline(file){
 export function browserEngineSupported(engineId){return engineId==="opencv_crack"||engineId==="cdm_1"||engineId==="cdm_3"||engineId==="segformer_public_crack"||engineId==="yolov8n_public_crack_seg"||engineId==="unet_public_crack"||engineId==="crackenpy_public_crack"}
 export async function runBrowserEngine(engineId,file,options={},previousFile=null,control={}){
   if(engineId==="opencv_crack")return runOpenCVBaseline(file);
-  if(engineId==="cdm_1")return runCdmBrowser(file,options,previousFile,control);
+  if(engineId==="cdm_1")return runCdmBrowser(file,options,previousFile,withContext(control));
   if(engineId==="cdm_3"){
     if(spatialExtension(file))return runCdm3SpatialBrowser(file,{...control,rgbReferenceFile:options?.rgbReferenceFile||null});
-    const payload=await runCdmBrowser(file,options,null,control);
+    const payload=await runCdmBrowser(file,options,null,withContext(control));
     const result=payload.results?.[0];
     if(result){
       result.engine_id="cdm_3";

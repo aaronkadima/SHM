@@ -4,6 +4,7 @@
 // em coordenadas normalizadas do quadro — nada de PNG/base64 por quadro.
 import{opencvCrackCore}from"./opencvCore.js";
 import{__cdmTest}from"./cdmBrowser.js";
+import{gateMasks}from"./contextFilter.js";
 
 export const LIVE_ENGINES={
   cdm_1:{name:"CDM-1",kind:"classical",note:"5 famílias de patologia (fissura, desplacamento, armadura, corrosão, eflorescência)"},
@@ -87,7 +88,8 @@ function runCdmLive(frame,opts={}){
     minArea:Math.max(4,Math.round(Number(opts.cdm_min_area??30)*scale*scale)),
     minAspect:clamp(Number(opts.cdm_min_aspect_ratio??2),1,50)
   };
-  const masks=__cdmTest.detectMasks(frame,cfg),layers=[],boxes=[],counts={};let total=0;
+  let masks=__cdmTest.detectMasks(frame,cfg),contextRemoved=0;const layers=[],boxes=[],counts={};let total=0;
+  if(opts.contextExclusion&&!opts.contextExclusion.abstained){const g=gateMasks(masks,w,h,opts.contextExclusion,{share:Number(opts.cdm_context_share??.6)});masks={...masks,...g.masks};contextRemoved=g.removed_total}
   for(const cls of CDM_LIVE_CLASSES){
     const minAspect=cls.id==="cracks"?cfg.minAspect:cls.id==="exposed_rebar"?Math.max(2,cfg.minAspect):0;
     const comp=filteredComponents(masks[cls.id],w,h,{minArea:cfg.minArea,minAspect,maxItems:40});
@@ -95,7 +97,7 @@ function runCdmLive(frame,opts={}){
     counts[cls.label]=comp.count;total+=comp.count;
     for(const b of comp.boxes)boxes.push({...b,label:cls.label,score:null,color:cls.color});
   }
-  return{layers,boxes,counts,metrics:{cdm_live_cfg:cfg,total_records:total,processed:[w,h]}};
+  return{layers,boxes,counts,metrics:{cdm_live_cfg:cfg,total_records:total,processed:[w,h],context_removed:contextRemoved}};
 }
 
 function softmaxMask(out,crackId,threshold,requireArgmax=true,withProb=false){

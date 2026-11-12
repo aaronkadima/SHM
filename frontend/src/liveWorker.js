@@ -3,7 +3,24 @@
 import{getSession}from"./onnxBrowser.js";
 import{LIVE_ENGINES,liveInputSpec,runLiveEngine}from"./liveEngines.js";
 
+import{CONTEXT_ENGINE_ID,CONTEXT_MODES,exclusionFromClasses,runContextModel}from"./contextFilter.js";
+
 const sessions=new Map();
+// Filtro de contexto IA no Live: o mapa de cena muda devagar, então é recalculado a cada N quadros.
+const CONTEXT_EVERY=6;
+const ctxState={loaded:null,pending:null,failed:null,excl:null,frame:0,mode:null};
+async function contextFor(frame,mode,control){
+  if(ctxState.failed)return{excl:null,status:"unavailable",error:ctxState.failed};
+  if(!ctxState.loaded){
+    if(!ctxState.pending)ctxState.pending=getSession(CONTEXT_ENGINE_ID,control).then(l=>ctxState.loaded=l).catch(e=>{ctxState.failed=String(e?.message||e)});
+    await ctxState.pending;if(!ctxState.loaded)return{excl:null,status:"unavailable",error:ctxState.failed};
+  }
+  if(!ctxState.excl||ctxState.mode!==mode||ctxState.frame++%CONTEXT_EVERY===0){
+    const map=await runContextModel(ctxState.loaded,frame,{inputSide:256});
+    ctxState.excl=exclusionFromClasses(map,ctxState.loaded.manifest.labels,mode);ctxState.mode=mode;
+  }
+  return{excl:ctxState.excl,status:ctxState.excl.abstained?"abstained":"ok"};
+}
 
 async function ensureEngine(engineId,control,onProgress){
   const spec=LIVE_ENGINES[engineId];
@@ -31,7 +48,10 @@ self.onmessage=async e=>{
     try{
       const{loaded}=await ensureEngine(msg.engineId,msg.control||{},null);
       const frame={width:msg.width,height:msg.height,data:new Uint8ClampedArray(msg.buffer)};
-      const result=await runLiveEngine(msg.engineId,frame,{loaded,letterbox:msg.letterbox,opts:msg.opts||{}});
+      const opts=msg.opts||{},mode=CONTEXT_MODES[opts.cdm_context_filter]&&opts.cdm_context_filter!=="off"?opts.cdm_context_filter:null;
+      const context=mode&&msg.engineId==="cdm_1"?await contextFor(frame,mode,msg.control||{}):null;
+      const result=await runLiveEngine(msg.engineId,frame,{loaded,letterbox:msg.letterbox,opts:{...opts,contextExclusion:context?.excl||null}});
+      if(context)result.metrics={...(result.metrics||{}),context_filter:{status:context.status,mode,excluded_ratio:context.excl?.excluded_ratio??null,error:context.error||null}};
       const transfer=result.layers.map(l=>l.mask.buffer);
       self.postMessage({type:"result",seq:msg.seq,engineId:msg.engineId,latency_ms:performance.now()-started,...result},transfer);
     }catch(error){self.postMessage({type:"error",seq:msg.seq,engineId:msg.engineId,stage:"frame",error:String(error?.message||error)})}

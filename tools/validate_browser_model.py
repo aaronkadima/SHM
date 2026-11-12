@@ -10,6 +10,7 @@ DEFAULT_SHAPES={
     "yolov8n_public_crack_seg":[1,3,640,640],
     "unet_public_crack":[1,3,256,256],
     "segformer_public_crack":[1,3,512,512],
+    "segformer_ade_context":[1,3,512,512],
 }
 
 def sha256(path:Path):

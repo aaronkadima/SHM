@@ -144,6 +144,8 @@ export async function computeEngineStages(engineId,file,{options={},control={},r
   else if(engineId==="cdm_1"||engineId==="cdm_3")stages=await cdmStages(file,options);
   else if(STAGE_ENGINES.has(engineId))stages=await onnxStages(engineId,file,control);
   else return[];
+  const ctxf=result?.metrics?.context_filter;
+  if(ctxf?.overlay_png_base64)stages.push(stage("context_filter",stages.length+1+" · Filtro de contexto IA","SegFormer-B0 ADE20K ("+(ctxf.mode==="strict"?"estrito":"conservador")+"): vermelho = região irrelevante ("+(100*ctxf.excluded_ratio).toFixed(1)+"%), verde = estrutura. "+(ctxf.status==="abstained"?"Cena não reconhecida: filtro absteve-se.":(ctxf.removed_total??0)+" componentes descartados.")+" Cena: "+(ctxf.top_classes||[]).slice(0,3).map(c=>c.label+" "+Math.round(100*c.share)+"%").join(", ")+".","data:image/jpeg;base64,"+ctxf.overlay_png_base64));
   if(result?.overlay_png_base64)stages.push(stage("result",stages.length+1+" · Resultado do motor","Saída oficial exibida no canvas e usada nas exportações.","data:image/png;base64,"+result.overlay_png_base64,{transparent:result.metrics?.overlay_semantics==="transparent_layers"}));
   return finalize(stages);
 }

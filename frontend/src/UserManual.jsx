@@ -158,6 +158,10 @@ function chapters(shortcuts){
     <Eq n={e()}>{"A_{min,cls} = \\max\\left(A_{min},\\; 0.0005 \\cdot A_{img},\\; 0.08 \\cdot A_{maior,cls}\\right)"}</Eq>
     <p>Achados abaixo desse limite são descartados como irrelevantes; uma caixa com ≥ 80 % de sua área dentro de outra maior da mesma classe é absorvida (as áreas são somadas), evitando caixas repetidas.</p>
     <FigConsolidation n={f()}/>
+    <h3>Filtro de contexto IA</h3>
+    <p>Opcional (Configurações › CDM-1). Um SegFormer-B0 treinado no ADE20K (150 classes de cena) roda no navegador e classifica cada região da foto. O CDM continua rodando na imagem inteira; <b>depois</b>, cada componente <M>{"K"}</M> é descartado se a fração de sua área sobre regiões irrelevantes <M>{"X"}</M> (céu, vegetação, solo, água, veículos, pessoas, placas, postes; no modo estrito, tudo que não for estrutura) atingir o limiar <M>{"\\tau"}</M> (padrão 0,6):</p>
+    <Eq n={e()}>{"\\text{descarta } K \\iff \\frac{|K \\cap X|}{|K|} \\ge \\tau"}</Eq>
+    <p>A IA só remove falsos positivos: não cria achados nem altera medidas, e a paridade JS ⇄ Python do CDM é preservada. Se a cena não for reconhecida (mais de 90 % irrelevante e menos de 3 % de estrutura, típico de close-ups), o filtro se abstém. A etapa “Filtro de contexto IA” mostra o mapa usado (vermelho = irrelevante, verde = estrutura).</p>
     <h3>Painel Resultados</h3>
     <ul>
       <li>Linha por patologia com o número de achados antes do total (área ou comprimento).</li>

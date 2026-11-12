@@ -13,6 +13,7 @@ on:
           - yolov8n_public_crack_seg
           - unet_public_crack
           - segformer_public_crack
+          - segformer_ade_context
   push:
     branches: ["main","dev"]
     paths:
@@ -61,7 +62,7 @@ jobs:
         shell: bash
         run: |
           if [ "$REQUESTED_ENGINE" = "all" ]; then
-            ENGINES="yolov8n_public_crack_seg unet_public_crack segformer_public_crack"
+            ENGINES="yolov8n_public_crack_seg unet_public_crack segformer_public_crack segformer_ade_context"
           else
             ENGINES="$REQUESTED_ENGINE"
           fi

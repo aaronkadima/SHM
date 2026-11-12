@@ -1163,8 +1163,45 @@ def detect_masks(rgb: np.ndarray, cfg: DetectorConfig, profiler: Optional[Perfor
         masks["exposed_rebar"] = cleaned
         pipeline["exposed_rebar"] = {"base_kind": "spalling_context", "response_label": "Contextual rebar response Rᵣₑ|ₛₚ", "candidate_label": "M_0 = M_sp AND (dark OR low-saturation-dark)", "rule": "candidate restricted to spalling; elongation filter after connected components", "response": response, "raw_mask": candidate, "open_mask": opened, "clean_mask": cleaned, "spalling_context": spalling_mask, "local_threshold": local_thresh}
 
+    separate_families(masks, pipeline)
     pipeline["masks"] = masks
     return masks, pipeline
+
+
+# Separação hierárquica das famílias (CDM 2.10). Mesma regra em frontend/src/cdmBrowser.js
+# (separateFamilies); paridade testada em CI.
+#  · Corrosão (regra de cor) nunca é fissura: pixels de corrosão saem da máscara de fissuras.
+#  · Componente de desplacamento coberto ≥ 60% por corrosão é a própria mancha de ferrugem: os
+#    pixels de corrosão (e a armadura nesse componente) saem; a sobra passa por abertura 5×5.
+#  · Nos demais componentes, corrosão e armadura ficam aninhadas no desplacamento real.
+# A armadura é detectada antes, sobre o desplacamento completo (contexto preservado).
+FAMILY_RUST_SHARE = 0.6
+
+
+def separate_families(masks: Dict[str, np.ndarray], pipeline: Dict[str, object]) -> None:
+    rust = masks.get("corrosion_rust")
+    if rust is None or not np.any(rust):
+        return
+    rust = rust.astype(bool)
+    if "cracks" in masks:
+        masks["cracks"] = masks["cracks"].astype(bool) & ~rust
+    spalling = masks.get("spalling_dark")
+    if spalling is None or not np.any(spalling):
+        return
+    spalling = spalling.astype(bool)
+    affected = np.zeros_like(spalling)
+    for pts in connected_components(spalling, 1):
+        xs = pts[:, 0].astype(int)
+        ys = pts[:, 1].astype(int)
+        if int(rust[ys, xs].sum()) >= FAMILY_RUST_SHARE * len(pts):
+            affected[ys, xs] = True
+    if not np.any(affected):
+        return
+    remainder = open_bool(affected & ~rust, 5)
+    masks["spalling_dark"] = (spalling & ~affected) | remainder
+    if "exposed_rebar" in masks:
+        masks["exposed_rebar"] = masks["exposed_rebar"].astype(bool) & ~affected
+    pipeline["family_separation"] = {"rule": "hierarchical_rust_v1", "rust_share": FAMILY_RUST_SHARE, "affected_px": int(affected.sum())}
 
 CLASS_PIPELINE_COLORS = {
     "cracks": (197, 71, 59),

@@ -12,7 +12,7 @@ const [casesPath,outPath]=process.argv.slice(2);
 if(!casesPath||!outPath)throw new Error("usage: node scripts/build-cdm-parity-report.mjs CASES.json OUT.json");
 const input=JSON.parse(fs.readFileSync(casesPath,"utf8"));
 const cfg=input.config,CLASSES=input.classes;
-const MASK_STAGES=[["raw_mask","raw","Máscara candidata"],["open_mask","open","Abertura / reconstrução"],["clean_mask","clean","Máscara final"]];
+const MASK_STAGES=[["raw_mask","raw","Máscara candidata"],["open_mask","open","Abertura / reconstrução"],["clean_mask","clean","Abertura + fechamento"]];
 
 // Tolerâncias (tabela do CI). Valores determinísticos: máscaras, reconstrução e esqueleto devem coincidir.
 const TOL={gray_linf:1,response_linf:1,raw_pmr:.0001,open_pmr:0,clean_iou:.9999,skeleton_nodes:0,dcc:0,measure_rel:.01};
@@ -96,7 +96,9 @@ for(const c of input.cases){
       if(pyKey==="open_mask")agg.open_pmr=Math.max(agg.open_pmr,m.pmr);
       if(pyKey==="clean_mask"){agg.clean_iou=Math.min(agg.clean_iou,m.iou);agg.clean_pmr=Math.max(agg.clean_pmr,m.pmr)}
     }
-    const pm=fromIndices(p.clean_mask,n);pyClean[cls]=pm;
+    // separação das famílias (máscara entregue ao usuário)
+    const pm=fromIndices(p.final_mask||p.clean_mask,n);pyClean[cls]=pm;
+    {const m=maskCompare(jsMasks[cls],pm);row.stages.final_mask={iou:round(m.iou),pmr:round(m.pmr,8),js:m.js,py:m.py};bump(cls,"final_mask","iou",m.iou,Math.min);bump(cls,"final_mask","pmr",m.pmr,Math.max);agg.clean_iou=Math.min(agg.clean_iou,m.iou);agg.clean_pmr=Math.max(agg.clean_pmr,m.pmr)}
     const cc={js:components(jsMasks[cls],w,h),py:components(pm,w,h)};row.cc=cc;agg.dcc+=Math.abs(cc.js-cc.py);
     // registros vetorizados de cada motor (sobre a sua própria máscara final)
     const jsRec=__cdmTest.recordsFromMask(jsMasks[cls],w,h,cls,"t1_current",cfg),pyRec=p.records;
@@ -126,7 +128,7 @@ const tolerances=[
   {id:"response_linf",label:"Resposta morfológica (L∞)",value:agg.response_linf,limit:TOL.response_linf,unit:"níveis",rule:"≤",pass:agg.response_linf<=TOL.response_linf},
   {id:"raw_pmr",label:"Máscara candidata (PMR)",value:agg.raw_pmr,limit:TOL.raw_pmr,unit:"%",rule:"≤",pass:agg.raw_pmr<=TOL.raw_pmr},
   {id:"open_pmr",label:"Abertura / reconstrução (PMR)",value:agg.open_pmr,limit:TOL.open_pmr,unit:"%",rule:"=",pass:agg.open_pmr<=TOL.open_pmr},
-  {id:"clean_iou",label:"Máscara final (IoU cruzado)",value:agg.clean_iou,limit:TOL.clean_iou,unit:"",rule:"≥",pass:agg.clean_iou>=TOL.clean_iou},
+  {id:"clean_iou",label:"Máscaras limpa e final (IoU cruzado)",value:agg.clean_iou,limit:TOL.clean_iou,unit:"",rule:"≥",pass:agg.clean_iou>=TOL.clean_iou},
   {id:"dcc",label:"Componentes conectados (Σ|ΔCC|)",value:agg.dcc,limit:TOL.dcc,unit:"",rule:"=",pass:agg.dcc<=TOL.dcc},
   {id:"skeleton_nodes",label:"Esqueleto: extremidades + bifurcações (Δ)",value:agg.skeleton_nodes,limit:TOL.skeleton_nodes,unit:"",rule:"=",pass:agg.skeleton_nodes<=TOL.skeleton_nodes},
   {id:"measure_rel",label:"Medidas físicas (erro relativo máx.)",value:agg.measure_rel,limit:TOL.measure_rel,unit:"%",rule:"≤",pass:agg.measure_rel<=TOL.measure_rel},
@@ -141,7 +143,7 @@ const report={
   branch:process.env.PARITY_BRANCH||git("git rev-parse --abbrev-ref HEAD"),
   runtimes:{python:input.python,node:process.version,javascript:"frontend/src/cdmBrowser.js"},
   config:cfg,classes:CLASSES,
-  stages:[["gray","Cinza"],["response","Resposta"],["raw_mask","Candidata"],["open_mask","Abertura"],["clean_mask","Máscara final"],["skeleton","Esqueleto"]],
+  stages:[["gray","Cinza"],["response","Resposta"],["raw_mask","Candidata"],["open_mask","Abertura"],["clean_mask","Limpeza"],["final_mask","Separação"],["skeleton","Esqueleto"]],
   status,tolerances,
   summary:{cases:cases.length,pixels:cases.reduce((s,c)=>s+c.width*c.height,0),...Object.fromEntries(Object.entries(agg).map(([k,v])=>[k,round(v,8)]))},
   cascade:Object.fromEntries(Object.entries(cascade).map(([cls,st])=>[cls,Object.fromEntries(Object.entries(st).map(([k,v])=>[k,{iou:round(v.iou??1,8),pmr:round(v.pmr??0,10),linf:v.linf==null?null:round(v.linf,6)}]))])),

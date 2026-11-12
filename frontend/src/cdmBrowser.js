@@ -272,6 +272,33 @@ function blackhat(gray,w,h,k){
   for(let i=0;i<out.length;i++)out[i]=clamp(closed[i]-gray[i],0,255);
   return out;
 }
+// Separação hierárquica das famílias (CDM 2.10). Mesma regra em backend/app/cdm_v285.py
+// (separate_families); paridade testada em CI.
+//  · Corrosão (regra de cor) nunca é fissura: pixels de corrosão saem da máscara de fissuras.
+//  · Componente de desplacamento coberto ≥ 60% por corrosão é a própria mancha de ferrugem: os
+//    pixels de corrosão (e a armadura nesse componente) saem; a sobra passa por abertura 5×5.
+//  · Nos demais componentes, corrosão e armadura ficam aninhadas no desplacamento real.
+const FAMILY_RUST_SHARE=.6;
+function separateFamilies(masks,w,h){
+  const rust=masks.corrosion_rust,n=w*h;
+  if(!rust||!rust.some(v=>v))return;
+  // cópias: as máscaras finais não compartilham memória com as etapas rastreadas
+  if(masks.cracks){const c=new Uint8Array(masks.cracks);for(let i=0;i<n;i++)if(rust[i])c[i]=0;masks.cracks=c}
+  const sp=masks.spalling_dark;if(!sp||!sp.some(v=>v))return;
+  const affected=new Uint8Array(n),seen=new Uint8Array(n),queue=new Int32Array(n);let any=false;
+  for(let s=0;s<n;s++){
+    if(!sp[s]||seen[s])continue;let head=0,tail=0,rustCount=0;queue[tail++]=s;seen[s]=1;
+    while(head<tail){const p=queue[head++],y=(p/w)|0,x=p-y*w;if(rust[p])rustCount++;
+      for(let ny=Math.max(0,y-1);ny<=Math.min(h-1,y+1);ny++)for(let nx=Math.max(0,x-1);nx<=Math.min(w-1,x+1);nx++){const q=ny*w+nx;if(sp[q]&&!seen[q]){seen[q]=1;queue[tail++]=q}}}
+    if(rustCount>=FAMILY_RUST_SHARE*tail){any=true;for(let k=0;k<tail;k++)affected[queue[k]]=1}
+  }
+  if(!any)return;
+  const rem=new Uint8Array(n);for(let i=0;i<n;i++)rem[i]=affected[i]&&!rust[i]?1:0;
+  const remOpen=filterMask(filterMask(rem,w,h,5,false),w,h,5,true),out=new Uint8Array(n);
+  for(let i=0;i<n;i++)out[i]=(sp[i]&&!affected[i])||remOpen[i]?1:0;
+  masks.spalling_dark=out;
+  if(masks.exposed_rebar){const r=new Uint8Array(masks.exposed_rebar);for(let i=0;i<n;i++)if(affected[i])r[i]=0;masks.exposed_rebar=r}
+}
 // trace (opcional, usado só pela paridade): guarda cinza, resposta, candidata, abertura e máscara final
 // de cada família — as mesmas etapas de pipeline[...] em cdm_v285.detect_masks.
 function detectMasks(imageData,cfg,trace=null){
@@ -320,6 +347,7 @@ function detectMasks(imageData,cfg,trace=null){
   for(let i=0;i<n;i++)rebarRaw[i]=(spalling[i]&&(gray[i]<localThresh||(sat[i]<.20&&val[i]<.55)))?1:0;
   masks.exposed_rebar=cleanup(rebarRaw,w,h,3);
   if(trace){const response=new Float32Array(n);for(let i=0;i<n;i++)response[i]=spalling[i]?clamp(localThresh-gray[i],0,255):0;trace.exposed_rebar={response,raw:rebarRaw,open:opened(rebarRaw,3),clean:masks.exposed_rebar}}
+  separateFamilies(masks,w,h);
   return masks;
 }
 function convexHull(points){
@@ -830,7 +858,7 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     engine_id:"cdm_1",name:"CDM-1",task:"classical",status:"ok",latency_ms:totalMs,detections,
     overlay_png_base64:composite.toDataURL("image/png").split(",")[1],
     metrics:{
-      implementation:"CDM 2.9 browser parity (fissuras contínuas por esqueleto)",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,
+      implementation:"CDM 2.10 browser parity (fissuras contínuas por esqueleto; famílias separadas)",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,
       performance_ms:{decode:decodeMs,core:coreMs,render:renderMs,total:totalMs},
       overlay_semantics:"transparent_layers",
       geometry_units:"processed_pixels",processed_width:w,processed_height:h,mm_per_px:cfg.mmPerPx||null,

@@ -80,6 +80,7 @@ def case_payload(name: str, rgb: np.ndarray, cfg) -> dict:
         classes[cls] = {
             "response": quant(stage["response"]),
             **{key: indices(stage[key]) for key in STAGES},
+            "final_mask": indices(masks[cls]),
         }
         records = cdm.records_from_mask(masks[cls], cls, "t1_current", cfg)
         classes[cls]["records"] = [

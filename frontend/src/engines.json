@@ -19,7 +19,7 @@
       "name": "CDM-1",
       "family": "Concrete Damage Morphology",
       "task": "classical",
-      "description": "CDM 2.9: fissuras contínuas (abertura por reconstrução, fragmentos unidos e linha central pelo esqueleto), desplacamento, armadura exposta, corrosão e eflorescência em camadas independentes; execução no navegador, comparação t0→t1 com registro translacional automático, gate de qualidade temporal e exportação vetorial/BIM.",
+      "description": "CDM 2.10: fissuras contínuas (abertura por reconstrução, fragmentos unidos e linha central pelo esqueleto), desplacamento, armadura exposta, corrosão e eflorescência em camadas independentes, com separação hierárquica (corrosão nunca vira fissura; mancha de ferrugem isolada não vira desplacamento; armadura e corrosão aninhadas no desplacamento real); execução no navegador, comparação t0→t1 com registro translacional automático, gate de qualidade temporal e exportação vetorial/BIM.",
       "recommended": true,
       "cloud_verified": false,
       "domain_mode": "classical",

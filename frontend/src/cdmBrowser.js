@@ -53,13 +53,38 @@ function percentileFloat(src,p,mask=null){
   const vhi=quickselect(values,hi,lo+1,count-1);
   return vlo+(vhi-vlo)*(q-lo);
 }
-function grayAndRgb(imageData){
-  const n=imageData.width*imageData.height,gray=new Float32Array(n),rgb=imageData.data;
+// CDM 2.11: moldura uniforme (borda branca/preta de figura escaneada ou print) fica fora da análise.
+// Uma linha/coluna é moldura se max−min do cinza ≤ FRAME_TOL; até 25% por lado; ≥ 3 px para contar.
+// Mesma regra em cdm_v285.py (frame_valid_mask).
+const STRETCH_MAX_GAIN=2.4,FRAME_TOL=10,FRAME_MAX_FRACTION=.25,FRAME_MIN_PX=3,FRAME_PAD_PX=2;
+function frameValidMask(raw,w,h){
+  const uniformRow=y=>{let mn=Infinity,mx=-Infinity;for(let x=0;x<w;x++){const v=raw[y*w+x];if(v<mn)mn=v;if(v>mx)mx=v}return mx-mn<=FRAME_TOL};
+  const uniformCol=x=>{let mn=Infinity,mx=-Infinity;for(let y=0;y<h;y++){const v=raw[y*w+x];if(v<mn)mn=v;if(v>mx)mx=v}return mx-mn<=FRAME_TOL};
+  const lim=(n)=>Math.floor(n*FRAME_MAX_FRACTION);
+  let top=0,bottom=0,left=0,right=0;
+  while(top<lim(h)&&uniformRow(top))top++;
+  while(bottom<lim(h)&&uniformRow(h-1-bottom))bottom++;
+  while(left<lim(w)&&uniformCol(left))left++;
+  while(right<lim(w)&&uniformCol(w-1-right))right++;
+  const t=top>=FRAME_MIN_PX?top+FRAME_PAD_PX:0,b=bottom>=FRAME_MIN_PX?bottom+FRAME_PAD_PX:0,l=left>=FRAME_MIN_PX?left+FRAME_PAD_PX:0,r=right>=FRAME_MIN_PX?right+FRAME_PAD_PX:0;
+  if(!t&&!b&&!l&&!r)return null;
+  if(t+b>=h-8||l+r>=w-8)return null;
+  const valid=new Uint8Array(w*h);
+  for(let y=t;y<h-b;y++)for(let x=l;x<w-r;x++)valid[y*w+x]=1;
+  valid.rect=[l,t,w-r-1,h-b-1];
+  return valid;
+}
+function grayAndRgb(imageData,withFrame=false){
+  const w=imageData.width,h=imageData.height,n=w*h,gray=new Float32Array(n),rgb=imageData.data;
   for(let i=0,j=0;i<n;i++,j+=4)gray[i]=.299*rgb[j]+.587*rgb[j+1]+.114*rgb[j+2];
-  const p2=percentileFloat(gray,2),p98=percentileFloat(gray,98),out=new Float32Array(n);
-  if(p98<=p2+1e-6){out.set(gray);return {gray:out,rgb}}
-  const factor=255/(p98-p2);for(let i=0;i<n;i++)out[i]=clamp((gray[i]-p2)*factor,0,255);
-  return {gray:out,rgb};
+  const valid=withFrame?frameValidMask(gray,w,h):null;
+  const p2=percentileFloat(gray,2,valid),p98=percentileFloat(gray,98,valid),out=new Float32Array(n);
+  // ganho do estiramento limitado (CDM 2.11): superfícies de baixo contraste não têm ruído amplificado
+  if(p98<=p2+1e-6)out.set(gray);
+  else{const factor=Math.min(STRETCH_MAX_GAIN,255/(p98-p2));for(let i=0;i<n;i++)out[i]=clamp((gray[i]-p2)*factor,0,255)}
+  // a moldura recebe o pixel de conteúdo mais próximo (extensão da borda): sem degrau artificial
+  if(valid){const[x0,y0,x1,y1]=valid.rect;for(let y=0;y<h;y++){const yy=y<y0?y0:y>y1?y1:y;for(let x=0;x<w;x++){if(valid[y*w+x])continue;const xx=x<x0?x0:x>x1?x1:x;out[y*w+x]=out[yy*w+xx]}}}
+  return {gray:out,rgb,valid,lum:gray};
 }
 function registrationEdgeMap(imageData,maxSide=160){
   const w=imageData.width,h=imageData.height,step=Math.max(1,Math.ceil(Math.max(w,h)/maxSide));
@@ -304,30 +329,55 @@ function separateFamilies(masks,w,h){
 // de cada família — as mesmas etapas de pipeline[...] em cdm_v285.detect_masks.
 // Contraste local do desplacamento: média de cinza na coroa (caixa expandida em SPALL_RING_PX, fora de
 // qualquer pixel de desplacamento) menos a média dentro do componente. Mesma regra em cdm_v285.py.
-const SPALL_RING_PX=7,SPALL_MIN_CONTRAST=40,SPALL_CONTRAST_T=1.2,SPALL_CORE_PX=9,SPALL_GROW_PX=3,SPALL_SMOOTH_PX=11;
-function spallingByContrast(mask,gray,w,h,minDelta,log=null){
+const SPALL_CRACK_NEAR_PX=5,SPALL_MAX_CRACK_SHARE=.35,EFF_MIN_CONTRAST=80,EFF_CONTRAST_T=2.2,SPALL_MIN_ROUGHNESS=5,ROUGH_RADIUS=2,SPALL_RING_PX=7,SPALL_MIN_CONTRAST=40,SPALL_CONTRAST_T=1.2,SPALL_CORE_PX=9,SPALL_GROW_PX=3,SPALL_SMOOTH_PX=11;
+// Rugosidade local: |Y − média 5×5(Y)| na luminância sem estiramento (agregado exposto é áspero;
+// sombra, vinheta e mancha são lisas). Média por imagem integral, só com vizinhos dentro da imagem.
+function roughnessMap(lum,w,h,r=ROUGH_RADIUS){
+  const W=w+1,S=new Float64Array(W*(h+1)),out=new Float32Array(w*h);
+  for(let y=0;y<h;y++){let row=0;for(let x=0;x<w;x++){row+=lum[y*w+x];S[(y+1)*W+x+1]=S[y*W+x+1]+row}}
+  for(let y=0;y<h;y++){const y0=Math.max(0,y-r),y1=Math.min(h-1,y+r);for(let x=0;x<w;x++){const x0=Math.max(0,x-r),x1=Math.min(w-1,x+r);
+    const sum=S[(y1+1)*W+x1+1]-S[y0*W+x1+1]-S[(y1+1)*W+x0]+S[y0*W+x0],cnt=(y1-y0+1)*(x1-x0+1);out[y*w+x]=Math.abs(lum[y*w+x]-sum/cnt)}}
+  return out;
+}
+function spallingByContrast(mask,gray,w,h,minDelta,log=null,valid=null,sign=-1,rough=null,minRough=0,near=null,maxNear=1){
   const n=w*h,out=new Uint8Array(mask),seen=new Uint8Array(n),queue=new Int32Array(n);
   for(let s=0;s<n;s++){
     if(!mask[s]||seen[s])continue;
-    let head=0,tail=0,sum=0,minX=w,minY=h,maxX=0,maxY=0;queue[tail++]=s;seen[s]=1;
-    while(head<tail){const p=queue[head++],y=(p/w)|0,x=p-y*w;sum+=gray[p];if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+    let head=0,tail=0,sum=0,rsum=0,nearN=0,minX=w,minY=h,maxX=0,maxY=0;queue[tail++]=s;seen[s]=1;
+    while(head<tail){const p=queue[head++],y=(p/w)|0,x=p-y*w;sum+=gray[p];if(rough)rsum+=rough[p];if(near&&near[p])nearN++;if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
       for(let ny=y>0?y-1:0;ny<=(y<h-1?y+1:y);ny++)for(let nx=x>0?x-1:0;nx<=(x<w-1?x+1:x);nx++){const q=ny*w+nx;if(mask[q]&&!seen[q]){seen[q]=1;queue[tail++]=q}}}
     const x0=Math.max(0,minX-SPALL_RING_PX),x1=Math.min(w-1,maxX+SPALL_RING_PX),y0=Math.max(0,minY-SPALL_RING_PX),y1=Math.min(h-1,maxY+SPALL_RING_PX);
-    let rs=0,rn=0;for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const q=y*w+x;if(!mask[q]){rs+=gray[q];rn++}}
-    const delta=rn?rs/rn-sum/tail:Infinity;
-    if(log)log.push({bbox:[minX,minY,maxX-minX+1,maxY-minY+1],area:tail,delta:+delta.toFixed(2)});
-    if(delta<minDelta)for(let q=0;q<tail;q++)out[queue[q]]=0;
+    let rs=0,rn=0;for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const q=y*w+x;if(!mask[q]&&(!valid||valid[q])){rs+=gray[q];rn++}}
+    const delta=rn?(sign<0?rs/rn-sum/tail:sum/tail-rs/rn):Infinity;
+    const rmean=rough?rsum/tail:Infinity;
+    const nearFrac=near?nearN/tail:0;
+    if(log)log.push({bbox:[minX,minY,maxX-minX+1,maxY-minY+1],area:tail,delta:+delta.toFixed(2),roughness:rough?+rmean.toFixed(2):null,crack_share:+nearFrac.toFixed(3)});
+    if(delta<minDelta||rmean<minRough||nearFrac>maxNear)for(let q=0;q<tail;q++)out[queue[q]]=0;
+  }
+  return out;
+}
+// CDM 2.11: região de área pequena (< AREA_BORDER_FRACTION do conteúdo) encostada na borda do conteúdo
+// é parcial/vinheta e sai (canto escuro, mancha cortada pela moldura). Mesma regra em cdm_v285.py.
+const AREA_BORDER_FRACTION=.01;
+function dropSmallBorder(mask,w,h,rect){
+  const[x0,y0,x1,y1]=rect,limit=AREA_BORDER_FRACTION*(x1-x0+1)*(y1-y0+1),out=new Uint8Array(mask),seen=new Uint8Array(w*h),queue=new Int32Array(w*h);
+  for(let s=0;s<w*h;s++){
+    if(!mask[s]||seen[s])continue;let head=0,tail=0,touch=false;queue[tail++]=s;seen[s]=1;
+    while(head<tail){const p=queue[head++],y=(p/w)|0,x=p-y*w;if(x<=x0+1||x>=x1-1||y<=y0+1||y>=y1-1)touch=true;
+      for(let ny=y>0?y-1:0;ny<=(y<h-1?y+1:y);ny++)for(let nx=x>0?x-1:0;nx<=(x<w-1?x+1:x);nx++){const q=ny*w+nx;if(mask[q]&&!seen[q]){seen[q]=1;queue[tail++]=q}}}
+    if(touch&&tail<limit)for(let q=0;q<tail;q++)out[queue[q]]=0;
   }
   return out;
 }
 function detectMasks(imageData,cfg,trace=null){
-  const w=imageData.width,h=imageData.height,n=w*h,{gray,rgb}=grayAndRgb(imageData),{hue,sat,val}=hsvArrays(rgb,n);
+  const w=imageData.width,h=imageData.height,n=w*h,{gray,rgb,valid,lum}=grayAndRgb(imageData,true),{hue,sat,val}=hsvArrays(rgb,n);
+  if(trace)trace.frame_valid=valid;
   const k=oddKernel(cfg.kernel),masks={};
   const opened=(m,kk)=>filterMask(filterMask(m,w,h,kk,false),w,h,kk,true);
   if(trace)trace.gray=gray;
 
   const crackResponse=blackhat(gray,w,h,k),crackRaw=new Uint8Array(n);
-  for(let i=0;i<n;i++)crackRaw[i]=crackResponse[i]>cfg.threshold?1:0;
+  for(let i=0;i<n;i++)crackRaw[i]=crackResponse[i]>cfg.threshold&&(!valid||valid[i])?1:0;
   // Fissuras (CDM 2.9): abertura por reconstrução. A abertura 3×3 só escolhe os componentes
   // candidatos que têm núcleo robusto; cada componente escolhido volta com a forma completa da
   // máscara candidata (trechos de 1–2 px preservados). Depois, fechamento 3×3.
@@ -335,10 +385,10 @@ function detectMasks(imageData,cfg,trace=null){
   masks.cracks=filterMask(filterMask(crackOpen,w,h,3,true),w,h,3,false);
   if(trace)trace.cracks={response:crackResponse,raw:crackRaw,open:crackOpen,clean:masks.cracks};
 
-  const p18=percentileFloat(gray,18),p45=percentileFloat(gray,45);
+  const p18=percentileFloat(gray,18,valid),p45=percentileFloat(gray,45,valid);
   const darkCut=Math.min(120,p18+Math.max(8,cfg.threshold*.25));
   const texture=blackhat(gray,w,h,Math.max(5,Math.min(k,21))),spRaw=new Uint8Array(n);
-  for(let i=0;i<n;i++)spRaw[i]=(gray[i]<darkCut||(texture[i]>Math.max(10,cfg.threshold*.55)&&gray[i]<p45))?1:0;
+  for(let i=0;i<n;i++)spRaw[i]=(!valid||valid[i])&&(gray[i]<darkCut||(texture[i]>Math.max(10,cfg.threshold*.55)&&gray[i]<p45))?1:0;
   // CDM 2.11: núcleo + crescimento condicionado — abertura com SPALL_CORE_PX corta pontes finas e manchas
   // de textura; o núcleo é devolvido à forma original só até SPALL_GROW_PX px (não atravessa pontes longas).
   const spallingBase=cleanup(spRaw,w,h,5),core=cfg.spallCore??SPALL_CORE_PX,grow=cfg.spallGrow??SPALL_GROW_PX;
@@ -346,21 +396,27 @@ function detectMasks(imageData,cfg,trace=null){
   if(core>1){const op=filterMask(filterMask(spallingBase,w,h,core,false),w,h,core,true),dl=filterMask(op,w,h,2*grow+1,true);spallingClean=new Uint8Array(n);for(let i=0;i<n;i++)spallingClean[i]=spallingBase[i]&&dl[i]?1:0}
   const contrastLog=[];
   // CDM 2.11: desplacamento precisa ser mais escuro que o entorno imediato (manchas e sombras rasas saem).
-  let spalling=spallingByContrast(spallingClean,gray,w,h,cfg.spallContrast??Math.max(SPALL_MIN_CONTRAST,cfg.threshold*SPALL_CONTRAST_T),contrastLog);
+  let spalling=spallingByContrast(spallingClean,gray,w,h,cfg.spallContrast??Math.max(SPALL_MIN_CONTRAST,cfg.threshold*SPALL_CONTRAST_T),contrastLog,valid,-1,roughnessMap(lum,w,h),cfg.spallRough??SPALL_MIN_ROUGHNESS);
   // suaviza a borda dos desplacamentos aceitos (agregado claro na borda): fechamento SPALL_SMOOTH_PX
   const smooth=cfg.spallSmooth??SPALL_SMOOTH_PX;
-  if(smooth>1)spalling=filterMask(filterMask(spalling,w,h,smooth,true),w,h,smooth,false);masks.spalling_dark=spalling;
+  if(smooth>1)spalling=filterMask(filterMask(spalling,w,h,smooth,true),w,h,smooth,false);
+  const contentRect=valid?valid.rect:[0,0,w-1,h-1];
+  spalling=dropSmallBorder(spalling,w,h,contentRect);masks.spalling_dark=spalling;
   if(trace)trace.spalling_contrast=contrastLog;
   if(trace){const response=new Float32Array(n);for(let i=0;i<n;i++)response[i]=Math.max(clamp(darkCut-gray[i],0,255),texture[i]);trace.spalling_dark={response,raw:spRaw,open:opened(spRaw,5),clean:spalling}}
 
-  const corrosionRaw=new Uint8Array(n),effRaw=new Uint8Array(n),p72=percentileFloat(gray,72);
+  const corrosionRaw=new Uint8Array(n),effRaw=new Uint8Array(n),p72=percentileFloat(gray,72,valid);
   for(let i=0,j=0;i<n;i++,j+=4){
     const r=rgb[j],g=rgb[j+1],b=rgb[j+2],hv=hue[i],sv=sat[i],vv=val[i];
-    corrosionRaw[i]=(r>g+12&&r>b+18&&sv>.22&&vv>.16&&(hv<55||hv>330))?1:0;
-    effRaw[i]=(vv>.72&&sv<.28&&gray[i]>p72)?1:0;
+    const ok=!valid||valid[i];
+    corrosionRaw[i]=ok&&(r>g+12&&r>b+18&&sv>.22&&vv>.16&&(hv<55||hv>330))?1:0;
+    effRaw[i]=ok&&(vv>.72&&sv<.28&&gray[i]>p72)?1:0;
   }
-  masks.corrosion_rust=cleanup(corrosionRaw,w,h,5);
-  masks.efflorescence_white=cleanup(effRaw,w,h,5);
+  masks.corrosion_rust=dropSmallBorder(cleanup(corrosionRaw,w,h,5),w,h,contentRect);
+  // CDM 2.11: eflorescência precisa ser mais clara que o entorno imediato (concreto claro e reflexo amplo saem)
+  const effLog=[];
+  masks.efflorescence_white=dropSmallBorder(spallingByContrast(cleanup(effRaw,w,h,5),gray,w,h,cfg.effContrast??Math.max(EFF_MIN_CONTRAST,cfg.threshold*EFF_CONTRAST_T),effLog,valid,1),w,h,contentRect);
+  if(trace)trace.efflorescence_contrast=effLog;
   if(trace){
     const cor=new Float32Array(n),eff=new Float32Array(n);
     for(let i=0,j=0;i<n;i++,j+=4){
@@ -372,7 +428,7 @@ function detectMasks(imageData,cfg,trace=null){
     trace.efflorescence_white={response:eff,raw:effRaw,open:opened(effRaw,5),clean:masks.efflorescence_white};
   }
 
-  const localThresh=spalling.some(v=>v)?percentileFloat(gray,40,spalling):percentileFloat(gray,12);
+  const localThresh=spalling.some(v=>v)?percentileFloat(gray,40,spalling):percentileFloat(gray,12,valid);
   const rebarRaw=new Uint8Array(n);
   for(let i=0;i<n;i++)rebarRaw[i]=(spalling[i]&&(gray[i]<localThresh||(sat[i]<.20&&val[i]<.55)))?1:0;
   masks.exposed_rebar=cleanup(rebarRaw,w,h,3);
@@ -407,7 +463,7 @@ function reconstructByOpening(candidate,w,h){
 }
 // ---------- Fissuras: continuidade e geometria pelo esqueleto (CDM 2.9) ----------
 // Mesma implementação em backend/app/cdm_v285.py (crack_records_from_mask); paridade testada em CI.
-const CRACK_GAP_PX=4,CRACK_BRIDGE_KERNEL=2*CRACK_GAP_PX+1,CRACK_MIN_FRAGMENT=3,CRACK_SPUR_PX=12,CRACK_COMPACT_FACTOR=4,CRACK_MIN_LENGTH_FRACTION=.03,CRACK_MAX_WIDTH_K=.45;
+const CRACK_GAP_PX=4,CRACK_BRIDGE_KERNEL=2*CRACK_GAP_PX+1,CRACK_MIN_FRAGMENT=3,CRACK_SPUR_PX=12,CRACK_COMPACT_FACTOR=4,CRACK_MIN_LENGTH_FRACTION=.04,CRACK_MAX_WIDTH_K=.45;
 // Poda de esporões: ramos terminais com ≤ CRACK_SPUR_PX pixels até uma junção (≥ 3 vizinhos) são
 // removidos. Decisão tomada sobre o esqueleto original (independe da ordem de varredura).
 function pruneSpurs(skel,w,h){

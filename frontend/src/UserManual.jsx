@@ -94,6 +94,7 @@ function chapters(shortcuts){
     <Eq n={e()}>{"Y = 0.299R + 0.587G + 0.114B"}</Eq>
     <p>Em seguida aplica um estiramento de contraste robusto entre os percentis 2 e 98, que neutraliza variações de exposição entre fotos:</p>
     <Eq n={e()}>{"I = \\op{clip}\\left(\\frac{Y - p_{2}}{p_{98} - p_{2}} \\cdot 255,\\; 0,\\; 255\\right)"}</Eq>
+    <p>CDM 2.11: o ganho do estiramento é limitado a 2,4 (superfícies lisas de baixo contraste não têm ruído amplificado), e uma <b>moldura uniforme</b> (borda branca ou preta de figura escaneada/print; linhas e colunas com variação ≤ 10 níveis, até 25 % por lado) fica fora da análise: os percentis usam só o conteúdo e a moldura recebe o pixel de conteúdo mais próximo, sem degrau artificial.</p>
     <p>Os percentis são obtidos por <i>quickselect</i> com partição em três vias (eficiente mesmo com muitos valores repetidos). Para os critérios de cor, a imagem também é convertida para HSV em dupla precisão:</p>
     <Eq n={e()}>{"V = \\max(R,G,B), \\quad S = \\frac{V - \\min(R,G,B)}{V}, \\quad H \\in [0°, 360°)"}</Eq>
     <h3>Morfologia básica</h3>
@@ -120,7 +121,7 @@ function chapters(shortcuts){
     <p>Cada componente é afinado por <b>Zhang–Suen</b> até 1 px; ramos espúrios de até 12 px até uma junção são podados. O comprimento vem do percurso em profundidade do esqueleto, simplificado por Ramer–Douglas–Peucker (ε = 0,8 px); como o percurso passa duas vezes por cada trecho, toma-se metade:</p>
     <Eq n={e()}>{"L = \\frac{1}{2}\\sum_{i} \\left\\| p_{i+1} - p_{i} \\right\\|, \\qquad \\bar{w} = \\frac{A}{L}, \\qquad \\lambda = \\frac{L^2}{A}"}</Eq>
     <FigSkeleton n={f()}/>
-    <p>A largura média precisa ser ≤ 0,45·k (manchas largas de textura não são fissuras). São aceitas fissuras com alongamento <M>{"\\lambda \\ge \\lambda_{min}"}</M> (padrão 2), área ≥ <M>{"A_{min}"}</M> (padrão 30 px²) e comprimento ≥ 3 % do maior lado da imagem. Com escala definida, <M>{"L_{mm} = L \\cdot s"}</M> e <M>{"w_{mm} = \\bar{w} \\cdot s"}</M>, sendo <M>{"s"}</M> em mm/px.</p>
+    <p>A largura média precisa ser ≤ 0,45·k (manchas largas de textura não são fissuras). São aceitas fissuras com alongamento <M>{"\\lambda \\ge \\lambda_{min}"}</M> (padrão 2), área ≥ <M>{"A_{min}"}</M> (padrão 30 px²) e comprimento ≥ 4 % do maior lado da imagem. Com escala definida, <M>{"L_{mm} = L \\cdot s"}</M> e <M>{"w_{mm} = \\bar{w} \\cdot s"}</M>, sendo <M>{"s"}</M> em mm/px.</p>
     <Tbl head={["Parâmetro","Padrão","Efeito ao aumentar"]} rows={[
       ["k (black-hat)","15 px (ímpar)","detecta fissuras/manchas mais largas"],
       ["T (limiar)","35","menos falsos positivos, perde fissuras tênues"],
@@ -138,14 +139,17 @@ function chapters(shortcuts){
       <li><b>Núcleo + crescimento</b>: abertura 9×9 encontra núcleos robustos e a região só cresce 3 px a partir deles — pontes finas de textura não ligam manchas distintas.</li>
       <li><b>Contraste local</b>: <M>{"\\bar{I}_{coroa} - \\bar{I}_{D} \\ge \\max(40,\\; 1.2\\,T)"}</M>, com a coroa tomada numa caixa 7 px maior que o componente; manchas e sombras rasas saem.</li>
       <li><b>Suavização</b>: fechamento 11×11 dos desplacamentos aceitos, para que agregado claro na borda não recorte o contorno.</li>
+      <li><b>Rugosidade</b>: média de <M>{"|Y - \\bar{Y}_{5 \\times 5}|"}</M> no componente ≥ 5 níveis de cinza — agregado exposto é áspero; sombra, vinheta e mancha são lisas.</li>
+      <li><b>Borda</b>: regiões de área com menos de 1 % do conteúdo encostadas na borda da imagem/moldura são parciais e saem (também corrosão e eflorescência).</li>
     </ul>
     <h3>Armadura exposta</h3>
-    <p>Procurada somente <b>dentro</b> do desplacamento: pixels muito escuros em relação à própria região, ou acinzentados e foscos; limpeza 3×3, alongamento ≥ max(3, λ<sub>min</sub>), comprimento ≥ 3 % do maior lado e área ≥ 2·A<sub>min</sub> (forma de barra):</p>
+    <p>Procurada somente <b>dentro</b> do desplacamento: pixels muito escuros em relação à própria região, ou acinzentados e foscos; limpeza 3×3, alongamento ≥ max(3, λ<sub>min</sub>), comprimento ≥ 4 % do maior lado e área ≥ 2·A<sub>min</sub> (forma de barra):</p>
     <Eq n={e()}>{"R_b = D \\cap \\left( \\{ I < p_{40}(D) \\} \\cup \\{ S < 0.20 \\land V < 0.55 \\} \\right)"}</Eq>
     <h3>Corrosão</h3>
     <Eq n={e()}>{"R > G + 12 \\;\\land\\; R > B + 18 \\;\\land\\; S > 0.22 \\;\\land\\; V > 0.16 \\;\\land\\; (H < 55° \\lor H > 330°)"}</Eq>
     <h3>Eflorescência</h3>
     <Eq n={e()}>{"V > 0.72 \\;\\land\\; S < 0.28 \\;\\land\\; I > p_{72}"}</Eq>
+    <p>CDM 2.11: cada região precisa ser mais clara que o entorno imediato em pelo menos <M>{"\\max(80,\\; 2.2\\,T)"}</M> níveis (cinza estirado) — concreto claro e reflexos amplos não viram eflorescência.</p>
     <FigHsv n={f()}/>
     <h3>Separação de famílias (CDM 2.10)</h3>
     <p>As camadas são mantidas separadas para que cada pixel tenha uma natureza patológica dominante:</p>

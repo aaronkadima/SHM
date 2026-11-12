@@ -568,13 +568,64 @@ def rgb_to_gray(rgb: np.ndarray) -> np.ndarray:
     return (0.299 * arr[:, :, 0] + 0.587 * arr[:, :, 1] + 0.114 * arr[:, :, 2]).astype(np.float32)
 
 
-def contrast_stretch(gray: np.ndarray) -> np.ndarray:
-    p2 = float(np.percentile(gray, 2))
-    p98 = float(np.percentile(gray, 98))
+# CDM 2.11: ganho do estiramento limitado (superfícies de baixo contraste não têm ruído amplificado).
+STRETCH_MAX_GAIN = 2.4
+FRAME_TOL = 10.0
+FRAME_MAX_FRACTION = 0.25
+FRAME_MIN_PX = 3
+FRAME_PAD_PX = 2
+
+
+def frame_valid_rect(raw: np.ndarray) -> Optional[Tuple[int, int, int, int]]:
+    """Moldura uniforme (borda branca/preta): linhas/colunas com max−min ≤ FRAME_TOL, até 25% por lado."""
+    h, w = raw.shape
+    rng_rows = raw.max(axis=1) - raw.min(axis=1)
+    rng_cols = raw.max(axis=0) - raw.min(axis=0)
+
+    def run(values, limit):
+        n = 0
+        while n < limit and values[n] <= FRAME_TOL:
+            n += 1
+        return n
+
+    top = run(rng_rows, int(h * FRAME_MAX_FRACTION))
+    bottom = run(rng_rows[::-1], int(h * FRAME_MAX_FRACTION))
+    left = run(rng_cols, int(w * FRAME_MAX_FRACTION))
+    right = run(rng_cols[::-1], int(w * FRAME_MAX_FRACTION))
+    pad = lambda v: v + FRAME_PAD_PX if v >= FRAME_MIN_PX else 0
+    t, b, l, r = pad(top), pad(bottom), pad(left), pad(right)
+    if not (t or b or l or r):
+        return None
+    if t + b >= h - 8 or l + r >= w - 8:
+        return None
+    return (l, t, w - r - 1, h - b - 1)
+
+
+def contrast_stretch(gray: np.ndarray, valid: Optional[np.ndarray] = None) -> np.ndarray:
+    src = gray[valid] if valid is not None else gray
+    p2 = float(np.percentile(src, 2))
+    p98 = float(np.percentile(src, 98))
     if p98 <= p2 + 1e-6:
         return gray.copy()
-    out = (gray - p2) * 255.0 / (p98 - p2)
+    factor = min(STRETCH_MAX_GAIN, 255.0 / (p98 - p2))
+    out = (gray - p2) * factor
     return np.clip(out, 0, 255).astype(np.float32)
+
+
+def roughness_map(lum: np.ndarray, r: int = 2) -> np.ndarray:
+    """|Y − média (2r+1)²(Y)| com vizinhos dentro da imagem (imagem integral, como no navegador)."""
+    h, w = lum.shape
+    S = np.zeros((h + 1, w + 1), dtype=np.float64)
+    S[1:, 1:] = np.cumsum(np.cumsum(lum.astype(np.float64), axis=0), axis=1)
+    ys = np.arange(h)
+    xs = np.arange(w)
+    y0 = np.maximum(0, ys - r)
+    y1 = np.minimum(h - 1, ys + r)
+    x0 = np.maximum(0, xs - r)
+    x1 = np.minimum(w - 1, xs + r)
+    total = S[(y1 + 1)[:, None], (x1 + 1)[None, :]] - S[y0[:, None], (x1 + 1)[None, :]] - S[(y1 + 1)[:, None], x0[None, :]] + S[y0[:, None], x0[None, :]]
+    cnt = ((y1 - y0 + 1)[:, None] * (x1 - x0 + 1)[None, :]).astype(np.float64)
+    return np.abs(lum.astype(np.float64) - total / cnt).astype(np.float32)
 
 
 def _registration_edge_map(rgb: np.ndarray, max_side: int = 160) -> Tuple[np.ndarray, int]:
@@ -954,10 +1005,13 @@ SPALL_CONTRAST_T = 1.2
 SPALL_CORE_PX = 9
 SPALL_GROW_PX = 3
 SPALL_SMOOTH_PX = 11
+SPALL_MIN_ROUGHNESS = 5.0
+EFF_MIN_CONTRAST = 80.0
+EFF_CONTRAST_T = 2.2
 
 
-def spalling_by_contrast(mask: np.ndarray, gray: np.ndarray, min_delta: float) -> np.ndarray:
-    """Contraste local: média de cinza na coroa (caixa expandida, fora do desplacamento) − média interna."""
+def spalling_by_contrast(mask: np.ndarray, gray: np.ndarray, min_delta: float, valid: Optional[np.ndarray] = None, sign: int = -1, rough: Optional[np.ndarray] = None, min_rough: float = 0.0) -> np.ndarray:
+    """Contraste local (coroa em caixa expandida, fora da máscara e da moldura) e rugosidade média mínima."""
     out = mask.copy()
     h, w = mask.shape
     for pts in connected_components(mask, 1):
@@ -965,11 +1019,33 @@ def spalling_by_contrast(mask: np.ndarray, gray: np.ndarray, min_delta: float) -
         x0, x1 = max(0, int(xs.min()) - SPALL_RING_PX), min(w - 1, int(xs.max()) + SPALL_RING_PX)
         y0, y1 = max(0, int(ys.min()) - SPALL_RING_PX), min(h - 1, int(ys.max()) + SPALL_RING_PX)
         win = ~mask[y0:y1 + 1, x0:x1 + 1]
+        if valid is not None:
+            win &= valid[y0:y1 + 1, x0:x1 + 1]
         ring = gray[y0:y1 + 1, x0:x1 + 1][win]
+        inside = float(gray[ys, xs].astype(np.float64).mean())
         if ring.size == 0:
-            continue
-        delta = float(ring.astype(np.float64).mean()) - float(gray[ys, xs].astype(np.float64).mean())
-        if delta < min_delta:
+            delta = float("inf")
+        else:
+            rmean = float(ring.astype(np.float64).mean())
+            delta = rmean - inside if sign < 0 else inside - rmean
+        rough_mean = float(rough[ys, xs].astype(np.float64).mean()) if rough is not None else float("inf")
+        if delta < min_delta or rough_mean < min_rough:
+            out[ys, xs] = False
+    return out
+
+
+AREA_BORDER_FRACTION = 0.01
+
+
+def drop_small_border(mask: np.ndarray, rect: Tuple[int, int, int, int]) -> np.ndarray:
+    """Região pequena (< 1% do conteúdo) encostada na borda do conteúdo é parcial/vinheta e sai."""
+    x0, y0, x1, y1 = rect
+    limit = AREA_BORDER_FRACTION * (x1 - x0 + 1) * (y1 - y0 + 1)
+    out = mask.copy()
+    for pts in connected_components(mask, 1):
+        xs, ys = pts[:, 0].astype(np.intp), pts[:, 1].astype(np.intp)
+        touch = bool((xs <= x0 + 1).any() or (xs >= x1 - 1).any() or (ys <= y0 + 1).any() or (ys >= y1 - 1).any())
+        if touch and len(pts) < limit:
             out[ys, xs] = False
     return out
 
@@ -1113,7 +1189,20 @@ def detect_masks(rgb: np.ndarray, cfg: DetectorConfig, profiler: Optional[Perfor
     The response map remains physically specific to the damage family.
     """
     with _profile_stage(profiler, f"{run_tag} | preprocessing | grayscale + contrast"):
-        gray = contrast_stretch(rgb_to_gray(rgb))
+        lum = rgb_to_gray(rgb)
+        rect = frame_valid_rect(lum)
+        valid = None
+        if rect is not None:
+            valid = np.zeros(lum.shape, dtype=bool)
+            valid[rect[1]:rect[3] + 1, rect[0]:rect[2] + 1] = True
+        gray = contrast_stretch(lum, valid)
+        if rect is not None:
+            # moldura recebe o pixel de conteúdo mais próximo (extensão da borda)
+            hh, ww = gray.shape
+            gray = gray[np.clip(np.arange(hh), rect[1], rect[3])[:, None], np.clip(np.arange(ww), rect[0], rect[2])[None, :]]
+        content_rect = rect if rect is not None else (0, 0, lum.shape[1] - 1, lum.shape[0] - 1)
+        vmask = valid if valid is not None else np.ones(lum.shape, dtype=bool)
+        gv = gray[vmask]
     k = cfg.normalized_kernel_size
     masks: Dict[str, np.ndarray] = {}
     pipeline: Dict[str, object] = {
@@ -1126,7 +1215,7 @@ def detect_masks(rgb: np.ndarray, cfg: DetectorConfig, profiler: Optional[Perfor
     if cfg.detection_scope in ("all", "cracks"):
         with _profile_stage(profiler, f"{run_tag} | fissuras | resposta + máscara candidata"):
             response = morphology_blackhat(gray, k)
-            candidate = response > float(cfg.threshold)
+            candidate = (response > float(cfg.threshold)) & vmask
         with _profile_stage(profiler, f"{run_tag} | fissuras | fechamento"):
             # CDM 2.9: abertura por reconstrução. A abertura 3×3 só escolhe os componentes
             # candidatos com núcleo robusto; cada um volta com a forma completa da máscara
@@ -1139,19 +1228,20 @@ def detect_masks(rgb: np.ndarray, cfg: DetectorConfig, profiler: Optional[Perfor
     spalling_mask: Optional[np.ndarray] = None
     if cfg.detection_scope in ("all", "spalling_dark"):
         with _profile_stage(profiler, f"{run_tag} | desplacamento | resposta + máscara candidata"):
-            dark_cut = min(120.0, float(np.percentile(gray, 18)) + max(8, cfg.threshold * 0.25))
+            dark_cut = min(120.0, float(np.percentile(gv, 18)) + max(8, cfg.threshold * 0.25))
             texture = morphology_blackhat(gray, max(5, min(k, 21)))
             darkness_response = np.clip(dark_cut - gray, 0.0, 255.0)
             response = np.maximum(darkness_response, texture)
-            candidate = (gray < dark_cut) | ((texture > max(10.0, cfg.threshold * 0.55)) & (gray < np.percentile(gray, 45)))
+            candidate = vmask & ((gray < dark_cut) | ((texture > max(10.0, cfg.threshold * 0.55)) & (gray < np.percentile(gv, 45))))
         with _profile_stage(profiler, f"{run_tag} | desplacamento | abertura + fechamento"):
             opened, spalling_base = cleanup_mask_steps(candidate, 5)
             # CDM 2.11: núcleo (abertura SPALL_CORE_PX) + crescimento condicionado de SPALL_GROW_PX px
             core = open_bool(spalling_base, SPALL_CORE_PX)
             spalling_core = spalling_base & dilate_bool(core, 2 * SPALL_GROW_PX + 1)
-            spalling_mask = spalling_by_contrast(spalling_core, gray, max(SPALL_MIN_CONTRAST, cfg.threshold * SPALL_CONTRAST_T))
+            spalling_mask = spalling_by_contrast(spalling_core, gray, max(SPALL_MIN_CONTRAST, cfg.threshold * SPALL_CONTRAST_T), valid, -1, roughness_map(lum), SPALL_MIN_ROUGHNESS)
             # suaviza a borda dos desplacamentos aceitos (fechamento SPALL_SMOOTH_PX)
             spalling_mask = close_bool(spalling_mask, SPALL_SMOOTH_PX)
+            spalling_mask = drop_small_border(spalling_mask, content_rect)
         masks["spalling_dark"] = spalling_mask
         pipeline["spalling_dark"] = {"base_kind": "grayscale", "response_label": "Darkness-texture response Rₛₚ", "candidate_label": "M_0 = dark(I) OR textured-dark(I)", "rule": "darkness threshold combined with black-hat texture response", "response": response, "raw_mask": candidate, "open_mask": opened, "clean_mask": spalling_mask, "dark_cut": float(dark_cut)}
 
@@ -1163,9 +1253,10 @@ def detect_masks(rgb: np.ndarray, cfg: DetectorConfig, profiler: Optional[Perfor
             red_excess = np.clip(r - np.maximum(g, b), 0.0, 255.0)
             hue_gate = (((hue < 55) | (hue > 330)).astype(np.float32))
             response = np.clip(red_excess * (0.35 + 0.65 * sat) * (0.35 + 0.65 * hue_gate), 0.0, 255.0)
-            candidate = (r > g + 12) & (r > b + 18) & (sat > 0.22) & (val > 0.16) & ((hue < 55) | (hue > 330))
+            candidate = vmask & (r > g + 12) & (r > b + 18) & (sat > 0.22) & (val > 0.16) & ((hue < 55) | (hue > 330))
         with _profile_stage(profiler, f"{run_tag} | corrosão | abertura + fechamento"):
             opened, cleaned = cleanup_mask_steps(candidate, 5)
+            cleaned = drop_small_border(cleaned, content_rect)
         masks["corrosion_rust"] = cleaned
         pipeline["corrosion_rust"] = {"base_kind": "rgb", "response_label": "Chromatic rust response Rᶜᵒʳ", "candidate_label": "M_0 = RGB-HSV rule mask", "rule": "red dominance, saturation, value and red-orange hue interval", "response": response, "raw_mask": candidate, "open_mask": opened, "clean_mask": cleaned}
 
@@ -1174,9 +1265,12 @@ def detect_masks(rgb: np.ndarray, cfg: DetectorConfig, profiler: Optional[Perfor
             brightness = val * 255.0
             whiteness = brightness * (1.0 - sat)
             response = np.clip(whiteness, 0.0, 255.0)
-            candidate = (val > 0.72) & (sat < 0.28) & (gray > np.percentile(gray, 72))
+            candidate = vmask & (val > 0.72) & (sat < 0.28) & (gray > np.percentile(gv, 72))
         with _profile_stage(profiler, f"{run_tag} | eflorescência | abertura + fechamento"):
             opened, cleaned = cleanup_mask_steps(candidate, 5)
+            # CDM 2.11: eflorescência precisa ser mais clara que o entorno imediato
+            cleaned = spalling_by_contrast(cleaned, gray, max(EFF_MIN_CONTRAST, cfg.threshold * EFF_CONTRAST_T), valid, 1)
+            cleaned = drop_small_border(cleaned, content_rect)
         masks["efflorescence_white"] = cleaned
         pipeline["efflorescence_white"] = {"base_kind": "rgb", "response_label": "Bright low-saturation response Rᵉᶠᶠ", "candidate_label": "M_0 = high-value AND low-saturation mask", "rule": "high HSV value, low saturation and locally bright grayscale response", "response": response, "raw_mask": candidate, "open_mask": opened, "clean_mask": cleaned}
 
@@ -1184,7 +1278,7 @@ def detect_masks(rgb: np.ndarray, cfg: DetectorConfig, profiler: Optional[Perfor
         with _profile_stage(profiler, f"{run_tag} | armadura exposta | resposta + máscara candidata"):
             if spalling_mask is None:
                 spalling_mask = masks.get("spalling_dark", np.zeros(gray.shape, dtype=bool))
-            local_thresh = float(np.percentile(gray[spalling_mask], 40)) if np.any(spalling_mask) else float(np.percentile(gray, 12))
+            local_thresh = float(np.percentile(gray[spalling_mask], 40)) if np.any(spalling_mask) else float(np.percentile(gv, 12))
             low_sat = sat < 0.20
             medium_dark = val < 0.55
             local_dark = gray < local_thresh
@@ -1478,7 +1572,7 @@ CRACK_BRIDGE_KERNEL = 2 * CRACK_GAP_PX + 1
 CRACK_MIN_FRAGMENT = 3
 CRACK_SPUR_PX = 12
 CRACK_COMPACT_FACTOR = 4
-CRACK_MIN_LENGTH_FRACTION = 0.03
+CRACK_MIN_LENGTH_FRACTION = 0.04
 CRACK_MAX_WIDTH_K = 0.45
 
 

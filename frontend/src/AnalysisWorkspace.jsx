@@ -1258,6 +1258,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     {group:"Arquivo",label:"Fechar visualização",icon:X,hint:"Ctrl+Shift+W",disabled:!file||busy||!onCloseFile,run:()=>onCloseFile?.()},
     {group:"Arquivo",label:"Sair",icon:LogOut,hint:"Ctrl+Q",disabled:busy||!onExit,run:()=>onExit?.()},
     {group:"Arquivo",label:"Histórico de inspeções",icon:History,run:()=>onNavigate?.("alerts")},
+    {group:"Arquivo",label:"Painel inicial da plataforma",icon:Globe,keywords:"inicio dashboard",run:()=>onNavigate?.("dashboard")},
+    {group:"Análise",label:"Relatórios e exportação",icon:Save,keywords:"relatorio exportar",run:()=>onNavigate?.("reports")},
     ...recentHistory.slice(0,10).map((item,k)=>({group:"Recentes",label:"Abrir "+(item.file_meta?.name||"inspeção"),keywords:"recente",icon:History,hint:"Alt+"+((k+1)%10),disabled:busy,run:()=>onOpenRecent?.(item.id)})),
     {group:"Editar",label:"Restaurar visualização",icon:RotateCcw,disabled:kind!=="2d",run:resetViewerPreferences},
     {group:"Visualizar",label:layersOpen?"Recolher camadas":"Mostrar camadas",icon:Layers3,run:()=>setLayersPanelOpen(v=>!v)},

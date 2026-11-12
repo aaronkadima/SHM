@@ -1,7 +1,7 @@
 // Anotação Ground Truth: rasterização, mapa de rótulos (prioridade das classes finas), COCO,
 // métricas (IoU/Dice/clDice), sugestões do CDM, janelas multiescala e ZIP válido.
 import assert from "node:assert/strict";
-import {GT_BY_ID,classMask,cropLabels,crc32,fillPolygon,labelMap,levelForZoom,rasterize,rleEncode,segMetrics,strokePolyline,suggestionsFromCdm,tileWindows,toCoco,zipStore} from "../src/annotationCore.js";
+import {GT_BY_ID,flattenBezier,flattenBSpline,spiralPoints,rebuildCurve,classMask,cropLabels,crc32,fillPolygon,labelMap,levelForZoom,rasterize,rleEncode,segMetrics,strokePolyline,suggestionsFromCdm,tileWindows,toCoco,zipStore} from "../src/annotationCore.js";
 import {__cdmTest} from "../src/cdmBrowser.js";
 
 const w=100,h=60;
@@ -50,4 +50,18 @@ assert.equal(crc32(new TextEncoder().encode("123456789")),0xcbf43926);
 const zip=zipStore([{name:"a.txt",data:"olá"},{name:"d/b.bin",data:new Uint8Array([1,2,3])}]);
 const bytes=new Uint8Array(await zip.arrayBuffer()),dv=new DataView(bytes.buffer);
 assert.equal(dv.getUint32(0,true),0x04034b50);assert.equal(dv.getUint32(bytes.length-22,true),0x06054b50);assert.equal(dv.getUint16(bytes.length-12,true),2);
-console.log("Annotation passed: raster, label priority, COCO polygons/RLE, IoU/Dice/clDice, CDM suggestions, multiscale tiles, ZIP.");
+// Curvas: Bézier passa pelos nós, B-spline aberta toca as pontas, espiral termina no raio.
+const bz=flattenBezier([{p:[0,0],hin:[0,0],hout:[0,10]},{p:[20,0],hin:[20,10],hout:[20,0]}]);
+assert.deepEqual(bz[0],[0,0]);assert.ok(Math.abs(bz.at(-1)[0]-20)<1e-9);assert.ok(Math.max(...bz.map(p=>p[1]))>7,"alças puxam a curva");
+const bzc=flattenBezier([{p:[0,0],hin:[0,0],hout:[0,0]},{p:[10,0],hin:[10,0],hout:[10,0]},{p:[10,10],hin:[10,10],hout:[10,10]}],true);
+assert.ok(dist2(bzc.at(-1),[10,10])>0||bzc.length>3);
+function dist2(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1])}
+const bs=flattenBSpline([[0,0],[10,20],[20,0],[30,20]]);
+assert.deepEqual(bs[0],[0,0]);assert.deepEqual(bs.at(-1),[30,20]);assert.ok(Math.max(...bs.filter(p=>p[0]>5&&p[0]<15).map(p=>p[1]))<19,"B-spline aproxima (não interpola) os pontos internos");
+const bsc=flattenBSpline([[0,0],[10,0],[10,10],[0,10]],true);assert.equal(bsc.length,64);
+const sp=spiralPoints({center:[50,50],radius:20,arg:0,turns:3,exp:1});
+assert.ok(dist2(sp.at(-1),[70,50])<1e-6);assert.ok(dist2(sp[0],[50,50])<1e-6);
+const rb=rebuildCurve({shape:"polygon",points:[],curve:{kind:"bspline",closed:true,ctrl:[[10,10],[40,10],[40,40],[10,40]]}});
+const rm=rasterize(rb,60,60);let ra=0;for(const v of rm)ra+=v;assert.ok(ra>300&&ra<900,"B-spline fechada preenchida: "+ra);
+assert.ok(toCoco([{...rb,cls:"spalling_dark",level:"regiao",status:"manual"}],{fileName:"x",width:60,height:60}).annotations[0].shm.curve.kind==="bspline");
+console.log("Annotation passed: curves (Bézier/B-spline/espiral), raster, label priority, COCO polygons/RLE, IoU/Dice/clDice, CDM suggestions, multiscale tiles, ZIP.");

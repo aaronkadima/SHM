@@ -94,6 +94,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const [pathologyGroupOpen,setPathologyGroupOpen]=useState(()=>typeof window==="undefined"||window.innerHeight>=620);
   const [localPreview,setLocalPreview]=useState(null),[previewError,setPreviewError]=useState(""),[statusNotice,setStatusNotice]=useState(""),[statusNoticeTone,setStatusNoticeTone]=useState("info"),[fileDragActive,setFileDragActive]=useState(false);
   const [imageSize,setImageSize]=useState({width:1,height:1});
+  const [showSceneLabels,setShowSceneLabels]=useState(()=>{try{return localStorage.getItem("shmSceneLabels")!=="0"}catch{return true}});
+  useEffect(()=>{try{localStorage.setItem("shmSceneLabels",showSceneLabels?"1":"0")}catch{}},[showSceneLabels]);
   const [annotating,setAnnotating]=useState(false),[gtState,setGtState]=useState(DEFAULT_GT_STATE);
   const groundTruth=useGroundTruth(file||null);
   const imageDecoded=imageSize.width>1&&imageSize.height>1;
@@ -1117,8 +1119,9 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const fArea=px2=>findingMmPerPx>0?formatMeasure(px2*findingMmPerPx*findingMmPerPx,"mm²"):formatMeasure(px2,"px²");
   function findingShort(d){
     const r=d.record;if(!r)return d.code;
-    if(d.label==="cracks")return d.code+" · L "+fLen(r.length_px)+" · w "+fLen(r.width_px);
-    return d.code+" · "+fArea(r.area_px2);
+    const on=r.scene?" · "+r.scene.label_pt:"";
+    if(d.label==="cracks")return d.code+" · L "+fLen(r.length_px)+" · w "+fLen(r.width_px)+on;
+    return d.code+" · "+fArea(r.area_px2)+on;
   }
   const sceneText=sc=>sc?sc.label_pt+" ("+Math.round(100*sc.share)+" %)":"";
   function findingTitle(d){
@@ -1129,6 +1132,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   // Achados que o filtro de contexto IA descartou (não entram nas contagens, medidas nem no GDE).
   const contextInfo=chosen?.metrics?.context_filter||null;
   const discardedFindings=Array.isArray(contextInfo?.discarded)?contextInfo.discarded:[];
+  const sceneObjects=Array.isArray(contextInfo?.scene_objects)?contextInfo.scene_objects:[];
+  const sceneGroupColor={estrutura:"#0d966e",irrelevante:"#d93a3a",neutro:"#6f7f87"};
   const discardedTitle=x=>`${x.code} · ${x.class_label||layerNameById[x.class]||x.class} descartado pelo filtro de contexto IA\nCena: ${sceneText(x.scene)||"—"} · ${Math.round(100*(x.scene?.irrelevant_share||0))} % em região irrelevante\n${x.class==="cracks"?"Comprimento "+fLen(x.length_px||0):"Área "+fArea(x.area_px2||0)}`;
   function selectFinding(d){setActive(chosen.engine_id);setSelectedDetection({engineId:chosen.engine_id,index:d._i})}
   // Linhas do resumo: total de achados e, por patologia, quantidade + total (comprimento ou área).
@@ -1140,10 +1145,20 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       const total=id==="cracks"?fLen(items.reduce((a,d)=>a+(d.record?.length_px||0),0)):fArea(items.reduce((a,d)=>a+(d.record?.area_px2||0),0));
       rows.push({id,accent:"",color:layerColorById[id],label:(layerNameById[id]||id).split("/")[0],count:items.length,total});
     }
+    if(sceneObjects.length)rows.push({id:"ai_scene",accent:"",color:"#0d766e",label:"Objetos da cena (IA)",count:new Set(sceneObjects.map(o=>o.label)).size,total:null});
     if(discardedFindings.length)rows.push({id:"ai_discarded",accent:"",color:"#8a979e",label:"Descartados pela IA",count:discardedFindings.length,total:null});
     return rows;
   })();
   function renderFindingList(kindId){
+    if(kindId==="ai_scene"){
+      const agg=[...sceneObjects.reduce((m,o)=>{const a=m.get(o.label)||{...o,share:0,regions:0};a.share+=o.share;a.regions++;m.set(o.label,a);return m},new Map()).values()].sort((a,b)=>b.share-a.share);
+      return <div className="editorFindingList discarded" role="list">
+        <div className="editorFindingHead" aria-hidden="true"><span>Objeto</span><span>Grupo</span><span>Área</span></div>
+        {agg.map(o=><div role="listitem" key={o.label} className="editorFindingItem" title={o.label+" (ADE20K) · "+o.regions+" região(ões)"}><span className="code" style={{"--dot":sceneGroupColor[o.group]}}>{o.label_pt}</span><span>{o.group}</span><span>{(100*o.share).toFixed(1)} %</span></div>)}
+        <label className="editorSceneToggle"><input type="checkbox" checked={showSceneLabels} onChange={e=>setShowSceneLabels(e.target.checked)}/> Mostrar nomes no canvas</label>
+        <small className="editorFindingNote">{contextInfo?.method_label||"Segmentação semântica por pixel (SegFormer-B0 · ADE20K)"}: cada pixel recebe uma classe de cena; não há instâncias separadas nem caixas de objeto. Vermelho = irrelevante, verde = estrutura, cinza = neutro.</small>
+      </div>;
+    }
     if(kindId==="ai_discarded")return <div className="editorFindingList discarded" role="list">
       <div className="editorFindingHead" aria-hidden="true"><span>#</span><span>Tipo</span><span>Cena</span></div>
       {discardedFindings.map(x=><div role="listitem" key={x.code} className="editorFindingItem" title={discardedTitle(x)}><span className="code" style={{"--dot":"#8a979e"}}>{x.code}</span><span>{(x.class_label||layerNameById[x.class]||x.class).split("/")[0]}</span><span>{sceneText(x.scene)||"—"}</span></div>)}
@@ -1168,7 +1183,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       {useCombinedEngineOverlay&&<img className={"engineOverlayImage "+(overlaySemantics==="transparent_layers"?"transparentOverlay":"compositeOverlay")} src={engineOverlay} alt={"Sobreposição de "+(chosen?.name||"motor")} style={{opacity}}/>}
       {[...orderedPathologyLayers].reverse().filter(layer=>visible[pathologyEngineId+":"+layer.id]!==false).map(layer=><img className="pathologyOverlay" key={layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} data-layer-id={layer.id} style={{opacity:opacity*Number(pathologyOpacity[layer.id]??1)}}/>)}
       {temporalLayers.filter(layer=>temporalLayerIsVisible(layer.id)).map(layer=><img className="pathologyOverlay temporalOverlay" key={"temporal-"+layer.id} src={"data:image/png;base64,"+layer.overlay_png_base64} alt={layer.name} style={{opacity}}/>)}
-      {showBoxes&&discardedFindings.map(x=><span key={"ia-"+x.code} className="editorDetection editorDiscarded" data-finding={x.code} title={discardedTitle(x)} style={{left:(x.bbox[0]/boxScaleW*100)+"%",top:(x.bbox[1]/boxScaleH*100)+"%",width:(x.bbox[2]/boxScaleW*100)+"%",height:(x.bbox[3]/boxScaleH*100)+"%"}}>{showLabels&&<span className="editorDetectionLabel" style={{"--label-bg":"rgba(96,110,118,.88)"}}>{x.code} · descartado: {(x.class_label||"").split("/")[0].toLowerCase()} em {x.scene?.label_pt||"?"}</span>}</span>)}
+      {showSceneLabels&&sceneObjects.map((o,i)=><span key={"scene-"+i} className="editorSceneLabel" title={o.label+" · "+o.group+" · "+(100*o.share).toFixed(1)+" % da imagem"} style={{left:(o.center[0]/boxScaleW*100)+"%",top:(o.center[1]/boxScaleH*100)+"%","--scene":sceneGroupColor[o.group]}}>{o.label_pt} · {(100*o.share).toFixed(0)} %</span>)}
+      {showBoxes&&discardedFindings.map(x=><span key={"ia-"+x.code} className="editorDetection editorDiscarded" data-finding={x.code} title={discardedTitle(x)} style={{left:(x.bbox[0]/boxScaleW*100)+"%",top:(x.bbox[1]/boxScaleH*100)+"%",width:(x.bbox[2]/boxScaleW*100)+"%",height:(x.bbox[3]/boxScaleH*100)+"%"}}>{showLabels&&<span className="editorDetectionLabel" style={{"--label-bg":"rgba(96,110,118,.88)"}}>{x.code} · descartado · {(x.class_label||"").split("/")[0].toLowerCase()} sobre {x.scene?.label_pt||"?"}{x.scene?" "+Math.round(100*x.scene.share)+" %":""}</span>}</span>)}
       {boxes.map(d=>{const color=layerColorById[d.label]||"#0d766e",op=Math.max(.15,opacity*Number(pathologyOpacity[d.label]??1)),sel=selectedDetection?.engineId===chosen?.engine_id&&selectedDetection.index===d._i;
         const small=boxes.length>12&&((d.box[2]-d.box[0])*(d.box[3]-d.box[1]))/(boxScaleW*boxScaleH)<.004;
         return <button key={d._i} className={"editorDetection "+(sel?"selected ":"")+(showBoxes?"":"boxesHidden ")+(small?"labelOnHover":"")} data-finding={d.code} title={findingTitle(d)} aria-label={`Achado ${d.code}: ${layerNameById[d.label]||d.label||"sem classificação"}`} style={{left:(d.box[0]/boxScaleW*100)+"%",top:(d.box[1]/boxScaleH*100)+"%",width:((d.box[2]-d.box[0])/boxScaleW*100)+"%",height:((d.box[3]-d.box[1])/boxScaleH*100)+"%","--box-color":color,"--box-stroke":hexToRgba(color,.45+.55*op),"--box-fill":hexToRgba(color,.22*op)}} onClick={()=>{setActive(chosen.engine_id);setSelectedDetection({engineId:chosen.engine_id,index:d._i})}}>{labelLayerVisible(d.label)&&<span className="editorDetectionLabel" style={{"--label-bg":hexToRgba(color,.9)}}>{findingShort(d)}</span>}</button>})}
@@ -1426,8 +1442,6 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
             {helpSubmenu==="manual"&&<div className="editorMenuPanel editorSubmenuPanel editorSubmenuLeft" role="menu" aria-label="Manual do usuário">
               <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("manual"))}><MenuIcon icon={BookOpen}/><span>Manual do programa</span><small>F1</small></button>
               <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>onToggleAulas?.())}><MenuIcon icon={GraduationCap}/><span>Noções de Programação para SHM</span></button>
-              <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("shortcuts"))}><MenuIcon icon={Keyboard}/><span>Atalhos de teclado e mouse</span></button>
-              <button type="button" role="menuitem" onClick={e=>runEditorMenuAction(e,()=>setHelpDialog("tip"))}><MenuIcon icon={Lightbulb}/><span>Dicas do Studio</span></button>
             </div>}
           </div>
         </div></details>

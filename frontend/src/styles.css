@@ -1335,8 +1335,14 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .gtLayer .gtShape.rejected{opacity:.18}
 .gtLayer .gtShape.selected{filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 3px #f3b342)}
 .gtLayer .gtDraft,.gtLayer .gtCursor{pointer-events:none}
-.gtPanel{position:absolute;top:58px;right:12px;z-index:40;width:min(318px,calc(100% - 24px));max-height:calc(100% - 76px);overflow:auto;background:rgba(255,255,255,.97);border:1px solid #dbe4e8;border-radius:12px;box-shadow:0 12px 32px rgba(28,48,58,.16);padding:10px;display:flex;flex-direction:column;gap:8px;font-size:12px;color:#263e4b}
-.gtHead{display:flex;align-items:center;justify-content:space-between}
+.gtPanel{position:absolute;top:112px;right:12px;z-index:40;width:min(330px,calc(100% - 24px));max-height:calc(100% - 124px);overflow:auto;background:rgba(255,255,255,.97);border:1px solid #dbe4e8;border-radius:12px;box-shadow:0 12px 32px rgba(28,48,58,.16);padding:10px;display:flex;flex-direction:column;gap:8px;font-size:12px;color:#263e4b}
+.gtHead{display:flex;align-items:center;justify-content:space-between;cursor:grab;user-select:none;margin:-4px -4px 0;padding:4px;border-radius:8px}
+.gtHead:active{cursor:grabbing}
+.gtHead:hover{background:#f4f8f9}
+.gtGrip{color:#9aabb3}
+.gtLayer .gtNode{fill:#fff;stroke:#0d766e;stroke-width:1.5px;vector-effect:non-scaling-stroke;cursor:move;pointer-events:all}
+.gtLayer .gtNode.handle{fill:#0d766e;stroke:#fff}
+.gtLayer .gtHandleLine{fill:none;stroke:#0d766e;stroke-opacity:.6;stroke-dasharray:3 2;vector-effect:non-scaling-stroke;pointer-events:none}
 .gtHead b{display:inline-flex;align-items:center;gap:6px;font-size:13px}
 .gtHead button{border:0;background:transparent;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;cursor:pointer;color:#637986}
 .gtHead button:hover{background:#eef3f5}
@@ -1367,3 +1373,8 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .gtEval th,.gtEval td{padding:4px 4px;border-bottom:1px solid #edf2f4;text-align:right}
 .gtEval th:first-child,.gtEval td:first-child{text-align:left;display:flex;align-items:center;gap:5px}
 .gtEval small{color:#7d919b;display:block;margin-top:4px}
+.editorOverlayStack .editorSceneLabel{position:absolute;transform:translate(-50%,-50%) scale(calc(1 / var(--canvas-zoom,1)));padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--scene) 82%,transparent);color:#fff;font:700 11px/1.3 system-ui,sans-serif;white-space:nowrap;pointer-events:auto;cursor:help;box-shadow:0 1px 3px rgba(0,0,0,.25);z-index:3}
+.editorSceneToggle{display:flex;align-items:center;gap:6px;font-size:11px;color:#567080;padding:4px 2px}
+/* Botão Sobre da barra lateral: sem preenchimento enquanto não estiver ativo */
+.editorTools .editorAulasLink.editorAboutLink:not(.active){background:transparent;color:#4f6a76}
+.editorTools .editorAulasLink.editorAboutLink:not(.active):hover{background:#eef4f5;color:#0d766e}

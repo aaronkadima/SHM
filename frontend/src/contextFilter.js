@@ -19,16 +19,27 @@ const EXCLUDE=["sky","tree","grass","plant","flower","palm","field","earth","lan
 const STRUCTURE=["wall","building","floor","ceiling","road","sidewalk","path","runway","column","pier","bridge","stairs","stairway",
   "step","railing","bannister","fence","base","tower","skyscraper","house","hovel","grandstand","stage","rock","countertop"];
 // Nomes em português das classes ADE20K mais comuns em inspeção (as demais ficam em inglês).
-export const ADE_PT={wall:"parede",building:"edificação",sky:"céu",floor:"piso",tree:"árvore",ceiling:"teto",road:"pista/via",grass:"grama",
-  sidewalk:"calçada",person:"pessoa",earth:"solo",door:"porta",mountain:"montanha",plant:"vegetação",car:"carro",water:"água",painting:"pintura/quadro",
-  house:"casa",sea:"mar",field:"campo",fence:"cerca",rock:"rocha",railing:"guarda-corpo",base:"base",column:"pilar/coluna",signboard:"placa",
-  sand:"areia",skyscraper:"edifício alto",path:"caminho",stairs:"escada",runway:"pista",river:"rio",bridge:"ponte",flower:"flor",hill:"morro",
-  palm:"palmeira",boat:"barco",bus:"ônibus",truck:"caminhão",tower:"torre",streetlight:"poste de iluminação",airplane:"avião","dirt track":"estrada de terra",
-  pole:"poste",land:"terreno",bannister:"corrimão",poster:"cartaz",van:"van",ship:"navio",fountain:"fonte",canopy:"cobertura",tent:"tenda",
-  stairway:"escadaria",step:"degrau",animal:"animal",bicycle:"bicicleta",lake:"lago",minibike:"moto","traffic light":"semáforo",pier:"cais/píer",
-  flag:"bandeira",awning:"toldo","trade name":"letreiro",apparel:"roupa",bag:"bolsa",ashcan:"lixeira","bulletin board":"mural",window:"janela",
-  windowpane:"vidraça",grandstand:"arquibancada",stage:"palco",countertop:"bancada",waterfall:"cachoeira","swimming pool":"piscina",hovel:"barraco"};
-export const ptLabel=name=>ADE_PT[name]||name||"—";
+export const ADE_PT={wall:"parede",building:"edificação",sky:"céu",floor:"piso",tree:"árvore",ceiling:"teto",road:"pista/via",bed:"cama",
+  windowpane:"vidraça",grass:"grama",cabinet:"armário",sidewalk:"calçada",person:"pessoa",earth:"solo/terra",door:"porta",table:"mesa",
+  mountain:"montanha",plant:"vegetação",curtain:"cortina",chair:"cadeira",car:"carro",water:"água",painting:"pintura/quadro",sofa:"sofá",
+  shelf:"prateleira",house:"casa",sea:"mar",mirror:"espelho",rug:"tapete",field:"campo",armchair:"poltrona",seat:"assento",fence:"cerca",
+  desk:"escrivaninha",rock:"rocha/pedra",wardrobe:"guarda-roupa",lamp:"luminária",bathtub:"banheira",railing:"guarda-corpo",cushion:"almofada",
+  base:"base/pedestal",box:"caixa",column:"pilar/coluna",signboard:"placa","chest of drawers":"cômoda",counter:"balcão",sand:"areia",sink:"pia",
+  skyscraper:"edifício alto",fireplace:"lareira",refrigerator:"geladeira",grandstand:"arquibancada",path:"caminho",stairs:"escada",runway:"pista",
+  case:"vitrine",'pool table':"mesa de sinuca",pillow:"travesseiro","screen door":"porta de tela",stairway:"escadaria",river:"rio",bridge:"ponte",
+  bookcase:"estante",blind:"persiana","coffee table":"mesa de centro",toilet:"vaso sanitário",flower:"flor",book:"livro",hill:"morro",bench:"banco",
+  countertop:"bancada",stove:"fogão",palm:"palmeira","kitchen island":"ilha de cozinha",computer:"computador","swivel chair":"cadeira giratória",
+  boat:"barco",bar:"bar/balcão","arcade machine":"fliperama",hovel:"barraco",bus:"ônibus",towel:"toalha",light:"luz/lâmpada",truck:"caminhão",
+  tower:"torre",chandelier:"lustre",awning:"toldo",streetlight:"poste de iluminação",booth:"cabine","television receiver":"televisor",airplane:"avião",
+  "dirt track":"estrada de terra",apparel:"roupa",pole:"poste",land:"terreno",bannister:"corrimão",escalator:"escada rolante",ottoman:"pufe",
+  bottle:"garrafa",buffet:"aparador",poster:"cartaz",stage:"palco",van:"van",ship:"navio",fountain:"fonte","conveyer belt":"esteira",canopy:"cobertura",
+  washer:"lavadora",plaything:"brinquedo","swimming pool":"piscina",stool:"banqueta",barrel:"barril",basket:"cesto",waterfall:"cachoeira",tent:"tenda",
+  bag:"bolsa",minibike:"moto",cradle:"berço",oven:"forno",ball:"bola",food:"alimento",step:"degrau",tank:"tanque/reservatório","trade name":"letreiro",
+  microwave:"micro-ondas",pot:"vaso/panela",animal:"animal",bicycle:"bicicleta",lake:"lago",dishwasher:"lava-louças",screen:"tela",blanket:"cobertor",
+  sculpture:"escultura",hood:"coifa",sconce:"arandela",vase:"vaso","traffic light":"semáforo",tray:"bandeja",ashcan:"lixeira",fan:"ventilador",
+  pier:"cais/píer","crt screen":"monitor CRT",plate:"prato",monitor:"monitor","bulletin board":"mural",shower:"chuveiro",radiator:"radiador",
+  glass:"copo/vidro",clock:"relógio",flag:"bandeira"};
+export const ptLabel=name=>ADE_PT[String(name||"").trim()]||String(name||"").trim()||"—";
 const norm=s=>String(s||"").toLowerCase().split(/[,;]/)[0].trim();
 
 export function contextGroups(labels){
@@ -91,7 +102,7 @@ export function exclusionFromClasses(map,labels,mode="conservative",minConfidenc
     const drop=mode==="strict"?g!==1:g===2;
     if(drop&&map.conf[i]>=minConfidence){excl[i]=1;excluded++}
   }
-  const top=[...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6).map(([c,k])=>({label:names[c]||String(c),group:["neutro","estrutura","irrelevante"][group[c]??0],share:+(k/n).toFixed(4)}));
+  const top=[...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8).map(([c,k])=>({label:names[c]||String(c),label_pt:ptLabel(names[c]),group:["neutro","estrutura","irrelevante"][group[c]??0],share:+(k/n).toFixed(4)}));
   // Segurança: se quase tudo foi julgado irrelevante e quase nada é estrutura (ex.: close-up de
   // textura que o modelo não reconhece), o filtro se abstém em vez de apagar a inspeção.
   const uncertain=excluded/n>.9&&structure/n<.03;
@@ -151,4 +162,25 @@ export function sceneOf(mask,w,h,bbox,excl){
   if(!n)return null;
   const[best,k]=[...tally.entries()].sort((a,b)=>b[1]-a[1])[0],label=excl.names[best]||String(best);
   return{label,label_pt:ptLabel(label),share:+(k/n).toFixed(3),irrelevant_share:+(inEx/n).toFixed(3)};
+}
+
+// Objetos da cena: regiões conexas de cada classe no mapa do modelo (segmentação semântica, não instâncias).
+// Devolve nome real (PT), grupo, fração da imagem e caixas/centroides nas coordenadas da imagem processada.
+export function sceneObjects(excl,imgW,imgH,{minShare=.004,maxPerClass=4,maxTotal=24}={}){
+  if(!excl?.cls||!excl.names)return[];
+  const{w,h,cls}=excl,n=w*h,seen=new Uint8Array(n),queue=new Int32Array(n),sx=imgW/w,sy=imgH/h,out=[];
+  const{group}=contextGroups(Object.fromEntries(excl.names.map((v,i)=>[i,v])));
+  for(let s=0;s<n;s++){
+    if(seen[s])continue;const c=cls[s];let head=0,tail=0,minX=w,minY=h,maxX=0,maxY=0,cx=0,cy=0;queue[tail++]=s;seen[s]=1;
+    while(head<tail){const p=queue[head++],y=(p/w)|0,x=p-y*w;cx+=x;cy+=y;if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+      if(x>0&&!seen[p-1]&&cls[p-1]===c){seen[p-1]=1;queue[tail++]=p-1}if(x<w-1&&!seen[p+1]&&cls[p+1]===c){seen[p+1]=1;queue[tail++]=p+1}
+      if(y>0&&!seen[p-w]&&cls[p-w]===c){seen[p-w]=1;queue[tail++]=p-w}if(y<h-1&&!seen[p+w]&&cls[p+w]===c){seen[p+w]=1;queue[tail++]=p+w}}
+    if(tail<minShare*n)continue;
+    const name=String(excl.names[c]||c).trim(),g=group[c]??0;
+    out.push({label:name,label_pt:ptLabel(name),group:["neutro","estrutura","irrelevante"][g],share:+(tail/n).toFixed(4),
+      center:[+((cx/tail+.5)*sx).toFixed(1),+((cy/tail+.5)*sy).toFixed(1)],bbox:[+(minX*sx).toFixed(1),+(minY*sy).toFixed(1),+((maxX-minX+1)*sx).toFixed(1),+((maxY-minY+1)*sy).toFixed(1)]});
+  }
+  out.sort((a,b)=>b.share-a.share);
+  const per=new Map(),kept=[];for(const o of out){const k=per.get(o.label)||0;if(k>=maxPerClass)continue;per.set(o.label,k+1);kept.push(o);if(kept.length>=maxTotal)break}
+  return kept;
 }

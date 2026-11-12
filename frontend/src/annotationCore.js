@@ -13,9 +13,9 @@ export const GT_CLASSES=[
 export const GT_BY_ID=Object.fromEntries(GT_CLASSES.map(c=>[c.id,c]));
 // Três níveis de escala: cada um tem zoom recomendado e ferramentas próprias.
 export const GT_LEVELS=[
-  {id:"cena",label:"Cena",zoom:1,tools:["polygon","brush"],hint:"Foto inteira: marque estrutura e regiões irrelevantes (céu, vegetação, veículos, placas)."},
-  {id:"regiao",label:"Região",zoom:3,tools:["polygon","brush"],hint:"Zoom 2–4×: contorne desplacamento, armadura, corrosão e eflorescência."},
-  {id:"detalhe",label:"Detalhe",zoom:10,tools:["crack","brush"],hint:"Zoom ≥ 8×: trace a linha central das fissuras clique a clique; a largura é a do traço."}
+  {id:"cena",label:"Cena",zoom:1,tools:["polygon","bezier","bspline","brush"],hint:"Foto inteira: marque estrutura e regiões irrelevantes (céu, vegetação, veículos, placas)."},
+  {id:"regiao",label:"Região",zoom:3,tools:["polygon","bezier","bspline","spiral","brush"],hint:"Zoom 2–4×: contorne desplacamento, armadura, corrosão e eflorescência."},
+  {id:"detalhe",label:"Detalhe",zoom:10,tools:["crack","bezier","bspline","spiral","brush"],hint:"Zoom ≥ 8×: trace a linha central das fissuras clique a clique; a largura é a do traço."}
 ];
 export function levelForZoom(z){return z>=6?"detalhe":z>=1.8?"regiao":"cena"}
 // Ordem de pintura do mapa de rótulos: cena embaixo, fissura por cima (classes finas vencem).
@@ -122,7 +122,7 @@ export function toCoco(annotations,{fileName,width,height,scale=1,meta={}}={}){
     const half=a.shape==="polygon"?0:Math.max(1,(a.width||2)*scale)/2;
     anns.push({id:++id,image_id:1,category_id:GT_BY_ID[a.cls].index,iscrowd:0,area,bbox:bboxOf(pts,half).map(v=>+v.toFixed(2)),
       segmentation:a.shape==="polygon"?[pts.flat().map(v=>+v.toFixed(2))]:rleEncode(m,width,height),
-      shm:{shape:a.shape,level:a.level,width_px:a.shape==="polygon"?null:+((a.width||2)*scale).toFixed(2),annotated_zoom:a.zoom??null,source:a.source||"user",status:a.status||"manual",polyline:a.shape==="polygon"?null:pts.map(p=>p.map(v=>+v.toFixed(2)))}});
+      shm:{shape:a.shape,curve:a.curve||null,level:a.level,width_px:a.shape==="polygon"?null:+((a.width||2)*scale).toFixed(2),annotated_zoom:a.zoom??null,source:a.source||"user",status:a.status||"manual",polyline:a.shape==="polygon"?null:pts.map(p=>p.map(v=>+v.toFixed(2)))}});
   }
   return{info:{description:"SHM Studio · Ground Truth few-shot multiescala",version:"1.0",date_created:new Date().toISOString(),...meta},
     licenses:[],images:[{id:1,file_name:fileName,width,height}],categories:cats,annotations:anns};
@@ -172,4 +172,55 @@ export function zipStore(files){
   const csize=central.reduce((a,p)=>a+p.length,0),end=new DataView(new ArrayBuffer(22));
   end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,csize,true);end.setUint32(16,offset,true);
   return new Blob([...parts,...central,new Uint8Array(end.buffer)],{type:"application/zip"});
+}
+
+// ---------- curvas (estilo Inkscape): Bézier cúbica, B-spline cúbica uniforme e espiral ----------
+// Bézier: nós {p,hin,hout}; segmento i→i+1 usa p_i, hout_i, hin_{i+1}, p_{i+1}. Achatamento adaptativo.
+function cubic(a,b,c,d,t){const u=1-t;return[u*u*u*a[0]+3*u*u*t*b[0]+3*u*t*t*c[0]+t*t*t*d[0],u*u*u*a[1]+3*u*u*t*b[1]+3*u*t*t*c[1]+t*t*t*d[1]]}
+export function flattenBezier(nodes,closed=false,tol=.35){
+  if(!nodes?.length)return[];
+  const out=[nodes[0].p.slice()],segs=closed?nodes.length:nodes.length-1;
+  for(let i=0;i<segs;i++){
+    const A=nodes[i],B=nodes[(i+1)%nodes.length],a=A.p,b=A.hout||A.p,c=B.hin||B.p,d=B.p;
+    const len=Math.hypot(b[0]-a[0],b[1]-a[1])+Math.hypot(c[0]-b[0],c[1]-b[1])+Math.hypot(d[0]-c[0],d[1]-c[1]);
+    const n=Math.max(1,Math.min(400,Math.ceil(len/Math.max(.5,tol*4))));
+    for(let k=1;k<=n;k++)out.push(cubic(a,b,c,d,k/n));
+  }
+  if(closed)out.pop();
+  return out;
+}
+// B-spline cúbica uniforme: fechada = periódica; aberta = extremos repetidos (a curva toca o 1º e o último ponto).
+export function flattenBSpline(ctrl,closed=false,perSeg=16){
+  if(!ctrl?.length)return[];
+  if(ctrl.length<3)return ctrl.map(p=>p.slice());
+  const P=closed?ctrl:[ctrl[0],ctrl[0],...ctrl,ctrl[ctrl.length-1],ctrl[ctrl.length-1]];
+  const n=closed?P.length:P.length-3,out=[];
+  for(let i=0;i<n;i++){
+    const p0=P[i%P.length],p1=P[(i+1)%P.length],p2=P[(i+2)%P.length],p3=P[(i+3)%P.length];
+    for(let k=0;k<perSeg;k++){
+      const t=k/perSeg,t2=t*t,t3=t2*t;
+      const b0=(1-3*t+3*t2-t3)/6,b1=(4-6*t2+3*t3)/6,b2=(1+3*t+3*t2-3*t3)/6,b3=t3/6;
+      out.push([b0*p0[0]+b1*p1[0]+b2*p2[0]+b3*p3[0],b0*p0[1]+b1*p1[1]+b2*p2[1]+b3*p3[1]]);
+    }
+  }
+  if(!closed)out.push(ctrl[ctrl.length-1].slice());
+  return out;
+}
+// Espiral de Inkscape: r(t)=R·t^exp, θ(t)=arg + 2π·voltas·t (de dentro para fora), t ∈ [t0,1].
+export function spiralPoints({center,radius,arg=0,turns=3,exp=1,t0=0}){
+  const n=Math.max(24,Math.ceil(turns*72)),out=[];
+  for(let k=0;k<=n;k++){
+    const t=t0+(1-t0)*k/n,r=radius*Math.pow(t,exp),th=arg-2*Math.PI*turns*(1-t);
+    out.push([center[0]+r*Math.cos(th),center[1]+r*Math.sin(th)]);
+  }
+  return out;
+}
+// Recalcula a polilinha de raster a partir da curva (após criar ou editar nós).
+export function rebuildCurve(a){
+  const c=a.curve;if(!c)return a;
+  let pts=a.points;
+  if(c.kind==="bezier")pts=flattenBezier(c.nodes,c.closed);
+  else if(c.kind==="bspline")pts=flattenBSpline(c.ctrl,c.closed);
+  else if(c.kind==="spiral")pts=spiralPoints(c);
+  return{...a,points:pts.map(p=>[+p[0].toFixed(2),+p[1].toFixed(2)])};
 }

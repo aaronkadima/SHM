@@ -159,7 +159,7 @@ function chapters(shortcuts){
     <p>Achados abaixo desse limite são descartados como irrelevantes; uma caixa com ≥ 80 % de sua área dentro de outra maior da mesma classe é absorvida (as áreas são somadas), evitando caixas repetidas.</p>
     <FigConsolidation n={f()}/>
     <h3>Filtro de contexto IA</h3>
-    <p>Opcional (Configurações › CDM-1). Um SegFormer-B0 treinado no ADE20K (150 classes de cena) roda no navegador e classifica cada região da foto. O CDM continua rodando na imagem inteira; <b>depois</b>, cada componente <M>{"K"}</M> é descartado se a fração de sua área sobre regiões irrelevantes <M>{"X"}</M> (céu, vegetação, solo, água, veículos, pessoas, placas, postes; no modo estrito, tudo que não for estrutura) atingir o limiar <M>{"\\tau"}</M> (padrão 0,6):</p>
+    <p>Opcional (Configurações › CDM-1). Um SegFormer-B0 treinado no ADE20K (150 classes de cena: céu, árvore, grama, pessoa, animal, água, carro, placa, parede, ponte…) roda no navegador. É <b>segmentação semântica</b>: cada pixel recebe uma classe — não há detecção de objetos com caixas, nem instâncias separadas, nem segmentação panóptica. Os nomes reais dos objetos aparecem no canvas e em <i>Resultados › Objetos da cena</i>. O CDM continua rodando na imagem inteira; <b>depois</b>, cada componente <M>{"K"}</M> é descartado se a fração de sua área sobre regiões irrelevantes <M>{"X"}</M> (céu, vegetação, solo, água, veículos, pessoas, placas, postes; no modo estrito, tudo que não for estrutura) atingir o limiar <M>{"\\tau"}</M> (padrão 0,6):</p>
     <Eq n={e()}>{"\\text{descarta } K \\iff \\frac{|K \\cap X|}{|K|} \\ge \\tau"}</Eq>
     <p>A IA só remove falsos positivos: não cria achados nem altera medidas, e a paridade JS ⇄ Python do CDM é preservada. Se a cena não for reconhecida (mais de 90 % irrelevante e menos de 3 % de estrutura, típico de close-ups), o filtro se abstém. A etapa “Filtro de contexto IA” mostra o mapa usado (vermelho = irrelevante, verde = estrutura).</p>
     <h3>Painel Resultados</h3>
@@ -221,9 +221,16 @@ function chapters(shortcuts){
     <p>A ferramenta de anotação (ícone de caneta na barra lateral ou <i>Análise › Anotação Ground Truth</i>) cria o Ground Truth de poucas imagens bem anotadas, usado para medir o CDM e treinar pesos próprios.</p>
     <h3>Três níveis de escala</h3>
     <Tbl head={["Nível","Zoom","Classes","Ferramentas"]} rows={[
-      ["Cena","1×","estrutura · irrelevante","polígono, pincel"],
-      ["Região","2–4×","desplacamento, armadura, corrosão, eflorescência","polígono, pincel"],
-      ["Detalhe","≥ 8×","fissura","linha central com largura, pincel"]]}/>
+      ["Cena","1×","estrutura · irrelevante","polígono, Bézier, B-spline, pincel"],
+      ["Região","2–4×","desplacamento, armadura, corrosão, eflorescência","polígono, Bézier, B-spline, espiral, pincel"],
+      ["Detalhe","≥ 8×","fissura","linha central, Bézier, B-spline, espiral, pincel"]]}/>
+    <h3>Curvas (como no Inkscape)</h3>
+    <ul>
+      <li><b>Bézier</b>: clique cria nó de canto; clique e arraste cria nó suave com alças. Cada trecho é uma cúbica <M>{"B(t) = (1-t)^3 P_0 + 3(1-t)^2 t\\, P_1 + 3(1-t) t^2 P_2 + t^3 P_3"}</M>.</li>
+      <li><b>B-spline</b>: pontos de controle; a curva cúbica uniforme passa suave perto deles — ideal para bordas de desplacamento.</li>
+      <li><b>Espiral</b>: centro e raio por arraste; <M>{"r(t) = R\\, t^{d}"}</M>, <M>{"\\theta(t) = \\theta_0 - 2\\pi n (1 - t)"}</M>, com voltas <M>{"n"}</M> e divergência <M>{"d"}</M>.</li>
+      <li>Com <b>Selecionar</b>, arraste nós, alças (Alt = alça independente), pontos de controle e o centro/raio da espiral. Classes de área geram caminho fechado; fissuras, caminho aberto com largura.</li>
+    </ul>
     <p>Os vetores são guardados nas coordenadas da imagem, então um polígono feito a 2× e uma fissura traçada a 16× ficam alinhados. O pincel tem tamanho fixo na tela: com mais zoom o traço fica mais fino na imagem, permitindo anotar fissuras de 1–2 px. Cada anotação registra o zoom em que foi feita.</p>
     <h3>Few-shot com sugestão do CDM</h3>
     <p><i>Sugerir do CDM</i> converte os achados da última análise em anotações tracejadas; aceite, rejeite ou apague cada uma (ferramenta Selecionar) ou todas de uma vez. Só anotações manuais e sugestões aceitas entram nas máscaras e nas métricas.</p>

@@ -1,4 +1,4 @@
-import{CONTEXT_MODES,DEFAULT_CONTEXT_SHARE,gateMasks,sceneOf}from"./contextFilter.js";
+import{CONTEXT_MODES,DEFAULT_CONTEXT_SHARE,gateMasks,sceneObjects,sceneOf}from"./contextFilter.js";
 // Browser-native execution of Concrete Damage Morphology (CDM) 2.8.5.
 // Mirrors the deterministic Python/Inkscape pipeline closely enough to keep the
 // same five pathology families, record geometry contract and t0→t1 semantics.
@@ -853,7 +853,7 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     try{
       const excl=await control.contextFilter(current,cfg.contextMode,{signal,onProgress});
       cfg.context={mask:excl.mask,cls:excl.cls,names:excl.names,w:excl.w,h:excl.h,abstained:excl.abstained};
-      contextInfo={status:excl.abstained?"abstained":"ok",mode:cfg.contextMode,share:cfg.contextShare,excluded_ratio:excl.excluded_ratio,structure_ratio:excl.structure_ratio,top_classes:excl.top_classes,model:excl.model||null,model_sha256:excl.sha256||null,map_size:[excl.w,excl.h],overlay_png_base64:contextOverlay(current,excl)};
+      contextInfo={status:excl.abstained?"abstained":"ok",mode:cfg.contextMode,share:cfg.contextShare,excluded_ratio:excl.excluded_ratio,structure_ratio:excl.structure_ratio,top_classes:excl.top_classes,model:excl.model||null,model_sha256:excl.sha256||null,map_size:[excl.w,excl.h],method:"semantic_segmentation",method_label:"Segmentação semântica por pixel (SegFormer-B0 · ADE20K, 150 classes)",scene_objects:sceneObjects(excl,current.width,current.height),overlay_png_base64:contextOverlay(current,excl)};
     }catch(error){
       if(error?.name==="AbortError"||signal?.aborted)throw abortError();
       contextInfo={status:"unavailable",mode:cfg.contextMode,error:String(error?.message||error)};

@@ -85,4 +85,26 @@ const noAbstain=exclusionFromClasses({cls:new Uint8Array(mw*mh).fill(2),conf,w:m
 assert.equal(noAbstain.abstained,false);
 const strictConf=exclusionFromClasses({cls,conf,w:mw,h:mh},labels,"conservative",.95);
 assert.equal(strictConf.excluded_ratio,0,"confiança 0,9 < 0,95 → nada excluído");
-console.log("Context filter passed: options (lists, confidence, abstain), ADE20K groups, conservative/strict/abstain, post-morphology component gating and CDM core integration.");
+// Recorte por pixel: duas manchas ligadas por uma ponte sobre região irrelevante viram dois componentes.
+{
+  const W2=60,H2=20,m=new Uint8Array(W2*H2);
+  for(let y=4;y<16;y++)for(let x=2;x<18;x++)m[y*W2+x]=1;
+  for(let y=4;y<16;y++)for(let x=42;x<58;x++)m[y*W2+x]=1;
+  for(let y=9;y<12;y++)for(let x=18;x<42;x++)m[y*W2+x]=1;// ponte
+  const ex=new Uint8Array(6*2);ex[2]=ex[3]=ex[8]=ex[9]=1;// colunas centrais do mapa 6×2 = irrelevantes
+  const ctx={mask:ex,w:6,h:2};
+  const recs=m2=>__cdmTest.recordsFromMask(m2,W2,H2,"spalling_dark","t1",{minArea:4,minAspect:2});
+  assert.equal(recs(m).length,1,"sem recorte: um componente");
+  const cl=__cdmTest.clipMasksByContext({spalling_dark:m,cracks:new Uint8Array(W2*H2)},W2,H2,ctx,false);
+  assert.equal(recs(cl.masks.spalling_dark).length,2,"com recorte: dois componentes");
+  assert.ok(cl.clipped.spalling_dark>0&&!("cracks" in cl.clipped&&cl.clipped.cracks>0));
+}
+// Contorno real (não convexo): um "L" tem polígono com área bem menor que a do fecho convexo.
+{
+  const W2=40,H2=40,m=new Uint8Array(W2*H2);
+  for(let y=5;y<35;y++)for(let x=5;x<12;x++)m[y*W2+x]=1;for(let y=28;y<35;y++)for(let x=5;x<35;x++)m[y*W2+x]=1;
+  const r=__cdmTest.recordsFromMask(m,W2,H2,"spalling_dark","t1",{minArea:4,minAspect:2})[0];
+  let a=0;for(let i=0,j=r.points.length-1;i<r.points.length;j=i++)a+=(r.points[j][0]+r.points[i][0])*(r.points[j][1]-r.points[i][1]);a=Math.abs(a/2);
+  assert.ok(a<1.3*r.area_px2,"polígono acompanha o L ("+a.toFixed(0)+" vs "+r.area_px2+" px²)");
+}
+console.log("Context filter passed: pixel clipping by context, concave contours, options (lists, confidence, abstain), ADE20K groups, conservative/strict/abstain, post-morphology component gating and CDM core integration.");

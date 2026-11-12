@@ -435,6 +435,29 @@ function skeletonLength(skel,w,h,pixels){
   }
   return L;
 }
+// Contorno externo (Moore, 8-vizinhos) de um componente a partir do pixel mais acima/esquerda.
+// Substitui o polígono convexo: regiões côncavas ou separadas não "engolem" o fundo entre elas.
+const MOORE=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
+function traceContour(mask,w,h,start,limit){
+  const inside=(x,y)=>x>=0&&y>=0&&x<w&&y<h&&mask[y*w+x]!==0;
+  const sx=start%w,sy=(start/w)|0,pts=[[sx,sy]];
+  let x=sx,y=sy,dir=0,steps=0,firstDir=-1;
+  for(;;){
+    let moved=false;
+    for(let k=0;k<8;k++){const d=(dir+6+k)%8,nx=x+MOORE[d][0],ny=y+MOORE[d][1];if(inside(nx,ny)){
+      if(x===sx&&y===sy){if(firstDir<0)firstDir=d;else if(d===firstDir&&steps>0)return pts}
+      x=nx;y=ny;dir=d;moved=true;break}}
+    if(!moved)return pts;
+    if(++steps>limit)return pts;
+    if(!(x===sx&&y===sy))pts.push([x,y]);
+  }
+}
+function contourPolygon(mask,w,h,start,count){
+  const ring=traceContour(mask,w,h,start,4*count+64);
+  if(ring.length<4)return ring;
+  const simple=rdp([...ring,ring[0]],.9);simple.pop();
+  return simple.length>=3?simple:ring;
+}
 function rdp(points,eps){
   if(points.length<3)return points;
   const keep=new Uint8Array(points.length);keep[0]=keep[points.length-1]=1;
@@ -547,6 +570,24 @@ function crackRecords(rawMask,w,h,timeLabel,cfg){
 // Mesma regra em backend/app/cdm_v285.py (consolidate_area_records); paridade testada em CI.
 const AREA_CLASSES=new Set(["spalling_dark","corrosion_rust","efflorescence_white"]);
 const AREA_REGION_FRACTION=.0005,AREA_LARGEST_FRACTION=.08,AREA_CONTAIN_FRACTION=.8;
+function clipMasksByContext(masks,w,h,ctx,includeCracks){
+  const ew=ctx.w,eh=ctx.h,ex=ctx.mask,mx=new Int32Array(w),my=new Int32Array(h),out={...masks},clipped={};
+  for(let x=0;x<w;x++)mx[x]=Math.min(ew-1,Math.floor((x+.5)*ew/w));
+  for(let y=0;y<h;y++)my[y]=Math.min(eh-1,Math.floor((y+.5)*eh/h))*ew;
+  for(const cls of ORDER){
+    const m=masks[cls];if(!(m instanceof Uint8Array)||(cls==="cracks"&&!includeCracks))continue;
+    let n=0;const c=new Uint8Array(m);
+    for(let y=0;y<h;y++){const row=y*w,er=my[y];for(let x=0;x<w;x++){const i=row+x;if(c[i]&&ex[er+mx[x]]){c[i]=0;n++}}}
+    // abertura 3×3 retira as lascas de 1 px deixadas pelo recorte na borda do mapa de cena
+    out[cls]=n&&cls!=="cracks"?filterMask(filterMask(c,w,h,3,false),w,h,3,true):c;clipped[cls]=n;
+  }
+  return{masks:out,clipped};
+}
+function pointInPolygon(x,y,pts){
+  if(!pts||pts.length<3)return true;let inside=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){const[xi,yi]=pts[i],[xj,yj]=pts[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)inside=!inside}
+  return inside;
+}
 function consolidateAreaRecords(records,w,h,cfg){
   if(!records.length)return records;
   const largest=Math.max(...records.map(r=>r.area_px2));
@@ -554,7 +595,9 @@ function consolidateAreaRecords(records,w,h,cfg){
   const big=records.filter(r=>r.area_px2>=minRegion).sort((a,b)=>b.area_px2-a.area_px2||(a.id<b.id?-1:1)),kept=[];
   for(const r of big){
     const[x,y,bw,bh]=r.bbox;
-    const host=kept.find(k=>{const[kx,ky,kw,kh]=k.bbox,ix=Math.max(0,Math.min(x+bw,kx+kw)-Math.max(x,kx)),iy=Math.max(0,Math.min(y+bh,ky+kh)-Math.max(y,ky));return ix*iy>=AREA_CONTAIN_FRACTION*bw*bh});
+    // absorve só caixas repetidas: contidas na caixa maior E com o centro dentro do contorno dela
+    const cx=x+bw/2,cy=y+bh/2;
+    const host=kept.find(k=>{const[kx,ky,kw,kh]=k.bbox,ix=Math.max(0,Math.min(x+bw,kx+kw)-Math.max(x,kx)),iy=Math.max(0,Math.min(y+bh,ky+kh)-Math.max(y,ky));return ix*iy>=AREA_CONTAIN_FRACTION*bw*bh&&(!k.closed||pointInPolygon(cx,cy,k.points))});
     if(host)host.area_px2+=r.area_px2;else kept.push({...r});
   }
   return kept.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
@@ -590,10 +633,11 @@ function recordsFromMask(mask,w,h,damageClass,timeLabel,cfg){
       points=[[mx+vx*pmin,my+vy*pmin],[mx+vx*pmax,my+vy*pmax]];length=Math.max(0,pmax-pmin);widthPx=tail/Math.max(length,1e-6);closed=false;
       note="Browser CDM: fissura por linha central PCA; largura estimada = área/comprimento.";
     }else{
-      const step=Math.max(1,Math.floor(perimeter/2500)),boundary=[];let bi=0;
-      for(let q=0;q<tail;q++)if(isBoundary(mask,w,h,queue[q])){if(bi%step===0){const p=queue[q],y=Math.floor(p/w),x=p-y*w;boundary.push([x,y])}bi++}
-      points=convexHull(boundary);length=damageClass==="exposed_rebar"?major:perimeter;widthPx=minor;closed=true;
-      note=damageClass==="exposed_rebar"?"Browser CDM: armadura exposta por polígono alongado no desplacamento.":"Browser CDM: região representada por polígono convexo aproximado.";
+      // o primeiro pixel encontrado na varredura é o mais acima/esquerda do componente
+      points=contourPolygon(mask,w,h,start,tail);
+      if(points.length<3){const boundary=[];for(let q=0;q<tail;q++)if(isBoundary(mask,w,h,queue[q])){const p=queue[q],y=Math.floor(p/w),x=p-y*w;boundary.push([x,y])}points=convexHull(boundary)}
+      length=damageClass==="exposed_rebar"?major:perimeter;widthPx=minor;closed=true;
+      note=damageClass==="exposed_rebar"?"Browser CDM: armadura exposta pelo contorno real no desplacamento.":"Browser CDM: região representada pelo contorno real (Moore + RDP 0,9 px).";
     }
     if(points.length<2)continue;
     records.push({
@@ -715,6 +759,12 @@ function computeCdmCore(current,previous,cfg,onProgress=null){
     masks={...masks,...gated.masks};
     discardedMasks=gated.removedMasks;
     contextFilter={applied:true,removed:gated.removed,removed_total:gated.removed_total};
+    // Recorte por pixel: o resultado final respeita a máscara de contexto — partes de regiões de área
+    // sobre a cena irrelevante são removidas, separando manchas que só se ligavam pelo fundo.
+    if(cfg.contextClip!==false){
+      const clipped=clipMasksByContext(masks,w,h,cfg.context,cfg.contextClipCracks===true);
+      masks=clipped.masks;contextFilter.clipped_px=clipped.clipped;
+    }
   }else if(cfg.context)contextFilter={applied:false,abstained:!!cfg.context.abstained};
   emitProgress(onProgress,35,"CDM-1 · máscaras t1","masks_t1");
   ORDER.forEach((cls,index)=>{
@@ -742,7 +792,7 @@ function computeCdmCore(current,previous,cfg,onProgress=null){
     const quality=temporalQualityAssessment(current,registration.image,registration.metrics);
     emitProgress(onProgress,65,"CDM-1 · segmentando t0 alinhado","segment_t0");
     let prevMasks=detectMasks(registration.image,cfg);
-    if(contextFilter?.applied)prevMasks={...prevMasks,...gateMasks(prevMasks,w,h,cfg.context,{share:cfg.contextShare}).masks};
+    if(contextFilter?.applied){prevMasks={...prevMasks,...gateMasks(prevMasks,w,h,cfg.context,{share:cfg.contextShare}).masks};if(cfg.contextClip!==false)prevMasks=clipMasksByContext(prevMasks,w,h,cfg.context,cfg.contextClipCracks===true).masks}
     emitProgress(onProgress,78,"CDM-1 · comparando t0→t1","temporal_compare");
     const change=temporalCompare(masks,prevMasks,w,h,cfg);
     temporal={enabled:true,alignment_method:registration.metrics.method_applied,alignment:registration.metrics,quality,aligned_previous:registration.image,stats:change.stats,records:change.records};
@@ -828,7 +878,9 @@ export function cdmConfig(options={}){
     alignmentMethod:options.cdm_alignment_method||"translation_auto",
     contextMode:CONTEXT_MODES[options.cdm_context_filter]?options.cdm_context_filter:"off",
     contextShare:clamp(Number(options.cdm_context_share??DEFAULT_CONTEXT_SHARE),.2,1),
-    contextOptions:contextOptionsFrom(options)
+    contextOptions:contextOptionsFrom(options),
+    contextClip:options.cdm_context_clip!==false,
+    contextClipCracks:options.cdm_context_clip_cracks===true
   };}
 export async function runCdmBrowser(file,options={},previousFile=null,control={}){
   const started=performance.now(),onProgress=control?.onProgress,signal=control?.signal;
@@ -930,4 +982,4 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
 }
 
 // Test hooks: pure functions used by CI parity checks; not part of the UI API.
-export const __cdmTest={crackSkeleton,crackFragments,pruneSpurs,reconstructByOpening,zhangSuen,skeletonLength,crackRecords,grayAndRgb,detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,registerPrevious,estimateTranslationRegistration,applyTranslationRegistration,temporalQualityAssessment,percentileFloat,blackhat,cleanup,ORDER,LABELS};
+export const __cdmTest={crackSkeleton,crackFragments,pruneSpurs,reconstructByOpening,zhangSuen,skeletonLength,crackRecords,grayAndRgb,detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,registerPrevious,estimateTranslationRegistration,applyTranslationRegistration,temporalQualityAssessment,percentileFloat,blackhat,cleanup,ORDER,LABELS,clipMasksByContext,traceContour,contourPolygon};

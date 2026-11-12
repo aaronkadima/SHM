@@ -569,7 +569,7 @@ function crackRecords(rawMask,w,h,timeLabel,cfg){
 // contidas numa caixa maior da mesma patologia (a área contida é somada à maior).
 // Mesma regra em backend/app/cdm_v285.py (consolidate_area_records); paridade testada em CI.
 const AREA_CLASSES=new Set(["spalling_dark","corrosion_rust","efflorescence_white"]);
-const AREA_REGION_FRACTION=.0005,AREA_LARGEST_FRACTION=.08,AREA_CONTAIN_FRACTION=.8;
+const AREA_REGION_FRACTION=.0005,AREA_LARGEST_FRACTION=.03,AREA_CONTAIN_FRACTION=.8;
 function clipMasksByContext(masks,w,h,ctx,includeCracks){
   const ew=ctx.w,eh=ctx.h,ex=ctx.mask,mx=new Int32Array(w),my=new Int32Array(h),out={...masks},clipped={};
   for(let x=0;x<w;x++)mx[x]=Math.min(ew-1,Math.floor((x+.5)*ew/w));

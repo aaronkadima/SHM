@@ -1759,7 +1759,7 @@ def records_from_mask(mask: np.ndarray, damage_class: str, time_label: str, cfg:
 # Mesma regra em frontend/src/cdmBrowser.js (consolidateAreaRecords).
 AREA_CLASSES = {"spalling_dark", "corrosion_rust", "efflorescence_white"}
 AREA_REGION_FRACTION = 0.0005
-AREA_LARGEST_FRACTION = 0.08
+AREA_LARGEST_FRACTION = 0.03
 AREA_CONTAIN_FRACTION = 0.8
 
 

@@ -1378,3 +1378,72 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 /* Botão Sobre da barra lateral: sem preenchimento enquanto não estiver ativo */
 .editorTools .editorAulasLink.editorAboutLink:not(.active){background:transparent;color:#4f6a76}
 .editorTools .editorAulasLink.editorAboutLink:not(.active):hover{background:#eef4f5;color:#0d766e}
+
+/* Histórico de inspeções: tipografia legível (o painel original usava 6–9 px) */
+.studioPage-alerts .surfaceHead b{font-size:16px}
+.studioPage-alerts .surfaceHead span{font-size:13px}
+.studioPage-alerts .statusPill{font-size:12px}
+.studioPage-alerts .eventRow b{font-size:13.5px}
+.studioPage-alerts .eventRow span{font-size:12px}
+.studioPage-alerts .eventRow small{font-size:11.5px}
+.studioPage-alerts .alertSummary span{font-size:12px}
+.studioPage-alerts .historyInlineError{font-size:13px}
+.studioPage-alerts .historyError{font-size:13px}
+.studioPage-alerts .historyRow{font-size:12.5px}
+.studioPage-alerts .historyHeader{font-size:11.5px}
+.studioPage-alerts .historyRow b{font-size:13.5px}
+.studioPage-alerts .historyRow small{font-size:11.5px}
+.studioPage-alerts .historyActions button{font-size:11.5px}
+.studioPage-alerts .dangerAction{font-size:11.5px}
+.studioPage-alerts .campaignCard>summary b{font-size:13.5px}
+.studioPage-alerts .campaignCard>summary small{font-size:11.5px}
+.studioPage-alerts .campaignQuality{font-size:11.5px}
+.studioPage-alerts .campaignEvent b{font-size:12.5px}
+.studioPage-alerts .campaignEvent small{font-size:11.5px}
+.studioPage-alerts .campaignEvent button{font-size:11.5px}
+.studioPage-alerts .campaignTrendBlock>span{font-size:11.5px}
+.studioPage-alerts .campaignTrendBlock>small{font-size:11.5px}
+.studioPage-alerts .campaignSparkEmpty{font-size:11.5px}
+.studioPage-alerts .campaignAuditStats b{font-size:14.5px}
+.studioPage-alerts .campaignAuditStats small{font-size:11.5px}
+.studioPage-alerts .campaignExportActions button{font-size:11.5px}
+.studioPage-alerts .campaignTemporalHead b{font-size:11.5px}
+.studioPage-alerts .campaignTemporalHead span{font-size:11.5px}
+.studioPage-alerts .campaignTemporalRow b{font-size:12px}
+.studioPage-alerts .campaignTemporalRow small{font-size:11.5px}
+.studioPage-alerts .campaignChainAudit>summary b{font-size:11.5px}
+.studioPage-alerts .campaignChainAudit>summary span{font-size:11.5px}
+.studioPage-alerts .campaignChainRow b{font-size:11.5px}
+.studioPage-alerts .campaignChainRow small{font-size:11.5px}
+.studioPage-alerts .campaignChainRow .chainState{font-size:11.5px}
+.studioPage-alerts .campaignPathologyTrend>summary b{font-size:11.5px}
+.studioPage-alerts .campaignPathologyTrend>summary span{font-size:11.5px}
+.studioPage-alerts .campaignPathologySeries b{font-size:12px}
+.studioPage-alerts .campaignPathologySeries small{font-size:11.5px}
+.studioPage-alerts .campaignTrendNote{font-size:11.5px}
+.studioPage-alerts .alertSummary b{font-size:26px}
+.studioPage-alerts .alertSummary span{font-size:12px;letter-spacing:.3px}
+.studioPage-alerts .alertSummary>div{padding:14px 16px;border-radius:12px}
+.studioPage-alerts .surfaceHead{padding:14px 16px}
+.studioPage-alerts .surfaceHead b{font-size:15px}
+.studioPage-alerts .surfaceHead span{font-size:12px}
+.studioPage-alerts .historyRow{grid-template-columns:170px minmax(220px,1.4fr) minmax(110px,.7fr) minmax(130px,.7fr) 80px 150px;padding:11px 16px;gap:12px;font-size:13px}
+.studioPage-alerts .historyHeader{font-size:11px;letter-spacing:.4px}
+.studioPage-alerts .historyRow b{font-size:13.5px}
+.studioPage-alerts .historyRow small{font-size:12px}
+.studioPage-alerts .historyActions button,.studioPage-alerts .dangerAction{font-size:12px;height:30px;padding:0 12px;border-radius:8px}
+.studioPage-alerts .statusPill{font-size:11.5px;padding:4px 10px}
+.studioPage-alerts .campaignCard>summary{padding-top:12px;padding-bottom:12px}
+.studioPage-alerts .campaignEvent button,.studioPage-alerts .campaignExportActions button{height:32px;padding:0 12px}
+/* Barra superior sem área de título; identificação da inspeção na barra de status */
+.editorTop .editorTopSpacer{flex:1 1 auto;min-width:8px}
+.editorStatus .editorStatusMessage{flex:0 1 auto;max-width:46%}
+.editorStatusInspection{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;padding-left:14px;border-left:1px solid #dce5e8;font-size:12px;color:#4f6a76;white-space:nowrap;overflow:hidden}
+.editorStatusInspection b{color:#1f3540;font-weight:700;font-variant-numeric:tabular-nums}
+.editorStatusInspection span{overflow:hidden;text-overflow:ellipsis}
+.editorStatusInspection span::before{content:"·";margin-right:8px;color:#9aabb3}
+@media(max-width:700px){.editorStatusInspection span{display:none}}
+@media(max-width:480px){.editorStatusInspection{display:none}}
+.studioPageHead b{font-size:21px}
+.editorStatus .editorStatusMeta{margin-left:auto}
+.studioPage-alerts .campaignQuality,.studioPage-alerts .campaignCard .statusPill{font-size:11.5px!important;min-width:110px;padding:5px 10px}

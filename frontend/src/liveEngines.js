@@ -90,7 +90,7 @@ function runCdmLive(frame,opts={}){
   };
   let masks=__cdmTest.detectMasks(frame,cfg),contextRemoved=0;const layers=[],boxes=[],counts={};let total=0;
   let removedMasks=null;const ex=opts.contextExclusion;
-  if(ex&&!ex.abstained){const g=gateMasks(masks,w,h,ex,{share:Number(opts.cdm_context_share??.6)});masks={...masks,...g.masks};removedMasks=g.removedMasks;contextRemoved=g.removed_total;if(opts.cdm_context_clip!==false)masks=__cdmTest.clipMasksByContext(masks,w,h,ex,opts.cdm_context_clip_cracks===true).masks}
+  if(ex&&!ex.abstained){const g=gateMasks(masks,w,h,__cdmTest.contextCore(ex,w,h),{share:Number(opts.cdm_context_share??.6)});masks={...masks,...g.masks};removedMasks=g.removedMasks;contextRemoved=g.removed_total;if(opts.cdm_context_clip!==false)masks=__cdmTest.clipMasksByContext(masks,w,h,ex,opts.cdm_context_clip_cracks===true).masks}
   for(const cls of CDM_LIVE_CLASSES){
     const minAspect=cls.id==="cracks"?cfg.minAspect:cls.id==="exposed_rebar"?Math.max(2,cfg.minAspect):0;
     const comp=filteredComponents(masks[cls.id],w,h,{minArea:cfg.minArea,minAspect,maxItems:40});

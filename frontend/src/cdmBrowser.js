@@ -302,6 +302,24 @@ function separateFamilies(masks,w,h){
 }
 // trace (opcional, usado só pela paridade): guarda cinza, resposta, candidata, abertura e máscara final
 // de cada família — as mesmas etapas de pipeline[...] em cdm_v285.detect_masks.
+// Contraste local do desplacamento: média de cinza na coroa (caixa expandida em SPALL_RING_PX, fora de
+// qualquer pixel de desplacamento) menos a média dentro do componente. Mesma regra em cdm_v285.py.
+const SPALL_RING_PX=7,SPALL_MIN_CONTRAST=40,SPALL_CONTRAST_T=1.2,SPALL_CORE_PX=9,SPALL_GROW_PX=3,SPALL_SMOOTH_PX=11;
+function spallingByContrast(mask,gray,w,h,minDelta,log=null){
+  const n=w*h,out=new Uint8Array(mask),seen=new Uint8Array(n),queue=new Int32Array(n);
+  for(let s=0;s<n;s++){
+    if(!mask[s]||seen[s])continue;
+    let head=0,tail=0,sum=0,minX=w,minY=h,maxX=0,maxY=0;queue[tail++]=s;seen[s]=1;
+    while(head<tail){const p=queue[head++],y=(p/w)|0,x=p-y*w;sum+=gray[p];if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+      for(let ny=y>0?y-1:0;ny<=(y<h-1?y+1:y);ny++)for(let nx=x>0?x-1:0;nx<=(x<w-1?x+1:x);nx++){const q=ny*w+nx;if(mask[q]&&!seen[q]){seen[q]=1;queue[tail++]=q}}}
+    const x0=Math.max(0,minX-SPALL_RING_PX),x1=Math.min(w-1,maxX+SPALL_RING_PX),y0=Math.max(0,minY-SPALL_RING_PX),y1=Math.min(h-1,maxY+SPALL_RING_PX);
+    let rs=0,rn=0;for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const q=y*w+x;if(!mask[q]){rs+=gray[q];rn++}}
+    const delta=rn?rs/rn-sum/tail:Infinity;
+    if(log)log.push({bbox:[minX,minY,maxX-minX+1,maxY-minY+1],area:tail,delta:+delta.toFixed(2)});
+    if(delta<minDelta)for(let q=0;q<tail;q++)out[queue[q]]=0;
+  }
+  return out;
+}
 function detectMasks(imageData,cfg,trace=null){
   const w=imageData.width,h=imageData.height,n=w*h,{gray,rgb}=grayAndRgb(imageData),{hue,sat,val}=hsvArrays(rgb,n);
   const k=oddKernel(cfg.kernel),masks={};
@@ -321,7 +339,18 @@ function detectMasks(imageData,cfg,trace=null){
   const darkCut=Math.min(120,p18+Math.max(8,cfg.threshold*.25));
   const texture=blackhat(gray,w,h,Math.max(5,Math.min(k,21))),spRaw=new Uint8Array(n);
   for(let i=0;i<n;i++)spRaw[i]=(gray[i]<darkCut||(texture[i]>Math.max(10,cfg.threshold*.55)&&gray[i]<p45))?1:0;
-  const spalling=cleanup(spRaw,w,h,5);masks.spalling_dark=spalling;
+  // CDM 2.11: núcleo + crescimento condicionado — abertura com SPALL_CORE_PX corta pontes finas e manchas
+  // de textura; o núcleo é devolvido à forma original só até SPALL_GROW_PX px (não atravessa pontes longas).
+  const spallingBase=cleanup(spRaw,w,h,5),core=cfg.spallCore??SPALL_CORE_PX,grow=cfg.spallGrow??SPALL_GROW_PX;
+  let spallingClean=spallingBase;
+  if(core>1){const op=filterMask(filterMask(spallingBase,w,h,core,false),w,h,core,true),dl=filterMask(op,w,h,2*grow+1,true);spallingClean=new Uint8Array(n);for(let i=0;i<n;i++)spallingClean[i]=spallingBase[i]&&dl[i]?1:0}
+  const contrastLog=[];
+  // CDM 2.11: desplacamento precisa ser mais escuro que o entorno imediato (manchas e sombras rasas saem).
+  let spalling=spallingByContrast(spallingClean,gray,w,h,cfg.spallContrast??Math.max(SPALL_MIN_CONTRAST,cfg.threshold*SPALL_CONTRAST_T),contrastLog);
+  // suaviza a borda dos desplacamentos aceitos (agregado claro na borda): fechamento SPALL_SMOOTH_PX
+  const smooth=cfg.spallSmooth??SPALL_SMOOTH_PX;
+  if(smooth>1)spalling=filterMask(filterMask(spalling,w,h,smooth,true),w,h,smooth,false);masks.spalling_dark=spalling;
+  if(trace)trace.spalling_contrast=contrastLog;
   if(trace){const response=new Float32Array(n);for(let i=0;i<n;i++)response[i]=Math.max(clamp(darkCut-gray[i],0,255),texture[i]);trace.spalling_dark={response,raw:spRaw,open:opened(spRaw,5),clean:spalling}}
 
   const corrosionRaw=new Uint8Array(n),effRaw=new Uint8Array(n),p72=percentileFloat(gray,72);
@@ -378,7 +407,7 @@ function reconstructByOpening(candidate,w,h){
 }
 // ---------- Fissuras: continuidade e geometria pelo esqueleto (CDM 2.9) ----------
 // Mesma implementação em backend/app/cdm_v285.py (crack_records_from_mask); paridade testada em CI.
-const CRACK_GAP_PX=4,CRACK_BRIDGE_KERNEL=2*CRACK_GAP_PX+1,CRACK_MIN_FRAGMENT=3,CRACK_SPUR_PX=12,CRACK_COMPACT_FACTOR=4,CRACK_MIN_LENGTH_FRACTION=.03;
+const CRACK_GAP_PX=4,CRACK_BRIDGE_KERNEL=2*CRACK_GAP_PX+1,CRACK_MIN_FRAGMENT=3,CRACK_SPUR_PX=12,CRACK_COMPACT_FACTOR=4,CRACK_MIN_LENGTH_FRACTION=.03,CRACK_MAX_WIDTH_K=.45;
 // Poda de esporões: ramos terminais com ≤ CRACK_SPUR_PX pixels até uma junção (≥ 3 vizinhos) são
 // removidos. Decisão tomada sobre o esqueleto original (independe da ordem de varredura).
 function pruneSpurs(skel,w,h){
@@ -553,6 +582,8 @@ function crackRecords(rawMask,w,h,timeLabel,cfg){
     const walk=skeletonWalk(skel,w,h,g.skel),points=walk.points,length=Math.max(1,walk.length),aspect=length*length/area;
     // comprimento mínimo de fissura: 3% do maior lado da imagem processada (grão/textura curtos)
     if(aspect<minAspect||length<CRACK_MIN_LENGTH_FRACTION*Math.max(w,h))continue;
+    // CDM 2.11: largura média de fissura ≤ 0,45·k (manchas largas de textura não são fissuras)
+    if(area/length>CRACK_MAX_WIDTH_K*oddKernel(cfg.kernel))continue;
     let perimeter=0;for(const p of g.crack)if(isBoundary(mask,w,h,p))perimeter++;
     if(points.length<2)continue;
     records.push({
@@ -570,15 +601,23 @@ function crackRecords(rawMask,w,h,timeLabel,cfg){
 // Mesma regra em backend/app/cdm_v285.py (consolidate_area_records); paridade testada em CI.
 const AREA_CLASSES=new Set(["spalling_dark","corrosion_rust","efflorescence_white"]);
 const AREA_REGION_FRACTION=.0005,AREA_LARGEST_FRACTION=.03,AREA_CONTAIN_FRACTION=.8;
-function clipMasksByContext(masks,w,h,ctx,includeCracks){
-  const ew=ctx.w,eh=ctx.h,ex=ctx.mask,mx=new Int32Array(w),my=new Int32Array(h),out={...masks},clipped={};
+// Exclusão na resolução da imagem, erodida em ~1,5 célula do mapa de cena: a borda de baixa resolução
+// do modelo não "morde" o contorno das manchas; só o interior da cena irrelevante conta.
+function contextCore(ctx,w,h){
+  if(ctx.core&&ctx.core.w===w&&ctx.core.h===h)return ctx.core;
+  const ew=ctx.w,eh=ctx.h,ex=ctx.mask,mx=new Int32Array(w),exImg=new Uint8Array(w*h);
   for(let x=0;x<w;x++)mx[x]=Math.min(ew-1,Math.floor((x+.5)*ew/w));
-  for(let y=0;y<h;y++)my[y]=Math.min(eh-1,Math.floor((y+.5)*eh/h))*ew;
+  for(let y=0;y<h;y++){const er=Math.min(eh-1,Math.floor((y+.5)*eh/h))*ew,row=y*w;for(let x=0;x<w;x++)exImg[row+x]=ex[er+mx[x]]}
+  const r=Math.ceil(1.5*Math.max(w/ew,h/eh)),core=r>0?filterMask(exImg,w,h,2*r+1,false):exImg;
+  ctx.core={mask:core,w,h,abstained:false};return ctx.core;
+}
+function clipMasksByContext(masks,w,h,ctx,includeCracks){
+  const exCore=contextCore(ctx,w,h).mask,out={...masks},clipped={};
   for(const cls of ORDER){
     const m=masks[cls];if(!(m instanceof Uint8Array)||(cls==="cracks"&&!includeCracks))continue;
     let n=0;const c=new Uint8Array(m);
-    for(let y=0;y<h;y++){const row=y*w,er=my[y];for(let x=0;x<w;x++){const i=row+x;if(c[i]&&ex[er+mx[x]]){c[i]=0;n++}}}
-    // abertura 3×3 retira as lascas de 1 px deixadas pelo recorte na borda do mapa de cena
+    for(let i=0;i<w*h;i++)if(c[i]&&exCore[i]){c[i]=0;n++}
+    // abertura 3×3 retira as lascas de 1 px deixadas pelo recorte
     out[cls]=n&&cls!=="cracks"?filterMask(filterMask(c,w,h,3,false),w,h,3,true):c;clipped[cls]=n;
   }
   return{masks:out,clipped};
@@ -621,7 +660,8 @@ function recordsFromMask(mask,w,h,damageClass,timeLabel,cfg){
     componentNumber++;
     const bw=maxX-minX+1,bh=maxY-minY+1,minor=Math.max(1,Math.min(bw,bh)),major=Math.max(bw,bh),aspect=major/minor;
     if(damageClass==="cracks"&&aspect<minAspect)continue;
-    if(damageClass==="exposed_rebar"&&aspect<Math.max(2,minAspect))continue;
+    // CDM 2.11: armadura exposta precisa ter comprimento de barra (≥ 3% do maior lado) e área ≥ 2·A_min
+    if(damageClass==="exposed_rebar"&&(aspect<Math.max(3,minAspect)||major<CRACK_MIN_LENGTH_FRACTION*Math.max(w,h)||tail<2*minArea))continue;
 
     let perimeter=0;for(let q=0;q<tail;q++)if(isBoundary(mask,w,h,queue[q]))perimeter++;
     let points,length,widthPx,closed,note;
@@ -755,16 +795,18 @@ function computeCdmCore(current,previous,cfg,onProgress=null){
   let masks=detectMasks(current,cfg),contextFilter=null,discardedMasks=null;
   // Filtro de contexto IA (opcional): descarta componentes que caem em regiões irrelevantes.
   if(cfg.context?.mask&&!cfg.context.abstained){
-    const gated=gateMasks(masks,w,h,cfg.context,{share:cfg.contextShare});
+    const original=masks,core=contextCore(cfg.context,w,h);
+    // 1) Descarte por componente (exclusão erodida): componentes majoritariamente na cena irrelevante.
+    const gated=gateMasks(masks,w,h,core,{share:cfg.contextShare});
     masks={...masks,...gated.masks};
-    discardedMasks=gated.removedMasks;
-    contextFilter={applied:true,removed:gated.removed,removed_total:gated.removed_total};
-    // Recorte por pixel: o resultado final respeita a máscara de contexto — partes de regiões de área
-    // sobre a cena irrelevante são removidas, separando manchas que só se ligavam pelo fundo.
-    if(cfg.contextClip!==false){
-      const clipped=clipMasksByContext(masks,w,h,cfg.context,cfg.contextClipCracks===true);
-      masks=clipped.masks;contextFilter.clipped_px=clipped.clipped;
-    }
+    // 2) Recorte por pixel dos sobreviventes (regiões de área): o resultado final respeita a máscara de
+    //    contexto e manchas que só se ligavam pelo fundo irrelevante ficam separadas.
+    let clippedPx=null;
+    if(cfg.contextClip!==false){const clipped=clipMasksByContext(masks,w,h,cfg.context,cfg.contextClipCracks===true);masks=clipped.masks;clippedPx=clipped.clipped}
+    // descartados = tudo o que a IA retirou da máscara morfológica (componentes e partes recortadas)
+    discardedMasks={};
+    for(const cls of ORDER){const a=original[cls],b=masks[cls];if(!(a instanceof Uint8Array))continue;const d=new Uint8Array(a.length);let any=0;for(let i=0;i<a.length;i++)if(a[i]&&!b[i]){d[i]=1;any=1}if(any)discardedMasks[cls]=d}
+    contextFilter={applied:true,removed:gated.removed,removed_total:gated.removed_total,clipped_px:clippedPx};
   }else if(cfg.context)contextFilter={applied:false,abstained:!!cfg.context.abstained};
   emitProgress(onProgress,35,"CDM-1 · máscaras t1","masks_t1");
   ORDER.forEach((cls,index)=>{
@@ -792,7 +834,7 @@ function computeCdmCore(current,previous,cfg,onProgress=null){
     const quality=temporalQualityAssessment(current,registration.image,registration.metrics);
     emitProgress(onProgress,65,"CDM-1 · segmentando t0 alinhado","segment_t0");
     let prevMasks=detectMasks(registration.image,cfg);
-    if(contextFilter?.applied){prevMasks={...prevMasks,...gateMasks(prevMasks,w,h,cfg.context,{share:cfg.contextShare}).masks};if(cfg.contextClip!==false)prevMasks=clipMasksByContext(prevMasks,w,h,cfg.context,cfg.contextClipCracks===true).masks}
+    if(contextFilter?.applied){prevMasks={...prevMasks,...gateMasks(prevMasks,w,h,contextCore(cfg.context,w,h),{share:cfg.contextShare}).masks};if(cfg.contextClip!==false)prevMasks=clipMasksByContext(prevMasks,w,h,cfg.context,cfg.contextClipCracks===true).masks}
     emitProgress(onProgress,78,"CDM-1 · comparando t0→t1","temporal_compare");
     const change=temporalCompare(masks,prevMasks,w,h,cfg);
     temporal={enabled:true,alignment_method:registration.metrics.method_applied,alignment:registration.metrics,quality,aligned_previous:registration.image,stats:change.stats,records:change.records};
@@ -969,7 +1011,7 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
     engine_id:"cdm_1",name:"CDM-1",task:"classical",status:"ok",latency_ms:totalMs,detections,
     overlay_png_base64:composite.toDataURL("image/png").split(",")[1],
     metrics:{
-      implementation:"CDM 2.10 browser parity (fissuras contínuas por esqueleto; famílias separadas)",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,
+      implementation:"CDM 2.11 browser parity (fissuras contínuas por esqueleto; famílias separadas)",runtime:core.execution||"browser-js",worker_error:core.worker_error||null,
       performance_ms:{decode:decodeMs,context:contextMs,core:coreMs,render:renderMs,total:totalMs},
       context_filter:contextInfo?{...contextInfo,...(core.context_filter||{}),discarded:(core.context_discarded||[]).map(r=>({code:r.code,class:r.class,class_label:LABELS[r.class],bbox:r.bbox,area_px2:r.area_px2,length_px:r.length_px??null,width_px:r.width_px??null,scene:r.scene}))}:null,
       overlay_semantics:"transparent_layers",
@@ -982,4 +1024,4 @@ export async function runCdmBrowser(file,options={},previousFile=null,control={}
 }
 
 // Test hooks: pure functions used by CI parity checks; not part of the UI API.
-export const __cdmTest={crackSkeleton,crackFragments,pruneSpurs,reconstructByOpening,zhangSuen,skeletonLength,crackRecords,grayAndRgb,detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,registerPrevious,estimateTranslationRegistration,applyTranslationRegistration,temporalQualityAssessment,percentileFloat,blackhat,cleanup,ORDER,LABELS,clipMasksByContext,traceContour,contourPolygon};
+export const __cdmTest={crackSkeleton,crackFragments,pruneSpurs,reconstructByOpening,zhangSuen,skeletonLength,crackRecords,grayAndRgb,detectMasks,recordsFromMask,temporalCompare,summary,computeCdmCore,registerPrevious,estimateTranslationRegistration,applyTranslationRegistration,temporalQualityAssessment,percentileFloat,blackhat,cleanup,ORDER,LABELS,clipMasksByContext,contextCore,traceContour,contourPolygon};

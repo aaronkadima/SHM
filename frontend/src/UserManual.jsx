@@ -120,7 +120,7 @@ function chapters(shortcuts){
     <p>Cada componente é afinado por <b>Zhang–Suen</b> até 1 px; ramos espúrios de até 12 px até uma junção são podados. O comprimento vem do percurso em profundidade do esqueleto, simplificado por Ramer–Douglas–Peucker (ε = 0,8 px); como o percurso passa duas vezes por cada trecho, toma-se metade:</p>
     <Eq n={e()}>{"L = \\frac{1}{2}\\sum_{i} \\left\\| p_{i+1} - p_{i} \\right\\|, \\qquad \\bar{w} = \\frac{A}{L}, \\qquad \\lambda = \\frac{L^2}{A}"}</Eq>
     <FigSkeleton n={f()}/>
-    <p>São aceitas fissuras com alongamento <M>{"\\lambda \\ge \\lambda_{min}"}</M> (padrão 2), área ≥ <M>{"A_{min}"}</M> (padrão 30 px²) e comprimento ≥ 3 % do maior lado da imagem. Com escala definida, <M>{"L_{mm} = L \\cdot s"}</M> e <M>{"w_{mm} = \\bar{w} \\cdot s"}</M>, sendo <M>{"s"}</M> em mm/px.</p>
+    <p>A largura média precisa ser ≤ 0,45·k (manchas largas de textura não são fissuras). São aceitas fissuras com alongamento <M>{"\\lambda \\ge \\lambda_{min}"}</M> (padrão 2), área ≥ <M>{"A_{min}"}</M> (padrão 30 px²) e comprimento ≥ 3 % do maior lado da imagem. Com escala definida, <M>{"L_{mm} = L \\cdot s"}</M> e <M>{"w_{mm} = \\bar{w} \\cdot s"}</M>, sendo <M>{"s"}</M> em mm/px.</p>
     <Tbl head={["Parâmetro","Padrão","Efeito ao aumentar"]} rows={[
       ["k (black-hat)","15 px (ímpar)","detecta fissuras/manchas mais largas"],
       ["T (limiar)","35","menos falsos positivos, perde fissuras tênues"],
@@ -133,9 +133,14 @@ function chapters(shortcuts){
     <p>Regiões escuras ou de textura áspera, com limiar adaptativo ao percentil 18 de cinza:</p>
     <Eq n={e()}>{"t_d = \\min(120,\\; p_{18} + \\max(8,\\; 0.25T)), \\quad k' = \\max(5, \\min(k, 21))"}</Eq>
     <Eq n={e()}>{"D = \\{ I < t_d \\} \\cup \\{ BH_{k'}(I) > \\max(10,\\, 0.55T) \\land I < p_{45} \\}"}</Eq>
-    <p>Seguem abertura e fechamento 5×5.</p>
+    <p>Seguem abertura e fechamento 5×5. No CDM 2.11, três regras evitam que manchas e texturas do concreto virem desplacamento:</p>
+    <ul>
+      <li><b>Núcleo + crescimento</b>: abertura 9×9 encontra núcleos robustos e a região só cresce 3 px a partir deles — pontes finas de textura não ligam manchas distintas.</li>
+      <li><b>Contraste local</b>: <M>{"\\bar{I}_{coroa} - \\bar{I}_{D} \\ge \\max(40,\\; 1.2\\,T)"}</M>, com a coroa tomada numa caixa 7 px maior que o componente; manchas e sombras rasas saem.</li>
+      <li><b>Suavização</b>: fechamento 11×11 dos desplacamentos aceitos, para que agregado claro na borda não recorte o contorno.</li>
+    </ul>
     <h3>Armadura exposta</h3>
-    <p>Procurada somente <b>dentro</b> do desplacamento: pixels muito escuros em relação à própria região, ou acinzentados e foscos; limpeza 3×3 e alongamento ≥ max(2, λ<sub>min</sub>):</p>
+    <p>Procurada somente <b>dentro</b> do desplacamento: pixels muito escuros em relação à própria região, ou acinzentados e foscos; limpeza 3×3, alongamento ≥ max(3, λ<sub>min</sub>), comprimento ≥ 3 % do maior lado e área ≥ 2·A<sub>min</sub> (forma de barra):</p>
     <Eq n={e()}>{"R_b = D \\cap \\left( \\{ I < p_{40}(D) \\} \\cup \\{ S < 0.20 \\land V < 0.55 \\} \\right)"}</Eq>
     <h3>Corrosão</h3>
     <Eq n={e()}>{"R > G + 12 \\;\\land\\; R > B + 18 \\;\\land\\; S > 0.22 \\;\\land\\; V > 0.16 \\;\\land\\; (H < 55° \\lor H > 330°)"}</Eq>

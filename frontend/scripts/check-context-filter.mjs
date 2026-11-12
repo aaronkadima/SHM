@@ -87,17 +87,19 @@ const strictConf=exclusionFromClasses({cls,conf,w:mw,h:mh},labels,"conservative"
 assert.equal(strictConf.excluded_ratio,0,"confiança 0,9 < 0,95 → nada excluído");
 // Recorte por pixel: duas manchas ligadas por uma ponte sobre região irrelevante viram dois componentes.
 {
-  const W2=60,H2=20,m=new Uint8Array(W2*H2);
-  for(let y=4;y<16;y++)for(let x=2;x<18;x++)m[y*W2+x]=1;
-  for(let y=4;y<16;y++)for(let x=42;x<58;x++)m[y*W2+x]=1;
-  for(let y=9;y<12;y++)for(let x=18;x<42;x++)m[y*W2+x]=1;// ponte
-  const ex=new Uint8Array(6*2);ex[2]=ex[3]=ex[8]=ex[9]=1;// colunas centrais do mapa 6×2 = irrelevantes
-  const ctx={mask:ex,w:6,h:2};
+  const W2=240,H2=40,m=new Uint8Array(W2*H2);
+  for(let y=5;y<35;y++)for(let x=10;x<70;x++)m[y*W2+x]=1;
+  for(let y=5;y<35;y++)for(let x=170;x<230;x++)m[y*W2+x]=1;
+  for(let y=18;y<22;y++)for(let x=70;x<170;x++)m[y*W2+x]=1;// ponte
+  const ex=new Uint8Array(24*4);for(let y=0;y<4;y++)for(let x=8;x<16;x++)ex[y*24+x]=1;// faixa irrelevante x≈80–160
+  const ctx={mask:ex,w:24,h:4};
   const recs=m2=>__cdmTest.recordsFromMask(m2,W2,H2,"spalling_dark","t1",{minArea:4,minAspect:2});
   assert.equal(recs(m).length,1,"sem recorte: um componente");
   const cl=__cdmTest.clipMasksByContext({spalling_dark:m,cracks:new Uint8Array(W2*H2)},W2,H2,ctx,false);
   assert.equal(recs(cl.masks.spalling_dark).length,2,"com recorte: dois componentes");
-  assert.ok(cl.clipped.spalling_dark>0&&!("cracks" in cl.clipped&&cl.clipped.cracks>0));
+  assert.ok(cl.clipped.spalling_dark>0&&!(cl.clipped.cracks>0));
+  // a erosão da exclusão preserva a borda das manchas (nenhum pixel das manchas é cortado)
+  let kept=0;for(let y=5;y<35;y++)for(let x=10;x<70;x++)kept+=cl.masks.spalling_dark[y*W2+x];assert.ok(kept>=60*30*.97);
 }
 // Contorno real (não convexo): um "L" tem polígono com área bem menor que a do fecho convexo.
 {

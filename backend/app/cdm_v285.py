@@ -948,6 +948,32 @@ def cleanup_mask_steps(mask: np.ndarray, k: int = 3) -> Tuple[np.ndarray, np.nda
     return opened, closed
 
 
+SPALL_RING_PX = 7
+SPALL_MIN_CONTRAST = 40.0
+SPALL_CONTRAST_T = 1.2
+SPALL_CORE_PX = 9
+SPALL_GROW_PX = 3
+SPALL_SMOOTH_PX = 11
+
+
+def spalling_by_contrast(mask: np.ndarray, gray: np.ndarray, min_delta: float) -> np.ndarray:
+    """Contraste local: média de cinza na coroa (caixa expandida, fora do desplacamento) − média interna."""
+    out = mask.copy()
+    h, w = mask.shape
+    for pts in connected_components(mask, 1):
+        xs, ys = pts[:, 0].astype(np.intp), pts[:, 1].astype(np.intp)
+        x0, x1 = max(0, int(xs.min()) - SPALL_RING_PX), min(w - 1, int(xs.max()) + SPALL_RING_PX)
+        y0, y1 = max(0, int(ys.min()) - SPALL_RING_PX), min(h - 1, int(ys.max()) + SPALL_RING_PX)
+        win = ~mask[y0:y1 + 1, x0:x1 + 1]
+        ring = gray[y0:y1 + 1, x0:x1 + 1][win]
+        if ring.size == 0:
+            continue
+        delta = float(ring.astype(np.float64).mean()) - float(gray[ys, xs].astype(np.float64).mean())
+        if delta < min_delta:
+            out[ys, xs] = False
+    return out
+
+
 def cleanup_mask(mask: np.ndarray, k: int = 3) -> np.ndarray:
     return cleanup_mask_steps(mask, k)[1]
 
@@ -1119,7 +1145,13 @@ def detect_masks(rgb: np.ndarray, cfg: DetectorConfig, profiler: Optional[Perfor
             response = np.maximum(darkness_response, texture)
             candidate = (gray < dark_cut) | ((texture > max(10.0, cfg.threshold * 0.55)) & (gray < np.percentile(gray, 45)))
         with _profile_stage(profiler, f"{run_tag} | desplacamento | abertura + fechamento"):
-            opened, spalling_mask = cleanup_mask_steps(candidate, 5)
+            opened, spalling_base = cleanup_mask_steps(candidate, 5)
+            # CDM 2.11: núcleo (abertura SPALL_CORE_PX) + crescimento condicionado de SPALL_GROW_PX px
+            core = open_bool(spalling_base, SPALL_CORE_PX)
+            spalling_core = spalling_base & dilate_bool(core, 2 * SPALL_GROW_PX + 1)
+            spalling_mask = spalling_by_contrast(spalling_core, gray, max(SPALL_MIN_CONTRAST, cfg.threshold * SPALL_CONTRAST_T))
+            # suaviza a borda dos desplacamentos aceitos (fechamento SPALL_SMOOTH_PX)
+            spalling_mask = close_bool(spalling_mask, SPALL_SMOOTH_PX)
         masks["spalling_dark"] = spalling_mask
         pipeline["spalling_dark"] = {"base_kind": "grayscale", "response_label": "Darkness-texture response Rₛₚ", "candidate_label": "M_0 = dark(I) OR textured-dark(I)", "rule": "darkness threshold combined with black-hat texture response", "response": response, "raw_mask": candidate, "open_mask": opened, "clean_mask": spalling_mask, "dark_cut": float(dark_cut)}
 
@@ -1447,6 +1479,7 @@ CRACK_MIN_FRAGMENT = 3
 CRACK_SPUR_PX = 12
 CRACK_COMPACT_FACTOR = 4
 CRACK_MIN_LENGTH_FRACTION = 0.03
+CRACK_MAX_WIDTH_K = 0.45
 
 
 def prune_spurs(skel: np.ndarray) -> np.ndarray:
@@ -1684,6 +1717,9 @@ def crack_records_from_mask(raw_mask: np.ndarray, time_label: str, cfg: Detector
         # comprimento mínimo de fissura: 3% do maior lado da imagem processada (grão/textura curtos)
         if aspect < float(cfg.min_aspect_ratio) or length < CRACK_MIN_LENGTH_FRACTION * max(mask.shape):
             continue
+        # CDM 2.11: largura média ≤ 0,45·k (manchas largas de textura não são fissuras)
+        if area / length > CRACK_MAX_WIDTH_K * cfg.normalized_kernel_size:
+            continue
         pts = np.stack([xs, ys], axis=1).astype(np.float32)
         perim = mask_perimeter(pts, mask.shape)
         if len(geom) < 2:
@@ -1713,7 +1749,7 @@ def records_from_mask(mask: np.ndarray, damage_class: str, time_label: str, cfg:
         area = float(len(pts))
         if damage_class == "cracks" and aspect < float(cfg.min_aspect_ratio):
             continue
-        if damage_class == "exposed_rebar" and aspect < max(2.0, float(cfg.min_aspect_ratio)):
+        if damage_class == "exposed_rebar" and (aspect < max(3.0, float(cfg.min_aspect_ratio)) or major < CRACK_MIN_LENGTH_FRACTION * max(mask.shape) or area < 2 * max(1.0, float(cfg.min_area))):
             continue
         perim = mask_perimeter(pts, mask.shape)
         if damage_class == "cracks":

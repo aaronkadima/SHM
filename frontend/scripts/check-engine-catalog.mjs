@@ -102,6 +102,7 @@ check(owned.some(e=>e.id==="cdm_3"),"Owned filter must include CDM-3");
 const cdm4=engines.find(e=>e.id==="cdm_4");
 check(!!cdm4&&cdm4.name==="CDM-4"&&cdm4.catalog_owned===true&&cdm4.browser_ready===true,"CDM-4 must be a separate owned browser engine");
 check(browserEngineSupported("cdm_4")===true,"browserEngines must support cdm_4");
+check(cdm4?.backend_adapter===false,"CDM-4 has no backend adapter: must be backend_adapter=false so comparisons are blocked with a clear message");
 check(owned.some(e=>e.id==="cdm_4")&&owned.length>=3,"Owned filter must list CDM-1, CDM-4 and CDM-3 espacial");
 check(engineMatchesFilter(cdm,"recommended"),"Recommended filter must include CDM-1");
 check(engineMatchesFilter(cdm,"browser"),"Browser filter must include CDM-1");

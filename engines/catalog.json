@@ -85,6 +85,7 @@
       "domain_mode": "classical",
       "browser_ready": true,
       "browser_runtime": "browser-js-cdm4-4.0.0",
+      "backend_adapter": false,
       "catalog_visibility": "always",
       "catalog_group": "CDM / determinístico",
       "catalog_owned": true,

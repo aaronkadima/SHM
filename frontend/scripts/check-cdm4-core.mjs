@@ -6,6 +6,7 @@ import {neutralizeEnclosedTerrain,neutralizeDominantTerrain,overexposedSky} from
 import {randomWalkerProbability,randomWalkerSpalling} from "../src/cdm4RandomWalker.js";
 import {linearRebar} from "../src/cdm4Rebar.js";
 import {pigmentMaps,maskComposition} from "../src/cdm4Pigments.js";
+import {refineContourThresholds,symmetricBoundaryDistance} from "../src/cdm4Contour.js";
 
 // gerador determinístico
 let seed=12345;const rnd=()=>{seed=(seed*1103515245+12345)>>>0;return seed/4294967296};
@@ -66,6 +67,18 @@ const put=(d,w,x,y,c)=>{const i=4*(y*w+x);d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2]};
   assert.equal(r.mask[70*w+100],1,"barra detectada");
   assert.equal(r.mask[37*w+47],0,"mancha compacta não é barra");
   assert.equal(linearRebar(gray,bh,w,h,new Uint8Array(w*h),{}).log.applied,false,"sem desplacamento, sem armadura");
+}
+
+// ---------- afinamento do contorno ----------
+{
+  const W=80,H=60,prob=new Float32Array(W*H),L=new Float32Array(W*H),R=new Float32Array(W*H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const d=Math.hypot((x-40)/20,(y-30)/14),i=y*W+x;prob[i]=Math.max(0,Math.min(1,1.4-d));const inside=d<1;L[i]=inside?-2:0;R[i]=inside?4:0}
+  const a=new Uint8Array(W*H),b=new Uint8Array(W*H);for(let i=0;i<W*H;i++){a[i]=prob[i]>.3?1:0;b[i]=prob[i]>.3?1:0}
+  assert.equal(symmetricBoundaryDistance(a,b,W,H),0,"fronteiras iguais ⇒ distância 0");
+  const r1=refineContourThresholds(prob,W,H,[L,R],.2,{criterion:"fisher",maxDelta:.3}),r2=refineContourThresholds(prob,W,H,[L,R],.2,{criterion:"fisher",maxDelta:.3});
+  assert.deepEqual(r1.log,r2.log,"loop de afinamento determinístico");
+  // halo: limiar inicial 0,2 inclui concreto saudável; o loop sobe o limiar para perto da borda real (p = 0,4)
+  assert.ok(r1.log[0].threshold>.3&&r1.log[0].threshold<.5,"limiar afinado perto da borda real: "+r1.log[0].threshold);
 }
 
 // ---------- pigmentos ----------

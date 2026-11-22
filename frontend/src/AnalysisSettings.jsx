@@ -39,7 +39,7 @@ function ContextAiCard({cdmOptions,setCdmOptions}){
 
 // CDM-4 · imagem 2D: etapas novas do núcleo próprio (cada uma pode ser desligada para auditoria/ablação).
 function Cdm4Card({cdmOptions,setCdmOptions}){
-  const o=cdmOptions||{},set=(k,v)=>setCdmOptions(x=>({...x,[k]:v})),on=k=>o[k]!==false;
+  const o=cdmOptions||{},set=(k,v)=>setCdmOptions(x=>({...x,[k]:v})),OFF_BY_DEFAULT=new Set(["cdm4_contour_refine"]),on=k=>OFF_BY_DEFAULT.has(k)?o[k]===true:o[k]!==false;
   const steps=[
     ["cdm4_context_f1","IA de contexto · terreno/água cercado pela estrutura vira neutro","F1: evita apagar concreto desplacado ou úmido lido como “earth/water”"],
     ["cdm4_context_f5","IA de contexto · terreno dominante vira neutro","F5: em close-up, concreto rugoso lido como “earth” em > 50 % do quadro não apaga o dano"],
@@ -48,6 +48,7 @@ function Cdm4Card({cdmOptions,setCdmOptions}){
     ["cdm4_biodiversity","Refino de borda por biodiversidade","compara a borda com o concreto saudável vizinho"],
     ["cdm4_random_walker","Random walker no desplacamento","probabilidade de dano por pixel a partir de polos dano/saudável"],
     ["cdm4_linear_rebar","Armadura exposta por abertura linear","vales escuros, estreitos e longos dentro do desplacamento"],
+    ["cdm4_contour_refine","Afinamento automático do contorno (experimental)","limiar por região em passos decimais até a fronteira estabilizar; reduz o halo sobre concreto saudável"],
     ["cdm4_pigments","Pigmentos por Beer–Lambert (diagnóstico)","composição neutro/ferrugem/biológico de cada achado; não altera máscaras"]
   ];
   return <details className="analysisSettingsCard" open><summary>CDM-4 · etapas do núcleo</summary>

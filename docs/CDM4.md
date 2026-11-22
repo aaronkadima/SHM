@@ -48,3 +48,16 @@ Ordem: normalização (referência = concreto claro do domínio) → contexto co
 | Close-up (inspecao_atual) | 3 desplacamentos | 3 desplacamentos |
 
 Ganhos: contorno melhor no único GT, metade dos registros falsos, sem crescimento a partir de semente lisa, sem invadir alga na foto 27. Perdas: cobre menos o desplacamento largo da foto 81 e marca a borda de laje da foto 52. Continua experimental até haver mais GT.
+
+## Afinamento automático do contorno (opção `cdm4_contour_refine`, desligada por padrão)
+
+Para cada região do random walker, o limiar do potencial é ajustado por subida de encosta em passos decimais (0,08 → 0,04 → … → 0,005), dentro de ±0,1 do limiar inicial. O critério é o contraste de Fisher entre a faixa de 2 px logo dentro do contorno e a faixa logo fora, em luminância e rugosidade normalizadas. O loop para quando a distância simétrica média entre o contorno atual e o anterior fica abaixo de 0,25 px. Cada região registra o limiar final (3 casas), os passos e o último deslocamento. Há uma etapa própria, com o contorno antes (claro) e depois (laranja).
+
+Medida no GT da foto 24, com o pipeline completo e a decodificação do Chrome:
+
+| Fluxo | Sem afinamento | Com afinamento |
+|---|---|---|
+| Padrão | 64,2 % | 66,4 % |
+| Por evidência | 68,4 % | 70,1 % |
+
+Também foram testados o alinhamento ao gradiente ("edge") e o Chan–Vese local ("band"). Sem o limite de ±0,1, os três critérios encolhem o desplacamento até o núcleo, porque a textura do agregado tem bordas internas fortes.

@@ -5,6 +5,7 @@ import{randomWalkerSpalling,RW_DEFAULTS}from"./cdm4RandomWalker.js";
 import{linearRebar,REBAR_DEFAULTS}from"./cdm4Rebar.js";
 import{evidenceMaps,evidenceSeeds,upsampleThreshold,EVIDENCE_DEFAULTS}from"./cdm4Evidence.js";
 import{walkerFromSeeds}from"./cdm4RandomWalker.js";
+import{refineContourThresholds,upsampleWithThresholdMap,CONTOUR_DEFAULTS}from"./cdm4Contour.js";
 import{pigmentMaps,maskComposition,PIGMENT_VECTORS,PIGMENT_DEFAULTS}from"./cdm4Pigments.js";
 // CDM-4 (motor cdm_4). Núcleo próprio, copiado do CDM 2.11 (cdmBrowser.js, que segue intacto
 // como motor do CDM-1; o CDM-3 espacial também não muda) e estendido com as etapas validadas nas 20 fotos reais e no GT da foto 24:
@@ -907,6 +908,11 @@ function refineCdm4(image,masks,cfg,log,stages=null){
     if(cfg.rwScaleAware!==false&&side<1000){rwo.scale=1;const f=1;rwo.healthyFarPx=Math.max(2,Math.round(rwo.healthyFarPx*k*2/f));rwo.siteGuardPx=Math.max(2,Math.round(rwo.siteGuardPx*k*2/f))}
     const r=randomWalkerSpalling(image.data,w,h,{site,integrated:masks.spalling_dark,exclusion:ex,forbid:masks.efflorescence_white,opts:rwo});
     if(r.mask)masks.spalling_dark=r.mask;log.random_walker=r.log;
+    if(r.mask&&r.prob&&cfg.contour){
+      const E=evidenceMaps(image.data,w,h,{scale:r.log.scale}),c=refineContourThresholds(r.prob,r.W,r.H,[E.L,E.rough],r.log.threshold,cfg.contourOpts);
+      if(stages)stages.contour={before:r.mask,log:c.log};
+      masks.spalling_dark=upsampleWithThresholdMap(r.prob,c.tMap,r.W,r.H,r.log.scale,w,h,[ex,masks.efflorescence_white]);log.contour=c.log;
+    }
     if(stages&&r.prob)stages.random_walker={prob:r.prob,W:r.W,H:r.H,threshold:r.log.threshold,site};
   }
   // 4) armadura exposta por abertura linear dentro do desplacamento final
@@ -938,6 +944,11 @@ function refineEvidence(image,masks,cfg,log,stages=null){
   let nd=0;for(const v of seeds.damage)nd+=v;
   log.evidence={scale:f,reference_cut_L:+E.refCut.toFixed(1),damage_seed_px:nd,healthy_seed_px:R.seeds.healthy,iterations:R.iterations,converged:R.converged,threshold:eo.threshold};
   let sp=R.prob?upsampleThreshold(R.prob,E.W,E.H,f,w,h,eo.threshold,[ex,masks.efflorescence_white]):new Uint8Array(n);
+  if(R.prob&&cfg.contour){
+    const c=refineContourThresholds(R.prob,E.W,E.H,[E.L,E.rough],eo.threshold,cfg.contourOpts);
+    if(stages)stages.contour={before:sp,log:c.log};
+    sp=upsampleWithThresholdMap(R.prob,c.tMap,E.W,E.H,f,w,h,[ex,masks.efflorescence_white]);log.contour=c.log;
+  }
   if(stages)stages.evidence={W:E.W,H:E.H,f,rough:E.rough,div:E.div,dark:E.dark,seedsDamage:seeds.damage,seedsHealthy:seeds.healthy};
   if(stages&&R.prob)stages.random_walker={prob:R.prob,W:E.W,H:E.H,threshold:eo.threshold,site:null};
   // juiz de biodiversidade: cada componente precisa se distinguir da coroa saudável vizinha
@@ -1125,6 +1136,8 @@ export function cdm4Config(options={}){
     f1:on(options.cdm4_context_f1),
     sky:on(options.cdm4_context_sky),
     f5:on(options.cdm4_context_f5),
+    contour:on(options.cdm4_contour_refine,false),
+    contourOpts:{...CONTOUR_DEFAULTS,criterion:"fisher",maxDelta:clamp(Number(options.cdm4_contour_max_delta??.1),.01,.5)},
     flow:options.cdm4_flow==="evidence"?"evidence":"morphology",
     evidenceOpts:{threshold:clamp(Number(options.cdm4_evidence_threshold??.5),.1,.9),seedCore:Math.max(1,Math.round(Number(options.cdm4_evidence_seed_core??9)))},
     f5Share:clamp(Number(options.cdm4_context_f5_share??.5),.2,1),

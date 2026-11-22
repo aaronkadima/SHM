@@ -140,6 +140,10 @@ async function cdm4Stages(file,options={},result=null){
       scalarWithLegend(rw.prob,rw.W,rw.H,{title:"Potencial do random walker",subtitle:ev?"polo 1 = evidência de dano · polo 0 = saudável":"polo 1 = núcleo escuro · polo 0 = saudável",threshold:rw.threshold,thresholdLabel:"limiar "+String(rw.threshold).replace(".",",")})));
   }
   if(ev&&d.integrated)st.push(stage("judge","Juiz de biodiversidade","Cada região do walker (p > "+String(rw?.threshold??.5).replace(".",",")+") precisa se distinguir da coroa de concreto saudável vizinha; as indistinguíveis saem. Resultado: "+pct(d.integrated)+".",cdm4Overlay(base,[[d.integrated,w,h,ORANGE]])));
+  if(d.contour){
+    const lg=d.contour.log.filter(x=>x.iterations>0).slice(0,8).map(x=>"t = "+x.threshold.toFixed(3).replace(".",",")+" ("+x.iterations+" passos, último deslocamento "+String(x.last_shift_px).replace(".",",")+" px)").join("; ");
+    st.push(stage("contour","Afinamento automático do contorno","Limiar ajustado por região em passos de 0,08 a 0,005 até a fronteira estabilizar (distância simétrica < 0,25 px), maximizando o contraste entre as faixas de dentro e de fora. Claro = antes; laranja = depois. "+(lg||"Sem regiões ajustadas."),cdm4Overlay(base,[[d.contour.before,w,h,[255,230,180]],[d.final?.spalling_dark,w,h,ORANGE]])));
+  }
   const f=d.final||{};
   st.push(stage("spalling_final",(st.length+1)+" · Desplacamento final","Potencial > limiar, fora da exclusão de contexto e da eflorescência: "+pct(f.spalling_dark)+" da imagem.",cdm4Overlay(base,[[f.spalling_dark,w,h,ORANGE]])));
   st.push(stage("linear_rebar",(st.length+1)+" · Armadura exposta (abertura linear)","Vales escuros, estreitos e longos (black-hat 21, segmento de 61 px em 12 orientações, alongamento ≥ 3) dentro do desplacamento: "+area(f.exposed_rebar)+" px.",cdm4Overlay(base,[[f.spalling_dark,w,h,[255,210,140]],[f.exposed_rebar,w,h,[70,70,70]]])));

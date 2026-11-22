@@ -32,3 +32,19 @@ O núcleo foi copiado do CDM 2.11 (`cdmBrowser.js`). O CDM-1, o CDM-3 espacial, 
 - **Tempo:** cerca de 15 s por foto de 1600 px no navegador (Web Worker).
 
 - **Fotos pequenas (< 1000 px):** o random walker usa escala 1 e distâncias dos polos proporcionais ao tamanho; fotos ≥ 1000 px mantêm a calibração validada (resultados das 20 fotos inalterados).
+
+## Fluxo por evidência (experimental, `cdm4_flow = "evidence"`)
+
+Ordem: normalização (referência = concreto claro do domínio) → contexto como domínio (F1/F4/F5) → evidências (rugosidade local, diversidade de Shannon, escuridão contra o fundo local) → polos (dano: rugosidade z ≥ 3, diversidade z ≥ 1 e núcleo espesso 9×9 na escala do walker; saudável: liso e homogêneo) → random walker (p > 0,5) → juiz de biodiversidade por componente → separação de famílias → armadura linear → recorte final. A morfologia não decide o desplacamento. Corrosão e eflorescência continuam nas regras de cor, e as fissuras no black-hat + esqueleto. Etapas próprias: rugosidade e diversidade com legenda, polos, potencial e juiz.
+
+| Medida | Fluxo padrão | Fluxo por evidência |
+|---|---|---|
+| Foto 24 (PIL) · IoU desplacamento | 70,6 % | 73,0 % |
+| Foto 24 (decodificação do Chrome) · IoU | 64,2 % | 68,4 % |
+| Foto 24 · mancha falsa à direita | 11 822 px | 4 231 px (não cresce) |
+| 20 fotos · área em fotos com dano | 1 557 mil px | 1 377 mil px |
+| 20 fotos · área em fotos sem dano | 611 mil px | 550 mil px |
+| 20 fotos · registros falsos de desplacamento | 40 | 19 |
+| Close-up (inspecao_atual) | 3 desplacamentos | 3 desplacamentos |
+
+Ganhos: contorno melhor no único GT, metade dos registros falsos, sem crescimento a partir de semente lisa, sem invadir alga na foto 27. Perdas: cobre menos o desplacamento largo da foto 81 e marca a borda de laje da foto 52. Continua experimental até haver mais GT.

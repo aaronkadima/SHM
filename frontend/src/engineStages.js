@@ -128,20 +128,29 @@ async function cdm4Stages(file,options={},result=null){
   let d=cdm4StageData(result);
   if(!d||d.width!==w||d.height!==h){
     // resultado vindo do histórico: reexecuta o núcleo (sem IA de contexto) só para montar as etapas
-    const cfg=cdm4Config({...options,cdm_context_filter:"off"});cfg.returnStages=true;
+    const cfg=cdm4Config({...options,cdm_context_filter:"off",cdm4_flow:result?.metrics?.protocol?.flow||options.cdm4_flow});cfg.returnStages=true;
     const core=__cdm4Test.computeCdm4Core(image,null,cfg);d={...core.stages,width:w,height:h,recomputed:true};
   }
   const ORANGE=[255,153,0],GRAY=[160,160,160],RUST=[139,63,0],BLUE=[0,102,204],RED=[230,0,0],CYAN=[0,220,255];
   const area=m=>{let a=0;if(m)for(const v of m)a+=v;return a},pct=m=>(100*area(m)/(w*h)).toFixed(2)+" %";
   const st=[stage("input","1 · Entrada","Imagem decodificada a "+w+"×"+h+" px (lado máx. 1600, orientação EXIF aplicada)."+(d.recomputed?" Etapas recalculadas sem a IA de contexto (resultado aberto do histórico).":""),url(base))];
-  const m=d.morphology||{};
-  st.push(stage("morphology","2 · Morfologia CDM 2.11","Famílias de área após a IA de contexto: desplacamento "+pct(m.spalling_dark)+" (laranja), armadura (cinza), corrosão (marrom) e eflorescência (azul). As fissuras só aparecem depois da vetorização pelo esqueleto, no resultado. O núcleo do desplacamento é o polo de dano do random walker.",cdm4Overlay(base,[[m.efflorescence_white,w,h,BLUE],[m.corrosion_rust,w,h,RUST],[m.spalling_dark,w,h,ORANGE],[m.exposed_rebar,w,h,GRAY]])));
-  if(d.integrated)st.push(stage("biodiversity","3 · Diversidade e biodiversidade (Ataky)","Laranja: desplacamento após o canal de diversidade e o refino de borda pela comunidade saudável vizinha ("+pct(d.integrated)+"). Ciano: candidatos acrescentados pelo canal de diversidade.",cdm4Overlay(base,[[d.integrated,w,h,ORANGE],[d.diversity_added,w,h,CYAN]])));
+  const m=d.morphology||{},ev=d.evidence;
+  if(ev){
+    // fluxo por evidência: normalização → evidência → polos (a morfologia não decide o desplacamento)
+    st.push(stage("evidence_rough","Evidência · rugosidade normalizada","Desvio-padrão local da luminância medido contra o concreto saudável da própria foto (referência = pixels claros do domínio, fora da exclusão de contexto). Agregado exposto é áspero; mancha e sombra são lisas.",
+      scalarWithLegend(ev.rough,ev.W,ev.H,{stops:INFERNO,min:-2,max:8,ticks:[-2,0,2,4,6,8],title:"Rugosidade (z, saudável = 0)",subtitle:"polo de dano exige z ≥ 3 e diversidade ≥ 1",threshold:3,thresholdLabel:"polo z ≥ 3"})));
+    st.push(stage("evidence_div","Evidência · diversidade de Ataky","Entropia de Shannon das 56 espécies (luminância × matiz) em janela 11×11, em z contra o concreto saudável.",
+      scalarWithLegend(ev.div,ev.W,ev.H,{stops:INFERNO,min:-2,max:5,ticks:[-2,-1,0,1,2,3,4,5],title:"Diversidade de Shannon (z)",subtitle:"agregado exposto = comunidade diversa",threshold:1,thresholdLabel:"polo z ≥ 1"})));
+    st.push(stage("poles","Polos do random walker","Laranja = polo de dano (áspero, diverso, com núcleo espesso: bordas e quinas finas saem). Verde = polo saudável (liso e homogêneo). O restante é decidido pelo walker.",
+      overlayUrl(base,(ctx,W,H)=>{maskOverlay(ctx,ev.seedsHealthy,ev.W,ev.H,W,H,[40,170,90]);maskOverlay(ctx,ev.seedsDamage,ev.W,ev.H,W,H,[255,140,0])})));
+  }else st.push(stage("morphology","2 · Morfologia CDM 2.11","Famílias de área após a IA de contexto: desplacamento "+pct(m.spalling_dark)+" (laranja), armadura (cinza), corrosão (marrom) e eflorescência (azul). As fissuras só aparecem depois da vetorização pelo esqueleto, no resultado. O núcleo do desplacamento é o polo de dano do random walker.",cdm4Overlay(base,[[m.efflorescence_white,w,h,BLUE],[m.corrosion_rust,w,h,RUST],[m.spalling_dark,w,h,ORANGE],[m.exposed_rebar,w,h,GRAY]])));
+  if(d.integrated&&!ev)st.push(stage("biodiversity","3 · Diversidade e biodiversidade (Ataky)","Laranja: desplacamento após o canal de diversidade e o refino de borda pela comunidade saudável vizinha ("+pct(d.integrated)+"). Ciano: candidatos acrescentados pelo canal de diversidade.",cdm4Overlay(base,[[d.integrated,w,h,ORANGE],[d.diversity_added,w,h,CYAN]])));
   const rw=d.random_walker;
   if(rw?.prob){
-    st.push(stage("random_walker","4 · Potencial do random walker","Equação de Laplace na rede de condutâncias (cor + Shannon). Polo 1 = núcleo escuro do desplacamento; polo 0 = concreto saudável. Probabilidade de dano por pixel (escala 1/2); limiar p > "+String(rw.threshold).replace(".",",")+".",
-      scalarWithLegend(rw.prob,rw.W,rw.H,{title:"Potencial do random walker",subtitle:"polo 1 = núcleo escuro · polo 0 = saudável",threshold:rw.threshold,thresholdLabel:"limiar "+String(rw.threshold).replace(".",",")})));
+    st.push(stage("random_walker","4 · Potencial do random walker",(ev?"Polos por evidência (etapa anterior). ":"Polo 1 = núcleo escuro do desplacamento morfológico. ")+"Equação de Laplace na rede de condutâncias (cor + Shannon); polo 0 = concreto saudável. Probabilidade de dano por pixel (escala 1/2); limiar p > "+String(rw.threshold).replace(".",",")+".",
+      scalarWithLegend(rw.prob,rw.W,rw.H,{title:"Potencial do random walker",subtitle:ev?"polo 1 = evidência de dano · polo 0 = saudável":"polo 1 = núcleo escuro · polo 0 = saudável",threshold:rw.threshold,thresholdLabel:"limiar "+String(rw.threshold).replace(".",",")})));
   }
+  if(ev&&d.integrated)st.push(stage("judge","Juiz de biodiversidade","Cada região do walker (p > "+String(rw?.threshold??.5).replace(".",",")+") precisa se distinguir da coroa de concreto saudável vizinha; as indistinguíveis saem. Resultado: "+pct(d.integrated)+".",cdm4Overlay(base,[[d.integrated,w,h,ORANGE]])));
   const f=d.final||{};
   st.push(stage("spalling_final",(st.length+1)+" · Desplacamento final","Potencial > limiar, fora da exclusão de contexto e da eflorescência: "+pct(f.spalling_dark)+" da imagem.",cdm4Overlay(base,[[f.spalling_dark,w,h,ORANGE]])));
   st.push(stage("linear_rebar",(st.length+1)+" · Armadura exposta (abertura linear)","Vales escuros, estreitos e longos (black-hat 21, segmento de 61 px em 12 orientações, alongamento ≥ 3) dentro do desplacamento: "+area(f.exposed_rebar)+" px.",cdm4Overlay(base,[[f.spalling_dark,w,h,[255,210,140]],[f.exposed_rebar,w,h,[70,70,70]]])));

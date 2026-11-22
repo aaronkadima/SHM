@@ -3,6 +3,8 @@ import{bioFeatures,bioRefineMasks,diversityCandidates,largestComponent}from"./cd
 import{neutralizeEnclosedTerrain,neutralizeDominantTerrain,overexposedSky}from"./cdm4Scene.js";
 import{randomWalkerSpalling,RW_DEFAULTS}from"./cdm4RandomWalker.js";
 import{linearRebar,REBAR_DEFAULTS}from"./cdm4Rebar.js";
+import{evidenceMaps,evidenceSeeds,upsampleThreshold,EVIDENCE_DEFAULTS}from"./cdm4Evidence.js";
+import{walkerFromSeeds}from"./cdm4RandomWalker.js";
 import{pigmentMaps,maskComposition,PIGMENT_VECTORS,PIGMENT_DEFAULTS}from"./cdm4Pigments.js";
 // CDM-4 (motor cdm_4). Núcleo próprio, copiado do CDM 2.11 (cdmBrowser.js, que segue intacto
 // como motor do CDM-1; o CDM-3 espacial também não muda) e estendido com as etapas validadas nas 20 fotos reais e no GT da foto 24:
@@ -918,6 +920,45 @@ function refineCdm4(image,masks,cfg,log,stages=null){
   if(ex&&cfg.contextClip!==false)masks=clipMasksByContext(masks,w,h,cfg.context,cfg.contextClipCracks===true).masks;
   return{masks,areaRef};
 }
+
+// Fluxo por evidência (cdm4_flow = "evidence"): o desplacamento não parte da morfologia.
+//   normalização (referência = concreto claro do domínio) → contexto como domínio → evidências
+//   (rugosidade, diversidade de Ataky, escuridão local) → polos → random walker → juiz de
+//   biodiversidade por componente → separação de famílias → armadura linear → recorte final.
+// Corrosão e eflorescência continuam nas regras de cor; fissuras no black-hat + esqueleto.
+function refineEvidence(image,masks,cfg,log,stages=null){
+  const w=image.width,h=image.height,n=w*h,ex=contextExclusionMask(cfg,w,h);
+  masks={...masks};
+  if(stages)stages.morphology={...masks};
+  const{valid}=grayAndRgb(image,true),domain=new Uint8Array(n);
+  for(let i=0;i<n;i++)domain[i]=(!ex||!ex[i])&&(!valid||valid[i])?1:0;
+  const side=Math.max(w,h),f=side>=1000?2:1,eo={...EVIDENCE_DEFAULTS,...(cfg.evidenceOpts||{})};
+  const E=evidenceMaps(image.data,w,h,{domain,scale:f,opts:eo}),seeds=evidenceSeeds(E,eo);
+  const R=walkerFromSeeds([E.L,E.o1,E.o2,E.Hs],E.W,E.H,seeds.damage,seeds.healthy,cfg.rwOpts);
+  let nd=0;for(const v of seeds.damage)nd+=v;
+  log.evidence={scale:f,reference_cut_L:+E.refCut.toFixed(1),damage_seed_px:nd,healthy_seed_px:R.seeds.healthy,iterations:R.iterations,converged:R.converged,threshold:eo.threshold};
+  let sp=R.prob?upsampleThreshold(R.prob,E.W,E.H,f,w,h,eo.threshold,[ex,masks.efflorescence_white]):new Uint8Array(n);
+  if(stages)stages.evidence={W:E.W,H:E.H,f,rough:E.rough,div:E.div,dark:E.dark,seedsDamage:seeds.damage,seedsHealthy:seeds.healthy};
+  if(stages&&R.prob)stages.random_walker={prob:R.prob,W:E.W,H:E.H,threshold:eo.threshold,site:null};
+  // juiz de biodiversidade: cada componente precisa se distinguir da coroa saudável vizinha
+  let areaRef=null;
+  if(cfg.bio){
+    const cand={...masks,spalling_dark:sp};
+    areaRef={};for(const k of ["spalling_dark","corrosion_rust","efflorescence_white"])areaRef[k]=largestComponent(cand[k],w,h);
+    const r=bioRefineMasks(cand,bioFeatures(image.data,w,h,cfg.bioOpts),{exclusion:ex,opts:{...cfg.bioOpts,modes:{spalling_dark:"gate",efflorescence_white:"gate"}}});
+    masks={...r.masks};log.biodiversity=r.log;
+  }else masks.spalling_dark=sp;
+  if(stages)stages.integrated=masks.spalling_dark;
+  separateFamilies(masks,w,h);
+  if(cfg.linearRebar){
+    const{gray}=grayAndRgb(image,true),k=cfg.rebarOpts?.k||REBAR_DEFAULTS.k;
+    const r=linearRebar(gray,blackhat(gray,w,h,k),w,h,masks.spalling_dark,cfg.rebarOpts);
+    masks.exposed_rebar=r.mask;log.linear_rebar=r.log;
+  }
+  if(ex&&cfg.contextClip!==false)masks=clipMasksByContext(masks,w,h,cfg.context,cfg.contextClipCracks===true).masks;
+  if(stages)stages.final={...masks};
+  return{masks,areaRef};
+}
 // Composição por pigmentos dentro do contorno de um registro de área (varredura por linhas).
 function polygonComposition(maps,mask,w,h,r){
   const pts=r.points;if(!r.closed||!pts||pts.length<3)return null;
@@ -943,7 +984,7 @@ function computeCdm4Core(current,previous,cfg,onProgress=null){
   }else if(cfg.context)contextFilter={applied:false,abstained:!!cfg.context.abstained};
   emitProgress(onProgress,25,"CDM-4 · biodiversidade e random walker","refine_t1");
   const stageData=cfg.returnStages?{}:null;
-  const refined=refineCdm4(current,masks,cfg,refineLog,stageData);masks=refined.masks;
+  const refined=(cfg.flow==="evidence"?refineEvidence:refineCdm4)(current,masks,cfg,refineLog,stageData);masks=refined.masks;
   if(refined.areaRef)cfg.areaRefLargest=refined.areaRef;
   emitProgress(onProgress,35,"CDM-4 · máscaras t1","masks_t1");
   ORDER.forEach((cls,index)=>{
@@ -985,7 +1026,7 @@ function computeCdm4Core(current,previous,cfg,onProgress=null){
     emitProgress(onProgress,65,"CDM-4 · segmentando t0 alinhado","segment_t0");
     let prevMasks=detectMasks(registration.image,cfg);
     if(contextFilter?.applied)prevMasks=gateByContext(prevMasks,w,h,cfg).masks;
-    prevMasks=refineCdm4(registration.image,prevMasks,cfg,{}).masks;
+    prevMasks=(cfg.flow==="evidence"?refineEvidence:refineCdm4)(registration.image,prevMasks,cfg,{}).masks;
     emitProgress(onProgress,78,"CDM-4 · comparando t0→t1","temporal_compare");
     const change=temporalCompare(masks,prevMasks,w,h,cfg);
     temporal={enabled:true,alignment_method:registration.metrics.method_applied,alignment:registration.metrics,quality,aligned_previous:registration.image,stats:change.stats,records:change.records};
@@ -997,7 +1038,7 @@ function computeCdm4Core(current,previous,cfg,onProgress=null){
   const out={
     width:w,height:h,records,temporal,summary:resultSummary,context_filter:contextFilter,context_discarded:contextDiscarded,
     refinement:refineLog,pigments,
-    protocol:{stages:["base_image","family_response","candidate_mask","open_close_mask","context_filter","diversity_channel","biodiversity_border","random_walker","linear_rebar","connected_components","pigment_diagnostic"],version:"cdm_4_v3.0.0"}
+    protocol:{stages:cfg.flow==="evidence"?["normalization","context_domain","evidence","poles","random_walker","biodiversity_judge","family_separation","linear_rebar","connected_components","pigment_diagnostic"]:["base_image","family_response","candidate_mask","open_close_mask","context_filter","diversity_channel","biodiversity_border","random_walker","linear_rebar","connected_components","pigment_diagnostic"],flow:cfg.flow,version:"cdm4_image_v4.0.0"}
   };
   if(cfg.returnMasks)out.masks_final=masks;
   if(stageData)out.stages=stageData;
@@ -1084,6 +1125,8 @@ export function cdm4Config(options={}){
     f1:on(options.cdm4_context_f1),
     sky:on(options.cdm4_context_sky),
     f5:on(options.cdm4_context_f5),
+    flow:options.cdm4_flow==="evidence"?"evidence":"morphology",
+    evidenceOpts:{threshold:clamp(Number(options.cdm4_evidence_threshold??.5),.1,.9),seedCore:Math.max(1,Math.round(Number(options.cdm4_evidence_seed_core??9)))},
     f5Share:clamp(Number(options.cdm4_context_f5_share??.5),.2,1),
     contextErodeCells:clamp(Number(options.cdm4_context_erode_cells??.5),0,4),
     diversity:on(options.cdm4_diversity),

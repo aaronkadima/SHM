@@ -91,6 +91,13 @@ export function randomWalkerProbability(rgba,w,h,{site,integrated,opts={}}){
     if(!nearI[i]||(X[3][i]<o.healthyShannonZ&&!nearS[i])){label[i]=1;nh++}
   }
   if(!nd||!nh)return{prob:null,W,H,f,seeds:{damage:nd,healthy:nh},iterations:0,converged:false};
+  const S2=solveWalker(X,W,H,label,o);
+  return{prob:S2.prob,W,H,f,seeds:{damage:nd,healthy:nh},iterations:S2.iterations,converged:S2.converged};
+}
+
+// Solver comum: X = planos de característica, label: 0 livre, 1 saudável, 2 dano.
+export function solveWalker(X,W,H,label,o){
+  const N=W*H,C=X.length;
   // condutâncias (vizinhos à direita e abaixo), escala igual ao skimage
   let sum=0,sum2=0;for(const a of X)for(let i=0;i<N;i++){sum+=a[i];sum2+=a[i]*a[i]}
   const mean=sum/(C*N),std=Math.sqrt(Math.max(1e-12,sum2/(C*N)-mean*mean));
@@ -125,7 +132,15 @@ export function randomWalkerProbability(rgba,w,h,{site,integrated,opts={}}){
   }
   const prob=new Float32Array(N);
   for(let i=0;i<N;i++)prob[i]=label[i]===2?1:label[i]===1?0:Math.min(1,Math.max(0,xs[i]));
-  return{prob,W,H,f,seeds:{damage:nd,healthy:nh},iterations:it,converged};
+  return{prob,iterations:it,converged};
+}
+// Walker a partir de polos já definidos (fluxo por evidência).
+export function walkerFromSeeds(planes,W,H,damage,healthy,opts={}){
+  const o={...RW_DEFAULTS,...opts},N=W*H,label=new Int8Array(N);let nd=0,nh=0;
+  for(let i=0;i<N;i++){if(damage[i]){label[i]=2;nd++}else if(healthy[i]){label[i]=1;nh++}}
+  if(!nd||!nh)return{prob:null,seeds:{damage:nd,healthy:nh},iterations:0,converged:false};
+  const X=planes.map(robustZ),S=solveWalker(X,W,H,label,o);
+  return{...S,seeds:{damage:nd,healthy:nh}};
 }
 
 // Máscara final de desplacamento (resolução da imagem): probabilidade > limiar, fora da exclusão.

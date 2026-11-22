@@ -95,7 +95,7 @@ function scene(){
 const a=__cdm4Test.computeCdm4Core(scene(),null,cdm4Config({cdm4_return_masks:true}));
 const b=__cdm4Test.computeCdm4Core(scene(),null,cdm4Config({cdm4_return_masks:true}));
 assert.deepEqual(a.records,b.records,"CDM-4 é determinístico");
-assert.equal(a.protocol.version,"cdm_4_v3.0.0");
+assert.equal(a.protocol.version,"cdm4_image_v4.0.0");
 assert.ok(a.protocol.stages.includes("random_walker")&&a.protocol.stages.includes("linear_rebar"));
 for(const k of ["diversity","biodiversity","random_walker","linear_rebar"])assert.ok(a.refinement[k],"etapa registrada: "+k);
 assert.ok(a.records.some(r=>r.class==="spalling_dark"),"desplacamento detectado");
@@ -111,6 +111,14 @@ assert.ok(!a.masks_final.cracks.some((v,i)=>v&&a.masks_final.corrosion_rust[i]),
  assert.ok(st.morphology&&st.integrated&&st.final,"máscaras por etapa");
  assert.ok(st.random_walker?.prob?.length===st.random_walker.W*st.random_walker.H,"potencial do random walker");
  assert.ok(st.pigments?.rust?.length===st.pigments.W*st.pigments.H,"mapas de pigmento");}
+
+// Fluxo por evidência (experimental): sem morfologia como base do desplacamento
+{const cfg=cdm4Config({cdm4_flow:"evidence"});cfg.returnStages=true;
+ const e1=__cdm4Test.computeCdm4Core(scene(),null,cfg),e2=__cdm4Test.computeCdm4Core(scene(),null,cdm4Config({cdm4_flow:"evidence"}));
+ assert.deepEqual(e1.records,e2.records,"fluxo por evidência é determinístico");
+ assert.equal(e1.protocol.flow,"evidence");assert.ok(e1.protocol.stages.includes("poles"));
+ assert.ok(e1.records.some(r=>r.class==="spalling_dark"),"desplacamento pelo fluxo por evidência");
+ assert.ok(e1.stages.evidence&&e1.stages.random_walker?.prob,"etapas do fluxo por evidência");}
 
 // t0 → t1: a imagem anterior passa pelas mesmas etapas; mesma imagem ⇒ sem crescimento
 const t=__cdm4Test.computeCdm4Core(scene(),scene(),cdm4Config({}));

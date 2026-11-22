@@ -1141,7 +1141,8 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const sceneObjects=Array.isArray(contextInfo?.scene_objects)?contextInfo.scene_objects:[];
   const sceneGroupColor={estrutura:"#0d966e",irrelevante:"#d93a3a",neutro:"#6f7f87"};
   const discardedTitle=x=>`${x.code} · ${x.class_label||layerNameById[x.class]||x.class} descartado pelo filtro de contexto IA\nCena: ${sceneText(x.scene)||"—"} · ${Math.round(100*(x.scene?.irrelevant_share||0))} % em região irrelevante\n${x.class==="cracks"?"Comprimento "+fLen(x.length_px||0):"Área "+fArea(x.area_px2||0)}`;
-  function selectFinding(d){setActive(chosen.engine_id);setSelectedDetection({engineId:chosen.engine_id,index:d._i})}
+  // clique alterna: a mesma linha de novo desfaz a seleção (e a caixa destacada)
+  function selectFinding(d){setActive(chosen.engine_id);setSelectedDetection(cur=>cur&&cur.engineId===chosen.engine_id&&cur.index===d._i?null:{engineId:chosen.engine_id,index:d._i})}
   // Linhas do resumo: total de achados e, por patologia, quantidade + total (comprimento ou área).
   const findingRows=(()=>{
     const rows=[{id:"all",accent:"accentA",label:"Achados",count:findings.length||cdmSummary?.total_objects||0,total:null}];
@@ -1178,7 +1179,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     return <div className="editorFindingList" role="list">
       <div className="editorFindingHead" aria-hidden="true"><span>#</span>{cols.map(c=><span key={c[0]}>{c[0]}</span>)}</div>
       {rows.map(d=>{const sel=selectedDetection?.engineId===chosen?.engine_id&&selectedDetection.index===d._i;
-        return <button type="button" role="listitem" key={d._i} className={"editorFindingItem"+(sel?" selected":"")} title={findingTitle(d)} onClick={()=>selectFinding(d)}><span className="code" style={{"--dot":layerColorById[d.label]||"#0d766e"}}>{d.code}</span>{cols.map(c=><span key={c[0]}>{c[1](d)}</span>)}</button>})}
+        return <button type="button" role="listitem" key={d._i} aria-pressed={sel} className={"editorFindingItem"+(sel?" selected":"")} title={findingTitle(d)} onClick={()=>selectFinding(d)}><span className="code" style={{"--dot":layerColorById[d.label]||"#0d766e"}}>{d.code}</span>{cols.map(c=><span key={c[0]}>{c[1](d)}</span>)}</button>})}
       {findingMmPerPx>0?null:<small className="editorFindingNote">Medidas em px · calibre mm/px em Configurações para obter mm.</small>}
     </div>;
   }

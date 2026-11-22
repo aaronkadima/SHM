@@ -6,6 +6,7 @@ import{linearRebar,REBAR_DEFAULTS}from"./cdm4Rebar.js";
 import{evidenceMaps,evidenceSeeds,upsampleThreshold,EVIDENCE_DEFAULTS}from"./cdm4Evidence.js";
 import{walkerFromSeeds}from"./cdm4RandomWalker.js";
 import{refineContourThresholds,upsampleWithThresholdMap,CONTOUR_DEFAULTS}from"./cdm4Contour.js";
+import{refineWalkerFullRes}from"./cdm4FieldAnalysis.js";
 import{pigmentMaps,maskComposition,PIGMENT_VECTORS,PIGMENT_DEFAULTS}from"./cdm4Pigments.js";
 // CDM-4 (motor cdm_4). Núcleo próprio, copiado do CDM 2.11 (cdmBrowser.js, que segue intacto
 // como motor do CDM-1; o CDM-3 espacial também não muda) e estendido com as etapas validadas nas 20 fotos reais e no GT da foto 24:
@@ -908,7 +909,12 @@ function refineCdm4(image,masks,cfg,log,stages=null){
     if(cfg.rwScaleAware!==false&&side<1000){rwo.scale=1;const f=1;rwo.healthyFarPx=Math.max(2,Math.round(rwo.healthyFarPx*k*2/f));rwo.siteGuardPx=Math.max(2,Math.round(rwo.siteGuardPx*k*2/f))}
     const r=randomWalkerSpalling(image.data,w,h,{site,integrated:masks.spalling_dark,exclusion:ex,forbid:masks.efflorescence_white,opts:rwo});
     if(r.mask)masks.spalling_dark=r.mask;log.random_walker=r.log;
-    if(r.mask&&r.prob&&cfg.contour){
+    if(r.mask&&r.prob&&cfg.walkerFullres){
+      // walker refeito em resolução cheia em torno de cada desplacamento (substitui a decisão em meia escala)
+      const fr=refineWalkerFullRes(image.data,w,h,{prob:r.prob,W:r.W,H:r.H,f:r.log.scale,threshold:r.log.threshold},r.mask,{forbid:[ex,masks.efflorescence_white]});
+      if(stages)stages.fullres={before:r.mask};
+      masks.spalling_dark=fr.mask;log.walker_fullres=fr.log;
+    }else if(r.mask&&r.prob&&cfg.contour){
       const E=evidenceMaps(image.data,w,h,{scale:r.log.scale}),c=refineContourThresholds(r.prob,r.W,r.H,[E.L,E.rough],r.log.threshold,cfg.contourOpts);
       if(stages)stages.contour={before:r.mask,log:c.log};
       masks.spalling_dark=upsampleWithThresholdMap(r.prob,c.tMap,r.W,r.H,r.log.scale,w,h,[ex,masks.efflorescence_white]);log.contour=c.log;
@@ -944,7 +950,11 @@ function refineEvidence(image,masks,cfg,log,stages=null){
   let nd=0;for(const v of seeds.damage)nd+=v;
   log.evidence={scale:f,reference_cut_L:+E.refCut.toFixed(1),damage_seed_px:nd,healthy_seed_px:R.seeds.healthy,iterations:R.iterations,converged:R.converged,threshold:eo.threshold};
   let sp=R.prob?upsampleThreshold(R.prob,E.W,E.H,f,w,h,eo.threshold,[ex,masks.efflorescence_white]):new Uint8Array(n);
-  if(R.prob&&cfg.contour){
+  if(R.prob&&cfg.walkerFullres){
+    const fr=refineWalkerFullRes(image.data,w,h,{prob:R.prob,W:E.W,H:E.H,f,threshold:eo.threshold},sp,{forbid:[ex,masks.efflorescence_white]});
+    if(stages)stages.fullres={before:sp};
+    sp=fr.mask;log.walker_fullres=fr.log;
+  }else if(R.prob&&cfg.contour){
     const c=refineContourThresholds(R.prob,E.W,E.H,[E.L,E.rough],eo.threshold,cfg.contourOpts);
     if(stages)stages.contour={before:sp,log:c.log};
     sp=upsampleWithThresholdMap(R.prob,c.tMap,E.W,E.H,f,w,h,[ex,masks.efflorescence_white]);log.contour=c.log;
@@ -1137,6 +1147,7 @@ export function cdm4Config(options={}){
     sky:on(options.cdm4_context_sky),
     f5:on(options.cdm4_context_f5),
     contour:on(options.cdm4_contour_refine,false),
+    walkerFullres:on(options.cdm4_walker_fullres,false),
     contourOpts:{...CONTOUR_DEFAULTS,criterion:"fisher",maxDelta:clamp(Number(options.cdm4_contour_max_delta??.1),.01,.5)},
     flow:options.cdm4_flow==="evidence"?"evidence":"morphology",
     evidenceOpts:{threshold:clamp(Number(options.cdm4_evidence_threshold??.5),.1,.9),seedCore:Math.max(1,Math.round(Number(options.cdm4_evidence_seed_core??9)))},

@@ -1475,3 +1475,19 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .fieldToolGrid figure{position:relative;margin:0;aspect-ratio:1/1}
 .fieldToolGrid img{width:100%;height:100%;display:block;border-radius:6px}
 .fieldToolGrid figure a{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.9);color:#17384a}
+
+.fieldToolIou{margin:0;padding:8px 16px 10px;font-size:12.5px;color:#1d2a33}
+.fieldToolIou table{border-collapse:collapse;width:100%;max-width:640px}
+.fieldToolIou th,.fieldToolIou td{padding:4px 10px;text-align:left;border-bottom:1px solid rgba(20,40,50,.12)}
+.fieldToolIou th{color:#0d6e64;font-weight:600}
+.fieldToolIou td:not(:first-child),.fieldToolIou th:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+.fieldToolIou small{display:block;margin-top:4px;color:#51646d}
+.fieldToolThumb{all:unset;cursor:zoom-in;display:block;width:100%}
+.fieldToolThumb img{display:block;width:100%}
+.fieldToolZoom{position:fixed;inset:0;z-index:1200;background:rgba(4,10,14,.9);display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.fieldToolZoom>img{width:min(88vw,84vh);height:auto;image-rendering:auto;cursor:default;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.fieldToolNav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.1);border:0;color:#fff;border-radius:50%;width:46px;height:46px;display:grid;place-items:center;cursor:pointer}
+.fieldToolNav:hover{background:rgba(255,255,255,.22)}
+.fieldToolNav.prev{left:18px}.fieldToolNav.next{right:18px}
+.fieldToolZoomBar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:14px;align-items:center;color:#dfe9ec;font-size:13px;cursor:default}
+.fieldToolZoomBar a,.fieldToolZoomBar button{display:inline-flex;gap:5px;align-items:center;color:#dfe9ec;background:rgba(255,255,255,.1);border:0;border-radius:6px;padding:5px 10px;text-decoration:none;cursor:pointer;font:inherit}

@@ -141,6 +141,9 @@ async function cdm4Stages(file,options={},result=null){
       scalarWithLegend(rw.prob,rw.W,rw.H,{title:"Potencial do random walker",subtitle:ev?"polo 1 = evidência de dano · polo 0 = saudável":"polo 1 = núcleo escuro · polo 0 = saudável",threshold:rw.threshold,thresholdLabel:"limiar "+String(rw.threshold).replace(".",",")})));
   }
   if(ev&&d.integrated)st.push(stage("judge","Juiz de biodiversidade","Cada região do walker (p > "+String(rw?.threshold??.5).replace(".",",")+") precisa se distinguir da coroa de concreto saudável vizinha; as indistinguíveis saem. Resultado: "+pct(d.integrated)+".",cdm4Overlay(base,[[d.integrated,w,h,ORANGE]])));
+  if(d.fullres){
+    st.push(stage("fullres","Walker em resolução cheia na fronteira","O walker foi refeito pixel a pixel em torno de cada desplacamento, com os mesmos polos do motor. Claro = decisão em meia escala; laranja = decisão em resolução cheia.",cdm4Overlay(base,[[d.fullres.before,w,h,[255,230,180]],[d.final?.spalling_dark,w,h,ORANGE]])));
+  }
   if(d.contour){
     const lg=d.contour.log.filter(x=>x.iterations>0).slice(0,8).map(x=>"t = "+x.threshold.toFixed(3).replace(".",",")+" ("+x.iterations+" passos, último deslocamento "+String(x.last_shift_px).replace(".",",")+" px)").join("; ");
     st.push(stage("contour","Afinamento automático do contorno","Limiar ajustado por região em passos de 0,08 a 0,005 até a fronteira estabilizar (distância simétrica < 0,25 px), maximizando o contraste entre as faixas de dentro e de fora. Claro = antes; laranja = depois. "+(lg||"Sem regiões ajustadas."),cdm4Overlay(base,[[d.contour.before,w,h,[255,230,180]],[d.final?.spalling_dark,w,h,ORANGE]])));

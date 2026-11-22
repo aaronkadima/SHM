@@ -86,11 +86,28 @@ export function figureTable(F,S=FIELD_FIGURE_SIZE){
   ctx.fillText(tr("Área selecionada")+": "+F.roi.size+" × "+F.roi.size+" px · ("+F.roi.x+", "+F.roi.y+")",pad,y);y+=fs*1.5;
   ctx.font=Math.round(fs*.9)+"px Inter,system-ui,sans-serif";ctx.fillStyle="rgba(231,240,242,.78)";
   ctx.fillText(tr("Walker em resolução cheia")+(F.k>1?" (1/"+F.k+")":"")+" · R "+tr("global")+" = "+num(F.R)+" · "+F.ms+" ms",pad,y);y+=fs*2;
+  const Q=F.iou;
+  if(Q){
+    const pc=v=>v==null?"—":(v*100).toFixed(1).replace(".",getLang()==="en"?".":",")+" %";
+    ctx.fillStyle="#9fc9c4";ctx.font="700 "+Math.round(fs*.9)+"px Inter,system-ui,sans-serif";
+    ctx.fillText(Q.mode==="gt"?tr("IoU na seleção (contra o GT anotado)"):tr("IoU na seleção (sem GT: concordância motor × cheia)"),pad,y);y+=fs*1.5;
+    ctx.font=Math.round(fs*.9)+"px Inter,system-ui,monospace";ctx.fillStyle="#e7f0f2";
+    if(Q.mode==="gt"){
+      const cx=[0,.34,.56,.78].map(f=>pad+f*(S-2*pad));
+      ctx.fillStyle="rgba(231,240,242,.7)";["",tr("IoU"),tr("Precisão"),tr("Revocação")].forEach((t,i)=>ctx.fillText(t,cx[i],y));y+=fs*1.4;
+      for(const[lab,m]of[[tr("Motor"),Q.engine],[tr("Resolução cheia"),Q.full]]){ctx.fillStyle=m===Q.full&&Q.full.iou>Q.engine.iou?"#8ff0b4":"#e7f0f2";[lab,pc(m.iou),pc(m.precision),pc(m.recall)].forEach((t,i)=>ctx.fillText(t,cx[i],y));y+=fs*1.4}
+      ctx.fillStyle="rgba(231,240,242,.7)";ctx.fillText(tr("Ganho")+": "+((Q.full.iou-Q.engine.iou)*100>=0?"+":"")+((Q.full.iou-Q.engine.iou)*100).toFixed(1)+" pp",pad,y);y+=fs*1.9;
+    }else{
+      ctx.fillText(tr("IoU motor × cheia")+": "+pc(Q.agreement)+"   ·   "+tr("Δ área")+": "+(Q.area_delta==null?"—":(Q.area_delta>=0?"+":"")+(Q.area_delta*100).toFixed(1)+" %"),pad,y);y+=fs*1.4;
+      ctx.fillStyle="rgba(231,240,242,.7)";ctx.font=Math.round(fs*.8)+"px Inter,system-ui,sans-serif";
+      ctx.fillText(tr("Anote o desplacamento (GT) para obter a IoU real de cada contorno."),pad,y,S-2*pad);y+=fs*1.9;
+    }
+  }
   const cols=[tr("Região"),tr("Área motor"),tr("Área cheia"),"R","|∇u|",tr("Platô")],xs=[0,.16,.38,.6,.72,.86].map(f=>pad+f*(S-2*pad));
   ctx.fillStyle="#9fc9c4";ctx.font="700 "+Math.round(fs*.85)+"px Inter,system-ui,sans-serif";cols.forEach((t,i)=>ctx.fillText(t,xs[i],y));
   y+=fs*.6;ctx.strokeStyle="rgba(255,255,255,.25)";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(S-pad,y);ctx.stroke();y+=fs*1.3;
   ctx.font=Math.round(fs*.9)+"px Inter,system-ui,monospace";
-  const rows=F.regions.slice(0,9);
+  const rows=F.regions.slice(0,Q?(Q.mode==="gt"?5:6):9);
   if(!rows.length){ctx.fillStyle="#e7f0f2";ctx.fillText(tr("Nenhuma região de dano dentro da seleção."),pad,y)}
   rows.forEach((r,i)=>{
     const good=r.R>=.7;ctx.fillStyle=good?"#e7f0f2":"#ffd27a";

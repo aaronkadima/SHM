@@ -66,6 +66,11 @@ export const DICT={
 "(puede fragmentar fisuras que cruzan el borde de la escena)",
 "(peut fragmenter les fissures qui traversent le bord de la scène)"
 ],
+"(var. Laplaciano)": [
+"(Laplacian var.)",
+"(var. laplaciano)",
+"(var. laplacien)"
+],
 "). clDice mede a continuidade do esqueleto das fissuras.": [
 "). clDice measures the continuity of the crack skeleton.",
 "). clDice mide la continuidad del esqueleto de las fisuras.",
@@ -91,10 +96,40 @@ export const DICT={
 ", bajo la supervisión de",
 ", sous la supervision de"
 ],
+". Confirme em inspeção técnica.": [
+". Confirm in a technical inspection.",
+". Confirme en una inspección técnica.",
+". Confirmez par une inspection technique."
+],
+"/100): alto risco de falsos positivos. Corrija a imagem ou clique em Analisar de novo para prosseguir.": [
+"/100): high risk of false positives. Correct the image or click Analyse again to proceed.",
+"/100): alto riesgo de falsos positivos. Corrija la imagen o haga clic en Analizar de nuevo para continuar.",
+"/100) : risque élevé de faux positifs. Corrigez l’image ou cliquez à nouveau sur Analyser pour continuer."
+],
+"/6 pares mínimos": [
+"/6 minimum pairs",
+"/6 pares mínimos",
+"/6 paires minimales"
+],
+"/s. Detecção preliminar no navegador, sem envio de quadros. Atalhos: P foto · R vídeo · Espaço pausa.": [
+"/s. Preliminary detection in the browser, no frames sent. Shortcuts: P photo · R video · Space pause.",
+"/s. Detección preliminar en el navegador, sin envío de cuadros. Atajos: P foto · R vídeo · Espacio pausa.",
+"/s. Détection préliminaire dans le navigateur, sans envoi d’images. Raccourcis : P photo · R vidéo · Espace pause."
+],
+"0 = setas alinhadas · 1 = direções espalhadas": [
+"0 = aligned arrows · 1 = scattered directions",
+"0 = flechas alineadas · 1 = direcciones dispersas",
+"0 = flèches alignées · 1 = directions dispersées"
+],
 "0 · duplo clique no meio": [
 "0 · middle double-click",
 "0 · doble clic central",
 "0 · double-clic du milieu"
+],
+"0° = saindo do polo de dano": [
+"0° = leaving the damage pole",
+"0° = saliendo del polo de daño",
+"0° = sortant du pôle de dommage"
 ],
 "1 · Capturar LAS/XYZ": [
 "1 · Pick LAS/XYZ",
@@ -140,6 +175,11 @@ export const DICT={
 "The analysis is already saved in the local history.",
 "El análisis ya está guardado en el historial local.",
 "L’analyse est déjà enregistrée dans l’historique local."
+],
+"A correção não recupera informação ausente (foco, resolução ou superfície sem contraste e com ruído). Recomenda-se refazer a foto com mais luz, câmera estável e mais próxima.": [
+"Correction cannot recover missing information (focus, resolution or a low-contrast noisy surface). Retake the photo with more light, a steady camera and closer.",
+"La corrección no recupera información ausente (enfoque, resolución o superficie sin contraste y con ruido). Se recomienda repetir la foto con más luz, cámara estable y más cerca.",
+"La correction ne récupère pas l’information absente (mise au point, résolution ou surface peu contrastée et bruitée). Refaites la photo avec plus de lumière, une caméra stable et plus près."
 ],
 "A câmera está em uso por outro aplicativo ou não responde.": [
 "The camera is in use by another app or not responding.",
@@ -216,6 +256,11 @@ export const DICT={
 "La rueda hace zoom en el cursor; Shift + rueda mueve la imagen; doble clic con el botón central ajusta a la pantalla.",
 "La molette zoome sur le curseur ; Maj + molette déplace l’image ; double-clic du bouton du milieu ajuste à l’écran."
 ],
+"ACHADOS": [
+"FINDINGS",
+"HALLAZGOS",
+"CONSTATS"
+],
 "ACHADOS DA SESSÃO": [
 "SESSION FINDINGS",
 "HALLAZGOS DE LA SESIÓN",
@@ -231,6 +276,16 @@ export const DICT={
 "ANÁLISIS",
 "ANALYSE"
 ],
+"ARQUIVO": [
+"FILE",
+"ARCHIVO",
+"FICHIER"
+],
+"Abertura 2×2": [
+"2×2 opening",
+"Apertura 2×2",
+"Ouverture 2×2"
+],
 "Abra o Live para detectar em tempo real pela câmera; as capturas podem ser salvas na galeria do dispositivo.": [
 "Open Live to detect in real time with the camera; captures can be saved to the device gallery.",
 "Abra Live para detectar en tiempo real con la cámara; las capturas pueden guardarse en la galería del dispositivo.",
@@ -240,6 +295,11 @@ export const DICT={
 "Opening camera…",
 "Abriendo cámara…",
 "Ouverture de la caméra…"
+],
+"Abrir": [
+"Open",
+"Abrir",
+"Ouvrir"
 ],
 "Abrir DEV": [
 "Open DEV",
@@ -316,6 +376,11 @@ export const DICT={
 "Abstenerse en escenas no reconocidas",
 "S’abstenir sur les scènes non reconnues"
 ],
+"Aceitar": [
+"Accept",
+"Aceptar",
+"Accepter"
+],
 "Achado sem classe": [
 "Unclassified finding",
 "Hallazgo sin clase",
@@ -326,10 +391,35 @@ export const DICT={
 "El hallazgo se descarta si ≥",
 "Le constat est écarté si ≥"
 ],
+"Achados": [
+"Findings",
+"Hallazgos",
+"Constats"
+],
+"Achados normalizados": [
+"Normalised findings",
+"Hallazgos normalizados",
+"Constats normalisés"
+],
 "Achados normalizados da inspeção aberta": [
 "Normalised findings of the open inspection",
 "Hallazgos normalizados de la inspección abierta",
 "Constats normalisés de l’inspection ouverte"
+],
+"Adequada": [
+"Suitable",
+"Adecuada",
+"Adaptée"
+],
+"Adequada com ressalvas": [
+"Suitable with caveats",
+"Adecuada con salvedades",
+"Adaptée avec réserves"
+],
+"Adequada para análise": [
+"Suitable for analysis",
+"Adecuada para el análisis",
+"Adaptée à l’analyse"
 ],
 "Adicionar a": [
 "Add to",
@@ -355,6 +445,11 @@ export const DICT={
 "Add to timeline",
 "Añadir a la línea de tiempo",
 "Ajouter à la chronologie"
+],
+"Afinamento automático do contorno": [
+"Automatic contour refinement",
+"Afinado automático del contorno",
+"Affinage automatique du contour"
 ],
 "Afinamento automático do contorno (experimental)": [
 "Automatic contour refinement (experimental)",
@@ -406,6 +501,11 @@ export const DICT={
 "Espere la validación de la referencia t0 antes de iniciar el análisis.",
 "Attendez la validation de la référence t0 avant de lancer l’analyse."
 ],
+"Ajuda": [
+"Help",
+"Ayuda",
+"Aide"
+],
 "Ajuda por contexto": [
 "Context help",
 "Ayuda contextual",
@@ -430,6 +530,11 @@ export const DICT={
 "2D fit unavailable",
 "Ajuste 2D no disponible",
 "Ajustement 2D indisponible"
+],
+"Ajustes": [
+"Settings",
+"Ajustes",
+"Réglages"
 ],
 "Ajustes da prévia não aplicados: a análise usa a imagem sem eles.": [
 "Preview adjustments not applied: the analysis uses the image without them.",
@@ -456,6 +561,11 @@ export const DICT={
 "Alineación temporal",
 "Alignement temporel"
 ],
+"Alinhamento:": [
+"Alignment:",
+"Alineación:",
+"Alignement :"
+],
 "Alinhando…": [
 "Aligning…",
 "Alineando…",
@@ -466,6 +576,11 @@ export const DICT={
 "Alargamiento mínimo",
 "Allongement minimal"
 ],
+"Alta": [
+"High",
+"Alta",
+"Élevée"
+],
 "Alternar câmera": [
 "Switch camera",
 "Cambiar cámara",
@@ -475,6 +590,11 @@ export const DICT={
 "Toggle projection",
 "Alternar proyección",
 "Basculer la projection"
+],
+"Ampliar": [
+"Enlarge",
+"Ampliar",
+"Agrandir"
 ],
 "Ampliar aqui": [
 "Zoom in here",
@@ -490,6 +610,11 @@ export const DICT={
 "Zoom in",
 "Acercar",
 "Zoom avant"
+],
+"Analisar": [
+"Analyse",
+"Analizar",
+"Analyser"
 ],
 "Analisar arquivo de vídeo": [
 "Analyse video file",
@@ -521,6 +646,16 @@ export const DICT={
 "Anotación · Ground Truth",
 "Annotation · vérité terrain"
 ],
+"Anote o desplacamento (GT) para obter a IoU real de cada contorno.": [
+"Annotate the spalling (GT) to get the true IoU of each contour.",
+"Anote el desprendimiento (GT) para obtener la IoU real de cada contorno.",
+"Annotez l'épaufrure (GT) pour obtenir l'IoU réelle de chaque contour."
+],
+"Anterior": [
+"Previous",
+"Anterior",
+"Précédent"
+],
 "Análise": [
 "Analysis",
 "Análisis",
@@ -541,20 +676,45 @@ export const DICT={
 "Análisis no disponible con la configuración actual.",
 "Analyse indisponible avec la configuration actuelle."
 ],
+"Apagar": [
+"Erase",
+"Borrar",
+"Effacer"
+],
 "Aplicando…": [
 "Applying…",
 "Aplicando…",
 "Application…"
+],
+"Aplicar": [
+"Apply",
+"Aplicar",
+"Appliquer"
 ],
 "Aplicar à imagem": [
 "Apply to image",
 "Aplicar a la imagen",
 "Appliquer à l’image"
 ],
+"Aprovada para quantificação temporal": [
+"Approved for temporal quantification",
+"Aprobada para cuantificación temporal",
+"Approuvée pour la quantification temporelle"
+],
+"Após NMS (IoU 0,45)": [
+"After NMS (IoU 0.45)",
+"Tras NMS (IoU 0,45)",
+"Après NMS (IoU 0,45)"
+],
 "Armadura exposta": [
 "Exposed rebar",
 "Armadura expuesta",
 "Armature apparente"
+],
+"Armadura exposta (abertura linear)": [
+"Exposed rebar (linear opening)",
+"Armadura expuesta (apertura lineal)",
+"Armature apparente (ouverture linéaire)"
 ],
 "Armadura exposta por abertura linear": [
 "Exposed rebar by linear opening",
@@ -565,6 +725,11 @@ export const DICT={
 "Rebar · darkness percentile in the zone",
 "Armadura · percentil de oscuridad en la zona",
 "Armature · percentile d’obscurité dans la zone"
+],
+"Arquivo": [
+"File",
+"Archivo",
+"Fichier"
 ],
 "Arquivo 3D reconhecido · análise 2D indisponível": [
 "3D file recognised · 2D analysis unavailable",
@@ -656,6 +821,11 @@ export const DICT={
 "Atajos de teclado y ratón",
 "Raccourcis clavier et souris"
 ],
+"Ativar": [
+"Enable",
+"Activar",
+"Activer"
+],
 "Ative Rótulos e Caixas na barra lateral; cada camada também tem os seus no ⚙. Com muitos achados, os rótulos pequenos aparecem ao passar o mouse.": [
 "Turn on Labels and Boxes in the sidebar; each layer also has its own in ⚙. With many findings, small labels appear on hover.",
 "Active Etiquetas y Cajas en la barra lateral; cada capa también tiene las suyas en ⚙. Con muchos hallazgos, las etiquetas pequeñas aparecen al pasar el ratón.",
@@ -671,6 +841,11 @@ export const DICT={
 "Actualizado · build",
 "À jour · build"
 ],
+"Atualizar": [
+"Update",
+"Actualizar",
+"Mettre à jour"
+],
 "Atualização": [
 "Update",
 "Actualización",
@@ -680,6 +855,11 @@ export const DICT={
 "Update available · page",
 "Actualización disponible · página",
 "Mise à jour disponible · page"
+],
+"Aulas": [
+"Lessons",
+"Clases",
+"Cours"
 ],
 "Aulas · Noções de Programação para SHM": [
 "Lessons · Programming for SHM",
@@ -766,6 +946,16 @@ export const DICT={
 "Backend individual no disponible:",
 "Backend individuel indisponible :"
 ],
+"Baixa": [
+"Low",
+"Baja",
+"Faible"
+],
+"Baixar figura": [
+"Download figure",
+"Descargar figura",
+"Télécharger la figure"
+],
 "Baixar imagem da etapa": [
 "Download stage image",
 "Descargar imagen de la etapa",
@@ -790,6 +980,11 @@ export const DICT={
 "Download all captures",
 "Descargar todas las capturas",
 "Télécharger toutes les captures"
+],
+"Balanço de branco": [
+"White balance",
+"Balance de blancos",
+"Balance des blancs"
 ],
 "Balanço de branco automático (mundo cinza)": [
 "Automatic white balance (grey world)",
@@ -820,6 +1015,16 @@ export const DICT={
 "Classical baseline",
 "Línea base clásica",
 "Référence classique"
+],
+"Black-hat 15×15": [
+"Black-hat 15×15",
+"Black-hat 15×15",
+"Black-hat 15×15"
+],
+"Bloquear": [
+"Lock",
+"Bloquear",
+"Verrouiller"
 ],
 "Botão direito": [
 "Right button",
@@ -866,10 +1071,20 @@ export const DICT={
 "CADENA TEMPORAL",
 "CHAÎNE TEMPORELLE"
 ],
+"CAMADAS": [
+"LAYERS",
+"CAPAS",
+"CALQUES"
+],
 "CAMPANHAS POR OAE / ELEMENTO": [
 "CAMPAIGNS BY STRUCTURE / ELEMENT",
 "CAMPAÑAS POR ESTRUCTURA / ELEMENTO",
 "CAMPAGNES PAR OUVRAGE / ÉLÉMENT"
+],
+"CARGA": [
+"LOAD",
+"CARGA",
+"CHARGE"
 ],
 "CDM 2.10 (JavaScript no navegador; referência Python cdm_v285.py)": [
 "CDM 2.10 (JavaScript in the browser; Python reference cdm_v285.py)",
@@ -971,6 +1186,11 @@ export const DICT={
 "Caja:",
 "Boîte :"
 ],
+"Caixas": [
+"Boxes",
+"Cajas",
+"Boîtes"
+],
 "Caixas de detecção": [
 "Detection boxes",
 "Cajas de detección",
@@ -1021,10 +1241,20 @@ export const DICT={
 "Capa bloqueada",
 "Calque verrouillé"
 ],
+"Camadas": [
+"Layers",
+"Capas",
+"Calques"
+],
 "Camadas abertas": [
 "Layers open",
 "Capas abiertas",
 "Calques ouverts"
+],
+"Camadas atuais": [
+"Current layers",
+"Capas actuales",
+"Calques actuels"
 ],
 "Camadas de detecção sobre a imagem original": [
 "Detection layers over the original image",
@@ -1041,6 +1271,11 @@ export const DICT={
 "Capas guía del Digital Twin",
 "Calques guides du jumeau numérique"
 ],
+"Campanha": [
+"Campaign",
+"Campaña",
+"Campagne"
+],
 "Campanha / inspeção": [
 "Campaign / inspection",
 "Campaña / inspección",
@@ -1050,6 +1285,41 @@ export const DICT={
 "Current campaign set as 4D baseline",
 "Campaña actual definida como línea base 4D",
 "Campagne courante définie comme référence 4D"
+],
+"Campo do walker": [
+"Walker field",
+"Campo del walker",
+"Champ du walker"
+],
+"Campo do walker (CDM-4)": [
+"Walker field (CDM-4)",
+"Campo del walker (CDM-4)",
+"Champ du walker (CDM-4)"
+],
+"Campo do walker · disponível após uma análise do CDM-4": [
+"Walker field · available after a CDM-4 analysis",
+"Campo del walker · disponible tras un análisis del CDM-4",
+"Champ du walker · disponible après une analyse du CDM-4"
+],
+"Campo do walker · setas −∇u": [
+"Walker field · −∇u arrows",
+"Campo del walker · flechas −∇u",
+"Champ du walker · flèches −∇u"
+],
+"Campo do walker: arraste um quadrado 1:1 sobre a imagem · Esc cancela": [
+"Walker field: drag a 1:1 square over the image · Esc cancels",
+"Campo del walker: arrastre un cuadrado 1:1 sobre la imagen · Esc cancela",
+"Champ du walker : glissez un carré 1:1 sur l’image · Échap annule"
+],
+"Campo do walker: selecione uma área 1:1 para ver setas, desvio angular, dispersão e coerência": [
+"Walker field: select a 1:1 area to see arrows, angular deviation, dispersion and coherence",
+"Campo del walker: seleccione un área 1:1 para ver flechas, desvío angular, dispersión y coherencia",
+"Champ du walker : sélectionnez une zone 1:1 pour voir flèches, écart angulaire, dispersion et cohérence"
+],
+"Canais": [
+"Channels",
+"Canales",
+"Canaux"
 ],
 "Canal de diversidade (Ataky)": [
 "Diversity channel (Ataky)",
@@ -1066,10 +1336,20 @@ export const DICT={
 "Cancelando…",
 "Annulation…"
 ],
+"Cancelar": [
+"Cancel",
+"Cancelar",
+"Annuler"
+],
 "Candidato browser ·": [
 "Browser candidate ·",
 "Candidato navegador ·",
 "Candidat navigateur ·"
+],
+"Candidatos (antes do NMS)": [
+"Candidates (before NMS)",
+"Candidatos (antes del NMS)",
+"Candidats (avant NMS)"
 ],
 "Canvas 2D indisponível.": [
 "2D canvas unavailable.",
@@ -1116,6 +1396,11 @@ export const DICT={
 "Capturas de la sesión:",
 "Captures de la session :"
 ],
+"Carga": [
+"Load",
+"Carga",
+"Charge"
+],
 "Carregando ativo espacial / 3D": [
 "Loading spatial / 3D asset",
 "Cargando activo espacial / 3D",
@@ -1161,6 +1446,11 @@ export const DICT={
 "Catálogo de motores",
 "Catalogue des moteurs"
 ],
+"Cena": [
+"Scene",
+"Escena",
+"Scène"
+],
 "Centímetros (cm)": [
 "Centimetres (cm)",
 "Centímetros (cm)",
@@ -1181,10 +1471,20 @@ export const DICT={
 "Checkpoints SHM públicos",
 "Checkpoints SHM publics"
 ],
+"Classe": [
+"Class",
+"Clase",
+"Classe"
+],
 "Classe de área: o caminho é fechado e preenchido.": [
 "Area class: the path is closed and filled.",
 "Clase de área: el trazado se cierra y se rellena.",
 "Classe de surface : le tracé est fermé et rempli."
+],
+"Classe vencedora": [
+"Winning class",
+"Clase ganadora",
+"Classe gagnante"
 ],
 "Classes de estrutura (modo estrito)": [
 "Structure classes (strict mode)",
@@ -1205,6 +1505,11 @@ export const DICT={
 "Rating",
 "Clasificación",
 "Classification"
+],
+"Classificação preliminar por imagem": [
+"Preliminary image-based rating",
+"Clasificación preliminar por imagen",
+"Classification préliminaire par image"
 ],
 "Clique ao longo da linha central; duplo clique ou Enter termina.": [
 "Click along the centre line; double-click or Enter finishes.",
@@ -1246,6 +1551,11 @@ export const DICT={
 "Cloud verificados (",
 "Cloud vérifiés ("
 ],
+"Cobertura": [
+"Coverage",
+"Cobertura",
+"Couverture"
+],
 "Cobertura textura": [
 "Texture coverage",
 "Cobertura de textura",
@@ -1265,6 +1575,11 @@ export const DICT={
 "Len.",
 "Long.",
 "Long."
+],
+"Comparador": [
+"Comparator",
+"Comparador",
+"Comparateur"
 ],
 "Comparador indisponível:": [
 "Comparator unavailable:",
@@ -1316,10 +1631,30 @@ export const DICT={
 "Comparación temporal t0 / t1",
 "Comparaison temporelle t0 / t1"
 ],
+"Comparação temporal t0→t1": [
+"Temporal comparison t0→t1",
+"Comparación temporal t0→t1",
+"Comparaison temporelle t0→t1"
+],
+"Componentes": [
+"Components",
+"Componentes",
+"Composantes"
+],
 "Componentes do CDM sobre regiões irrelevantes (≥": [
 "CDM components over irrelevant regions (≥",
 "Componentes del CDM sobre regiones irrelevantes (≥",
 "Composantes du CDM sur des régions non pertinentes (≥"
+],
+"Componentes filtrados": [
+"Filtered components",
+"Componentes filtrados",
+"Composantes filtrées"
+],
+"Componentes vetorizados": [
+"Vectorised components",
+"Componentes vectorizados",
+"Composantes vectorisées"
 ],
 "Comprimento de referência em milímetros": [
 "Reference length in millimetres",
@@ -1335,6 +1670,16 @@ export const DICT={
 "Length:",
 "Longitud:",
 "Longueur :"
+],
+"Concentração · biológico": [
+"Concentration · biological",
+"Concentración · biológico",
+"Concentration · biologique"
+],
+"Concentração · ferrugem": [
+"Concentration · rust",
+"Concentración · óxido",
+"Concentration · rouille"
 ],
 "Conecte uma câmera": [
 "Connect a camera",
@@ -1386,6 +1731,11 @@ export const DICT={
 "Config.",
 "Réglages"
 ],
+"Configurar": [
+"Settings",
+"Configurar",
+"Réglages"
+],
 "Configurar exibição de": [
 "Configure display of",
 "Configurar visualización de",
@@ -1411,6 +1761,21 @@ export const DICT={
 "Configuración · Ctrl/Cmd+,",
 "Réglages · Ctrl/Cmd+,"
 ],
+"Configure o endereço HTTPS do": [
+"Set the HTTPS address of the",
+"Configure la dirección HTTPS del",
+"Configurez l’adresse HTTPS du"
+],
+"Confirmados": [
+"Confirmed",
+"Confirmados",
+"Confirmés"
+],
+"Confirme em inspeção técnica.": [
+"Confirm in a technical inspection.",
+"Confirme en una inspección técnica.",
+"Confirmez par une inspection technique."
+],
 "Conjunto fotométrico inválido:": [
 "Invalid photometric set:",
 "Conjunto fotométrico no válido:",
@@ -1426,6 +1791,21 @@ export const DICT={
 "Conservador · descarta solo lo que está en clases irrelevantes",
 "Conservateur · n’écarte que ce qui est dans des classes non pertinentes"
 ],
+"Contraste baixo: maior risco de falsos positivos em motores morfológicos.": [
+"Low contrast: higher risk of false positives in morphological engines.",
+"Contraste bajo: mayor riesgo de falsos positivos en motores morfológicos.",
+"Contraste faible : risque accru de faux positifs dans les moteurs morphologiques."
+],
+"Contraste muito baixo: o CDM-1 estica p2–p98 e amplifica o ruído, gerando fissuras falsas em toda a superfície.": [
+"Very low contrast: CDM-1 stretches p2–p98 and amplifies noise, producing false cracks over the whole surface.",
+"Contraste muy bajo: el CDM-1 estira p2–p98 y amplifica el ruido, generando fisuras falsas en toda la superficie.",
+"Contraste très faible : le CDM-1 étire p2–p98 et amplifie le bruit, produisant de fausses fissures sur toute la surface."
+],
+"Contraste suficiente.": [
+"Sufficient contrast.",
+"Contraste suficiente.",
+"Contraste suffisant."
+],
 "Controles do canvas 3D": [
 "3D canvas controls",
 "Controles del lienzo 3D",
@@ -1435,6 +1815,11 @@ export const DICT={
 "Coordinates:",
 "Coordenadas:",
 "Coordonnées :"
+],
+"Cores neutras.": [
+"Neutral colours.",
+"Colores neutros.",
+"Couleurs neutres."
 ],
 "Correspondendo vistas…": [
 "Matching views…",
@@ -1475,6 +1860,21 @@ export const DICT={
 "Corrosion",
 "Corrosión",
 "Corrosion"
+],
+"Corrosão aparente": [
+"Visible corrosion",
+"Corrosión aparente",
+"Corrosion apparente"
+],
+"Corte": [
+"Section",
+"Corte",
+"Coupe"
+],
+"Crescimento t0→t1": [
+"Growth t0→t1",
+"Crecimiento t0→t1",
+"Croissance t0→t1"
 ],
 "Ctrl/Cmd+Shift+R mostra as réguas. Calibre a escala mm/px em Configurações → Réguas e escala para medir em mm — a mesma escala alimenta as medidas do CDM-1.": [
 "Ctrl/Cmd+Shift+R shows the rulers. Calibrate the mm/px scale in Settings → Rulers and scale to measure in mm — the same scale feeds the CDM measurements.",
@@ -1526,6 +1926,11 @@ export const DICT={
 "DELTAS TEMPORALES VALIDADOS",
 "DELTAS TEMPORELS VALIDÉS"
 ],
+"Data": [
+"Date",
+"Fecha",
+"Date"
+],
 "Decodificação": [
 "Decoding",
 "Decodificación",
@@ -1541,10 +1946,20 @@ export const DICT={
 "Definir campaña A",
 "Définir la campagne A"
 ],
+"Desbloquear": [
+"Unlock",
+"Desbloquear",
+"Déverrouiller"
+],
 "Descartados pela IA": [
 "Discarded by the AI",
 "Descartados por la IA",
 "Écartés par l’IA"
+],
+"Descartar": [
+"Discard",
+"Descartar",
+"Écarter"
 ],
 "Descartar captura": [
 "Discard capture",
@@ -1556,6 +1971,16 @@ export const DICT={
 "Bajar capa",
 "Descendre le calque"
 ],
+"Desempenho:": [
+"Performance:",
+"Rendimiento:",
+"Performances :"
+],
+"Desfazer": [
+"Undo",
+"Deshacer",
+"Annuler"
+],
 "Desfazer (Ctrl/Cmd+Z)": [
 "Undo (Ctrl/Cmd+Z)",
 "Deshacer (Ctrl/Cmd+Z)",
@@ -1566,10 +1991,45 @@ export const DICT={
 "Desactivado · solo morfología",
 "Désactivé · morphologie seule"
 ],
+"Deslizar": [
+"Slider",
+"Deslizar",
+"Curseur"
+],
 "Deslizar · disponível após a análise": [
 "Slider · available after the analysis",
 "Deslizador · disponible tras el análisis",
 "Curseur · disponible après l’analyse"
+],
+"Desplacamento": [
+"Spalling",
+"Desprendimiento",
+"Épaufrure"
+],
+"Desplacamento final": [
+"Final spalling",
+"Desprendimiento final",
+"Épaufrure finale"
+],
+"Desplacamento/região escura": [
+"Spalling/dark region",
+"Desprendimiento/región oscura",
+"Épaufrure/région sombre"
+],
+"Desplacamento/regi…": [
+"Spalling/reg…",
+"Desprendim./reg…",
+"Épaufrure/rég…"
+],
+"Desvio": [
+"Deviation",
+"Desvío",
+"Écart"
+],
+"Desvio angular": [
+"Angular deviation",
+"Desvío angular",
+"Écart angulaire"
 ],
 "Detecção ativa": [
 "Detection on",
@@ -1636,6 +2096,16 @@ export const DICT={
 "Directo en el navegador (",
 "Directement dans le navigateur ("
 ],
+"Dispersão local 1 − R": [
+"Local dispersion 1 − R",
+"Dispersión local 1 − R",
+"Dispersion locale 1 − R"
+],
+"Dispersão local da direção": [
+"Local direction dispersion",
+"Dispersión local de la dirección",
+"Dispersion locale de la direction"
+],
 "Disponíveis na sessão atual": [
 "Available in the current session",
 "Disponibles en la sesión actual",
@@ -1666,6 +2136,16 @@ export const DICT={
 "Divergencia",
 "Divergence"
 ],
+"Diversidade de Shannon (z)": [
+"Shannon diversity (z)",
+"Diversidad de Shannon (z)",
+"Diversité de Shannon (z)"
+],
+"Diversidade e biodiversidade (Ataky)": [
+"Diversity and biodiversity (Ataky)",
+"Diversidad y biodiversidad (Ataky)",
+"Diversité et biodiversité (Ataky)"
+],
 "Divisor original e detecção": [
 "Original and detection divider",
 "Divisor original y detección",
@@ -1681,20 +2161,50 @@ export const DICT={
 "Dos o más motores activan exclusivamente el comparador cloud.",
 "Deux moteurs ou plus activent exclusivement le comparateur cloud."
 ],
+"Dominante de cor: tons quentes podem ser lidos como corrosão; frios, como eflorescência.": [
+"Colour cast: warm tones may be read as corrosion; cool ones as efflorescence.",
+"Dominante de color: los tonos cálidos pueden leerse como corrosión; los fríos, como eflorescencia.",
+"Dominante de couleur : les tons chauds peuvent être lus comme corrosion ; les froids comme efflorescence."
+],
 "Duplo clique no meio · 0": [
 "Middle double-click · 0",
 "Doble clic central · 0",
 "Double-clic du milieu · 0"
+],
+"Editar": [
+"Edit",
+"Editar",
+"Édition"
 ],
 "Eflorescência": [
 "Efflorescence",
 "Eflorescencia",
 "Efflorescence"
 ],
+"Eflorescência/região clara": [
+"Efflorescence/light region",
+"Eflorescencia/región clara",
+"Efflorescence/région claire"
+],
+"Eflorescência/regiã…": [
+"Efflorescence/reg…",
+"Eflorescencia/reg…",
+"Efflorescence/rég…"
+],
+"Elemento": [
+"Element",
+"Elemento",
+"Élément"
+],
 "Elemento IFC": [
 "IFC element",
 "Elemento IFC",
 "Élément IFC"
+],
+"Elemento:": [
+"Element:",
+"Elemento:",
+"Élément :"
 ],
 "Elevação Z": [
 "Z elevation",
@@ -1711,10 +2221,20 @@ export const DICT={
 "Encuadrar · doble clic con el botón central",
 "Cadrer · double-clic du bouton du milieu"
 ],
+"Entendi": [
+"Got it",
+"Entendido",
+"Compris"
+],
 "Entidades IFC": [
 "IFC entities",
 "Entidades IFC",
 "Entités IFC"
+],
+"Entrada": [
+"Input",
+"Entrada",
+"Entrée"
 ],
 "Entrada visual não definida": [
 "Visual input not defined",
@@ -1735,6 +2255,11 @@ export const DICT={
 "Scale (mm per pixel; 0 = no scale)",
 "Escala (mm por píxel; 0 = sin escala)",
 "Échelle (mm par pixel ; 0 = sans échelle)"
+],
+"Escala de cinza": [
+"Greyscale",
+"Escala de grises",
+"Niveaux de gris"
 ],
 "Escolha “Salvar imagem/vídeo” para guardar na galeria": [
 "Choose “Save image/video” to keep it in the gallery",
@@ -1801,6 +2326,11 @@ export const DICT={
 "Estimación RGBA: ancho × alto × 4 bytes",
 "Estimation RGBA : largeur × hauteur × 4 octets"
 ],
+"Estimativa por imagem:": [
+"Image-based estimate:",
+"Estimación por imagen:",
+"Estimation par image :"
+],
 "Estimativa por imagem: NT": [
 "Image-based estimate: NT",
 "Estimación por imagen: NT",
@@ -1831,6 +2361,11 @@ export const DICT={
 "Etapa anterior",
 "Étape précédente"
 ],
+"Etapas": [
+"Stages",
+"Etapas",
+"Étapes"
+],
 "Etapas de processamento ·": [
 "Processing stages ·",
 "Etapas de procesamiento ·",
@@ -1846,6 +2381,16 @@ export const DICT={
 "Etapas no disponibles",
 "Étapes indisponibles"
 ],
+"Evidência · diversidade de Ataky": [
+"Evidence · Ataky diversity",
+"Evidencia · diversidad de Ataky",
+"Évidence · diversité d’Ataky"
+],
+"Evidência · rugosidade normalizada": [
+"Evidence · normalised roughness",
+"Evidencia · rugosidad normalizada",
+"Évidence · rugosité normalisée"
+],
 "Evolução quantitativa da manifestação": [
 "Quantitative evolution of the damage",
 "Evolución cuantitativa de la manifestación",
@@ -1855,6 +2400,11 @@ export const DICT={
 "E.g. a 200 mm ruler or tape spanning 1,450 px in the photo → 0.13793 mm/px. Measure the pixels with the px rulers.",
 "Ej.: una regla o cinta de 200 mm que ocupa 1 450 px en la foto → 0,13793 mm/px. Mida los píxeles con las reglas en px.",
 "Ex. : une règle ou un mètre de 200 mm occupant 1 450 px sur la photo → 0,13793 mm/px. Mesurez les pixels avec les règles en px."
+],
+"Excluir": [
+"Delete",
+"Eliminar",
+"Supprimer"
 ],
 "Excluir todo o histórico local de inspeções deste navegador?": [
 "Delete the whole local inspection history of this browser?",
@@ -1966,6 +2516,11 @@ export const DICT={
 "Exposición",
 "Exposition"
 ],
+"Exposição equilibrada.": [
+"Balanced exposure.",
+"Exposición equilibrada.",
+"Exposition équilibrée."
+],
 "F1: evita apagar concreto desplacado ou úmido lido como “earth/water”": [
 "F1: avoids erasing spalled or wet concrete read as “earth/water”",
 "F1: evita borrar hormigón desprendido o húmedo leído como «earth/water»",
@@ -1985,6 +2540,21 @@ export const DICT={
 "SESSION SOURCE",
 "FUENTE DE LA SESIÓN",
 "SOURCE DE LA SESSION"
+],
+"FOTO": [
+"PHOTO",
+"FOTO",
+"PHOTO"
+],
+"FUNDO": [
+"BOTTOM",
+"FONDO",
+"FOND"
+],
+"Faixa dinâmica (p2–p98)": [
+"Dynamic range (p2–p98)",
+"Rango dinámico (p2–p98)",
+"Plage dynamique (p2–p98)"
 ],
 "Faixa p2–p98": [
 "p2–p98 range",
@@ -2075,6 +2645,11 @@ export const DICT={
 "Family / task",
 "Familia / tarea",
 "Famille / tâche"
+],
+"Fechar": [
+"Close",
+"Cerrar",
+"Fermer"
 ],
 "Fechar ajustes": [
 "Close settings",
@@ -2186,20 +2761,45 @@ export const DICT={
 "Herramientas de inspección 3D",
 "Outils d’inspection 3D"
 ],
+"Filtro de contexto IA": [
+"Context AI filter",
+"Filtro de contexto IA",
+"Filtre de contexte IA"
+],
 "Financiamento:": [
 "Funding:",
 "Financiación:",
 "Financement :"
+],
+"Fissura": [
+"Crack",
+"Fisura",
+"Fissure"
 ],
 "Fissura: caminho aberto com a largura abaixo.": [
 "Crack: open path with the width below.",
 "Fisura: trazado abierto con el ancho de abajo.",
 "Fissure : tracé ouvert avec la largeur ci-dessous."
 ],
+"Fissuras": [
+"Cracks",
+"Fisuras",
+"Fissures"
+],
 "Fluxo do desplacamento": [
 "Spalling flow",
 "Flujo del desprendimiento",
 "Flux de l’épaufrure"
+],
+"Foco adequado.": [
+"Adequate focus.",
+"Enfoque adecuado.",
+"Mise au point correcte."
+],
+"Fonte": [
+"Source",
+"Fuente",
+"Source"
 ],
 "Fonte / câmera": [
 "Source / camera",
@@ -2210,6 +2810,16 @@ export const DICT={
 "Inspection source",
 "Fuente de inspección",
 "Source d’inspection"
+],
+"Fonte:": [
+"Source:",
+"Fuente:",
+"Source :"
+],
+"Formato": [
+"Format",
+"Formato",
+"Format"
 ],
 "Formato 3D não suportado pelo visualizador.": [
 "3D format not supported by the viewer.",
@@ -2261,6 +2871,11 @@ export const DICT={
 "Fracción mínima en región irrelevante",
 "Fraction minimale en région non pertinente"
 ],
+"Frente": [
+"Front",
+"Frente",
+"Avant"
+],
 "GDE REGISTRADO": [
 "RECORDED GDE",
 "GDE REGISTRADO",
@@ -2271,6 +2886,16 @@ export const DICT={
 "GLTF no válido:",
 "GLTF invalide :"
 ],
+"GRUPOS": [
+"GROUPS",
+"GRUPOS",
+"GROUPES"
+],
+"Ganho": [
+"Gain",
+"Ganancia",
+"Gain"
+],
 "Geometria local": [
 "Local geometry",
 "Geometría local",
@@ -2280,6 +2905,11 @@ export const DICT={
 "Empty geometry.",
 "Geometría vacía.",
 "Géométrie vide."
+],
+"Georreferenciar": [
+"Georeference",
+"Georreferenciar",
+"Géoréférencer"
 ],
 "Gerando recortes multiescala": [
 "Generating multiscale crops",
@@ -2306,6 +2936,11 @@ export const DICT={
 "Girar a la izquierda",
 "Pivoter à gauche"
 ],
+"Governante": [
+"Governing",
+"Determinante",
+"Déterminant"
+],
 "Gravar vídeo (R)": [
 "Record video (R)",
 "Grabar vídeo (R)",
@@ -2326,10 +2961,20 @@ export const DICT={
 "Ground Truth exportado (COCO + máscaras + recortes multiescala)",
 "Vérité terrain exportée (COCO + masques + découpes multi-échelle)"
 ],
+"Grupo": [
+"Group",
+"Grupo",
+"Groupe"
+],
 "HISTÓRICO DE INSPEÇÕES": [
 "INSPECTION HISTORY",
 "HISTORIAL DE INSPECCIONES",
 "HISTORIQUE DES INSPECTIONS"
+],
+"Histograma": [
+"Histogram",
+"Histograma",
+"Histogramme"
 ],
 "Histograma RGB e luminância com a curva tonal (curva S)": [
 "RGB and luminance histogram with the tone curve (S curve)",
@@ -2416,6 +3061,11 @@ export const DICT={
 "IFC4.3 renderizado ·",
 "IFC4.3 rendu ·"
 ],
+"IMAGEM": [
+"IMAGE",
+"IMAGEN",
+"IMAGE"
+],
 "INSPEÇÃO DA SESSÃO": [
 "SESSION INSPECTION",
 "INSPECCIÓN DE LA SESIÓN",
@@ -2435,6 +3085,26 @@ export const DICT={
 "Inspection identification",
 "Identificación de la inspección",
 "Identification de l’inspection"
+],
+"Idioma": [
+"Language",
+"Idioma",
+"Langue"
+],
+"Idioma da plataforma": [
+"Platform language",
+"Idioma de la plataforma",
+"Langue de la plateforme"
+],
+"Idioma da plataforma e das figuras exportadas": [
+"Language of the platform and of exported figures",
+"Idioma de la plataforma y de las figuras exportadas",
+"Langue de la plateforme et des figures exportées"
+],
+"Imagem": [
+"Image",
+"Imagen",
+"Image"
 ],
 "Imagem 2D": [
 "2D image",
@@ -2466,6 +3136,11 @@ export const DICT={
 "Falta la imagen RGB externa.",
 "Image RVB externe manquante."
 ],
+"Imagem anterior": [
+"Previous image",
+"Imagen anterior",
+"Image précédente"
+],
 "Imagem antes da análise": [
 "Image before analysis",
 "Imagen antes del análisis",
@@ -2485,6 +3160,11 @@ export const DICT={
 "Base image unavailable",
 "Imagen base no disponible",
 "Image de base indisponible"
+],
+"Imagem base normalizada": [
+"Normalised base image",
+"Imagen base normalizada",
+"Image de base normalisée"
 ],
 "Imagem carregada ·": [
 "Image loaded ·",
@@ -2516,6 +3196,11 @@ export const DICT={
 "Imagen original restaurada",
 "Image originale restaurée"
 ],
+"Imagem tremida ou desfocada: bordas borradas geram máscaras largas e falsas.": [
+"Shaken or blurred image: blurred edges produce wide, false masks.",
+"Imagen movida o desenfocada: los bordes borrosos generan máscaras anchas y falsas.",
+"Image floue ou bougée : les bords flous génèrent des masques larges et faux."
+],
 "Imagem usada pelos motores selecionados": [
 "Image used by the selected engines",
 "Imagen usada por los motores seleccionados",
@@ -2536,6 +3221,11 @@ export const DICT={
 "Implementación",
 "Implémentation"
 ],
+"Importar": [
+"Import",
+"Importar",
+"Importer"
+],
 "Importar arquivo · Ctrl/Cmd+O": [
 "Import file · Ctrl/Cmd+O",
 "Importar archivo · Ctrl/Cmd+O",
@@ -2555,6 +3245,11 @@ export const DICT={
 "Print…",
 "Imprimir…",
 "Imprimer…"
+],
+"Inadequada: alto risco de falsos positivos": [
+"Unsuitable: high risk of false positives",
+"Inadecuada: alto riesgo de falsos positivos",
+"Inadaptée : risque élevé de faux positifs"
 ],
 "Indisponível": [
 "Unavailable",
@@ -2611,6 +3306,11 @@ export const DICT={
 "Inspección visual multimotor con ejecución individual independiente y comparación cloud controlada.",
 "Inspection visuelle multi-moteur avec exécution individuelle indépendante et comparaison cloud contrôlée."
 ],
+"Intensidade log₁₀ |∇u|": [
+"Intensity log₁₀ |∇u|",
+"Intensidad log₁₀ |∇u|",
+"Intensité log₁₀ |∇u|"
+],
 "Intrínsecos da câmera · opcional": [
 "Camera intrinsics · optional",
 "Intrínsecos de la cámara · opcional",
@@ -2620,6 +3320,31 @@ export const DICT={
 "Inventory of the engines registered in the repository ·",
 "Inventario de los motores registrados en el repositorio ·",
 "Inventaire des moteurs enregistrés dans le dépôt ·"
+],
+"IoU": [
+"IoU",
+"IoU",
+"IoU"
+],
+"IoU motor × cheia": [
+"Engine × full-res IoU",
+"IoU motor × completa",
+"IoU moteur × pleine"
+],
+"IoU na seleção (contra o GT anotado)": [
+"IoU in the selection (against the annotated GT)",
+"IoU en la selección (frente al GT anotado)",
+"IoU dans la sélection (par rapport au GT annoté)"
+],
+"IoU na seleção (sem GT: concordância motor × cheia)": [
+"IoU in the selection (no GT: engine × full-res agreement)",
+"IoU en la selección (sin GT: concordancia motor × completa)",
+"IoU dans la sélection (sans GT : accord moteur × pleine)"
+],
+"Isolar": [
+"Isolate",
+"Aislar",
+"Isoler"
 ],
 "Isométrica": [
 "Isometric",
@@ -2636,6 +3361,11 @@ export const DICT={
 "JSON técnico",
 "JSON technique"
 ],
+"Juiz de biodiversidade": [
+"Biodiversity judge",
+"Juez de biodiversidad",
+"Juge de biodiversité"
+],
 "Juntas · Fr=2": [
 "Joints · Fr=2",
 "Juntas · Fr=2",
@@ -2645,6 +3375,11 @@ export const DICT={
 "LAS · uncompressed point cloud; XYZ · X Y Z coordinates; IFC · spatial preview + indexing for IfcElement resolution in the CDM-3 backend.",
 "LAS · nube de puntos sin comprimir; XYZ · coordenadas X Y Z; IFC · vista previa espacial + indexación para resolución por IfcElement en el backend CDM-3.",
 "LAS · nuage de points non compressé ; XYZ · coordonnées X Y Z ; IFC · aperçu spatial + indexation pour la résolution par IfcElement dans le backend CDM-3."
+],
+"LATÊNCIA": [
+"LATENCY",
+"LATENCIA",
+"LATENCE"
 ],
 "LINHA DO TEMPO DA SESSÃO ATUAL": [
 "CURRENT SESSION TIMELINE",
@@ -2675,6 +3410,11 @@ export const DICT={
 "Mean width",
 "Ancho med.",
 "Larg. moy."
+],
+"Largura": [
+"Width",
+"Ancho",
+"Largeur"
 ],
 "Largura fonte": [
 "Source width",
@@ -2711,10 +3451,20 @@ export const DICT={
 "Umbral T",
 "Seuil T"
 ],
+"Limiar de Otsu": [
+"Otsu threshold",
+"Umbral de Otsu",
+"Seuil d’Otsu"
+],
 "Limite de 8 vistas fotométricas atingido.": [
 "Limit of 8 photometric views reached.",
 "Límite de 8 vistas fotométricas alcanzado.",
 "Limite de 8 vues photométriques atteinte."
+],
+"Limpar": [
+"Clear",
+"Limpiar",
+"Effacer"
 ],
 "Limpar histórico": [
 "Clear history",
@@ -2771,6 +3521,21 @@ export const DICT={
 "Luminancia",
 "Luminance"
 ],
+"MEMÓRIA 2D": [
+"2D MEMORY",
+"MEMORIA 2D",
+"MÉMOIRE 2D"
+],
+"METADADOS": [
+"METADATA",
+"METADATOS",
+"MÉTADONNÉES"
+],
+"MOTORES": [
+"ENGINES",
+"MOTORES",
+"MOTEURS"
+],
 "MOTORES ATIVOS": [
 "ACTIVE ENGINES",
 "MOTORES ACTIVOS",
@@ -2805,6 +3570,11 @@ export const DICT={
 "Consensus map",
 "Mapa de consenso",
 "Carte de consensus"
+],
+"Mapa de probabilidade": [
+"Probability map",
+"Mapa de probabilidad",
+"Carte de probabilité"
 ],
 "Medidas em px · calibre mm/px em Configurações para obter mm.": [
 "Measurements in px · calibrate mm/px in Settings to get mm.",
@@ -2866,6 +3636,16 @@ export const DICT={
 "Modelo 3D actual",
 "Modèle 3D courant"
 ],
+"Modificado": [
+"Modified",
+"Modificado",
+"Modifié"
+],
+"Modo": [
+"Mode",
+"Modo",
+"Mode"
+],
 "Modo Live · câmera com detecção em tempo real": [
 "Live mode · camera with real-time detection",
 "Modo Live · cámara con detección en tiempo real",
@@ -2885,6 +3665,11 @@ export const DICT={
 "Display mode",
 "Modo de visualización",
 "Mode d’affichage"
+],
+"Morfologia CDM 2.11": [
+"CDM 2.11 morphology",
+"Morfología CDM 2.11",
+"Morphologie CDM 2.11"
 ],
 "Morfologia → biodiversidade → random walker (padrão)": [
 "Morphology → biodiversity → random walker (default)",
@@ -2966,6 +3751,11 @@ export const DICT={
 "Mostrar todas las patologías",
 "Afficher toutes les pathologies"
 ],
+"Motor": [
+"Engine",
+"Motor",
+"Moteur"
+],
 "Motor de detecção": [
 "Detection engine",
 "Motor de detección",
@@ -2985,6 +3775,11 @@ export const DICT={
 "Engine:",
 "Motor:",
 "Moteur :"
+],
+"Motores": [
+"Engines",
+"Motores",
+"Moteurs"
 ],
 "Motores ativos": [
 "Active engines",
@@ -3035,6 +3830,21 @@ export const DICT={
 "Switch to orthographic projection",
 "Cambiar a proyección ortográfica",
 "Passer en projection orthographique"
+],
+"Máscara candidata": [
+"Candidate mask",
+"Máscara candidata",
+"Masque candidat"
+],
+"Máscaras dos protótipos": [
+"Prototype masks",
+"Máscaras de los prototipos",
+"Masques des prototypes"
+],
+"Máscaras por família": [
+"Masks by family",
+"Máscaras por familia",
+"Masques par famille"
 ],
 "Mão Pan": [
 "Hand Pan",
@@ -3166,6 +3976,21 @@ export const DICT={
 "Aún no hay inspecciones guardadas.",
 "Aucune inspection enregistrée pour l’instant."
 ],
+"Nenhuma região de dano dentro da seleção.": [
+"No damage region inside the selection.",
+"Ninguna región de daño dentro de la selección.",
+"Aucune région de dommage dans la sélection."
+],
+"Nitidez": [
+"Sharpness",
+"Nitidez",
+"Netteté"
+],
+"Nitidez moderada; pode subestimar largura e comprimento de fissuras.": [
+"Moderate sharpness; may underestimate crack width and length.",
+"Nitidez moderada; puede subestimar el ancho y la longitud de las fisuras.",
+"Netteté modérée ; peut sous-estimer la largeur et la longueur des fissures."
+],
 "No dispositivo — as imagens não saem do navegador": [
 "On the device — images never leave the browser",
 "En el dispositivo — las imágenes no salen del navegador",
@@ -3186,6 +4011,11 @@ export const DICT={
 "En Resultados, haga clic en una patología para listar todos los hallazgos con longitud, ancho o área; haga clic en un elemento para resaltarlo en el lienzo.",
 "Dans Résultats, cliquez sur une pathologie pour lister tous les constats avec longueur, largeur ou surface ; cliquez sur un élément pour le mettre en évidence sur le canevas."
 ],
+"Nota": [
+"Score",
+"Nota",
+"Note"
+],
 "Notas de versão (commits)": [
 "Release notes (commits)",
 "Notas de versión (commits)",
@@ -3195,6 +4025,11 @@ export const DICT={
 "New analysis",
 "Nuevo análisis",
 "Nouvelle analyse"
+],
+"Nova seleção": [
+"New selection",
+"Nueva selección",
+"Nouvelle sélection"
 ],
 "Nova t1 · último como t0": [
 "New t1 · last as t0",
@@ -3366,6 +4201,11 @@ export const DICT={
 "El backend no devolvió un referencial espacial compatible.",
 "Le backend n’a pas renvoyé de référentiel spatial compatible."
 ],
+"O endereço do": [
+"The address of the",
+"La dirección del",
+"L’adresse du"
+],
 "O endpoint não declarou role=standalone.": [
 "The endpoint did not declare role=standalone.",
 "El endpoint no declaró role=standalone.",
@@ -3411,15 +4251,30 @@ export const DICT={
 "El panel no declara una transmisión en vivo mientras no haya una fuente de vídeo implementada.",
 "Le panneau ne déclare pas de diffusion en direct tant qu’aucune source vidéo n’est implémentée."
 ],
+"O random walker não gerou potencial nesta imagem.": [
+"The random walker produced no potential on this image.",
+"El random walker no generó potencial en esta imagen.",
+"Le random walker n’a produit aucun potentiel sur cette image."
+],
 "O serviço atende ao motor": [
 "The service serves the engine",
 "El servicio atiende al motor",
 "Le service sert le moteur"
 ],
+"O site público exige": [
+"The public site requires",
+"El sitio público exige",
+"Le site public exige"
+],
 "O trabalho foi encerrado. Por segurança, o navegador só deixa um site fechar a própria aba em casos específicos (como janelas abertas pelo próprio site) — e bloqueou o fechamento desta. Feche agora com": [
 "The work was closed. For security, the browser only lets a site close its own tab in specific cases (such as windows opened by the site itself) — and blocked closing this one. Close it now with",
 "El trabajo se cerró. Por seguridad, el navegador solo permite que un sitio cierre su propia pestaña en casos concretos (como ventanas abiertas por el propio sitio) — y bloqueó el cierre de esta. Ciérrela ahora con",
 "Le travail a été fermé. Par sécurité, le navigateur ne laisse un site fermer son propre onglet que dans certains cas (comme les fenêtres ouvertes par le site lui-même) — et a bloqué la fermeture de celui-ci. Fermez-le maintenant avec"
+],
+"O walker foi refeito pixel a pixel em torno de cada desplacamento, com os mesmos polos do motor. Claro = decisão em meia escala; laranja = decisão em resolução cheia.": [
+"The walker was re-solved pixel by pixel around each spalling, with the engine's own poles. Light = half-scale decision; orange = full-resolution decision.",
+"El walker se rehízo píxel a píxel alrededor de cada desprendimiento, con los mismos polos del motor. Claro = decisión a media escala; naranja = decisión en resolución completa.",
+"Le walker a été refait pixel par pixel autour de chaque épaufrure, avec les mêmes pôles que le moteur. Clair = décision à demi-échelle ; orange = décision en pleine résolution."
 ],
 "OAE / elemento": [
 "Structure / element",
@@ -3450,6 +4305,16 @@ export const DICT={
 "OTHER ENGINES",
 "OTROS MOTORES",
 "AUTRES MOTEURS"
+],
+"Objeto": [
+"Object",
+"Objeto",
+"Objet"
+],
+"Objetos": [
+"Objects",
+"Objetos",
+"Objets"
 ],
 "Objetos da cena (IA)": [
 "Scene objects (AI)",
@@ -3496,6 +4361,11 @@ export const DICT={
 "Ocultar todas las patologías",
 "Masquer toutes les pathologies"
 ],
+"Opacidade": [
+"Opacity",
+"Opacidad",
+"Opacité"
+],
 "Opacidade da sobreposição": [
 "Overlay opacity",
 "Opacidad de la superposición",
@@ -3525,6 +4395,11 @@ export const DICT={
 "Camera orientation",
 "Orientación de la cámara",
 "Orientation de la caméra"
+],
+"Origem": [
+"Source",
+"Origen",
+"Origine"
 ],
 "Original + detecções": [
 "Original + detections",
@@ -3566,6 +4441,11 @@ export const DICT={
 "PRODUCCIÓN",
 "PRODUCTION"
 ],
+"PROPRIEDADES": [
+"PROPERTIES",
+"PROPIEDADES",
+"PROPRIÉTÉS"
+],
 "PRÓPRIO · BROWSER": [
 "OWN · BROWSER",
 "PROPIO · NAVEGADOR",
@@ -3580,6 +4460,11 @@ export const DICT={
 "Default",
 "Predeterminado",
 "Par défaut"
+],
+"Painel 2×2": [
+"2×2 panel",
+"Panel 2×2",
+"Panneau 2×2"
 ],
 "Painel Imagem": [
 "Image panel",
@@ -3651,6 +4536,11 @@ export const DICT={
 "Paridad CDM · indicadores y gráficos Python ⇄ navegador",
 "Parité CDM · indicateurs et graphiques Python ⇄ navigateur"
 ],
+"Patologia": [
+"Damage type",
+"Patología",
+"Pathologie"
+],
 "Patologias 3D": [
 "3D damage",
 "Patologías 3D",
@@ -3681,10 +4571,25 @@ export const DICT={
 "Persistencia local independiente de Railway",
 "Persistance locale indépendante de Railway"
 ],
+"Pigmento · biológico": [
+"Pigment · biological",
+"Pigmento · biológico",
+"Pigment · biologique"
+],
+"Pigmento · ferrugem": [
+"Pigment · rust",
+"Pigmento · óxido",
+"Pigment · rouille"
+],
 "Pigmentos por Beer–Lambert (diagnóstico)": [
 "Beer–Lambert pigments (diagnostic)",
 "Pigmentos por Beer–Lambert (diagnóstico)",
 "Pigments par Beer–Lambert (diagnostic)"
+],
+"Pincel": [
+"Brush",
+"Pincel",
+"Pinceau"
 ],
 "Pipeline profundo": [
 "Deep pipeline",
@@ -3696,15 +4601,40 @@ export const DICT={
 "Píxeles de la imagen (px)",
 "Pixels de l’image (px)"
 ],
+"Pixels saturados não têm informação: detalhes de superfície foram perdidos nessas áreas.": [
+"Saturated pixels carry no information: surface details were lost in those areas.",
+"Los píxeles saturados no tienen información: los detalles de superficie se perdieron en esas áreas.",
+"Les pixels saturés ne portent aucune information : les détails de surface sont perdus dans ces zones."
+],
+"Platô": [
+"Plateau",
+"Meseta",
+"Plateau"
+],
+"Platô: fração da região sem gradiente (halo sem evidência).": [
+"Plateau: fraction of the region without gradient (halo without evidence).",
+"Meseta: fracción de la región sin gradiente (halo sin evidencia).",
+"Plateau : fraction de la région sans gradient (halo sans évidence)."
+],
 "PnP/RANSAC pendente": [
 "PnP/RANSAC pending",
 "PnP/RANSAC pendiente",
 "PnP/RANSAC en attente"
 ],
+"Polos do random walker": [
+"Random walker poles",
+"Polos del random walker",
+"Pôles du random walker"
+],
 "Polígono": [
 "Polygon",
 "Polígono",
 "Polygone"
+],
+"Pontos": [
+"Points",
+"Puntos",
+"Points"
 ],
 "Pose resolvida": [
 "Pose solved",
@@ -3715,6 +4645,16 @@ export const DICT={
 "Longitudinal position ·",
 "Posición longitudinal ·",
 "Position longitudinale ·"
+],
+"Potencial do random walker": [
+"Random walker potential",
+"Potencial del random walker",
+"Potentiel du random walker"
+],
+"Precisão": [
+"Precision",
+"Precisión",
+"Précision"
 ],
 "Preparando análise": [
 "Preparing analysis",
@@ -3740,6 +4680,11 @@ export const DICT={
 "Main preview unavailable; using a local copy of the file.",
 "Vista previa principal no disponible; usando copia local del archivo.",
 "Aperçu principal indisponible ; utilisation d’une copie locale du fichier."
+],
+"Probabilidade": [
+"Probability",
+"Probabilidad",
+"Probabilité"
 ],
 "Processando análise ·": [
 "Processing analysis ·",
@@ -3771,10 +4716,20 @@ export const DICT={
 "Proyecto posdoctoral de",
 "Projet postdoctoral de"
 ],
+"Pronto": [
+"Ready",
+"Listo",
+"Prêt"
+],
 "Proporção": [
 "Aspect ratio",
 "Proporción",
 "Proportion"
+],
+"Propriedades": [
+"Properties",
+"Propiedades",
+"Propriétés"
 ],
 "Propriedades e qualidade": [
 "Properties and quality",
@@ -3816,6 +4771,11 @@ export const DICT={
 "Cuadro original",
 "Image originale"
 ],
+"Qualidade": [
+"Quality",
+"Calidad",
+"Qualité"
+],
 "Qualidade para análise": [
 "Quality for analysis",
 "Calidad para el análisis",
@@ -3826,6 +4786,11 @@ export const DICT={
 "Calidad temporal aprobada",
 "Qualité temporelle approuvée"
 ],
+"Qualidade temporal:": [
+"Temporal quality:",
+"Calidad temporal:",
+"Qualité temporelle :"
+],
 "Qualidade:": [
 "Quality:",
 "Calidad:",
@@ -3835,6 +4800,36 @@ export const DICT={
 "Quantification by damage type",
 "Cuantificación por patología",
 "Quantification par pathologie"
+],
+"R baixo ou |∇u| fraco: transição difusa; o limiar escolhe a borda.": [
+"Low R or weak |∇u|: diffuse transition; the threshold picks the edge.",
+"R bajo o |∇u| débil: transición difusa; el umbral elige el borde.",
+"R faible ou |∇u| faible : transition diffuse ; le seuil choisit le bord."
+],
+"R ≥ 0,70: o potencial cai de forma ordenada do dano para o saudável.": [
+"R ≥ 0.70: the potential falls in an orderly way from damage to healthy.",
+"R ≥ 0,70: el potencial cae de forma ordenada del daño al sano.",
+"R ≥ 0,70 : le potentiel décroît de façon ordonnée du dommage vers le sain."
+],
+"RASTREABILIDADE": [
+"TRACEABILITY",
+"TRAZABILIDAD",
+"TRAÇABILITÉ"
+],
+"RECOMENDADOS": [
+"RECOMMENDED",
+"RECOMENDADOS",
+"RECOMMANDÉS"
+],
+"RESOLUÇÃO": [
+"RESOLUTION",
+"RESOLUCIÓN",
+"RÉSOLUTION"
+],
+"REVISAR": [
+"REVIEW",
+"REVISAR",
+"RÉVISER"
 ],
 "RGB externo": [
 "External RGB",
@@ -3876,6 +4871,11 @@ export const DICT={
 "Rasterizando máscaras",
 "Rastérisation des masques"
 ],
+"Rastreabilidade": [
+"Traceability",
+"Trazabilidad",
+"Traçabilité"
+],
 "Reabrir resultados ·": [
 "Reopen results ·",
 "Reabrir resultados ·",
@@ -3890,6 +4890,11 @@ export const DICT={
 "Reopen results · saving history",
 "Reabrir resultados · guardando historial",
 "Rouvrir les résultats · enregistrement de l’historique"
+],
+"Recentes": [
+"Recent",
+"Recientes",
+"Récents"
 ],
 "Recolher camadas": [
 "Collapse layers",
@@ -3916,6 +4921,11 @@ export const DICT={
 "Contraer resultados",
 "Réduire les résultats"
 ],
+"Recomendados": [
+"Recommended",
+"Recomendados",
+"Recommandés"
+],
 "Recomendados (": [
 "Recommended (",
 "Recomendados (",
@@ -3930,6 +4940,11 @@ export const DICT={
 "Also clip cracks",
 "Recortar también fisuras",
 "Découper aussi les fissures"
+],
+"Recorte de sombras/realces": [
+"Shadow/highlight clipping",
+"Recorte de sombras/luces",
+"Écrêtage ombres/hautes lumières"
 ],
 "Redimensionar painel de camadas": [
 "Resize layers panel",
@@ -3955,6 +4970,11 @@ export const DICT={
 "Noise reduction",
 "Reducción de ruido",
 "Réduction du bruit"
+],
+"Redução t0→t1": [
+"Reduction t0→t1",
+"Reducción t0→t1",
+"Réduction t0→t1"
 ],
 "Referencial LAS/XYZ ↔ IFC": [
 "LAS/XYZ ↔ IFC frame",
@@ -4041,6 +5061,21 @@ export const DICT={
 "Registro t0→t1 rechazado: el desplazamiento estimado alcanzó el límite de búsqueda. Considere recapturar con un encuadre más cercano o una revisión manual.",
 "Recalage t0→t1 rejeté : le déplacement estimé a atteint la limite de recherche. Envisagez une nouvelle capture avec un cadrage plus proche ou une revue manuelle."
 ],
+"Região": [
+"Region",
+"Región",
+"Région"
+],
+"Rejeitar": [
+"Reject",
+"Rechazar",
+"Rejeter"
+],
+"Relatório de inspeção": [
+"Inspection report",
+"Informe de inspección",
+"Rapport d’inspection"
+],
 "Relatórios": [
 "Reports",
 "Informes",
@@ -4096,6 +5131,11 @@ export const DICT={
 "Renderizado",
 "Rendu"
 ],
+"Renomear": [
+"Rename",
+"Renombrar",
+"Renommer"
+],
 "Renomear…": [
 "Rename…",
 "Renombrar…",
@@ -4121,6 +5161,21 @@ export const DICT={
 "Resolución",
 "Résolution"
 ],
+"Resolução adequada.": [
+"Adequate resolution.",
+"Resolución adecuada.",
+"Résolution adéquate."
+],
+"Resolução baixa: fissuras finas somem e ruído vira detecção.": [
+"Low resolution: fine cracks disappear and noise becomes detections.",
+"Resolución baja: las fisuras finas desaparecen y el ruido se vuelve detección.",
+"Résolution faible : les fissures fines disparaissent et le bruit devient détection."
+],
+"Resolução cheia": [
+"Full resolution",
+"Resolución completa",
+"Pleine résolution"
+],
 "Resolução da câmera": [
 "Camera resolution",
 "Resolución de la cámara",
@@ -4130,6 +5185,16 @@ export const DICT={
 "Model input resolution",
 "Resolución de entrada del modelo",
 "Résolution d’entrée du modèle"
+],
+"Resolução limitada para fissuras capilares; aproxime a câmera ou use mais pixels.": [
+"Limited resolution for hairline cracks; move the camera closer or use more pixels.",
+"Resolución limitada para fisuras capilares; acerque la cámara o use más píxeles.",
+"Résolution limitée pour les fissures capillaires ; rapprochez la caméra ou utilisez plus de pixels."
+],
+"Resolvendo o walker em resolução cheia…": [
+"Solving the walker at full resolution…",
+"Resolviendo el walker en resolución completa…",
+"Résolution du walker en pleine résolution…"
 ],
 "Resolvendo…": [
 "Solving…",
@@ -4150,6 +5215,16 @@ export const DICT={
 "Solve frame",
 "Resolver referencial",
 "Résoudre le référentiel"
+],
+"Resposta black-hat": [
+"Black-hat response",
+"Respuesta black-hat",
+"Réponse black-hat"
+],
+"Restaurar": [
+"Restore",
+"Restaurar",
+"Restaurer"
 ],
 "Restaurar 100%": [
 "Restore 100%",
@@ -4181,6 +5256,21 @@ export const DICT={
 "Restaurar visualización",
 "Restaurer la vue"
 ],
+"Resultado assistido por imagem; exige validação técnica.": [
+"Image-assisted result; requires technical validation.",
+"Resultado asistido por imagen; requiere validación técnica.",
+"Résultat assisté par image ; exige une validation technique."
+],
+"Resultado do motor": [
+"Engine result",
+"Resultado del motor",
+"Résultat du moteur"
+],
+"Resultados": [
+"Results",
+"Resultados",
+"Résultats"
+],
 "Resultados ·": [
 "Results ·",
 "Resultados ·",
@@ -4211,6 +5301,11 @@ export const DICT={
 "Reanudar detección",
 "Reprendre la détection"
 ],
+"Revocação": [
+"Recall",
+"Exhaustividad",
+"Rappel"
+],
 "Roda do mouse como em CAD": [
 "CAD-style mouse wheel",
 "Rueda del ratón como en CAD",
@@ -4236,6 +5331,11 @@ export const DICT={
 "Rueda del ratón: zoom en el cursor (CAD) · Shift+rueda mueve",
 "Molette : zoom sur le curseur (CAO) · Maj+molette déplace"
 ],
+"Rugosidade (z, saudável = 0)": [
+"Roughness (z, healthy = 0)",
+"Rugosidad (z, sano = 0)",
+"Rugosité (z, sain = 0)"
+],
 "Runtime opcional": [
 "Optional runtime",
 "Runtime opcional",
@@ -4245,6 +5345,26 @@ export const DICT={
 "Runtimes & endpoints",
 "Runtimes y endpoints",
 "Runtimes et points d’accès"
+],
+"Ruído": [
+"Noise",
+"Ruido",
+"Bruit"
+],
+"Ruído alto (ISO elevado/pouca luz): grão vira candidato a fissura.": [
+"High noise (high ISO/low light): grain becomes a crack candidate.",
+"Ruido alto (ISO elevado/poca luz): el grano se vuelve candidato a fisura.",
+"Bruit élevé (ISO élevé/peu de lumière) : le grain devient candidat fissure."
+],
+"Ruído baixo.": [
+"Low noise.",
+"Ruido bajo.",
+"Bruit faible."
+],
+"Ruído perceptível; prefira mais luz ou ISO menor.": [
+"Noticeable noise; prefer more light or lower ISO.",
+"Ruido perceptible; prefiera más luz o ISO menor.",
+"Bruit perceptible ; préférez plus de lumière ou un ISO plus bas."
 ],
 "Ruído σ": [
 "Noise σ",
@@ -4331,6 +5451,11 @@ export const DICT={
 "Etiquetas visibles",
 "Étiquettes visibles"
 ],
+"SELECIONADOS": [
+"SELECTED",
+"SELECCIONADOS",
+"SÉLECTIONNÉS"
+],
 "SEM FONTE": [
 "NO SOURCE",
 "SIN FUENTE",
@@ -4371,10 +5496,20 @@ export const DICT={
 "SVG por capas",
 "SVG par calques"
 ],
+"Sair": [
+"Exit",
+"Salir",
+"Quitter"
+],
 "Salvando histórico local": [
 "Saving local history",
 "Guardando historial local",
 "Enregistrement de l’historique local"
+],
+"Salvar": [
+"Save",
+"Guardar",
+"Enregistrer"
 ],
 "Salvar cada captura no dispositivo": [
 "Save each capture to the device",
@@ -4471,6 +5606,11 @@ export const DICT={
 "Seleccione otro archivo en un formato 2D o 3D compatible.",
 "Sélectionnez un autre fichier dans un format 2D ou 3D pris en charge."
 ],
+"Selecione pelo menos um motor em Configurações.": [
+"Select at least one engine in Settings.",
+"Seleccione al menos un motor en Configuración.",
+"Sélectionnez au moins un moteur dans Réglages."
+],
 "Selecione pelo menos um motor para definir o modo de execução.": [
 "Select at least one engine to set the execution mode.",
 "Seleccione al menos un motor para definir el modo de ejecución.",
@@ -4496,6 +5636,11 @@ export const DICT={
 "Sin clasificación",
 "Sans classification"
 ],
+"Sem comparação temporal.": [
+"No temporal comparison.",
+"Sin comparación temporal.",
+"Aucune comparaison temporelle."
+],
 "Sem correspondência": [
 "No match",
 "Sin correspondencia",
@@ -4515,6 +5660,11 @@ export const DICT={
 "No scale: rulers stay in px and CDM-1 measures in pixels.",
 "Sin escala: las reglas quedan en px y el CDM-1 mide en píxeles.",
 "Sans échelle : les règles restent en px et le CDM-1 mesure en pixels."
+],
+"Sem famílias classificadas.": [
+"No rated families.",
+"Sin familias clasificadas.",
+"Aucune famille classée."
 ],
 "Sem fonte de câmera": [
 "No camera source",
@@ -4536,10 +5686,20 @@ export const DICT={
 "Sin implementación local publicada para verificar.",
 "Aucune implémentation locale publiée à vérifier."
 ],
+"Sem saturação relevante.": [
+"No relevant saturation.",
+"Sin saturación relevante.",
+"Aucune saturation notable."
+],
 "Sem Δ validado": [
 "No validated Δ",
 "Sin Δ validado",
 "Aucun Δ validé"
+],
+"Severidade": [
+"Severity",
+"Severidad",
+"Sévérité"
 ],
 "Shift+botão direito": [
 "Shift+right button",
@@ -4565,6 +5725,11 @@ export const DICT={
 "About:",
 "Acerca de:",
 "À propos :"
+],
+"Sobrepor": [
+"Overlay",
+"Superponer",
+"Superposer"
 ],
 "Sobrepor (original + detecções)": [
 "Overlay (original + detections)",
@@ -4631,6 +5796,21 @@ export const DICT={
 "Solo instantáneas guardadas y deltas temporales validados previamente. No hay interpolación, extrapolación ni acumulación de crecimiento.",
 "Uniquement des instantanés enregistrés et des deltas temporels validés au préalable. Ni interpolation, ni extrapolation, ni cumul de croissance."
 ],
+"Spalling": [
+"Spalling",
+"Desprendimiento",
+"Épaufrure"
+],
+"Suavização 3×3": [
+"3×3 smoothing",
+"Suavizado 3×3",
+"Lissage 3×3"
+],
+"Subexposta: sombras são lidas como desplacamento/região escura.": [
+"Underexposed: shadows are read as spalling/dark region.",
+"Subexpuesta: las sombras se leen como desprendimiento/región oscura.",
+"Sous-exposée : les ombres sont lues comme épaufrure/région sombre."
+],
 "Subir camada": [
 "Move layer up",
 "Subir capa",
@@ -4640,6 +5820,11 @@ export const DICT={
 "Suggest from CDM",
 "Sugerir desde el CDM",
 "Suggérer depuis le CDM"
+],
+"Superexposta: eflorescência e fissuras claras se perdem.": [
+"Overexposed: efflorescence and light cracks are lost.",
+"Sobreexpuesta: la eflorescencia y las fisuras claras se pierden.",
+"Surexposée : l’efflorescence et les fissures claires se perdent."
 ],
 "São necessários pelo menos 6 pares 2D–3D.": [
 "At least 6 2D–3D pairs are needed.",
@@ -4655,6 +5840,26 @@ export const DICT={
 "Only",
 "Solo",
 "Seulement"
+],
+"TAMANHO": [
+"SIZE",
+"TAMAÑO",
+"TAILLE"
+],
+"TOPO": [
+"TOP",
+"ARRIBA",
+"HAUT"
+],
+"Tamanho": [
+"Size",
+"Tamaño",
+"Taille"
+],
+"Tarefa": [
+"Task",
+"Tarea",
+"Tâche"
 ],
 "Taxa máxima de inferência": [
 "Maximum inference rate",
@@ -4696,6 +5901,11 @@ export const DICT={
 "Tendencia GDE registrada",
 "Tendance GDE enregistrée"
 ],
+"Tensor de entrada": [
+"Input tensor",
+"Tensor de entrada",
+"Tenseur d’entrée"
+],
 "Tentar novamente": [
 "Try again",
 "Intentar de nuevo",
@@ -4721,6 +5931,11 @@ export const DICT={
 "Línea de tiempo 4D",
 "Chronologie 4D"
 ],
+"Tipo": [
+"Type",
+"Tipo",
+"Type"
+],
 "Tipo de elemento": [
 "Element type",
 "Tipo de elemento",
@@ -4731,6 +5946,11 @@ export const DICT={
 "Tipo reconocido:",
 "Type reconnu :"
 ],
+"Tipo reconhecido: Imagem 2D": [
+"Recognised type: 2D image",
+"Tipo reconocido: Imagen 2D",
+"Type reconnu : image 2D"
+],
 "Todas as vistas já possuem pose.": [
 "All views already have a pose.",
 "Todas las vistas ya tienen pose.",
@@ -4740,6 +5960,16 @@ export const DICT={
 "All (",
 "Todos (",
 "Tous ("
+],
+"Topo": [
+"Top",
+"Arriba",
+"Haut"
+],
+"Total": [
+"Total",
+"Total",
+"Total"
 ],
 "Track navegável · sem série quantitativa comparável.": [
 "Navigable track · no comparable quantitative series.",
@@ -4775,6 +6005,11 @@ export const DICT={
 "One row per detection and engine",
 "Una fila por detección y motor",
 "Une ligne par détection et moteur"
+],
+"Unidade": [
+"Unit",
+"Unidad",
+"Unité"
 ],
 "Unidade das réguas:": [
 "Ruler unit:",
@@ -4820,6 +6055,11 @@ export const DICT={
 "Use image",
 "Use imagen",
 "Utilisez une image"
+],
+"VISÍVEIS": [
+"VISIBLE",
+"VISIBLES",
+"VISIBLES"
 ],
 "Validando referência t0…": [
 "Validating t0 reference…",
@@ -4891,6 +6131,11 @@ export const DICT={
 "Visor espacial 3D; seleccione el punto correspondiente",
 "Visualiseur spatial 3D ; sélectionnez le point correspondant"
 ],
+"Visualizar": [
+"View",
+"Ver",
+"Affichage"
+],
 "Visualização": [
 "View",
 "Visualización",
@@ -4925,6 +6170,11 @@ export const DICT={
 "Back to camera",
 "Volver a la cámara",
 "Retour à la caméra"
+],
+"Voltas": [
+"Turns",
+"Vueltas",
+"Tours"
 ],
 "VÍDEO": [
 "VIDEO",
@@ -4966,10 +6216,30 @@ export const DICT={
 "Vídeo ·",
 "Vidéo ·"
 ],
+"Walker em resolução cheia": [
+"Walker at full resolution",
+"Walker en resolución completa",
+"Walker en pleine résolution"
+],
+"Walker em resolução cheia na fronteira": [
+"Full-resolution walker at the boundary",
+"Walker en resolución completa en el borde",
+"Walker en pleine résolution à la frontière"
+],
+"Walker em resolução cheia na fronteira (experimental)": [
+"Full-resolution walker at the boundary (experimental)",
+"Walker en resolución completa en el borde (experimental)",
+"Walker en pleine résolution à la frontière (expérimental)"
+],
 "Workspace de análise": [
 "Analysis workspace",
 "Espacio de análisis",
 "Espace d’analyse"
+],
+"Zerar": [
+"Reset",
+"Poner a cero",
+"Remettre à zéro"
 ],
 "Zoom 2D indisponível": [
 "2D zoom unavailable",
@@ -4986,20 +6256,60 @@ export const DICT={
 "Zoom en el cursor (CAD)",
 "Zoom sur le curseur (CAO)"
 ],
+"aceitas": [
+"accepted",
+"aceptadas",
+"acceptées"
+],
+"acessível por HTTPS; endereços locais ou HTTP não funcionam para outros usuários.": [
+"reachable over HTTPS; local or HTTP addresses do not work for other users.",
+"accesible por HTTPS; las direcciones locales o HTTP no funcionan para otros usuarios.",
+"accessible en HTTPS ; les adresses locales ou HTTP ne fonctionnent pas pour d’autres utilisateurs."
+],
+"achados": [
+"findings",
+"hallazgos",
+"constats"
+],
 "achados 2D preparados para projeção 3D": [
 "2D findings prepared for 3D projection",
 "hallazgos 2D preparados para proyección 3D",
 "constats 2D préparés pour la projection 3D"
+],
+"achados atuais": [
+"current findings",
+"hallazgos actuales",
+"constats actuels"
 ],
 "achados da sessão": [
 "session findings",
 "hallazgos de la sesión",
 "constats de la session"
 ],
+"agregado exposto = comunidade diversa": [
+"exposed aggregate = diverse community",
+"árido expuesto = comunidad diversa",
+"granulat apparent = communauté diverse"
+],
+"alinhamento": [
+"alignment",
+"alineación",
+"alignement"
+],
 "alinhamento(s)": [
 "alignment(s)",
 "alineación(es)",
 "alignement(s)"
+],
+"alternar": [
+"toggle",
+"alternar",
+"basculer"
+],
+"amarelo = vetor médio (comprimento R)": [
+"yellow = mean vector (length R)",
+"amarillo = vector medio (longitud R)",
+"jaune = vecteur moyen (longueur R)"
 ],
 "após correção (antes": [
 "after correction (before",
@@ -5016,10 +6326,20 @@ export const DICT={
 "automático sin traslación aplicada",
 "automatique sans translation appliquée"
 ],
+"balanço de branco automático": [
+"automatic white balance",
+"balance de blancos automático",
+"balance des blancs automatique"
+],
 "cadeia temporal íntegra": [
 "temporal chain intact",
 "cadena temporal íntegra",
 "chaîne temporelle intègre"
+],
+"campanhas identificadas": [
+"identified campaigns",
+"campañas identificadas",
+"campagnes identifiées"
 ],
 "candidatos ·": [
 "candidates ·",
@@ -5030,6 +6350,16 @@ export const DICT={
 "catalogue v",
 "catálogo v",
 "catalogue v"
+],
+"ciano tracejado = motor · branco = resolução cheia": [
+"dashed cyan = engine · white = full resolution",
+"cian discontinuo = motor · blanco = resolución completa",
+"cyan pointillé = moteur · blanc = pleine résolution"
+],
+"classes em consenso": [
+"classes in consensus",
+"clases en consenso",
+"classes en consensus"
 ],
 "com pendência/erro": [
 "with pending/error",
@@ -5081,6 +6411,11 @@ export const DICT={
 "consistencia geométrica residual insuficiente",
 "cohérence géométrique résiduelle insuffisante"
 ],
+"crescimento": [
+"growth",
+"crecimiento",
+"croissance"
+],
 "dados da última execução": [
 "last run data",
 "datos de la última ejecución",
@@ -5091,6 +6426,21 @@ export const DICT={
 "fecha no indicada",
 "date non renseignée"
 ],
+"de": [
+"of",
+"de",
+"de"
+],
+"deltas temporais validados": [
+"validated temporal deltas",
+"deltas temporales validados",
+"deltas temporels validés"
+],
+"densidade óptica relativa ao concreto saudável": [
+"optical density relative to healthy concrete",
+"densidad óptica relativa al hormigón sano",
+"densité optique relative au béton sain"
+],
 "descartado pelo filtro de contexto IA Cena:": [
 "discarded by the context AI filter Scene:",
 "descartado por el filtro de contexto IA Escena:",
@@ -5100,6 +6450,11 @@ export const DICT={
 "spalling as an anomalous community of colour and texture",
 "desprendimiento como comunidad anómala de color y textura",
 "épaufrure comme communauté anormale de couleur et de texture"
+],
+"deve usar HTTP ou HTTPS.": [
+"must use HTTP or HTTPS.",
+"debe usar HTTP o HTTPS.",
+"doit utiliser HTTP ou HTTPS."
 ],
 "diferença excessiva de iluminação": [
 "excessive lighting difference",
@@ -5121,6 +6476,11 @@ export const DICT={
 "diferencia moderada de nitidez",
 "différence de netteté modérée"
 ],
+"divergência(s) SHA-256": [
+"SHA-256 mismatch(es)",
+"divergencia(s) SHA-256",
+"divergence(s) SHA-256"
+],
 "e limpar o canvas.": [
 "and clear the canvas.",
 "y limpiar el lienzo.",
@@ -5131,30 +6491,90 @@ export const DICT={
 "elemento no identificado",
 "élément non identifié"
 ],
+"elementos": [
+"elements",
+"elementos",
+"éléments"
+],
+"em Configurações → Conexão de execução.": [
+"in Settings → Execution connection.",
+"en Configuración → Conexión de ejecución.",
+"dans Réglages → Connexion d’exécution."
+],
+"escala": [
+"scale",
+"escala",
+"échelle"
+],
+"exceção(ões)": [
+"exception(s)",
+"excepción(es)",
+"exception(s)"
+],
+"executa somente no navegador e não tem adaptador no comparador cloud; remova-o da seleção para comparar ou rode-o individualmente.": [
+"runs only in the browser and has no adapter in the cloud comparator; remove it from the selection to compare or run it individually.",
+"se ejecuta solo en el navegador y no tiene adaptador en el comparador cloud; quítelo de la selección para comparar o ejecútelo individualmente.",
+"s’exécute uniquement dans le navigateur et n’a pas d’adaptateur dans le comparateur cloud ; retirez-le de la sélection pour comparer ou exécutez-le individuellement."
+],
 "execução sem servidor": [
 "serverless execution",
 "ejecución sin servidor",
 "exécution sans serveur"
+],
+"exposição": [
+"exposure",
+"exposición",
+"exposition"
 ],
 "exposição próxima do limite": [
 "exposure near the limit",
 "exposición cerca del límite",
 "exposition proche de la limite"
 ],
+"fissuras": [
+"cracks",
+"fisuras",
+"fissures"
+],
+"fonte": [
+"source",
+"fuente",
+"source"
+],
 "fotometria elegível": [
 "photometry eligible",
 "fotometría elegible",
 "photométrie éligible"
+],
+"geometrias ·": [
+"geometries ·",
+"geometrías ·",
+"géométries ·"
 ],
 "geométrica / sem textura": [
 "geometric / no texture",
 "geométrica / sin textura",
 "géométrique / sans texture"
 ],
+"global": [
+"global",
+"global",
+"global"
+],
 "histórico local persistente": [
 "persistent local history",
 "historial local persistente",
 "historique local persistant"
+],
+"identidade(s) incompatível(is)": [
+"incompatible identity(ies)",
+"identidad(es) incompatible(s)",
+"identité(s) incompatible(s)"
+],
+"indicadores": [
+"indicators",
+"indicadores",
+"indicateurs"
 ],
 "inspeção": [
 "inspection",
@@ -5165,6 +6585,11 @@ export const DICT={
 "inspection from history",
 "inspección del historial",
 "inspection de l’historique"
+],
+"inspeção sem rótulo": [
+"unlabelled inspection",
+"inspección sin etiqueta",
+"inspection sans libellé"
 ],
 "inspeções": [
 "inspections",
@@ -5206,6 +6631,11 @@ export const DICT={
 "motor(es)",
 "moteur(s)"
 ],
+"motores": [
+"engines",
+"motores",
+"moteurs"
+],
 "motores com pendência": [
 "engines pending",
 "motores con pendiente",
@@ -5216,20 +6646,55 @@ export const DICT={
 "motores completados en la sesión",
 "moteurs terminés dans la session"
 ],
+"motores registrados": [
+"registered engines",
+"motores registrados",
+"moteurs enregistrés"
+],
 "motores · comparação": [
 "engines · comparison",
 "motores · comparación",
 "moteurs · comparaison"
+],
+"mudança(s) de fonte": [
+"source change(s)",
+"cambio(s) de fuente",
+"changement(s) de source"
+],
+"multiescala": [
+"multiscale",
+"multiescala",
+"multi-échelle"
+],
+"média": [
+"mean",
+"media",
+"moyenne"
 ],
 "mínimo de 2 snapshots classificados": [
 "minimum of 2 rated snapshots",
 "mínimo de 2 instantáneas clasificadas",
 "minimum de 2 instantanés classés"
 ],
+"no Mac).": [
+"on Mac).",
+"en Mac).",
+"sur Mac)."
+],
 "no canvas.": [
 "on the canvas.",
 "en el lienzo.",
 "sur le canevas."
+],
+"não aplicado": [
+"not applied",
+"no aplicado",
+"non appliqué"
+],
+"não aplicável": [
+"not applicable",
+"no aplicable",
+"non applicable"
 ],
 "não calibrada": [
 "not calibrated",
@@ -5240,6 +6705,11 @@ export const DICT={
 "not given",
 "no indicada",
 "non renseignée"
+],
+"não registrado": [
+"not recorded",
+"no registrado",
+"non enregistré"
 ],
 "não testado": [
 "not tested",
@@ -5261,6 +6731,16 @@ export const DICT={
 "no verificado",
 "non vérifié"
 ],
+"não é uma URL válida.": [
+"is not a valid URL.",
+"no es una URL válida.",
+"n’est pas une URL valide."
+],
+"níveis": [
+"levels",
+"niveles",
+"niveaux"
+],
 "observações": [
 "notes",
 "observaciones",
@@ -5281,10 +6761,40 @@ export const DICT={
 "original ↔ detección",
 "original ↔ détection"
 ],
+"ou modelo 3D": [
+"or 3D model",
+"o modelo 3D",
+"ou modèle 3D"
+],
+"pares": [
+"pairs",
+"pares",
+"paires"
+],
 "pares históricos vinculados": [
 "linked historical pairs",
 "pares históricos vinculados",
 "paires historiques liées"
+],
+"perfil cloud validado": [
+"validated cloud profile",
+"perfil cloud validado",
+"profil cloud validé"
+],
+"polo 1 = evidência de dano · polo 0 = saudável": [
+"pole 1 = damage evidence · pole 0 = healthy",
+"polo 1 = evidencia de daño · polo 0 = sano",
+"pôle 1 = évidence de dommage · pôle 0 = sain"
+],
+"polo 1 = núcleo escuro · polo 0 = saudável": [
+"pole 1 = dark core · pole 0 = healthy",
+"polo 1 = núcleo oscuro · polo 0 = sano",
+"pôle 1 = noyau sombre · pôle 0 = sain"
+],
+"polo de dano exige z ≥ 3 e diversidade ≥ 1": [
+"damage pole needs z ≥ 3 and diversity ≥ 1",
+"el polo de daño exige z ≥ 3 y diversidad ≥ 1",
+"le pôle de dommage exige z ≥ 3 et diversité ≥ 1"
 ],
 "pontos receberam cor da imagem.": [
 "points received colour from the image.",
@@ -5296,10 +6806,20 @@ export const DICT={
 "puntos visibles tras la prueba de profundidad.",
 "points visibles après le test de profondeur."
 ],
+"predecessor esperado": [
+"expected predecessor",
+"predecesor esperado",
+"prédécesseur attendu"
+],
 "probabilidade de dano por pixel a partir de polos dano/saudável": [
 "per-pixel damage probability from damage/healthy poles",
 "probabilidad de daño por píxel a partir de polos daño/sano",
 "probabilité de dommage par pixel à partir de pôles dommage/sain"
+],
+"px na tela": [
+"px on screen",
+"px en pantalla",
+"px à l’écran"
 ],
 "px. Imagens inadequadas geram falsos positivos (sombras viram desplacamento, ruído vira fissura, dominante quente vira corrosão).": [
 "px. Unsuitable images produce false positives (shadows become spalling, noise becomes cracks, a warm cast becomes corrosion).",
@@ -5311,10 +6831,40 @@ export const DICT={
 "px. También se usa en las medidas del CDM-1 (longitud, abertura, área).",
 "px. Également utilisée dans les mesures du CDM-1 (longueur, ouverture, surface)."
 ],
+"px² de desplacamento": [
+"px² of spalling",
+"px² de desprendimiento",
+"px² d’épaufrure"
+],
+"quadros (o mapa de cena muda devagar; valores maiores aliviam o processamento).": [
+"frames (the scene map changes slowly; larger values lighten the processing).",
+"cuadros (el mapa de escena cambia despacio; valores mayores alivian el procesamiento).",
+"images (la carte de scène change lentement ; des valeurs plus grandes allègent le traitement)."
+],
 "qualidade não informada": [
 "quality not given",
 "calidad no indicada",
 "qualité non renseignée"
+],
+"recomendado": [
+"recommended",
+"recomendado",
+"recommandé"
+],
+"recomendados": [
+"recommended",
+"recomendados",
+"recommandés"
+],
+"redução de ruído": [
+"noise reduction",
+"reducción de ruido",
+"réduction du bruit"
+],
+"refaz o walker pixel a pixel em torno de cada desplacamento; mais preciso, um pouco mais lento; dispensa o afinamento por limiar": [
+"re-solves the walker pixel by pixel around each spalling; more accurate, slightly slower; replaces threshold refinement",
+"rehace el walker píxel a píxel alrededor de cada desprendimiento; más preciso, algo más lento; sustituye el afinado por umbral",
+"refait le walker pixel par pixel autour de chaque épaufrure ; plus précis, un peu plus lent ; remplace l'affinage par seuil"
 ],
 "referência": [
 "reference",
@@ -5326,10 +6876,20 @@ export const DICT={
 "referencia guardada",
 "référence enregistrée"
 ],
+"registrados": [
+"registered",
+"registrados",
+"enregistrés"
+],
 "registro 2D→3D pendente": [
 "2D→3D registration pending",
 "registro 2D→3D pendiente",
 "recalage 2D→3D en attente"
+],
+"registro anterior ao snapshot CDM": [
+"record older than the CDM snapshot",
+"registro anterior a la instantánea CDM",
+"enregistrement antérieur à l’instantané CDM"
 ],
 "registro automático Δx=": [
 "automatic registration Δx=",
@@ -5356,6 +6916,11 @@ export const DICT={
 "requiere(n) registro manual.",
 "nécessite(nt) un recalage manuel."
 ],
+"resumo morfológico": [
+"morphological summary",
+"resumen morfológico",
+"résumé morphologique"
+],
 "roda ↑": [
 "wheel ↑",
 "rueda ↑",
@@ -5365,6 +6930,11 @@ export const DICT={
 "wheel ↓",
 "rueda ↓",
 "molette ↓"
+],
+"rotação": [
+"rotation",
+"rotación",
+"rotation"
 ],
 "ruptura(s)": [
 "break(s)",
@@ -5386,6 +6956,11 @@ export const DICT={
 "etiquetas de los hallazgos",
 "étiquettes des constats"
 ],
+"saturação": [
+"saturation",
+"saturación",
+"saturation"
+],
 "saturação/exposição inadequada": [
 "unsuitable saturation/exposure",
 "saturación/exposición inadecuada",
@@ -5401,15 +6976,45 @@ export const DICT={
 "sin confianza",
 "sans confiance"
 ],
+"sem correção": [
+"no correction",
+"sin corrección",
+"sans correction"
+],
 "sem execução nesta sessão": [
 "no run in this session",
 "sin ejecución en esta sesión",
 "aucune exécution dans cette session"
 ],
+"serviço": [
+"service",
+"servicio",
+"service"
+],
 "sessão atual": [
 "current session",
 "sesión actual",
 "session courante"
+],
+"snapshot CDM ausente": [
+"CDM snapshot missing",
+"instantánea CDM ausente",
+"instantané CDM absent"
+],
+"snapshots calibrados": [
+"calibrated snapshots",
+"instantáneas calibradas",
+"instantanés étalonnés"
+],
+"snapshots classificados": [
+"rated snapshots",
+"instantáneas clasificadas",
+"instantanés classés"
+],
+"sobre": [
+"over",
+"sobre",
+"sur"
 ],
 "sobreposição espacial insuficiente": [
 "insufficient spatial overlap",
@@ -5436,6 +7041,21 @@ export const DICT={
 "se importan directamente en el lienzo 3D y entran en el pipeline CDM-3.",
 "sont importés directement dans le canevas 3D et entrent dans le pipeline CDM-3."
 ],
+"série(s) · somente snapshots com mm/px": [
+"series · only snapshots with mm/px",
+"serie(s) · solo instantáneas con mm/px",
+"série(s) · uniquement les instantanés avec mm/px"
+],
+"t0 de origem": [
+"source t0",
+"t0 de origen",
+"t0 d’origine"
+],
+"t0 histórico materializado ·": [
+"materialised historical t0 ·",
+"t0 histórico materializado ·",
+"t0 historique matérialisé ·"
+],
 "t0 manual/externo": [
 "manual/external t0",
 "t0 manual/externo",
@@ -5450,6 +7070,11 @@ export const DICT={
 "current t1 + layers",
 "t1 actual + capas",
 "t1 courant + calques"
+],
+"tempo": [
+"time",
+"tiempo",
+"temps"
 ],
 "temporal(is) validada(s)": [
 "validated temporal(s)",
@@ -5466,10 +7091,20 @@ export const DICT={
 "triángulos",
 "triangles"
 ],
+"vai substituir": [
+"will replace",
+"va a sustituir",
+"va remplacer"
+],
 "vales escuros, estreitos e longos dentro do desplacamento": [
 "dark, narrow and long valleys inside the spalling",
 "valles oscuros, estrechos y largos dentro del desprendimiento",
 "vallées sombres, étroites et longues dans l’épaufrure"
+],
+"variância circular": [
+"circular variance",
+"varianza circular",
+"variance circulaire"
 ],
 "vista(s) registrada(s) automaticamente.": [
 "view(s) registered automatically.",
@@ -5480,6 +7115,16 @@ export const DICT={
 "view(s) · coverage",
 "vista(s) · cobertura",
 "vue(s) · couverture"
+],
+"vistas": [
+"views",
+"vistas",
+"vues"
+],
+"visual + espacial": [
+"visual + spatial",
+"visual + espacial",
+"visuel + spatial"
 ],
 "visíveis": [
 "visible",
@@ -5696,6 +7341,11 @@ export const DICT={
 "Área calibrada de",
 "Surface étalonnée de"
 ],
+"Área cheia": [
+"Full-res area",
+"Área completa",
+"Surface pleine"
+],
 "Área descritiva de snapshot calibrado; não é delta temporal validado.": [
 "Descriptive area of a calibrated snapshot; not a validated temporal delta.",
 "Área descriptiva de una instantánea calibrada; no es un delta temporal validado.",
@@ -5711,10 +7361,35 @@ export const DICT={
 "Área de la fuente",
 "Surface source"
 ],
+"Área motor": [
+"Engine area",
+"Área motor",
+"Surface moteur"
+],
+"Área motor: escala do motor · Área cheia: walker refeito na seleção.": [
+"Engine area: engine scale · Full-res area: walker re-solved in the selection.",
+"Área motor: escala del motor · Área completa: walker rehecho en la selección.",
+"Surface moteur : échelle du moteur · Surface pleine : walker recalculé dans la sélection."
+],
 "Área mínima (px²)": [
 "Minimum area (px²)",
 "Área mínima (px²)",
 "Surface minimale (px²)"
+],
+"Área selecionada": [
+"Selected area",
+"Área seleccionada",
+"Zone sélectionnée"
+],
+"Área t0": [
+"Area t0",
+"Área t0",
+"Surface t0"
+],
+"Área t1": [
+"Area t1",
+"Área t1",
+"Surface t1"
 ],
 "Área:": [
 "Area:",
@@ -5751,6 +7426,11 @@ export const DICT={
 "Δ relativo",
 "Δ relatif"
 ],
+"Δ área": [
+"Δ area",
+"Δ área",
+"Δ surface"
+],
 "” está enviando uma imagem parada — parece uma câmera virtual ou sem sinal, não uma câmera real.": [
 "” is sending a still image — it looks like a virtual camera or no signal, not a real camera.",
 "» está enviando una imagen fija — parece una cámara virtual o sin señal, no una cámara real.",
@@ -5770,1610 +7450,5 @@ export const DICT={
 "◇  spatial CDM-3",
 "◇  CDM-3 espacial",
 "◇  CDM-3 spatial"
-],
-"/100): alto risco de falsos positivos. Corrija a imagem ou clique em Analisar de novo para prosseguir.": [
-"/100): high risk of false positives. Correct the image or click Analyse again to proceed.",
-"/100): alto riesgo de falsos positivos. Corrija la imagen o haga clic en Analizar de nuevo para continuar.",
-"/100) : risque élevé de faux positifs. Corrigez l’image ou cliquez à nouveau sur Analyser pour continuer."
-],
-"/6 pares mínimos": [
-"/6 minimum pairs",
-"/6 pares mínimos",
-"/6 paires minimales"
-],
-"/s. Detecção preliminar no navegador, sem envio de quadros. Atalhos: P foto · R vídeo · Espaço pausa.": [
-"/s. Preliminary detection in the browser, no frames sent. Shortcuts: P photo · R video · Space pause.",
-"/s. Detección preliminar en el navegador, sin envío de cuadros. Atajos: P foto · R vídeo · Espacio pausa.",
-"/s. Détection préliminaire dans le navigateur, sans envoi d’images. Raccourcis : P photo · R vidéo · Espace pause."
-],
-"Abrir": [
-"Open",
-"Abrir",
-"Ouvrir"
-],
-"Aceitar": [
-"Accept",
-"Aceptar",
-"Accepter"
-],
-"Achados": [
-"Findings",
-"Hallazgos",
-"Constats"
-],
-"Ajuda": [
-"Help",
-"Ayuda",
-"Aide"
-],
-"Ajustes": [
-"Settings",
-"Ajustes",
-"Réglages"
-],
-"Analisar": [
-"Analyse",
-"Analizar",
-"Analyser"
-],
-"Anterior": [
-"Previous",
-"Anterior",
-"Précédent"
-],
-"Apagar": [
-"Erase",
-"Borrar",
-"Effacer"
-],
-"Aplicar": [
-"Apply",
-"Aplicar",
-"Appliquer"
-],
-"Arquivo": [
-"File",
-"Archivo",
-"Fichier"
-],
-"Ativar": [
-"Enable",
-"Activar",
-"Activer"
-],
-"Atualizar": [
-"Update",
-"Actualizar",
-"Mettre à jour"
-],
-"Aulas": [
-"Lessons",
-"Clases",
-"Cours"
-],
-"Bloquear": [
-"Lock",
-"Bloquear",
-"Verrouiller"
-],
-"Caixas": [
-"Boxes",
-"Cajas",
-"Boîtes"
-],
-"Camadas": [
-"Layers",
-"Capas",
-"Calques"
-],
-"Campanha": [
-"Campaign",
-"Campaña",
-"Campagne"
-],
-"Canais": [
-"Channels",
-"Canales",
-"Canaux"
-],
-"Cancelar": [
-"Cancel",
-"Cancelar",
-"Annuler"
-],
-"Carga": [
-"Load",
-"Carga",
-"Charge"
-],
-"Cena": [
-"Scene",
-"Escena",
-"Scène"
-],
-"Classe": [
-"Class",
-"Clase",
-"Classe"
-],
-"Cobertura": [
-"Coverage",
-"Cobertura",
-"Couverture"
-],
-"Comparador": [
-"Comparator",
-"Comparador",
-"Comparateur"
-],
-"Configurar": [
-"Settings",
-"Configurar",
-"Réglages"
-],
-"Confirmados": [
-"Confirmed",
-"Confirmados",
-"Confirmés"
-],
-"Corte": [
-"Section",
-"Corte",
-"Coupe"
-],
-"Data": [
-"Date",
-"Fecha",
-"Date"
-],
-"Desbloquear": [
-"Unlock",
-"Desbloquear",
-"Déverrouiller"
-],
-"Descartar": [
-"Discard",
-"Descartar",
-"Écarter"
-],
-"Desfazer": [
-"Undo",
-"Deshacer",
-"Annuler"
-],
-"Deslizar": [
-"Slider",
-"Deslizar",
-"Curseur"
-],
-"Desvio": [
-"Deviation",
-"Desvío",
-"Écart"
-],
-"Editar": [
-"Edit",
-"Editar",
-"Édition"
-],
-"Elemento": [
-"Element",
-"Elemento",
-"Élément"
-],
-"Entendi": [
-"Got it",
-"Entendido",
-"Compris"
-],
-"Etapas": [
-"Stages",
-"Etapas",
-"Étapes"
-],
-"Excluir": [
-"Delete",
-"Eliminar",
-"Supprimer"
-],
-"FOTO": [
-"PHOTO",
-"FOTO",
-"PHOTO"
-],
-"Fechar": [
-"Close",
-"Cerrar",
-"Fermer"
-],
-"Fonte": [
-"Source",
-"Fuente",
-"Source"
-],
-"Formato": [
-"Format",
-"Formato",
-"Format"
-],
-"Frente": [
-"Front",
-"Frente",
-"Avant"
-],
-"GRUPOS": [
-"GROUPS",
-"GRUPOS",
-"GROUPES"
-],
-"Georreferenciar": [
-"Georeference",
-"Georreferenciar",
-"Géoréférencer"
-],
-"Grupo": [
-"Group",
-"Grupo",
-"Groupe"
-],
-"Imagem": [
-"Image",
-"Imagen",
-"Image"
-],
-"Importar": [
-"Import",
-"Importar",
-"Importer"
-],
-"Isolar": [
-"Isolate",
-"Aislar",
-"Isoler"
-],
-"Largura": [
-"Width",
-"Ancho",
-"Largeur"
-],
-"Limpar": [
-"Clear",
-"Limpiar",
-"Effacer"
-],
-"METADADOS": [
-"METADATA",
-"METADATOS",
-"MÉTADONNÉES"
-],
-"MOTORES": [
-"ENGINES",
-"MOTORES",
-"MOTEURS"
-],
-"Modificado": [
-"Modified",
-"Modificado",
-"Modifié"
-],
-"Modo": [
-"Mode",
-"Modo",
-"Mode"
-],
-"Motor": [
-"Engine",
-"Motor",
-"Moteur"
-],
-"Motores": [
-"Engines",
-"Motores",
-"Moteurs"
-],
-"Nitidez": [
-"Sharpness",
-"Nitidez",
-"Netteté"
-],
-"Nota": [
-"Score",
-"Nota",
-"Note"
-],
-"Objeto": [
-"Object",
-"Objeto",
-"Objet"
-],
-"Opacidade": [
-"Opacity",
-"Opacidad",
-"Opacité"
-],
-"Origem": [
-"Source",
-"Origen",
-"Origine"
-],
-"Patologia": [
-"Damage type",
-"Patología",
-"Pathologie"
-],
-"Pincel": [
-"Brush",
-"Pincel",
-"Pinceau"
-],
-"Pontos": [
-"Points",
-"Puntos",
-"Points"
-],
-"Propriedades": [
-"Properties",
-"Propiedades",
-"Propriétés"
-],
-"RASTREABILIDADE": [
-"TRACEABILITY",
-"TRAZABILIDAD",
-"TRAÇABILITÉ"
-],
-"RECOMENDADOS": [
-"RECOMMENDED",
-"RECOMENDADOS",
-"RECOMMANDÉS"
-],
-"REVISAR": [
-"REVIEW",
-"REVISAR",
-"RÉVISER"
-],
-"Recentes": [
-"Recent",
-"Recientes",
-"Récents"
-],
-"Recomendados": [
-"Recommended",
-"Recomendados",
-"Recommandés"
-],
-"Rejeitar": [
-"Reject",
-"Rechazar",
-"Rejeter"
-],
-"Renomear": [
-"Rename",
-"Renombrar",
-"Renommer"
-],
-"Restaurar": [
-"Restore",
-"Restaurar",
-"Restaurer"
-],
-"Resultados": [
-"Results",
-"Resultados",
-"Résultats"
-],
-"SELECIONADOS": [
-"SELECTED",
-"SELECCIONADOS",
-"SÉLECTIONNÉS"
-],
-"Sair": [
-"Exit",
-"Salir",
-"Quitter"
-],
-"Salvar": [
-"Save",
-"Guardar",
-"Enregistrer"
-],
-"Severidade": [
-"Severity",
-"Severidad",
-"Sévérité"
-],
-"Sobrepor": [
-"Overlay",
-"Superponer",
-"Superposer"
-],
-"Tamanho": [
-"Size",
-"Tamaño",
-"Taille"
-],
-"Tarefa": [
-"Task",
-"Tarea",
-"Tâche"
-],
-"Tipo": [
-"Type",
-"Tipo",
-"Type"
-],
-"Topo": [
-"Top",
-"Arriba",
-"Haut"
-],
-"Unidade": [
-"Unit",
-"Unidad",
-"Unité"
-],
-"Visualizar": [
-"View",
-"Ver",
-"Affichage"
-],
-"Voltas": [
-"Turns",
-"Vueltas",
-"Tours"
-],
-"Zerar": [
-"Reset",
-"Poner a cero",
-"Remettre à zéro"
-],
-"aceitas": [
-"accepted",
-"aceptadas",
-"acceptées"
-],
-"achados": [
-"findings",
-"hallazgos",
-"constats"
-],
-"alinhamento": [
-"alignment",
-"alineación",
-"alignement"
-],
-"alternar": [
-"toggle",
-"alternar",
-"basculer"
-],
-"campanhas identificadas": [
-"identified campaigns",
-"campañas identificadas",
-"campagnes identifiées"
-],
-"classes em consenso": [
-"classes in consensus",
-"clases en consenso",
-"classes en consensus"
-],
-"crescimento": [
-"growth",
-"crecimiento",
-"croissance"
-],
-"de": [
-"of",
-"de",
-"de"
-],
-"deltas temporais validados": [
-"validated temporal deltas",
-"deltas temporales validados",
-"deltas temporels validés"
-],
-"elementos": [
-"elements",
-"elementos",
-"éléments"
-],
-"fonte": [
-"source",
-"fuente",
-"source"
-],
-"indicadores": [
-"indicators",
-"indicadores",
-"indicateurs"
-],
-"motores": [
-"engines",
-"motores",
-"moteurs"
-],
-"motores registrados": [
-"registered engines",
-"motores registrados",
-"moteurs enregistrés"
-],
-"multiescala": [
-"multiscale",
-"multiescala",
-"multi-échelle"
-],
-"no Mac).": [
-"on Mac).",
-"en Mac).",
-"sur Mac)."
-],
-"ou modelo 3D": [
-"or 3D model",
-"o modelo 3D",
-"ou modèle 3D"
-],
-"pares": [
-"pairs",
-"pares",
-"paires"
-],
-"perfil cloud validado": [
-"validated cloud profile",
-"perfil cloud validado",
-"profil cloud validé"
-],
-"predecessor esperado": [
-"expected predecessor",
-"predecesor esperado",
-"prédécesseur attendu"
-],
-"px na tela": [
-"px on screen",
-"px en pantalla",
-"px à l’écran"
-],
-"quadros (o mapa de cena muda devagar; valores maiores aliviam o processamento).": [
-"frames (the scene map changes slowly; larger values lighten the processing).",
-"cuadros (el mapa de escena cambia despacio; valores mayores alivian el procesamiento).",
-"images (la carte de scène change lentement ; des valeurs plus grandes allègent le traitement)."
-],
-"recomendado": [
-"recommended",
-"recomendado",
-"recommandé"
-],
-"recomendados": [
-"recommended",
-"recomendados",
-"recommandés"
-],
-"registrados": [
-"registered",
-"registrados",
-"enregistrés"
-],
-"registro anterior ao snapshot CDM": [
-"record older than the CDM snapshot",
-"registro anterior a la instantánea CDM",
-"enregistrement antérieur à l’instantané CDM"
-],
-"snapshot CDM ausente": [
-"CDM snapshot missing",
-"instantánea CDM ausente",
-"instantané CDM absent"
-],
-"snapshots calibrados": [
-"calibrated snapshots",
-"instantáneas calibradas",
-"instantanés étalonnés"
-],
-"snapshots classificados": [
-"rated snapshots",
-"instantáneas clasificadas",
-"instantanés classés"
-],
-"sobre": [
-"over",
-"sobre",
-"sur"
-],
-"série(s) · somente snapshots com mm/px": [
-"series · only snapshots with mm/px",
-"serie(s) · solo instantáneas con mm/px",
-"série(s) · uniquement les instantanés avec mm/px"
-],
-"t0 de origem": [
-"source t0",
-"t0 de origen",
-"t0 d’origine"
-],
-"t0 histórico materializado ·": [
-"materialised historical t0 ·",
-"t0 histórico materializado ·",
-"t0 historique matérialisé ·"
-],
-"tempo": [
-"time",
-"tiempo",
-"temps"
-],
-"vai substituir": [
-"will replace",
-"va a sustituir",
-"va remplacer"
-],
-"vistas": [
-"views",
-"vistas",
-"vues"
-],
-"visual + espacial": [
-"visual + spatial",
-"visual + espacial",
-"visuel + spatial"
-],
-"mudança(s) de fonte": [
-"source change(s)",
-"cambio(s) de fuente",
-"changement(s) de source"
-],
-"divergência(s) SHA-256": [
-"SHA-256 mismatch(es)",
-"divergencia(s) SHA-256",
-"divergence(s) SHA-256"
-],
-"exceção(ões)": [
-"exception(s)",
-"excepción(es)",
-"exception(s)"
-],
-"identidade(s) incompatível(is)": [
-"incompatible identity(ies)",
-"identidad(es) incompatible(s)",
-"identité(s) incompatible(s)"
-],
-"geometrias ·": [
-"geometries ·",
-"geometrías ·",
-"géométries ·"
-],
-"Pronto": [
-"Ready",
-"Listo",
-"Prêt"
-],
-"Entrada": [
-"Input",
-"Entrada",
-"Entrée"
-],
-"Fissuras": [
-"Cracks",
-"Fisuras",
-"Fissures"
-],
-"Fissura": [
-"Crack",
-"Fisura",
-"Fissure"
-],
-"Desplacamento": [
-"Spalling",
-"Desprendimiento",
-"Épaufrure"
-],
-"Desplacamento/região escura": [
-"Spalling/dark region",
-"Desprendimiento/región oscura",
-"Épaufrure/région sombre"
-],
-"Desplacamento/regi…": [
-"Spalling/reg…",
-"Desprendim./reg…",
-"Épaufrure/rég…"
-],
-"Corrosão aparente": [
-"Visible corrosion",
-"Corrosión aparente",
-"Corrosion apparente"
-],
-"Eflorescência/região clara": [
-"Efflorescence/light region",
-"Eflorescencia/región clara",
-"Efflorescence/région claire"
-],
-"Eflorescência/regiã…": [
-"Efflorescence/reg…",
-"Eflorescencia/reg…",
-"Efflorescence/rég…"
-],
-"CAMADAS": [
-"LAYERS",
-"CAPAS",
-"CALQUES"
-],
-"PROPRIEDADES": [
-"PROPERTIES",
-"PROPIEDADES",
-"PROPRIÉTÉS"
-],
-"Histograma": [
-"Histogram",
-"Histograma",
-"Histogramme"
-],
-"Qualidade": [
-"Quality",
-"Calidad",
-"Qualité"
-],
-"ARQUIVO": [
-"FILE",
-"ARCHIVO",
-"FICHIER"
-],
-"TAMANHO": [
-"SIZE",
-"TAMAÑO",
-"TAILLE"
-],
-"RESOLUÇÃO": [
-"RESOLUTION",
-"RESOLUCIÓN",
-"RÉSOLUTION"
-],
-"IMAGEM": [
-"IMAGE",
-"IMAGEN",
-"IMAGE"
-],
-"MEMÓRIA 2D": [
-"2D MEMORY",
-"MEMORIA 2D",
-"MÉMOIRE 2D"
-],
-"CARGA": [
-"LOAD",
-"CARGA",
-"CHARGE"
-],
-"Baixa": [
-"Low",
-"Baja",
-"Faible"
-],
-"Alta": [
-"High",
-"Alta",
-"Élevée"
-],
-"Tipo reconhecido: Imagem 2D": [
-"Recognised type: 2D image",
-"Tipo reconocido: Imagen 2D",
-"Type reconnu : image 2D"
-],
-"TOPO": [
-"TOP",
-"ARRIBA",
-"HAUT"
-],
-"FUNDO": [
-"BOTTOM",
-"FONDO",
-"FOND"
-],
-"VISÍVEIS": [
-"VISIBLE",
-"VISIBLES",
-"VISIBLES"
-],
-"ACHADOS": [
-"FINDINGS",
-"HALLAZGOS",
-"CONSTATS"
-],
-"LATÊNCIA": [
-"LATENCY",
-"LATENCIA",
-"LATENCE"
-],
-"Total": [
-"Total",
-"Total",
-"Total"
-],
-"Achados normalizados": [
-"Normalised findings",
-"Hallazgos normalizados",
-"Constats normalisés"
-],
-"resumo morfológico": [
-"morphological summary",
-"resumen morfológico",
-"résumé morphologique"
-],
-"Estimativa por imagem:": [
-"Image-based estimate:",
-"Estimación por imagen:",
-"Estimation par image :"
-],
-"Confirme em inspeção técnica.": [
-"Confirm in a technical inspection.",
-"Confirme en una inspección técnica.",
-"Confirmez par une inspection technique."
-],
-"Inadequada: alto risco de falsos positivos": [
-"Unsuitable: high risk of false positives",
-"Inadecuada: alto riesgo de falsos positivos",
-"Inadaptée : risque élevé de faux positifs"
-],
-"Adequada": [
-"Suitable",
-"Adecuada",
-"Adaptée"
-],
-"Morfologia CDM 2.11": [
-"CDM 2.11 morphology",
-"Morfología CDM 2.11",
-"Morphologie CDM 2.11"
-],
-"Diversidade e biodiversidade (Ataky)": [
-"Diversity and biodiversity (Ataky)",
-"Diversidad y biodiversidad (Ataky)",
-"Diversité et biodiversité (Ataky)"
-],
-"Potencial do random walker": [
-"Random walker potential",
-"Potencial del random walker",
-"Potentiel du random walker"
-],
-"Desplacamento final": [
-"Final spalling",
-"Desprendimiento final",
-"Épaufrure finale"
-],
-"Armadura exposta (abertura linear)": [
-"Exposed rebar (linear opening)",
-"Armadura expuesta (apertura lineal)",
-"Armature apparente (ouverture linéaire)"
-],
-"Pigmento · ferrugem": [
-"Pigment · rust",
-"Pigmento · óxido",
-"Pigment · rouille"
-],
-"Pigmento · biológico": [
-"Pigment · biological",
-"Pigmento · biológico",
-"Pigment · biologique"
-],
-"Resultado do motor": [
-"Engine result",
-"Resultado del motor",
-"Résultat du moteur"
-],
-"Filtro de contexto IA": [
-"Context AI filter",
-"Filtro de contexto IA",
-"Filtre de contexte IA"
-],
-"Evidência · rugosidade normalizada": [
-"Evidence · normalised roughness",
-"Evidencia · rugosidad normalizada",
-"Évidence · rugosité normalisée"
-],
-"Evidência · diversidade de Ataky": [
-"Evidence · Ataky diversity",
-"Evidencia · diversidad de Ataky",
-"Évidence · diversité d’Ataky"
-],
-"Polos do random walker": [
-"Random walker poles",
-"Polos del random walker",
-"Pôles du random walker"
-],
-"Juiz de biodiversidade": [
-"Biodiversity judge",
-"Juez de biodiversidad",
-"Juge de biodiversité"
-],
-"Afinamento automático do contorno": [
-"Automatic contour refinement",
-"Afinado automático del contorno",
-"Affinage automatique du contour"
-],
-"Imagem base normalizada": [
-"Normalised base image",
-"Imagen base normalizada",
-"Image de base normalisée"
-],
-"Resposta black-hat": [
-"Black-hat response",
-"Respuesta black-hat",
-"Réponse black-hat"
-],
-"Máscara candidata": [
-"Candidate mask",
-"Máscara candidata",
-"Masque candidat"
-],
-"Máscaras por família": [
-"Masks by family",
-"Máscaras por familia",
-"Masques par famille"
-],
-"Componentes vetorizados": [
-"Vectorised components",
-"Componentes vectorizados",
-"Composantes vectorisées"
-],
-"Escala de cinza": [
-"Greyscale",
-"Escala de grises",
-"Niveaux de gris"
-],
-"Black-hat 15×15": [
-"Black-hat 15×15",
-"Black-hat 15×15",
-"Black-hat 15×15"
-],
-"Suavização 3×3": [
-"3×3 smoothing",
-"Suavizado 3×3",
-"Lissage 3×3"
-],
-"Limiar de Otsu": [
-"Otsu threshold",
-"Umbral de Otsu",
-"Seuil d’Otsu"
-],
-"Abertura 2×2": [
-"2×2 opening",
-"Apertura 2×2",
-"Ouverture 2×2"
-],
-"Componentes": [
-"Components",
-"Componentes",
-"Composantes"
-],
-"Tensor de entrada": [
-"Input tensor",
-"Tensor de entrada",
-"Tenseur d’entrée"
-],
-"Candidatos (antes do NMS)": [
-"Candidates (before NMS)",
-"Candidatos (antes del NMS)",
-"Candidats (avant NMS)"
-],
-"Após NMS (IoU 0,45)": [
-"After NMS (IoU 0.45)",
-"Tras NMS (IoU 0,45)",
-"Après NMS (IoU 0,45)"
-],
-"Máscaras dos protótipos": [
-"Prototype masks",
-"Máscaras de los prototipos",
-"Masques des prototypes"
-],
-"Mapa de probabilidade": [
-"Probability map",
-"Mapa de probabilidad",
-"Carte de probabilité"
-],
-"Classe vencedora": [
-"Winning class",
-"Clase ganadora",
-"Classe gagnante"
-],
-"Componentes filtrados": [
-"Filtered components",
-"Componentes filtrados",
-"Composantes filtrées"
-],
-"polo 1 = evidência de dano · polo 0 = saudável": [
-"pole 1 = damage evidence · pole 0 = healthy",
-"polo 1 = evidencia de daño · polo 0 = sano",
-"pôle 1 = évidence de dommage · pôle 0 = sain"
-],
-"polo 1 = núcleo escuro · polo 0 = saudável": [
-"pole 1 = dark core · pole 0 = healthy",
-"polo 1 = núcleo oscuro · polo 0 = sano",
-"pôle 1 = noyau sombre · pôle 0 = sain"
-],
-"Rugosidade (z, saudável = 0)": [
-"Roughness (z, healthy = 0)",
-"Rugosidad (z, sano = 0)",
-"Rugosité (z, sain = 0)"
-],
-"polo de dano exige z ≥ 3 e diversidade ≥ 1": [
-"damage pole needs z ≥ 3 and diversity ≥ 1",
-"el polo de daño exige z ≥ 3 y diversidad ≥ 1",
-"le pôle de dommage exige z ≥ 3 et diversité ≥ 1"
-],
-"Diversidade de Shannon (z)": [
-"Shannon diversity (z)",
-"Diversidad de Shannon (z)",
-"Diversité de Shannon (z)"
-],
-"agregado exposto = comunidade diversa": [
-"exposed aggregate = diverse community",
-"árido expuesto = comunidad diversa",
-"granulat apparent = communauté diverse"
-],
-"Concentração · ferrugem": [
-"Concentration · rust",
-"Concentración · óxido",
-"Concentration · rouille"
-],
-"Concentração · biológico": [
-"Concentration · biological",
-"Concentración · biológico",
-"Concentration · biologique"
-],
-"densidade óptica relativa ao concreto saudável": [
-"optical density relative to healthy concrete",
-"densidad óptica relativa al hormigón sano",
-"densité optique relative au béton sain"
-],
-"Probabilidade": [
-"Probability",
-"Probabilidad",
-"Probabilité"
-],
-"Relatório de inspeção": [
-"Inspection report",
-"Informe de inspección",
-"Rapport d’inspection"
-],
-"achados atuais": [
-"current findings",
-"hallazgos actuales",
-"constats actuels"
-],
-"fissuras": [
-"cracks",
-"fisuras",
-"fissures"
-],
-"px² de desplacamento": [
-"px² of spalling",
-"px² de desprendimiento",
-"px² d’épaufrure"
-],
-"escala": [
-"scale",
-"escala",
-"échelle"
-],
-"Camadas atuais": [
-"Current layers",
-"Capas actuales",
-"Calques actuels"
-],
-"Objetos": [
-"Objects",
-"Objetos",
-"Objets"
-],
-"Classificação preliminar por imagem": [
-"Preliminary image-based rating",
-"Clasificación preliminar por imagen",
-"Classification préliminaire par image"
-],
-"Resultado assistido por imagem; exige validação técnica.": [
-"Image-assisted result; requires technical validation.",
-"Resultado asistido por imagen; requiere validación técnica.",
-"Résultat assisté par image ; exige une validation technique."
-],
-"Governante": [
-"Governing",
-"Determinante",
-"Déterminant"
-],
-"Sem famílias classificadas.": [
-"No rated families.",
-"Sin familias clasificadas.",
-"Aucune famille classée."
-],
-"Comparação temporal t0→t1": [
-"Temporal comparison t0→t1",
-"Comparación temporal t0→t1",
-"Comparaison temporelle t0→t1"
-],
-"Alinhamento:": [
-"Alignment:",
-"Alineación:",
-"Alignement :"
-],
-"Qualidade temporal:": [
-"Temporal quality:",
-"Calidad temporal:",
-"Qualité temporelle :"
-],
-"Área t0": [
-"Area t0",
-"Área t0",
-"Surface t0"
-],
-"Área t1": [
-"Area t1",
-"Área t1",
-"Surface t1"
-],
-"Sem comparação temporal.": [
-"No temporal comparison.",
-"Sin comparación temporal.",
-"Aucune comparaison temporelle."
-],
-"Rastreabilidade": [
-"Traceability",
-"Trazabilidad",
-"Traçabilité"
-],
-"Elemento:": [
-"Element:",
-"Elemento:",
-"Élément :"
-],
-"Fonte:": [
-"Source:",
-"Fuente:",
-"Source :"
-],
-"Desempenho:": [
-"Performance:",
-"Rendimiento:",
-"Performances :"
-],
-"não aplicável": [
-"not applicable",
-"no aplicable",
-"non applicable"
-],
-"não aplicado": [
-"not applied",
-"no aplicado",
-"non appliqué"
-],
-"não registrado": [
-"not recorded",
-"no registrado",
-"non enregistré"
-],
-"Aprovada para quantificação temporal": [
-"Approved for temporal quantification",
-"Aprobada para cuantificación temporal",
-"Approuvée pour la quantification temporelle"
-],
-"inspeção sem rótulo": [
-"unlabelled inspection",
-"inspección sin etiqueta",
-"inspection sans libellé"
-],
-"Crescimento t0→t1": [
-"Growth t0→t1",
-"Crecimiento t0→t1",
-"Croissance t0→t1"
-],
-"Redução t0→t1": [
-"Reduction t0→t1",
-"Reducción t0→t1",
-"Réduction t0→t1"
-],
-"Imagem anterior": [
-"Previous image",
-"Imagen anterior",
-"Image précédente"
-],
-"Idioma": [
-"Language",
-"Idioma",
-"Langue"
-],
-"Idioma da plataforma": [
-"Platform language",
-"Idioma de la plataforma",
-"Langue de la plateforme"
-],
-"Idioma da plataforma e das figuras exportadas": [
-"Language of the platform and of exported figures",
-"Idioma de la plataforma y de las figuras exportadas",
-"Langue de la plateforme et des figures exportées"
-],
-"(var. Laplaciano)": [
-"(Laplacian var.)",
-"(var. laplaciano)",
-"(var. laplacien)"
-],
-"A correção não recupera informação ausente (foco, resolução ou superfície sem contraste e com ruído). Recomenda-se refazer a foto com mais luz, câmera estável e mais próxima.": [
-"Correction cannot recover missing information (focus, resolution or a low-contrast noisy surface). Retake the photo with more light, a steady camera and closer.",
-"La corrección no recupera información ausente (enfoque, resolución o superficie sin contraste y con ruido). Se recomienda repetir la foto con más luz, cámara estable y más cerca.",
-"La correction ne récupère pas l’information absente (mise au point, résolution ou surface peu contrastée et bruitée). Refaites la photo avec plus de lumière, une caméra stable et plus près."
-],
-"Adequada com ressalvas": [
-"Suitable with caveats",
-"Adecuada con salvedades",
-"Adaptée avec réserves"
-],
-"Adequada para análise": [
-"Suitable for analysis",
-"Adecuada para el análisis",
-"Adaptée à l’analyse"
-],
-"Balanço de branco": [
-"White balance",
-"Balance de blancos",
-"Balance des blancs"
-],
-"Configure o endereço HTTPS do": [
-"Set the HTTPS address of the",
-"Configure la dirección HTTPS del",
-"Configurez l’adresse HTTPS du"
-],
-"Contraste baixo: maior risco de falsos positivos em motores morfológicos.": [
-"Low contrast: higher risk of false positives in morphological engines.",
-"Contraste bajo: mayor riesgo de falsos positivos en motores morfológicos.",
-"Contraste faible : risque accru de faux positifs dans les moteurs morphologiques."
-],
-"Contraste muito baixo: o CDM-1 estica p2–p98 e amplifica o ruído, gerando fissuras falsas em toda a superfície.": [
-"Very low contrast: CDM-1 stretches p2–p98 and amplifies noise, producing false cracks over the whole surface.",
-"Contraste muy bajo: el CDM-1 estira p2–p98 y amplifica el ruido, generando fisuras falsas en toda la superficie.",
-"Contraste très faible : le CDM-1 étire p2–p98 et amplifie le bruit, produisant de fausses fissures sur toute la surface."
-],
-"Contraste suficiente.": [
-"Sufficient contrast.",
-"Contraste suficiente.",
-"Contraste suffisant."
-],
-"Cores neutras.": [
-"Neutral colours.",
-"Colores neutros.",
-"Couleurs neutres."
-],
-"Dominante de cor: tons quentes podem ser lidos como corrosão; frios, como eflorescência.": [
-"Colour cast: warm tones may be read as corrosion; cool ones as efflorescence.",
-"Dominante de color: los tonos cálidos pueden leerse como corrosión; los fríos, como eflorescencia.",
-"Dominante de couleur : les tons chauds peuvent être lus comme corrosion ; les froids comme efflorescence."
-],
-"Exposição equilibrada.": [
-"Balanced exposure.",
-"Exposición equilibrada.",
-"Exposition équilibrée."
-],
-"Faixa dinâmica (p2–p98)": [
-"Dynamic range (p2–p98)",
-"Rango dinámico (p2–p98)",
-"Plage dynamique (p2–p98)"
-],
-"Foco adequado.": [
-"Adequate focus.",
-"Enfoque adecuado.",
-"Mise au point correcte."
-],
-"Imagem tremida ou desfocada: bordas borradas geram máscaras largas e falsas.": [
-"Shaken or blurred image: blurred edges produce wide, false masks.",
-"Imagen movida o desenfocada: los bordes borrosos generan máscaras anchas y falsas.",
-"Image floue ou bougée : les bords flous génèrent des masques larges et faux."
-],
-"Nitidez moderada; pode subestimar largura e comprimento de fissuras.": [
-"Moderate sharpness; may underestimate crack width and length.",
-"Nitidez moderada; puede subestimar el ancho y la longitud de las fisuras.",
-"Netteté modérée ; peut sous-estimer la largeur et la longueur des fissures."
-],
-"O endereço do": [
-"The address of the",
-"La dirección del",
-"L’adresse du"
-],
-"O site público exige": [
-"The public site requires",
-"El sitio público exige",
-"Le site public exige"
-],
-"Pixels saturados não têm informação: detalhes de superfície foram perdidos nessas áreas.": [
-"Saturated pixels carry no information: surface details were lost in those areas.",
-"Los píxeles saturados no tienen información: los detalles de superficie se perdieron en esas áreas.",
-"Les pixels saturés ne portent aucune information : les détails de surface sont perdus dans ces zones."
-],
-"Recorte de sombras/realces": [
-"Shadow/highlight clipping",
-"Recorte de sombras/luces",
-"Écrêtage ombres/hautes lumières"
-],
-"Resolução adequada.": [
-"Adequate resolution.",
-"Resolución adecuada.",
-"Résolution adéquate."
-],
-"Resolução baixa: fissuras finas somem e ruído vira detecção.": [
-"Low resolution: fine cracks disappear and noise becomes detections.",
-"Resolución baja: las fisuras finas desaparecen y el ruido se vuelve detección.",
-"Résolution faible : les fissures fines disparaissent et le bruit devient détection."
-],
-"Resolução limitada para fissuras capilares; aproxime a câmera ou use mais pixels.": [
-"Limited resolution for hairline cracks; move the camera closer or use more pixels.",
-"Resolución limitada para fisuras capilares; acerque la cámara o use más píxeles.",
-"Résolution limitée pour les fissures capillaires ; rapprochez la caméra ou utilisez plus de pixels."
-],
-"Ruído": [
-"Noise",
-"Ruido",
-"Bruit"
-],
-"Ruído alto (ISO elevado/pouca luz): grão vira candidato a fissura.": [
-"High noise (high ISO/low light): grain becomes a crack candidate.",
-"Ruido alto (ISO elevado/poca luz): el grano se vuelve candidato a fisura.",
-"Bruit élevé (ISO élevé/peu de lumière) : le grain devient candidat fissure."
-],
-"Ruído baixo.": [
-"Low noise.",
-"Ruido bajo.",
-"Bruit faible."
-],
-"Ruído perceptível; prefira mais luz ou ISO menor.": [
-"Noticeable noise; prefer more light or lower ISO.",
-"Ruido perceptible; prefiera más luz o ISO menor.",
-"Bruit perceptible ; préférez plus de lumière ou un ISO plus bas."
-],
-"Selecione pelo menos um motor em Configurações.": [
-"Select at least one engine in Settings.",
-"Seleccione al menos un motor en Configuración.",
-"Sélectionnez au moins un moteur dans Réglages."
-],
-"Sem saturação relevante.": [
-"No relevant saturation.",
-"Sin saturación relevante.",
-"Aucune saturation notable."
-],
-"Subexposta: sombras são lidas como desplacamento/região escura.": [
-"Underexposed: shadows are read as spalling/dark region.",
-"Subexpuesta: las sombras se leen como desprendimiento/región oscura.",
-"Sous-exposée : les ombres sont lues comme épaufrure/région sombre."
-],
-"Superexposta: eflorescência e fissuras claras se perdem.": [
-"Overexposed: efflorescence and light cracks are lost.",
-"Sobreexpuesta: la eflorescencia y las fisuras claras se pierden.",
-"Surexposée : l’efflorescence et les fissures claires se perdent."
-],
-"acessível por HTTPS; endereços locais ou HTTP não funcionam para outros usuários.": [
-"reachable over HTTPS; local or HTTP addresses do not work for other users.",
-"accesible por HTTPS; las direcciones locales o HTTP no funcionan para otros usuarios.",
-"accessible en HTTPS ; les adresses locales ou HTTP ne fonctionnent pas pour d’autres utilisateurs."
-],
-"balanço de branco automático": [
-"automatic white balance",
-"balance de blancos automático",
-"balance des blancs automatique"
-],
-"deve usar HTTP ou HTTPS.": [
-"must use HTTP or HTTPS.",
-"debe usar HTTP o HTTPS.",
-"doit utiliser HTTP ou HTTPS."
-],
-"em Configurações → Conexão de execução.": [
-"in Settings → Execution connection.",
-"en Configuración → Conexión de ejecución.",
-"dans Réglages → Connexion d’exécution."
-],
-"executa somente no navegador e não tem adaptador no comparador cloud; remova-o da seleção para comparar ou rode-o individualmente.": [
-"runs only in the browser and has no adapter in the cloud comparator; remove it from the selection to compare or run it individually.",
-"se ejecuta solo en el navegador y no tiene adaptador en el comparador cloud; quítelo de la selección para comparar o ejecútelo individualmente.",
-"s’exécute uniquement dans le navigateur et n’a pas d’adaptateur dans le comparateur cloud ; retirez-le de la sélection pour comparer ou exécutez-le individuellement."
-],
-"exposição": [
-"exposure",
-"exposición",
-"exposition"
-],
-"média": [
-"mean",
-"media",
-"moyenne"
-],
-"não é uma URL válida.": [
-"is not a valid URL.",
-"no es una URL válida.",
-"n’est pas une URL valide."
-],
-"níveis": [
-"levels",
-"niveles",
-"niveaux"
-],
-"redução de ruído": [
-"noise reduction",
-"reducción de ruido",
-"réduction du bruit"
-],
-"rotação": [
-"rotation",
-"rotación",
-"rotation"
-],
-"saturação": [
-"saturation",
-"saturación",
-"saturation"
-],
-"sem correção": [
-"no correction",
-"sin corrección",
-"sans correction"
-],
-"serviço": [
-"service",
-"servicio",
-"service"
-],
-". Confirme em inspeção técnica.": [
-". Confirm in a technical inspection.",
-". Confirme en una inspección técnica.",
-". Confirmez par une inspection technique."
-],
-"Spalling": [
-"Spalling",
-"Desprendimiento",
-"Épaufrure"
-],
-"Campo do walker": [
-"Walker field",
-"Campo del walker",
-"Champ du walker"
-],
-"Campo do walker (CDM-4)": [
-"Walker field (CDM-4)",
-"Campo del walker (CDM-4)",
-"Champ du walker (CDM-4)"
-],
-"Campo do walker: selecione uma área 1:1 para ver setas, desvio angular, dispersão e coerência": [
-"Walker field: select a 1:1 area to see arrows, angular deviation, dispersion and coherence",
-"Campo del walker: seleccione un área 1:1 para ver flechas, desvío angular, dispersión y coherencia",
-"Champ du walker : sélectionnez une zone 1:1 pour voir flèches, écart angulaire, dispersion et cohérence"
-],
-"Campo do walker · disponível após uma análise do CDM-4": [
-"Walker field · available after a CDM-4 analysis",
-"Campo del walker · disponible tras un análisis del CDM-4",
-"Champ du walker · disponible après une analyse du CDM-4"
-],
-"Campo do walker: arraste um quadrado 1:1 sobre a imagem · Esc cancela": [
-"Walker field: drag a 1:1 square over the image · Esc cancels",
-"Campo del walker: arrastre un cuadrado 1:1 sobre la imagen · Esc cancela",
-"Champ du walker : glissez un carré 1:1 sur l’image · Échap annule"
-],
-"Resolvendo o walker em resolução cheia…": [
-"Solving the walker at full resolution…",
-"Resolviendo el walker en resolución completa…",
-"Résolution du walker en pleine résolution…"
-],
-"O random walker não gerou potencial nesta imagem.": [
-"The random walker produced no potential on this image.",
-"El random walker no generó potencial en esta imagen.",
-"Le random walker n’a produit aucun potentiel sur cette image."
-],
-"Nova seleção": [
-"New selection",
-"Nueva selección",
-"Nouvelle sélection"
-],
-"Painel 2×2": [
-"2×2 panel",
-"Panel 2×2",
-"Panneau 2×2"
-],
-"Baixar figura": [
-"Download figure",
-"Descargar figura",
-"Télécharger la figure"
-],
-"Campo do walker · setas −∇u": [
-"Walker field · −∇u arrows",
-"Campo del walker · flechas −∇u",
-"Champ du walker · flèches −∇u"
-],
-"Intensidade log₁₀ |∇u|": [
-"Intensity log₁₀ |∇u|",
-"Intensidad log₁₀ |∇u|",
-"Intensité log₁₀ |∇u|"
-],
-"ciano tracejado = motor · branco = resolução cheia": [
-"dashed cyan = engine · white = full resolution",
-"cian discontinuo = motor · blanco = resolución completa",
-"cyan pointillé = moteur · blanc = pleine résolution"
-],
-"Desvio angular": [
-"Angular deviation",
-"Desvío angular",
-"Écart angulaire"
-],
-"variância circular": [
-"circular variance",
-"varianza circular",
-"variance circulaire"
-],
-"0° = saindo do polo de dano": [
-"0° = leaving the damage pole",
-"0° = saliendo del polo de daño",
-"0° = sortant du pôle de dommage"
-],
-"amarelo = vetor médio (comprimento R)": [
-"yellow = mean vector (length R)",
-"amarillo = vector medio (longitud R)",
-"jaune = vecteur moyen (longueur R)"
-],
-"Dispersão local 1 − R": [
-"Local dispersion 1 − R",
-"Dispersión local 1 − R",
-"Dispersion locale 1 − R"
-],
-"0 = setas alinhadas · 1 = direções espalhadas": [
-"0 = aligned arrows · 1 = scattered directions",
-"0 = flechas alineadas · 1 = direcciones dispersas",
-"0 = flèches alignées · 1 = directions dispersées"
-],
-"Dispersão local da direção": [
-"Local direction dispersion",
-"Dispersión local de la dirección",
-"Dispersion locale de la direction"
-],
-"Área selecionada": [
-"Selected area",
-"Área seleccionada",
-"Zone sélectionnée"
-],
-"Walker em resolução cheia": [
-"Walker at full resolution",
-"Walker en resolución completa",
-"Walker en pleine résolution"
-],
-"global": [
-"global",
-"global",
-"global"
-],
-"Região": [
-"Region",
-"Región",
-"Région"
-],
-"Área motor": [
-"Engine area",
-"Área motor",
-"Surface moteur"
-],
-"Área cheia": [
-"Full-res area",
-"Área completa",
-"Surface pleine"
-],
-"Platô": [
-"Plateau",
-"Meseta",
-"Plateau"
-],
-"Nenhuma região de dano dentro da seleção.": [
-"No damage region inside the selection.",
-"Ninguna región de daño dentro de la selección.",
-"Aucune région de dommage dans la sélection."
-],
-"R ≥ 0,70: o potencial cai de forma ordenada do dano para o saudável.": [
-"R ≥ 0.70: the potential falls in an orderly way from damage to healthy.",
-"R ≥ 0,70: el potencial cae de forma ordenada del daño al sano.",
-"R ≥ 0,70 : le potentiel décroît de façon ordonnée du dommage vers le sain."
-],
-"R baixo ou |∇u| fraco: transição difusa; o limiar escolhe a borda.": [
-"Low R or weak |∇u|: diffuse transition; the threshold picks the edge.",
-"R bajo o |∇u| débil: transición difusa; el umbral elige el borde.",
-"R faible ou |∇u| faible : transition diffuse ; le seuil choisit le bord."
-],
-"Platô: fração da região sem gradiente (halo sem evidência).": [
-"Plateau: fraction of the region without gradient (halo without evidence).",
-"Meseta: fracción de la región sin gradiente (halo sin evidencia).",
-"Plateau : fraction de la région sans gradient (halo sans évidence)."
-],
-"Área motor: escala do motor · Área cheia: walker refeito na seleção.": [
-"Engine area: engine scale · Full-res area: walker re-solved in the selection.",
-"Área motor: escala del motor · Área completa: walker rehecho en la selección.",
-"Surface moteur : échelle du moteur · Surface pleine : walker recalculé dans la sélection."
 ]
 };

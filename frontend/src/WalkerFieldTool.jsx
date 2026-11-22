@@ -1,7 +1,8 @@
 import React,{useCallback,useEffect,useRef,useState}from"react";
-import{Download,RotateCcw,X}from"lucide-react";
+import{ChevronLeft,ChevronRight,Download,RotateCcw,X}from"lucide-react";
 import{__cdm4Test,cdm4Config,cdm4StageData}from"./cdm4Core.js";
-import{analyzeWalkerField}from"./cdm4FieldAnalysis.js";
+import{analyzeWalkerField,fieldIoU}from"./cdm4FieldAnalysis.js";
+import{classMask,usable}from"./annotationCore.js";
 import{FIELD_FIGURE_SIZE,figureArrows,figureDispersion,figurePanel,figureRose,figureTable}from"./cdm4FieldFigures.js";
 import{tr,getLang}from"./i18n.js";
 
@@ -13,15 +14,24 @@ async function decodeProcessed(file,W,H){
   const c=document.createElement("canvas");c.width=W;c.height=H;const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(bmp,0,0,W,H);bmp.close?.();
   return ctx.getImageData(0,0,W,H);
 }
+// GT do usuário (coordenadas da imagem original) → grade n×n da seleção (k px por célula da imagem processada).
+function gtInRoi(items,gtSize,W,F){
+  const sp=(items||[]).filter(a=>usable(a)&&a.cls==="spalling_dark");if(!sp.length)return null;
+  const s=W/Math.max(1,gtSize?.width||W),{x,y}=F.roi,k=F.k;
+  const moved=sp.map(a=>({...a,points:(a.points||[]).map(([px,py])=>[(px*s-x)/k,(py*s-y)/k]),width:(a.width||2)*s/k}));
+  return classMask(moved,"spalling_dark",F.n,F.n,1);
+}
 const toUrl=c=>new Promise(res=>c.toBlob(b=>res(b?URL.createObjectURL(b):c.toDataURL("image/png")),"image/png"));
 
-export default function WalkerFieldTool({active,onClose,result,file,options,canvasElement}){
-  const[phase,setPhase]=useState("select"),[drag,setDrag]=useState(null),[figs,setFigs]=useState(null),[err,setErr]=useState(""),[info,setInfo]=useState(null);
+export default function WalkerFieldTool({active,onClose,result,file,options,canvasElement,gtItems,gtSize}){
+  const[phase,setPhase]=useState("select"),[drag,setDrag]=useState(null),[figs,setFigs]=useState(null),[err,setErr]=useState(""),[info,setInfo]=useState(null),[zoom,setZoom]=useState(null);
   const start=useRef(null),urls=useRef([]);
   const release=()=>{for(const u of urls.current)if(u.startsWith("blob:"))URL.revokeObjectURL(u);urls.current=[]};
-  useEffect(()=>{if(active){setPhase("select");setDrag(null);setFigs(null);setErr("")}else release()},[active]);
+  useEffect(()=>{if(active){setPhase("select");setDrag(null);setFigs(null);setErr("");setZoom(null)}else release()},[active]);
   useEffect(()=>()=>release(),[]);
-  useEffect(()=>{if(!active)return;const k=e=>{if(e.key==="Escape"){e.stopPropagation();onClose?.()}};window.addEventListener("keydown",k,true);return()=>window.removeEventListener("keydown",k,true)},[active,onClose]);
+  useEffect(()=>{if(!active)return;const k=e=>{
+    if(zoom!=null){if(e.key==="Escape"){e.stopPropagation();setZoom(null)}else if(e.key==="ArrowRight"){e.stopPropagation();setZoom(z=>(z+1)%4)}else if(e.key==="ArrowLeft"){e.stopPropagation();setZoom(z=>(z+3)%4)}return}
+    if(e.key==="Escape"){e.stopPropagation();onClose?.()}};window.addEventListener("keydown",k,true);return()=>window.removeEventListener("keydown",k,true)},[active,onClose,zoom]);
 
   const imageRect=()=>{
     const imgs=[...(canvasElement?.current?.querySelectorAll("img")||[])].filter(i=>i.offsetParent!==null);
@@ -42,12 +52,13 @@ export default function WalkerFieldTool({active,onClose,result,file,options,canv
       const rw=d.random_walker;if(!rw?.prob)throw new Error(tr("O random walker não gerou potencial nesta imagem."));
       await new Promise(r=>setTimeout(r,20));
       const F=analyzeWalkerField(img.data,W,H,rw,roi);
+      F.iou=fieldIoU(F,gtInRoi(gtItems,gtSize,W,F));
       const list=[figureArrows(F),figureRose(F),figureDispersion(F),figureTable(F)];
       release();
       const u=await Promise.all([...list,figurePanel(list)].map(toUrl));urls.current=u;
-      setFigs({items:u.slice(0,4),panel:u[4]});setInfo({roi:F.roi,R:F.R,regions:F.regions.length,ms:F.ms,lang:getLang()});setPhase("done");
+      setFigs({items:u.slice(0,4),panel:u[4]});setInfo({roi:F.roi,R:F.R,regions:F.regions.length,ms:F.ms,lang:getLang(),iou:F.iou});setZoom(null);setPhase("done");
     }catch(e){setErr(String(e?.message||e));setPhase("select")}
-  },[file,result,options,W,H]);
+  },[file,result,options,W,H,gtItems,gtSize]);
 
   if(!active)return null;
   const onDown=e=>{if(e.button!==0)return;const r=imageRect();if(!r)return;e.currentTarget.setPointerCapture?.(e.pointerId);start.current={x:e.clientX,y:e.clientY,r};setDrag({x:e.clientX,y:e.clientY,s:0})};
@@ -71,10 +82,29 @@ export default function WalkerFieldTool({active,onClose,result,file,options,canv
           <a className="fieldToolBtn" href={figs.panel} download={"campo-walker-painel-"+(info?.lang||"pt")+".png"}><Download size={15}/> {tr("Painel 2×2")}</a>
           <button type="button" aria-label={tr("Fechar")} onClick={onClose}><X size={17}/></button>
         </header>
+        <IouTable q={info?.iou}/>
         <div className="fieldToolGrid">
-          {figs.items.map((u,i)=><figure key={i}><img src={u} alt=""/><a href={u} download={name(i)} title={tr("Baixar figura")}><Download size={14}/></a></figure>)}
+          {figs.items.map((u,i)=><figure key={i}><button type="button" className="fieldToolThumb" title={tr("Ampliar")} onClick={()=>setZoom(i)}><img src={u} alt=""/></button><a href={u} download={name(i)} title={tr("Baixar figura")}><Download size={14}/></a></figure>)}
         </div>
+        {zoom!=null&&<div className="fieldToolZoom" onClick={()=>setZoom(null)}>
+          <button type="button" className="fieldToolNav prev" aria-label={tr("Anterior")} onClick={e=>{e.stopPropagation();setZoom((zoom+3)%4)}}><ChevronLeft size={26}/></button>
+          <img src={figs.items[zoom]} alt="" onClick={e=>e.stopPropagation()}/>
+          <button type="button" className="fieldToolNav next" aria-label={tr("Próxima")} onClick={e=>{e.stopPropagation();setZoom((zoom+1)%4)}}><ChevronRight size={26}/></button>
+          <div className="fieldToolZoomBar" onClick={e=>e.stopPropagation()}><span>{zoom+1} / 4</span><a href={figs.items[zoom]} download={name(zoom)}><Download size={14}/> {tr("Baixar figura")}</a><button type="button" onClick={()=>setZoom(null)}><X size={15}/> {tr("Fechar")}</button></div>
+        </div>}
       </section>
     </div>}
   </>;
+}
+
+const pct=v=>v==null?"—":(v*100).toFixed(1)+" %";
+function IouTable({q}){
+  if(!q)return null;
+  if(q.mode!=="gt")return <div className="fieldToolIou"><table><thead><tr><th colSpan={2}>{tr("IoU na seleção (sem GT: concordância motor × cheia)")}</th></tr></thead>
+    <tbody><tr><td>{tr("IoU motor × cheia")}</td><td>{pct(q.agreement)}</td></tr><tr><td>{tr("Δ área")}</td><td>{q.area_delta==null?"—":(q.area_delta>=0?"+":"")+(q.area_delta*100).toFixed(1)+" %"}</td></tr></tbody></table>
+    <small>{tr("Anote o desplacamento (GT) para obter a IoU real de cada contorno.")}</small></div>;
+  const gain=(q.full.iou-q.engine.iou)*100;
+  return <div className="fieldToolIou"><table><thead><tr><th>{tr("IoU na seleção (contra o GT anotado)")}</th><th>{tr("IoU")}</th><th>{tr("Precisão")}</th><th>{tr("Revocação")}</th></tr></thead>
+    <tbody>{[[tr("Motor"),q.engine],[tr("Resolução cheia"),q.full]].map(([l,m])=><tr key={l}><td>{l}</td><td>{pct(m.iou)}</td><td>{pct(m.precision)}</td><td>{pct(m.recall)}</td></tr>)}</tbody></table>
+    <small>{tr("Ganho")}: {gain>=0?"+":""}{gain.toFixed(1)} pp</small></div>;
 }

@@ -7,7 +7,7 @@ import {randomWalkerProbability,randomWalkerSpalling} from "../src/cdm4RandomWal
 import {linearRebar} from "../src/cdm4Rebar.js";
 import {pigmentMaps,maskComposition} from "../src/cdm4Pigments.js";
 import {refineContourThresholds,symmetricBoundaryDistance} from "../src/cdm4Contour.js";
-import {analyzeWalkerField} from "../src/cdm4FieldAnalysis.js";
+import {analyzeWalkerField,fieldIoU,refineWalkerFullRes} from "../src/cdm4FieldAnalysis.js";
 
 // gerador determinístico
 let seed=12345;const rnd=()=>{seed=(seed*1103515245+12345)>>>0;return seed/4294967296};
@@ -94,6 +94,15 @@ const put=(d,w,x,y,c)=>{const i=4*(y*w+x);d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2]};
   const F2=analyzeWalkerField(img,w,h,{prob,W,H,threshold:.5},{x:20,y:20,size:120});
   assert.deepEqual(F2.regions,F.regions,"análise determinística");
   assert.equal(F.hist.length,36);
+  // IoU: sem GT → concordância motor × cheia; com GT (disco real r = 30) → cheia não pior que o motor
+  const A=fieldIoU(F);assert.equal(A.mode,"agreement");assert.ok(A.agreement>.5&&A.agreement<=1);
+  const gt=new Uint8Array(F.n*F.n);for(let y=0;y<F.n;y++)for(let x=0;x<F.n;x++)if(Math.hypot(x+20-80,y+20-80)<30)gt[y*F.n+x]=1;
+  const G=fieldIoU(F,gt);assert.equal(G.mode,"gt");assert.ok(G.full.iou>=G.engine.iou-.02,"resolução cheia acompanha o GT: "+G.full.iou.toFixed(3)+" vs "+G.engine.iou.toFixed(3));
+  // opção do motor: walker em resolução cheia por região
+  const m=new Uint8Array(w*h);for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(Math.hypot(x-80,y-80)<36)m[y*w+x]=1;
+  const R1=refineWalkerFullRes(img,w,h,{prob,W,H,threshold:.5},m),R2=refineWalkerFullRes(img,w,h,{prob,W,H,threshold:.5},m);
+  assert.equal(R1.log.regions,1);assert.deepEqual(R1.mask,R2.mask,"resolução cheia determinística");
+  let a=0;for(const v of R1.mask)a+=v;assert.ok(Math.abs(a-Math.PI*900)/(Math.PI*900)<.35,"máscara cheia segue a borda real ("+a+" px)");
 }
 
 // ---------- pigmentos ----------

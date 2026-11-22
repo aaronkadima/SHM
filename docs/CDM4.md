@@ -72,3 +72,23 @@ O botão de mira na barra de ferramentas do canvas fica ativo depois de uma aná
 4. tabela de coerência por região: área no motor, área em resolução cheia, R da faixa da fronteira, |∇u| mediano e fração de platô (halo sem evidência).
 
 Cada figura pode ser baixada em PNG, além de um painel 2 × 2 com as quatro. Em análises reabertas do histórico, o potencial é recalculado. No GT da foto 24, em quatro quadrados de 330 px ao longo do desplacamento, o walker em resolução cheia deu IoU de 65,4 → 70,2, 69,1 → 70,6, 74,3 → 74,3 e 71,2 → 75,8 %.
+
+## Walker em resolução cheia na fronteira (`cdm4_walker_fullres`, experimental, desligado por padrão)
+
+Para cada região de desplacamento (≥ 30 px), o walker é refeito pixel a pixel numa caixa com 24 px de margem,
+com os mesmos polos do motor (potencial global ≥ 0,999 → dano, ≤ 0,001 → saudável) e a borda da caixa presa
+ao lado decidido pelo motor. A decisão local (P > limiar) substitui a do motor dentro da caixa; exposição e
+eflorescência continuam vetadas. Quando ligado, dispensa o afinamento por limiar. Aparece como etapa própria.
+
+Foto 24 (GT): fluxo por evidência 68,4 → 70,7 de IoU (+0,7 s); fluxo padrão 64,2 → 62,8 — recomendado com o
+fluxo por evidência, cujos polos já vêm limpos.
+
+### IoU no Campo do walker
+
+A tabela da ferramenta mostra a IoU de cada contorno dentro da seleção:
+- **com GT anotado na sessão** (classe Desplacamento): IoU, precisão e revocação do motor e da resolução cheia,
+  e o ganho em pontos percentuais;
+- **sem GT**: IoU de concordância motor × resolução cheia e Δ de área — mede o quanto os contornos divergem,
+  não a acurácia.
+
+Clicar numa figura abre a ampliação (← → navegam, Esc fecha).

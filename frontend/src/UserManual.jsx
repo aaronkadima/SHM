@@ -30,30 +30,33 @@ function chapters(shortcuts){
     <Tbl head={["Motor","Tipo","Onde roda"]} rows={[
       ["CDM-1 (CDM 2.10)","morfologia matemática, sem treino","navegador (JS) · referência em Python"],
       ["CDM-3","fusão espacial / multivista para modelos 3D","navegador"],
+      ["CDM-4","CDM 2.11 + diversidade de Ataky + random walker + armadura linear (experimental)","navegador (Web Worker)"],
       ["OpenCV Crack Baseline","limiarização + bordas","navegador"],
       ["YOLO, U-Net, SegFormer, CrackenPy (públicos)","redes neurais ONNX","navegador (WebGPU/WASM)"],
       ["Grounding DINO, OWLv2, CLIPSeg, SAM2 …","vocabulário aberto","servidor opcional"]]}/>
-    <Note>Este manual descreve o comportamento do motor <b>CDM 2.10</b>, o padrão do Studio. Os demais motores aparecem em <i>Ajuda › Navegador de motores</i> (página de Configurações).</Note>
+    <Note>Este manual descreve o comportamento do motor <b>CDM 2.10</b>, o padrão do Studio. Os demais motores aparecem em <i>Ajuda › Navegador de motores</i> (página de Configurações). O <b>CDM-4</b> tem capítulo próprio.</Note>
   </>},
 
   {id:"ui",title:"Interface",kw:"menus barra lateral canvas painéis status",body:<>
     <FigInterface n={f()}/>
     <Tbl head={["Região","Função"]} rows={[
-      ["① Menus","Arquivo (importar, recentes com miniatura, salvar, imprimir, fechar, sair), Editar, Visualizar (modos, camadas, réguas), Análise (executar, motores, temporal), Ajuda."],
-      ["② Barra lateral","Ferramentas rápidas: importar, executar, caixas, rótulos, Original/Sobrepor/Deslizar/Lado a lado, régua, Live, câmera, paridade (ícone CDM) e Sobre."],
+      ["① Menus","Arquivo (importar, recentes com miniatura, salvar, imprimir, fechar, sair), Editar, Visualizar (modos, camadas, réguas), Análise (configurações, executar, anotação Ground Truth, Campo do walker do CDM-4, paridade), Ajuda."],
+      ["② Barra lateral","Ferramentas rápidas: importar, executar, caixas, rótulos, Original/Sobrepor/Deslizar/Lado a lado, régua, Live, câmera, paridade (ícone CDM), Campo do walker (mira, CDM-4) e Sobre."],
       ["③ Imagem","Propriedades do arquivo, resolução, escala mm/px, qualidade e ajustes de tom."],
       ["④ Resultados","Contagens por patologia, total, lista de achados com medidas; expande para o dobro da largura."],
       ["⑤ Canvas","Imagem com sobreposição das máscaras, caixas e rótulos; navegação estilo CAD."],
-      ["⑥ Etapas","Miniaturas de cada estágio do motor (cinza, black-hat, candidatos, esqueleto…)."],
+      ["⑥ Etapas","Miniaturas de cada estágio do motor (cinza, black-hat, candidatos, esqueleto…); clique para ampliar e baixar."],
       ["⑦ Réguas","Horizontal e vertical, graduadas em mm (ou px) conforme a escala configurada."],
-      ["⑧ Status","Mensagens, progresso do motor, zoom e coordenadas do cursor."]]}/>
+      ["⑧ Status","Mensagens, progresso do motor, idioma (PT · EN · ES · FR), zoom e coordenadas do cursor."]]}/>
+    <h3>Idioma</h3>
+    <p>O seletor <b>PT · EN · ES · FR</b> fica na barra de status, à esquerda do zoom. A troca vale na hora para menus, painéis, etapas e para as figuras e relatórios exportados (legendas, nomes de camadas do SVG e relatório HTML saem no idioma escolhido, com a vírgula ou o ponto decimal correspondente). A escolha fica guardada no navegador; o padrão é português. Este manual permanece em português.</p>
     <h3>Modos de visualização</h3>
     <ul>
       <li><b>Original</b> — só a imagem. <b>Sobrepor</b> — máscaras coloridas sobre a imagem.</li>
       <li><b>Deslizar</b> — cortina arrastável entre original e resultado. <b>Lado a lado</b> — as duas vistas sincronizadas.</li>
     </ul>
     <h3>Menu de contexto</h3>
-    <p>O botão direito sobre o canvas abre ações do ponto: ajustar à tela, alternar camadas, copiar coordenadas, abrir as propriedades do achado sob o cursor.</p>
+    <p>O botão direito sobre o canvas abre ações do ponto: ajustar à tela, alternar camadas, copiar coordenadas, abrir as propriedades do achado sob o cursor. A seção <i>Studio</i> do menu inclui executar, importar, Live, câmera, paridade, Campo do walker e configurações.</p>
     <h3>Ajuda contextual</h3>
     <p>Com <i>Ajuda › Ajuda por contexto</i> (<K>Shift+F1</K>) o cursor vira “?”; clique em qualquer controle para ver o que ele faz. <K>/</K> abre a busca de comandos e <K>?</K> os atalhos.</p>
   </>},
@@ -161,6 +164,49 @@ function chapters(shortcuts){
     <FigFamilies n={f()}/>
   </>},
 
+  {id:"cdm4",title:"Motor CDM-4 (experimental)",kw:"cdm-4 random walker grady ataky diversidade biodiversidade evidência polos armadura linear pigmentos beer lambert contorno resolução cheia campo setas coerência iou",body:<>
+    <p className="umLead">O <b>CDM-4</b> é um motor próprio, separado do CDM-1 e do CDM-3: parte de uma cópia do CDM 2.11 e acrescenta as etapas validadas em fotos reais de inspeção. Continua determinístico e sem pesos treinados na segmentação; a IA de contexto só exclui cena. Roda no navegador, num Web Worker, e é escolhido na página de Configurações (<i>CDM-4 · etapas do núcleo</i>).</p>
+    <Note kind="warn">Motor em validação: na foto de referência com Ground Truth, a IoU do desplacamento subiu de 26,6 (CDM 2.11) para cerca de 70 e a da armadura exposta de 13,2 para 53,6, mas ainda são poucas fotos anotadas. Confirme os achados em inspeção técnica.</Note>
+    <h3>Dois fluxos para o desplacamento</h3>
+    <Tbl head={["Fluxo","Sequência","Quando usar"]} rows={[
+      ["Morfologia (padrão)","CDM 2.11 → diversidade e biodiversidade (Ataky) → random walker → final","fotos em que a morfologia já acerta o núcleo do dano"],
+      ["Evidência","normalização contra o concreto saudável → polos por evidência → random walker → juiz de biodiversidade → contexto → final","quando a morfologia traz falsos núcleos que o walker espalharia; em geral dá contornos mais limpos"]]}/>
+    <p>No fluxo por evidência, a rugosidade (desvio-padrão local) e a diversidade de Ataky (entropia de Shannon de 56 “espécies” de luminância × matiz) são medidas em <M>{"z"}</M> contra o concreto saudável da própria foto. O polo de dano exige evidência forte e núcleo espesso (bordas finas e quinas saem); o polo saudável é o concreto típico. Depois do walker, cada região precisa se distinguir do entorno saudável pela biodiversidade, senão é descartada.</p>
+    <h3>Random walker (Grady)</h3>
+    <p>Com os polos fixados (dano = 1, saudável = 0), o potencial <M>{"u"}</M> de cada pixel é a probabilidade de um passeio aleatório chegar primeiro ao polo de dano. Ele minimiza a energia de Dirichlet sobre a grade, com pesos que caem nas bordas de cor e textura:</p>
+    <Eq n={e()}>{"\\min_u \\sum_{(i,j)} w_{ij}\\,(u_i - u_j)^2, \\quad w_{ij} = \\exp\\left(-\\beta\\,\\Vert g_i - g_j \\Vert^2\\right)"}</Eq>
+    <p>onde <M>{"g"}</M> reúne luminância, oponentes de cor e diversidade, em <M>{"z"}</M> robusto. O sistema <M>{"L_U\\,u_U = -B\\,u_S"}</M> é resolvido por gradiente conjugado com pré-condicionador de Jacobi. O desplacamento é <M>{"u > \\tau"}</M> (padrão 0,3 no fluxo por morfologia e 0,5 no fluxo por evidência). Em fotos com menos de 1000 px de lado o walker roda na escala da foto, sem reduzir.</p>
+    <h3>Opções do núcleo (Configurações › CDM-4)</h3>
+    <Tbl head={["Opção","Padrão","Efeito"]} rows={[
+      ["IA de contexto · F1, F4, F5","ligadas","terreno/água cercado pela estrutura vira neutro (F1); céu superexposto ligado à borda é excluído (F4); em close-up, “terreno” em mais de 50 % do quadro vira neutro (F5)"],
+      ["Canal de diversidade e refino por biodiversidade","ligados","desplacamento como comunidade anômala de cor e textura; borda comparada ao concreto saudável vizinho"],
+      ["Random walker","ligado","probabilidade de dano por pixel; limiar ajustável"],
+      ["Armadura exposta por abertura linear","ligada","vales escuros, estreitos e longos (black-hat 21, segmento de 61 px em 12 orientações) dentro do desplacamento"],
+      ["Walker em resolução cheia na fronteira","desligado","refaz o walker pixel a pixel em torno de cada desplacamento (caixa + 24 px), com os mesmos polos; dispensa o afinamento por limiar"],
+      ["Afinamento automático do contorno","desligado","limiar por região em passos de 0,08 a 0,005 (±0,1) até a fronteira estabilizar (distância simétrica < 0,25 px)"],
+      ["Pigmentos por Beer–Lambert","ligado","composição neutro / ferrugem / biológico de cada achado; só diagnóstico, não altera máscaras"]]}/>
+    <Note>Na foto de referência, o <b>walker em resolução cheia</b> levou a IoU do desplacamento de 68,4 para 70,7 no fluxo por evidência (+0,7 s), mas baixou de 64,2 para 62,8 no fluxo por morfologia, porque ali os polos podem carregar falsos núcleos. Use-o com o fluxo por evidência. Ligado, ele tem prioridade sobre o afinamento do contorno.</Note>
+    <h3>Etapas do CDM-4</h3>
+    <p>O painel de etapas mostra, conforme o fluxo: entrada, evidências (rugosidade e diversidade) ou morfologia 2.11, polos, potencial do random walker com legenda de intensidade, juiz de biodiversidade, walker em resolução cheia ou afinamento do contorno (quando ligados), desplacamento final, armadura linear e pigmentos. Todas as figuras têm o mesmo tamanho, texto numa faixa semitransparente inferior e legenda horizontal; clique para ampliar e baixar no idioma ativo.</p>
+    <h3>Campo do walker</h3>
+    <p>Ferramenta de análise do potencial, disponível depois de uma análise do CDM-4: ícone de mira na barra lateral, <i>Análise › Campo do walker (CDM-4)</i> ou menu de contexto. Arraste um <b>quadrado 1:1</b> sobre a imagem (<K>Esc</K> cancela). Dentro dele o walker é refeito em <b>resolução cheia</b>, com os polos do motor (<i>u</i> ≥ 0,999 dano, <i>u</i> ≤ 0,001 saudável) e a borda do quadrado presa ao lado que o motor decidiu. Saem quatro figuras de 640 × 640 px:</p>
+    <Tbl head={["Figura","Conteúdo"]} rows={[
+      ["1 · Setas −∇u",<>malha de setas do campo, coloridas por <M>{"\\log_{10}|\\nabla u|"}</M>; contorno ciano tracejado = motor, branco = resolução cheia</>],
+      ["2 · Desvio angular","rosa de 36 setores do ângulo entre cada seta e a direção que sai do polo de dano mais próximo; amarelo = vetor médio"],
+      ["3 · Dispersão local","1 − R numa janela 9 × 9: 0 = setas alinhadas, 1 = direções espalhadas"],
+      ["4 · Coerência por região","área do motor e da resolução cheia, R, |∇u| mediano e fração de platô de cada região, mais a tabela de IoU"]]}/>
+    <Eq n={e()}>{"R = \\frac{1}{n}\\left|\\sum_{k=1}^{n} e^{\\,i\\,\\theta_k}\\right|, \\qquad \\text{dispersão local} = 1 - R_{9\\times 9}"}</Eq>
+    <p><b>R ≥ 0,70</b>: o potencial cai de forma ordenada do dano para o saudável e a borda é confiável. R baixo ou |∇u| fraco indicam transição difusa, em que o limiar decide a borda; o <b>platô</b> é a parte da região sem gradiente (halo sem evidência).</p>
+    <h4>Contorno do motor × resolução cheia</h4>
+    <p>O motor resolve o walker em escala reduzida (cerca de 1600 px de lado) e amplia; por isso a borda ciana tem degraus e pode avançar alguns pixels sobre o concreto saudável. A borda branca é o mesmo problema resolvido pixel a pixel só dentro do quadrado: mesmos polos, mais detalhe na fronteira.</p>
+    <h4>Tabela de IoU (figura 4)</h4>
+    <ul>
+      <li><b>Com Ground Truth</b> anotado na sessão (classe Desplacamento, em qualquer escala): IoU, precisão e revocação do contorno do motor e do de resolução cheia, só dentro do quadrado, e o ganho em pontos percentuais.</li>
+      <li><b>Sem Ground Truth</b>: IoU de concordância motor × resolução cheia e Δ de área. Mede quanto os dois contornos divergem, não a acurácia; anote o desplacamento para obter a IoU real.</li>
+    </ul>
+    <p>Clique numa figura para ampliá-la (<K>←</K> <K>→</K> navegam, <K>Esc</K> fecha). Cada figura e o <b>painel 2×2</b> podem ser baixados em PNG, no idioma ativo; <i>Nova seleção</i> recomeça.</p>
+  </>},
+
   {id:"results",title:"Regiões, caixas e resultados",kw:"consolidação caixa rótulo resultado achados lista medidas",body:<>
     <p>Cada componente conexo vira um <b>achado</b> com identificador (por exemplo, <code>F1</code> fissura, <code>D2</code> desplacamento, <code>A1</code> armadura, <code>C3</code> corrosão, <code>E1</code> eflorescência), caixa delimitadora, área, centroide e — para fissuras — comprimento e largura média.</p>
     <h3>Consolidação</h3>
@@ -227,7 +273,7 @@ function chapters(shortcuts){
   </>},
 
   {id:"gt",title:"Anotação Ground Truth (few-shot)",kw:"anotação ground truth few-shot multiescala coco máscara recorte avaliar iou dice cldice",body:<>
-    <p>A ferramenta de anotação (ícone de caneta na barra lateral ou <i>Análise › Anotação Ground Truth</i>) cria o Ground Truth de poucas imagens bem anotadas, usado para medir o CDM e treinar pesos próprios.</p>
+    <p>A ferramenta de anotação (ícone de caneta na barra lateral ou <i>Análise › Anotação Ground Truth</i>) cria o Ground Truth de poucas imagens bem anotadas, usado para medir o CDM (inclusive dentro do <i>Campo do walker</i> do CDM-4, que usa a anotação de desplacamento da sessão) e treinar pesos próprios.</p>
     <h3>Três níveis de escala</h3>
     <Tbl head={["Nível","Zoom","Classes","Ferramentas"]} rows={[
       ["Cena","1×","estrutura · irrelevante","polígono, Bézier, B-spline, pincel"],

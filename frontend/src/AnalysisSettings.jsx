@@ -37,6 +37,29 @@ function ContextAiCard({cdmOptions,setCdmOptions}){
   </details>;
 }
 
+// CDM-4 · imagem 2D: etapas novas do núcleo próprio (cada uma pode ser desligada para auditoria/ablação).
+function Cdm4Card({cdmOptions,setCdmOptions}){
+  const o=cdmOptions||{},set=(k,v)=>setCdmOptions(x=>({...x,[k]:v})),on=k=>o[k]!==false;
+  const steps=[
+    ["cdm4_context_f1","IA de contexto · terreno/água cercado pela estrutura vira neutro","F1: evita apagar concreto desplacado ou úmido lido como “earth/water”"],
+    ["cdm4_context_sky","IA de contexto · céu superexposto excluído","F4: R, G e B ≥ 245 ligados à borda da foto"],
+    ["cdm4_diversity","Canal de diversidade (Ataky)","desplacamento como comunidade anômala de cor e textura"],
+    ["cdm4_biodiversity","Refino de borda por biodiversidade","compara a borda com o concreto saudável vizinho"],
+    ["cdm4_random_walker","Random walker no desplacamento","probabilidade de dano por pixel a partir de polos dano/saudável"],
+    ["cdm4_linear_rebar","Armadura exposta por abertura linear","vales escuros, estreitos e longos dentro do desplacamento"],
+    ["cdm4_pigments","Pigmentos por Beer–Lambert (diagnóstico)","composição neutro/ferrugem/biológico de cada achado; não altera máscaras"]
+  ];
+  return <details className="analysisSettingsCard" open><summary>CDM-4 · etapas do núcleo</summary>
+    <p>Núcleo próprio do CDM-4, copiado do CDM 2.11 (CDM-1 e CDM-3 espacial seguem inalterados) e estendido com as etapas validadas em fotos reais. Determinístico e sem pesos treinados na segmentação; a IA de contexto só exclui cena.</p>
+    <div className="settingsGrid">
+      {steps.map(([k,t,h])=><label key={k} className="settingsCheck"><input type="checkbox" checked={on(k)} onChange={e=>set(k,e.target.checked)}/> {t} <small>({h})</small></label>)}
+      <label className="settingsField">Erosão da exclusão de contexto (células do mapa)<input type="number" min="0" max="4" step="0.5" value={o.cdm4_context_erode_cells??0.5} onChange={e=>set("cdm4_context_erode_cells",Math.max(0,Math.min(4,Number(e.target.value)||0)))}/></label>
+      <label className="settingsField">Random walker · limiar de probabilidade<input type="range" min="0.1" max="0.7" step="0.05" value={o.cdm4_rw_threshold??0.3} disabled={!on("cdm4_random_walker")} onChange={e=>set("cdm4_rw_threshold",Number(e.target.value))}/><small>{Number(o.cdm4_rw_threshold??0.3).toFixed(2)}</small></label>
+      <label className="settingsField">Armadura · percentil de escuridão na zona<input type="number" min="5" max="40" step="5" value={o.cdm4_rebar_percentile??15} disabled={!on("cdm4_linear_rebar")} onChange={e=>set("cdm4_rebar_percentile",Math.max(5,Math.min(40,Number(e.target.value)||15)))}/></label>
+    </div>
+  </details>;
+}
+
 export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack,individualDraft,setIndividualDraft,comparatorDraft,setComparatorDraft,saveIndividual,saveComparator,testIndividual,testComparator,individualOnline,comparatorOnline,inspectionMeta,updateInspectionMeta,cdmOptions,setCdmOptions,embedded=false,rulers={visible:false,unit:"mm"},setRulers=null,error}){
   const ownedEngines=engines.filter(e=>e.catalog_owned===true);
   const otherEngines=engines.filter(e=>e.catalog_owned!==true);
@@ -164,7 +187,7 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
       <div className="settingsHeading"><Settings2 size={22}/><div><h1>Configurações da análise</h1><p>Defina os motores antes de executar a inspeção.</p></div></div>
       <div className="analysisSettingsCard settingsMotorsCard"><h2>Motores disponíveis</h2><p>Um motor executa uma análise individual. Dois ou mais ativam a comparação.</p>
         <div className="settingsOwnedGroup">
-          <div className="settingsGroupTitle"><span>MOTORES PRÓPRIOS</span><small>CDM-1 determinístico + CDM-3 espacial 2D/3D</small></div>
+          <div className="settingsGroupTitle"><span>MOTORES PRÓPRIOS</span><small>CDM-1 determinístico + CDM-3 espacial 2D/3D + CDM-4 imagem 2D</small></div>
           {ownedEngines.length?ownedEngines.map(engine=><EngineCard key={engine.id} engine={engine} owned/>):<div className="settingsCatalogError">Nenhum motor próprio CDM foi encontrado no catálogo carregado nesta versão.</div>}
         </div>
         <div className="settingsGroupTitle settingsOtherTitle"><span>OUTROS MOTORES</span><small>{otherEngines.length} registrados</small></div>
@@ -176,7 +199,8 @@ export default function AnalysisSettings({appInfo,engines,selected,toggle,onBack
         <label className="settingsField">Tipo de elemento<select value={cdmOptions.cdm_element_family} onChange={e=>setCdmOptions(v=>({...v,cdm_element_family:e.target.value}))}><option value="barreiras_guarda_corpo_pista">Barreiras/pista · Fr=1</option><option value="juntas_dilatacao">Juntas · Fr=2</option><option value="transversinas_cortinas_alas">Transversinas/cortinas · Fr=3</option><option value="lajes_vigas_secundarias_apoios">Lajes/vigas secundárias/apoios · Fr=4</option><option value="vigas_pilares_principais">Vigas/pilares principais · Fr=5</option></select></label>
         <label className="settingsField">Alinhamento temporal<select value={cdmOptions.cdm_alignment_method||"translation_auto"} onChange={e=>setCdmOptions(v=>({...v,cdm_alignment_method:e.target.value}))}><option value="translation_auto">Automático · translação t0→t1</option><option value="resize">Somente redimensionar</option></select><small>O modo automático corrige translação da câmera antes de medir crescimento/redução e recua para redimensionamento quando não encontra ganho confiável. O CDM-1 também verifica sobreposição, iluminação, nitidez e exposição antes de considerar a mudança temporal válida. Rotação, mudança de escala e perspectiva ainda exigem captura compatível ou revisão externa.</small></label>
       </div></details>}
-      {(selected.includes("cdm_1")||selected.includes("cdm_3"))&&<ContextAiCard cdmOptions={cdmOptions} setCdmOptions={setCdmOptions}/>}
+      {selected.includes("cdm_4")&&<Cdm4Card cdmOptions={cdmOptions} setCdmOptions={setCdmOptions}/>}
+      {(selected.includes("cdm_1")||selected.includes("cdm_3")||selected.includes("cdm_4"))&&<ContextAiCard cdmOptions={cdmOptions} setCdmOptions={setCdmOptions}/>}
       <RulerScaleCard cdmOptions={cdmOptions} setCdmOptions={setCdmOptions} rulers={rulers} setRulers={setRulers}/>
       <details className="analysisSettingsCard" open={needsIndividual||needsComparator}><summary>Conexão de execução</summary>
         {selected.length===0&&<p>Selecione pelo menos um motor para definir o modo de execução.</p>}

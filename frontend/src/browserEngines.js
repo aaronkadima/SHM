@@ -1,5 +1,6 @@
 import{runCdmBrowser}from"./cdmBrowser.js";
 import{runCdm3SpatialBrowser}from"./cdm3SpatialBrowser.js";
+import{runCdm4Browser}from"./cdm4Core.js";
 import{spatialExtension}from"./spatialAsset.js";
 import{opencvCrackCore}from"./opencvCore.js";
 import{getSession,runCrackenPyBrowser,runSegformerBrowser,runUnetCrackBrowser,runYolov8nCrackSegBrowser}from"./onnxBrowser.js";
@@ -39,10 +40,12 @@ async function runOpenCVBaseline(file){
   };
 }
 
-export function browserEngineSupported(engineId){return engineId==="opencv_crack"||engineId==="cdm_1"||engineId==="cdm_3"||engineId==="segformer_public_crack"||engineId==="yolov8n_public_crack_seg"||engineId==="unet_public_crack"||engineId==="crackenpy_public_crack"}
+export function browserEngineSupported(engineId){return engineId==="opencv_crack"||engineId==="cdm_1"||engineId==="cdm_3"||engineId==="cdm_4"||engineId==="segformer_public_crack"||engineId==="yolov8n_public_crack_seg"||engineId==="unet_public_crack"||engineId==="crackenpy_public_crack"}
 export async function runBrowserEngine(engineId,file,options={},previousFile=null,control={}){
   if(engineId==="opencv_crack")return runOpenCVBaseline(file);
   if(engineId==="cdm_1")return runCdmBrowser(file,options,previousFile,withContext(control));
+  // CDM-4: núcleo próprio (cópia do CDM 2.11 + etapas validadas); CDM-1 e CDM-3 espacial inalterados.
+  if(engineId==="cdm_4")return runCdm4Browser(file,options,previousFile,withContext(control));
   if(engineId==="cdm_3"){
     if(spatialExtension(file))return runCdm3SpatialBrowser(file,{...control,rgbReferenceFile:options?.rgbReferenceFile||null});
     const payload=await runCdmBrowser(file,options,null,withContext(control));
@@ -51,7 +54,7 @@ export async function runBrowserEngine(engineId,file,options={},previousFile=nul
       result.engine_id="cdm_3";
       result.name="CDM-3";
       result.task="semantic_segmentation";
-      result.metrics={...(result.metrics||{}),implementation:"CDM-3 3.0.0-dev",runtime_mode:"morphology_bootstrap",experimental:true,stage_c_ai_ready:false,spatial_backend_required_for:["LAS/LAZ","IFC resolve","IFC export"]};
+      result.metrics={...(result.metrics||{}),implementation:"CDM-4 4.0.0-dev",runtime_mode:"morphology_bootstrap",experimental:true,stage_c_ai_ready:false,spatial_backend_required_for:["LAS/LAZ","IFC resolve","IFC export"]};
       result.message="CDM-3 DEV no navegador: bootstrap morfológico CDM-1 ativo; checkpoint Stage-C IA ainda não foi promovido. Nenhum resultado de IA é simulado.";
     }
     payload.metadata={...(payload.metadata||{}),engine_ids:["cdm_3"],implementation:"cdm-3-dev-browser-bootstrap"};

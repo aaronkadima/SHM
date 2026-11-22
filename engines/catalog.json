@@ -75,6 +75,29 @@
       ]
     },
     {
+      "id": "cdm_4",
+      "name": "CDM-4",
+      "family": "Concrete Damage Morphology",
+      "task": "classical",
+      "description": "CDM-4 4.0.0 · imagem 2D: núcleo morfológico CDM 2.11 copiado (CDM-1 e CDM-3 espacial inalterados) com IA de contexto corrigida (terreno/água cercado pela estrutura = neutro, erosão de 0,5 célula, céu superexposto excluído), canal de diversidade e refino de borda pelos índices de biodiversidade de Ataky, random walker de Grady no contorno do desplacamento, armadura exposta por abertura linear em 12 orientações e pigmentos por Beer–Lambert (neutro, ferrugem, biológico) como diagnóstico. Determinístico, sem pesos treinados na segmentação; execução no navegador.",
+      "recommended": false,
+      "cloud_verified": false,
+      "domain_mode": "classical",
+      "browser_ready": true,
+      "browser_runtime": "browser-js-cdm4-4.0.0",
+      "catalog_visibility": "always",
+      "catalog_group": "CDM / determinístico",
+      "catalog_owned": true,
+      "dev_only": true,
+      "stage": "dev",
+      "live_ready": false,
+      "browser_limitations": [
+        "Validated on 20 field photos and a single author ground truth (photo 24); calibration with more ground truth is pending",
+        "Random walker also expands false spalling seeds; each new stage can be switched off in the settings",
+        "No Python twin yet: the backend does not run CDM-4"
+      ]
+    },
+    {
       "id": "yolov8_public_crack",
       "name": "YOLO Crack Detector (public)",
       "family": "Ultralytics / Hugging Face",

@@ -91,16 +91,17 @@ function abortableDelay(ms,signal){
   });
 }
 function exportCdm(result,fileName,format,inspection={}){
-  if(result?.engine_id!=="cdm_1")return;
+  if(result?.engine_id!=="cdm_1"&&result?.engine_id!=="cdm_4")return;
+  const prefix=result.engine_id==="cdm_4"?"cdm-4":"cdm-1";
   const payload={...result,width:result.metrics?.processed_width,height:result.metrics?.processed_height};
   try{
-    if(format==="svg")downloadBlob("cdm-1-camadas.svg","image/svg+xml;charset=utf-8",buildCdmSvg(payload));
-    if(format==="csv")downloadBlob("cdm-1-resultados.csv","text/csv;charset=utf-8",buildCdmCsv(payload));
-    if(format==="coco")downloadBlob("cdm-1-coco.json","application/json",JSON.stringify(buildCdmCoco(payload,fileName),null,2));
-    if(format==="dxf")downloadBlob("cdm-1-camadas.dxf","application/dxf;charset=utf-8",buildCdmDxf(payload));
-    if(format==="bim")downloadBlob("cdm-1-bim-overlay.json","application/json",JSON.stringify(buildCdmBimJson(payload,inspection),null,2));
-    if(format==="ifc")downloadBlob("cdm-1-anotacoes.ifc","application/x-step;charset=utf-8",buildCdmIfc(payload,inspection));
-    if(format==="html")downloadBlob("cdm-1-relatorio.html","text/html;charset=utf-8",buildCdmHtml(payload,fileName,inspection));
+    if(format==="svg")downloadBlob(prefix+"-camadas.svg","image/svg+xml;charset=utf-8",buildCdmSvg(payload));
+    if(format==="csv")downloadBlob(prefix+"-resultados.csv","text/csv;charset=utf-8",buildCdmCsv(payload));
+    if(format==="coco")downloadBlob(prefix+"-coco.json","application/json",JSON.stringify(buildCdmCoco(payload,fileName),null,2));
+    if(format==="dxf")downloadBlob(prefix+"-camadas.dxf","application/dxf;charset=utf-8",buildCdmDxf(payload));
+    if(format==="bim")downloadBlob(prefix+"-bim-overlay.json","application/json",JSON.stringify(buildCdmBimJson(payload,inspection),null,2));
+    if(format==="ifc")downloadBlob(prefix+"-anotacoes.ifc","application/x-step;charset=utf-8",buildCdmIfc(payload,inspection));
+    if(format==="html")downloadBlob(prefix+"-relatorio.html","text/html;charset=utf-8",buildCdmHtml(payload,fileName,inspection));
     if(format==="aligned_t0"&&result.metrics?.temporal?.aligned_reference_png_base64)saveBase64("cdm-1-t0-alinhado.png",result.metrics.temporal.aligned_reference_png_base64);
   }catch(e){window.alert(e?.message||String(e))}
 }
@@ -664,7 +665,7 @@ export default function App(){
       updateProgress({state:"running",completed:0,total:100,current_engine:(meta.name||engineId)+" · preparando"});
       return await runBrowserEngine(
         engineId,sourceFile,
-        engineId==="cdm_1"?cdmOptions:engineId==="cdm_3"?{...cdmOptions,rgbReferenceFile:spatialRgbFile,photometricViewCount:spatialPhotoViews.length}:{},
+        engineId==="cdm_1"||engineId==="cdm_4"?cdmOptions:engineId==="cdm_3"?{...cdmOptions,rgbReferenceFile:spatialRgbFile,photometricViewCount:spatialPhotoViews.length}:{},
         engineId==="cdm_1"?sourceReference:null,
         {signal,onProgress:updateProgress,channel:APP_CHANNEL,buildSha:BUILD_SHA}
       );

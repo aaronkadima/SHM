@@ -99,7 +99,7 @@ export async function saveInspection({result,file,referenceFile,referenceInspect
   const now=new Date().toISOString();
   const id=String(result.metadata?.analysis_id||("inspection-"+crypto.randomUUID()));
   const created_at=result.metadata?.generated_at||now;
-  const cdmResult=(result.results||[]).find(r=>r.engine_id==="cdm_1")||null;
+  const cdmResult=(result.results||[]).find(r=>r.engine_id==="cdm_1")||(result.results||[]).find(r=>r.engine_id==="cdm_4")||null;
   const cdmTemporal=cdmResult?.metrics?.temporal||null;
   const temporalAlignment=cdmTemporal?.alignment||null;
   const temporalQuality=cdmTemporal?.quality||null;

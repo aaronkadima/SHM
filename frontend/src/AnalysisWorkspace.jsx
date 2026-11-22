@@ -354,7 +354,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   const shown=results.filter(r=>visible[r.engine_id]!==false);
   const chosen=shown.find(r=>r.engine_id===active)||shown[0];
   const basePreview=correctionPreview||localPreview||prev;
-  const pathologyEngineId=(chosen?.engine_id==="cdm_1"||chosen?.engine_id==="cdm_3")?chosen.engine_id:null;
+  const pathologyEngineId=(chosen?.engine_id==="cdm_1"||chosen?.engine_id==="cdm_3"||chosen?.engine_id==="cdm_4")?chosen.engine_id:null;
   const pathologyLayers=pathologyEngineId?chosen.metrics?.layers||[]:[];
   const pathologyIdsKey=pathologyLayers.map(layer=>layer.id).join("|");
   useEffect(()=>{
@@ -957,7 +957,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   }
   const showRulers=!!rulers.visible&&!!file&&kind==="2d"&&!aulasOpen;
   const annotationActive=annotating&&!!file&&kind==="2d"&&!aulasOpen;
-  const gtCdmResult=results.find(r=>r.engine_id==="cdm_1")||results.find(r=>r.engine_id==="cdm_3")||null;
+  const gtCdmResult=results.find(r=>r.engine_id==="cdm_1")||results.find(r=>r.engine_id==="cdm_4")||results.find(r=>r.engine_id==="cdm_3")||null;
   const gtPreviewMmPerPx=findingMmPerPx>0?findingMmPerPx*(Number(gtCdmResult?.metrics?.processed_width)||imageSize.width)/Math.max(1,imageSize.width):0;
   const rulerMmPerPx=Math.max(0,Number(cdmOptions?.cdm_mm_per_px)||0);
   // ---------- Arquivo: imprimir; Ajuda: contexto, comandos e atalhos ----------

@@ -1,6 +1,12 @@
 import cdmBrowserSource from "./cdmBrowser.js?raw";
 import cdm3SpatialBrowserSource from "./cdm3SpatialBrowser.js?raw";
 import spatialAssetSource from "./spatialAsset.js?raw";
+import cdm4CoreSource from "./cdm4Core.js?raw";
+import cdm4SceneSource from "./cdm4Scene.js?raw";
+import cdm4BiodiversitySource from "./cdm4Biodiversity.js?raw";
+import cdm4RandomWalkerSource from "./cdm4RandomWalker.js?raw";
+import cdm4RebarSource from "./cdm4Rebar.js?raw";
+import cdm4PigmentsSource from "./cdm4Pigments.js?raw";
 import browserEnginesSource from "./browserEngines.js?raw";
 import onnxBrowserSource from "./onnxBrowser.js?raw";
 
@@ -248,6 +254,23 @@ export function engineCodePackage(engine){
         "Ler XYZ e extrair coordenadas IFC para prévia espacial no canvas.",
         "Recentralizar apenas a prévia 3D, mantendo bounds/origem absolutos nos metadados.",
         "Serializar o ativo espacial no contrato SHM e encaminhar o pipeline profundo ao backend CDM-3."
+      ])+repositorySource
+    };
+  }
+  if(engine.id==="cdm_4"){
+    const repositorySource=[cdm4CoreSource,cdm4SceneSource,cdm4BiodiversitySource,cdm4RandomWalkerSource,cdm4RebarSource,cdm4PigmentsSource].join("\n\n");
+    return {
+      kind:"Código real · CDM-4 · browser",
+      language:"javascript",
+      fileName:"cdm-4-browser.js",
+      repositoryPath:"frontend/src/cdm4Core.js + cdm4Scene.js + cdm4Biodiversity.js + cdm4RandomWalker.js + cdm4Rebar.js + cdm4Pigments.js",
+      repositorySource,
+      source:commentHeader(engine,"código real do núcleo de imagem 2D",[
+        "Morfologia CDM 2.11 copiada: cinco famílias, separação hierárquica e vetorização (CDM-1 inalterado).",
+        "IA de contexto corrigida: terreno/água cercado = neutro, erosão de 0,5 célula, céu superexposto excluído.",
+        "Canal de diversidade e refino de borda pelos índices de biodiversidade de Ataky (2022).",
+        "Random walker de Grady (2006) no desplacamento, com polos dano/saudável definidos pelo próprio CDM.",
+        "Armadura exposta por abertura linear em 12 orientações; pigmentos por Beer–Lambert como diagnóstico."
       ])+repositorySource
     };
   }

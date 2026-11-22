@@ -851,8 +851,8 @@ body:has(.liveCam){overflow:hidden}
 .engineStagesHead span{font-size:10px;font-weight:700;background:#e7f4f1;color:#0d766e;border-radius:999px;padding:1px 6px}
 .engineStagesList{overflow:auto;padding:0 7px 8px;display:flex;flex-direction:column;gap:7px}
 .engineStageThumb{border:0;background:transparent;padding:0;cursor:zoom-in;display:flex;flex-direction:column;gap:3px;text-align:left}
-.engineStageImg{display:block;width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:#12202a center/cover no-repeat;border:1px solid #dbe5e7;transition:border-color .15s,transform .15s}
-.engineStageImg img{width:100%;height:100%;object-fit:cover;display:block}
+.engineStageImg{display:block;width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:#12202a center/contain no-repeat;border:1px solid #dbe5e7;transition:border-color .15s,transform .15s}
+.engineStageImg img{width:100%;height:100%;object-fit:contain;display:block}
 .engineStageThumb:hover .engineStageImg{border-color:#0d766e;transform:translateY(-1px)}
 .engineStageThumb small{font-size:11px;line-height:1.25;color:#5d7380;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .engineStageSkeleton{display:block;width:100%;aspect-ratio:4/3;border-radius:6px;background:linear-gradient(90deg,#eef3f5,#f8fafb,#eef3f5);background-size:200% 100%;animation:stageShimmer 1.2s linear infinite}

@@ -38,7 +38,7 @@ function heat(v){const t=clamp(v,0,1)*(HEAT.length-1),i=Math.min(HEAT.length-2,M
 function heatUrl(prob,w,h){
   const c=canvas(w,h),ctx=c.getContext("2d"),img=ctx.createImageData(w,h);
   for(let i=0,j=0;i<w*h;i++,j+=4){const[r,g,b]=heat(prob[i]);img.data[j]=r;img.data[j+1]=g;img.data[j+2]=b;img.data[j+3]=255}
-  ctx.putImageData(img,0,0);return url(c);
+  ctx.putImageData(img,0,0);c.__legend={stops:HEAT,min:0,max:1,ticks:[0,.25,.5,.75,1],title:"Probabilidade"};return url(c);
 }
 function overlayUrl(base,draw){const c=canvas(base.width,base.height),ctx=c.getContext("2d");ctx.drawImage(base,0,0);ctx.fillStyle="rgba(8,16,22,.45)";ctx.fillRect(0,0,c.width,c.height);draw(ctx,c.width,c.height);return url(c)}
 function maskOverlay(ctx,mask,mw,mh,W,H,color){
@@ -100,25 +100,14 @@ const INFERNO=[[0,0,4],[40,11,84],[101,21,110],[159,42,99],[212,72,66],[245,125,
 const ORANGES=[[255,245,235],[253,208,162],[253,141,60],[217,72,1],[127,39,4]];
 const GREENS=[[247,252,245],[199,233,192],[116,196,118],[35,139,69],[0,68,27]];
 function ramp(stops,v){const t=clamp(v,0,1)*(stops.length-1),i=Math.min(stops.length-2,Math.floor(t)),f=t-i,a=stops[i],b=stops[i+1];return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f]}
-// Mapa escalar com barra de legenda de intensidade à direita (título, marcas e limiar opcional).
-function scalarWithLegend(values,w,h,{stops=INFERNO,min=0,max=1,title="",subtitle="",ticks=[0,.2,.4,.6,.8,1],threshold=null,thresholdLabel="",outW=null}={}){
+// Mapa escalar na resolução da imagem; a legenda de intensidade (horizontal) é desenhada na banda
+// inferior por finalize(), igual para todas as etapas.
+function scalarWithLegend(values,w,h,{stops=INFERNO,min=0,max=1,title="",subtitle="",ticks=[0,.2,.4,.6,.8,1],threshold=null,thresholdLabel=""}={}){
   const map=canvas(w,h),mctx=map.getContext("2d"),img=mctx.createImageData(w,h),span=Math.max(1e-9,max-min);
   for(let i=0,j=0;i<w*h;i++,j+=4){const[r,g,b]=ramp(stops,(values[i]-min)/span);img.data[j]=r;img.data[j+1]=g;img.data[j+2]=b;img.data[j+3]=255}
   mctx.putImageData(img,0,0);
-  const W=outW||Math.max(w,640),H=Math.round(h*W/w),lw=Math.round(Math.max(110,W*.16)),head=Math.round(Math.max(44,W*.07));
-  const c=canvas(W+lw,H+head),ctx=c.getContext("2d");
-  ctx.fillStyle="#ffffff";ctx.fillRect(0,0,c.width,c.height);
-  ctx.imageSmoothingEnabled=true;ctx.drawImage(map,0,head,W,H);
-  const fs=Math.round(Math.max(12,W*.024));ctx.fillStyle="#17212b";ctx.textAlign="center";
-  ctx.font="600 "+fs+"px Inter,system-ui,sans-serif";ctx.fillText(title,W/2,fs*1.25);
-  if(subtitle){ctx.font=Math.round(fs*.85)+"px Inter,system-ui,sans-serif";ctx.fillStyle="#4a5864";ctx.fillText(subtitle,W/2,fs*2.4)}
-  const bx=W+Math.round(lw*.18),bw=Math.round(lw*.2),by=head+Math.round(H*.18),bh=Math.round(H*.64);
-  for(let y=0;y<bh;y++){const[r,g,b]=ramp(stops,1-y/(bh-1));ctx.fillStyle="rgb("+r+","+g+","+b+")";ctx.fillRect(bx,by+y,bw,1)}
-  ctx.strokeStyle="#33414d";ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,bw,bh);
-  ctx.textAlign="left";ctx.fillStyle="#17212b";ctx.font=Math.round(fs*.8)+"px Inter,system-ui,sans-serif";
-  for(const t of ticks){const y=by+bh-(t-min)/span*bh;ctx.fillRect(bx+bw,Math.round(y),5,1);ctx.fillText(String(+t.toFixed(2)).replace(".",","),bx+bw+8,y+fs*.3)}
-  if(threshold!=null){const y=Math.round(by+bh-(threshold-min)/span*bh);ctx.strokeStyle="#00b8d4";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(bx-4,y);ctx.lineTo(bx+bw+4,y);ctx.stroke();ctx.fillStyle="#007f93";ctx.font="600 "+Math.round(fs*.72)+"px Inter,system-ui,sans-serif";ctx.fillText(thresholdLabel,bx-2,by+bh+fs*1.4)}
-  return url(c);
+  map.__legend={stops,min,max,ticks,threshold,thresholdLabel,title,subtitle};
+  return map;
 }
 function cdm4Overlay(base,layers){
   return overlayUrl(base,(ctx,W,H)=>{for(const[mask,mw,mh,color]of layers)if(mask)maskOverlay(ctx,mask,mw,mh,W,H,color)});
@@ -200,11 +189,44 @@ const THUMB_SIDE=520;
 function toBlobUrl(c,type="image/jpeg",quality=.9){return new Promise(res=>c.toBlob(b=>res(b?URL.createObjectURL(b):c.toDataURL(type,quality)),type,quality))}
 function thumbCanvas(src){const k=Math.min(1,THUMB_SIDE/Math.max(src.width,src.height)),t=canvas(Math.max(1,Math.round(src.width*k)),Math.max(1,Math.round(src.height*k))),ctx=t.getContext("2d");ctx.imageSmoothingQuality="high";ctx.drawImage(src,0,0,t.width,t.height);return t}
 async function imageCanvas(dataUrl){const img=new Image();img.src=dataUrl;await img.decode();const c=canvas(img.naturalWidth,img.naturalHeight);c.getContext("2d").drawImage(img,0,0);return c}
+const fmt=v=>String(+Number(v).toFixed(2)).replace(".",",");
+// Toda etapa vira um quadro do MESMO tamanho da entrada: imagem ajustada (contain), banda inferior
+// suavemente transparente com o título e, quando a etapa é um mapa escalar, a legenda horizontal.
+function composeStage(s,src,W,H){
+  const out=canvas(W,H),ctx=out.getContext("2d");
+  if(!s.transparent){ctx.fillStyle="#12202a";ctx.fillRect(0,0,W,H)}
+  const k=Math.min(W/src.width,H/src.height),dw=Math.round(src.width*k),dh=Math.round(src.height*k);
+  ctx.imageSmoothingEnabled=!s.lowres&&k<4;ctx.imageSmoothingQuality="high";
+  ctx.drawImage(src,Math.round((W-dw)/2),Math.round((H-dh)/2),dw,dh);
+  const L=src.__legend,fs=Math.round(Math.max(13,Math.min(W,H*1.4)*.026)),pad=Math.round(fs*.8);
+  const bandH=Math.round(L?fs*4.9:fs*2.4),y0=H-bandH;
+  const g=ctx.createLinearGradient(0,y0-fs,0,H);g.addColorStop(0,"rgba(10,20,28,0)");g.addColorStop(.35,"rgba(10,20,28,.55)");g.addColorStop(1,"rgba(10,20,28,.72)");
+  ctx.fillStyle=g;ctx.fillRect(0,y0-fs,W,bandH+fs);
+  ctx.textBaseline="alphabetic";ctx.textAlign="left";ctx.fillStyle="#ffffff";
+  ctx.font="600 "+fs+"px Inter,system-ui,sans-serif";
+  const label=s.label||"";ctx.fillText(label,pad,L?y0+fs*1.9:H-pad*1.1,L?W*.5-2*pad:W-2*pad);
+  if(L){
+    ctx.font=Math.round(fs*.78)+"px Inter,system-ui,sans-serif";ctx.fillStyle="rgba(255,255,255,.85)";
+    ctx.fillText([label.includes(L.title||"\u0000")?"":L.title,L.subtitle].filter(Boolean).join(" · "),pad,y0+fs*3.2,W*.5-2*pad);
+    // barra horizontal de intensidade
+    const bw=Math.round(W*.42),bx=W-pad-bw,bh=Math.round(fs*.75),by=y0+Math.round(fs*1.6),span=Math.max(1e-9,L.max-L.min);
+    for(let x=0;x<bw;x++){const[r,gg,b]=ramp(L.stops,x/(bw-1));ctx.fillStyle="rgb("+r+","+gg+","+b+")";ctx.fillRect(bx+x,by,1,bh)}
+    ctx.strokeStyle="rgba(255,255,255,.75)";ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);
+    ctx.fillStyle="#ffffff";ctx.font=Math.round(fs*.72)+"px Inter,system-ui,sans-serif";ctx.textAlign="center";
+    for(const t of L.ticks||[]){const x=Math.round(bx+(t-L.min)/span*bw);ctx.fillRect(x,by+bh,1,Math.round(fs*.3));ctx.fillText(fmt(t),Math.min(bx+bw-fs*.6,Math.max(bx+fs*.6,x)),by+bh+fs*1.15)}
+    if(L.threshold!=null){const x=Math.round(bx+(L.threshold-L.min)/span*bw);ctx.fillStyle="#00e0ff";ctx.fillRect(x-1,by-Math.round(fs*.35),3,bh+Math.round(fs*.7));
+      ctx.font="600 "+Math.round(fs*.7)+"px Inter,system-ui,sans-serif";ctx.textAlign="center";ctx.fillText(L.thresholdLabel||("limiar "+fmt(L.threshold)),Math.min(bx+bw-fs*2,Math.max(bx+fs*2,x)),by-Math.round(fs*.5))}
+  }
+  return out;
+}
 async function finalize(stages){
-  return Promise.all(stages.map(async s=>{
-    const src=typeof s.url==="string"?await imageCanvas(s.url):s.url,png=!!s.transparent;
-    const[full,thumb]=await Promise.all([toBlobUrl(src,png?"image/png":"image/jpeg"),toBlobUrl(thumbCanvas(src),png?"image/png":"image/jpeg",.85)]);
-    return{...s,url:full,thumb,width:src.width,height:src.height};
+  const srcs=await Promise.all(stages.map(s=>typeof s.url==="string"?imageCanvas(s.url):s.url));
+  // quadro único: tamanho da entrada, ampliado até 1200 px de lado em fotos pequenas (texto nítido)
+  const w0=srcs[0]?.width||1024,h0=srcs[0]?.height||768,up=Math.min(3,Math.max(1,1200/Math.max(w0,h0))),W=Math.round(w0*up),H=Math.round(h0*up);
+  return Promise.all(stages.map(async(s,i)=>{
+    const comp=composeStage(s,srcs[i],W,H),png=!!s.transparent;
+    const[full,thumb]=await Promise.all([toBlobUrl(comp,png?"image/png":"image/jpeg"),toBlobUrl(thumbCanvas(comp),png?"image/png":"image/jpeg",.85)]);
+    return{...s,url:full,thumb,width:W,height:H,lowres:false};
   }));
 }
 export function releaseEngineStages(stages=[]){for(const s of stages)for(const u of [s.url,s.thumb])if(typeof u==="string"&&u.startsWith("blob:"))URL.revokeObjectURL(u)}

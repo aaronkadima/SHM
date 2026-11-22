@@ -15,7 +15,7 @@ export const RW_DEFAULTS={maxGrowPx:null,scale:2,beta:30,threshold:.3,shannonWin
 
 function sortedCopy(a){return Float32Array.from(a).sort()}
 function medianOf(s){const n=s.length;if(!n)return 0;return n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2}
-function robustZ(a){
+export function robustZ(a){
   const s=sortedCopy(a),m=medianOf(s),d=new Float32Array(a.length);
   for(let i=0;i<a.length;i++)d[i]=Math.abs(a[i]-m);
   let mad=1.4826*medianOf(d.sort());
@@ -39,7 +39,7 @@ function binMorph(src,w,h,k,isMax){
   return out;
 }
 // entropia de Shannon (bits) das espécies numa janela k×k; fora da imagem não conta (skimage.filters.rank)
-function shannonRank(sp,w,h,k,nSpecies){
+export function shannonRank(sp,w,h,k,nSpecies){
   const r=k>>1,out=new Float32Array(w*h),hist=new Int32Array(nSpecies),clog=new Float64Array(k*(k+1)+2);// a janela tem k+1 colunas entre a entrada e a saída
   for(let c=1;c<clog.length;c++)clog[c]=c*Math.log2(c);
   for(let y=0;y<h;y++){

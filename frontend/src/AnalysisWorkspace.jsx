@@ -1,8 +1,9 @@
 import React,{Suspense,useCallback,useEffect,useRef,useState} from "react";
-import {ScanEye,PenTool,GraduationCap,FolderOpen,History,PencilLine,Save,Printer,LogOut,RotateCcw,Trash2,Mouse,CircleHelp,MousePointerClick,Lightbulb,Info,Search,Keyboard,Cpu,Globe,Bug,ExternalLink,Ruler,SquareDashed,Tag,Layers2,FlipHorizontal2,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
+import {Crosshair,ScanEye,PenTool,GraduationCap,FolderOpen,History,PencilLine,Save,Printer,LogOut,RotateCcw,Trash2,Mouse,CircleHelp,MousePointerClick,Lightbulb,Info,Search,Keyboard,Cpu,Globe,Bug,ExternalLink,Ruler,SquareDashed,Tag,Layers2,FlipHorizontal2,Camera,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Columns2,Download,Image as ImageIcon,ImagePlus,Layers3,BookOpen,Lock,Maximize2,Minus,MoveHorizontal,Play,Plus,Radio,RefreshCw,Settings2,SlidersHorizontal,Unlock,X} from "lucide-react";
 import ImageInspector from "./ImageInspector.jsx";
 import EngineStages from "./EngineStages.jsx";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
+import WalkerFieldTool from "./WalkerFieldTool.jsx";
 import CanvasRulers,{RULER_UNITS} from "./CanvasRulers.jsx";
 import ContextMenu from "./ContextMenu.jsx";
 import {CdmIcon,MenuIcon,TipOfDayDialog,AboutDialog,ShortcutsDialog,CommandPalette,describeElement,AulasDialog} from "./StudioHelp.jsx";
@@ -101,6 +102,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
   useEffect(()=>{try{localStorage.setItem("shmSceneLabels",showSceneLabels?"1":"0")}catch{}},[showSceneLabels]);
   const toggleSceneLabels=()=>setShowSceneLabels(v=>{showStatusNotice(v?"Rótulos de contexto ocultos":"Rótulos de contexto visíveis",900);return !v});
   const [annotating,setAnnotating]=useState(false),[gtState,setGtState]=useState(DEFAULT_GT_STATE);
+  const [fieldTool,setFieldTool]=useState(false);
   const groundTruth=useGroundTruth(file||null);
   const imageDecoded=imageSize.width>1&&imageSize.height>1;
   const imageMegapixels=imageDecoded?(imageSize.width*imageSize.height/1e6):null;
@@ -1480,6 +1482,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button aria-label="Reduzir zoom" title={kind==="2d"?"Reduzir":"Zoom 2D indisponível"} disabled={kind!=="2d"} onClick={()=>changeZoom(-.25)}><Minus/></button>
           <button title={kind==="2d"?"Ajustar à tela":"Ajuste 2D indisponível"} aria-label="Ajustar à tela" disabled={kind!=="2d"} onClick={fitView}><Maximize2/></button>
           <button className={rulers.visible?"active":""} aria-label={rulers.visible?"Ocultar réguas":"Mostrar réguas"} aria-pressed={!!rulers.visible} title={(rulers.visible?"Ocultar":"Mostrar")+" réguas · Ctrl/Cmd+Shift+R"} disabled={kind!=="2d"} onClick={toggleRulers}><Ruler/></button>
+          <button className={fieldTool?"active":""} aria-label="Campo do walker (CDM-4)" aria-pressed={fieldTool} title={chosen?.engine_id==="cdm_4"?"Campo do walker: selecione uma área 1:1 para ver setas, desvio angular, dispersão e coerência":"Campo do walker · disponível após uma análise do CDM-4"} disabled={kind!=="2d"||busy||chosen?.engine_id!=="cdm_4"} onClick={()=>setFieldTool(v=>!v)}><Crosshair/></button>
           <button className={annotationActive?"active":""} aria-label="Anotação Ground Truth (few-shot)" aria-pressed={annotationActive} title="Anotação Ground Truth multiescala (few-shot)" disabled={kind!=="2d"} onClick={()=>setAnnotating(v=>!v)}><PenTool/></button>
           <span className="editorToolSep" aria-hidden="true"/>
           <button className={showBoxes?"active":""} aria-label={showBoxes?"Ocultar caixas delimitadoras":"Mostrar caixas delimitadoras"} aria-pressed={showBoxes} title={(showBoxes?"Ocultar":"Mostrar")+" caixas delimitadoras"} disabled={kind!=="2d"} onClick={()=>setShowBoxes(v=>{showStatusNotice(v?"Caixas ocultas":"Caixas visíveis",900);return !v})}><SquareDashed/></button>
@@ -1534,6 +1537,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
         </div>
         {file&&kind==="2d"&&!inspectorOpen&&<button className={"editorImageEntry "+(imageQuality?"q-"+imageQuality.verdict:"")} onClick={()=>setInspectorOpen(true)} title="Histograma, propriedades, qualidade e correção da imagem"><SlidersHorizontal size={15}/> Imagem{imageQuality&&<i aria-label={"Qualidade "+imageQuality.score}>{imageQuality.score}</i>}</button>}
         {file&&kind==="2d"&&<ImageInspector file={file} open={inspectorOpen} tab={inspectorTab} onTab={setInspectorTab} onClose={()=>setInspectorOpen(false)} onPreview={setCorrectionPreview} onApplyCorrection={(next,info)=>{setCorrectionPreview(null);onApplyCorrection?.(next,info);showStatusNotice("Correção aplicada · "+info.description,2600)}} onRestoreOriginal={()=>{onRestoreOriginal?.();showStatusNotice("Imagem original restaurada",1600)}} hasOriginal={hasOriginalFile} appliedCorrection={appliedCorrection} onDiagnostics={handleDiagnostics} onRename={name=>{const f=onRenameFile?.(name);showStatusNotice("Arquivo renomeado",1400);return f}} onSave={f=>{onSaveFile?.(f);showStatusNotice("Arquivo salvo · "+(f?.name||file.name),1600)}}/>}
+        {file&&kind==="2d"&&chosen?.engine_id==="cdm_4"&&<WalkerFieldTool active={fieldTool} onClose={()=>setFieldTool(false)} result={chosen} file={file} options={cdmOptions} canvasElement={canvasElement}/>}
         {file&&kind==="2d"&&chosen&&<EngineStages engineId={chosen.engine_id} engineName={chosen.name} file={file} result={chosen} options={cdmOptions} control={stageControl} hidden={busy} onState={setStagesActive}/>}
         {fileDragActive&&<div className="editorDropOverlay" aria-hidden="true"><ImagePlus size={30}/><b>Solte para importar</b><span>Imagem 2D, modelo 3D ou LAS / XYZ / IFC</span></div>}
         {file&&<div className={"editorTypeBadge "+(kind==="unknown"?"unsupported":"")}>{kind==="2d"?"▧  2D detectado":kind==="3d"?(isCdm3SpatialAsset(file)?"◇  CDM-3 espacial":"◇  3D detectado"):"Formato não suportado"}</div>}

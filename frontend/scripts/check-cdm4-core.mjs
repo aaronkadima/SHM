@@ -7,6 +7,7 @@ import {randomWalkerProbability,randomWalkerSpalling} from "../src/cdm4RandomWal
 import {linearRebar} from "../src/cdm4Rebar.js";
 import {pigmentMaps,maskComposition} from "../src/cdm4Pigments.js";
 import {refineContourThresholds,symmetricBoundaryDistance} from "../src/cdm4Contour.js";
+import {analyzeWalkerField} from "../src/cdm4FieldAnalysis.js";
 
 // gerador determinístico
 let seed=12345;const rnd=()=>{seed=(seed*1103515245+12345)>>>0;return seed/4294967296};
@@ -79,6 +80,20 @@ const put=(d,w,x,y,c)=>{const i=4*(y*w+x);d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2]};
   assert.deepEqual(r1.log,r2.log,"loop de afinamento determinístico");
   // halo: limiar inicial 0,2 inclui concreto saudável; o loop sobe o limiar para perto da borda real (p = 0,4)
   assert.ok(r1.log[0].threshold>.3&&r1.log[0].threshold<.5,"limiar afinado perto da borda real: "+r1.log[0].threshold);
+}
+
+// ---------- ferramenta Campo do walker ----------
+{
+  const w=160,h=160,img=concrete(w,h),W=80,H=80,prob=new Float32Array(W*H);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(Math.hypot(x-80,y-80)<30){const v=70+((x*7+y*3)%20);put(img,w,x,y,[v,v-2,v-6])}}
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const d=Math.hypot(x-40,y-40);prob[y*W+x]=d<10?1:d>22?0:Math.max(0,Math.min(1,(22-d)/12))}
+  const F=analyzeWalkerField(img,w,h,{prob,W,H,threshold:.5},{x:20,y:20,size:120});
+  assert.equal(F.n,120);assert.ok(F.R>.7,"setas saem do polo de dano de forma ordenada (R = "+F.R.toFixed(2)+")");
+  assert.equal(F.regions.length,1,"uma região dentro da seleção");
+  assert.ok(Math.abs(F.regions[0].area_local_px-Math.PI*30*30)/(Math.PI*30*30)<.35,"walker em resolução cheia acompanha a borda real");
+  const F2=analyzeWalkerField(img,w,h,{prob,W,H,threshold:.5},{x:20,y:20,size:120});
+  assert.deepEqual(F2.regions,F.regions,"análise determinística");
+  assert.equal(F.hist.length,36);
 }
 
 // ---------- pigmentos ----------

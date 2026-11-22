@@ -1457,3 +1457,21 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .langSwitchMenu button b{min-width:24px;font-size:10px;letter-spacing:.05em;color:#0d766e}
 .langSwitchMenu button:hover{background:#f1f6f7}
 .langSwitchMenu button.active{background:#e9f5f3;font-weight:650}
+
+/* ferramenta Campo do walker (CDM-4) */
+.fieldToolSelect{position:fixed;inset:0;z-index:300;cursor:crosshair;background:rgba(10,20,28,.08);touch-action:none}
+.fieldToolHint{position:fixed;top:72px;left:50%;transform:translateX(-50%);padding:8px 14px;border-radius:999px;background:rgba(18,32,42,.88);color:#fff;font-size:12px;font-weight:600;pointer-events:none;white-space:nowrap}
+.fieldToolHint em{color:#ffd27a;font-style:normal}
+.fieldToolSquare{position:fixed;border:2px dashed #fff;box-shadow:0 0 0 1px rgba(0,0,0,.55),0 0 0 9999px rgba(10,20,28,.35);pointer-events:none}
+.fieldToolPanel{position:fixed;inset:0;z-index:320;display:grid;place-items:center;background:rgba(10,20,28,.55)}
+.fieldToolPanel section{display:flex;flex-direction:column;max-width:96vw;max-height:96vh;background:#fff;border-radius:14px;box-shadow:0 18px 48px rgba(10,20,28,.35);overflow:hidden}
+.fieldToolPanel header{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid #e1e9ec}
+.fieldToolPanel header div{flex:1;display:flex;flex-direction:column;min-width:0}
+.fieldToolPanel header b{font-size:14px;color:#17212b}
+.fieldToolPanel header span{font-size:11px;color:#637986}
+.fieldToolPanel header button,.fieldToolBtn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border:1px solid #d3dfe3;border-radius:8px;background:#fff;color:#17384a;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none}
+.fieldToolPanel header button:hover,.fieldToolBtn:hover{border-color:#0d766e;color:#0d766e}
+.fieldToolGrid{display:grid;grid-template-columns:repeat(2,min(42vh,44vw));gap:8px;padding:10px;background:#12202a}
+.fieldToolGrid figure{position:relative;margin:0;aspect-ratio:1/1}
+.fieldToolGrid img{width:100%;height:100%;display:block;border-radius:6px}
+.fieldToolGrid figure a{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.9);color:#17384a}

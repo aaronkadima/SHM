@@ -97,10 +97,10 @@ async function cdmStages(file,options={}){
 
 // ---------- CDM-4: etapas a partir dos dados do próprio motor (sem segunda execução) ----------
 // Paleta inferno (perceptual, monotônica em luminância) para o potencial do random walker.
-const INFERNO=[[0,0,4],[40,11,84],[101,21,110],[159,42,99],[212,72,66],[245,125,21],[250,193,39],[252,255,164]];
+export const INFERNO=[[0,0,4],[40,11,84],[101,21,110],[159,42,99],[212,72,66],[245,125,21],[250,193,39],[252,255,164]];
 const ORANGES=[[255,245,235],[253,208,162],[253,141,60],[217,72,1],[127,39,4]];
 const GREENS=[[247,252,245],[199,233,192],[116,196,118],[35,139,69],[0,68,27]];
-function ramp(stops,v){const t=clamp(v,0,1)*(stops.length-1),i=Math.min(stops.length-2,Math.floor(t)),f=t-i,a=stops[i],b=stops[i+1];return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f]}
+export function ramp(stops,v){const t=clamp(v,0,1)*(stops.length-1),i=Math.min(stops.length-2,Math.floor(t)),f=t-i,a=stops[i],b=stops[i+1];return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f]}
 // Mapa escalar na resolução da imagem; a legenda de intensidade (horizontal) é desenhada na banda
 // inferior por finalize(), igual para todas as etapas.
 function scalarWithLegend(values,w,h,{stops=INFERNO,min=0,max=1,title="",subtitle="",ticks=[0,.2,.4,.6,.8,1],threshold=null,thresholdLabel=""}={}){
@@ -197,7 +197,7 @@ async function imageCanvas(dataUrl){const img=new Image();img.src=dataUrl;await 
 const fmt=v=>{const t=String(+Number(v).toFixed(2));return getLang()==="en"?t:t.replace(".",",")};
 // Toda etapa vira um quadro do MESMO tamanho da entrada: imagem ajustada (contain), banda inferior
 // suavemente transparente com o título e, quando a etapa é um mapa escalar, a legenda horizontal.
-function composeStage(s,src,W,H){
+export function composeStage(s,src,W,H){
   const out=canvas(W,H),ctx=out.getContext("2d");
   if(!s.transparent){ctx.fillStyle="#12202a";ctx.fillRect(0,0,W,H)}
   const k=Math.min(W/src.width,H/src.height),dw=Math.round(src.width*k),dh=Math.round(src.height*k);

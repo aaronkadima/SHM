@@ -61,3 +61,14 @@ Medida no GT da foto 24, com o pipeline completo e a decodificação do Chrome:
 | Por evidência | 68,4 % | 70,1 % |
 
 Também foram testados o alinhamento ao gradiente ("edge") e o Chan–Vese local ("band"). Sem o limite de ±0,1, os três critérios encolhem o desplacamento até o núcleo, porque a textura do agregado tem bordas internas fortes.
+
+## Ferramenta "Campo do walker"
+
+O botão de mira na barra de ferramentas do canvas fica ativo depois de uma análise do CDM-4. Arrasta-se um quadrado 1:1 sobre a imagem, e dentro dele o random walker é resolvido de novo em resolução cheia. Os polos são os do motor, e a borda do quadrado fica presa ao lado que o motor decidiu. A ferramenta gera quatro figuras de 640 × 640 px, com a banda e a legenda padronizadas e no idioma ativo:
+
+1. malha de setas −∇u, com cerca de 20 × 20 setas e legenda log₁₀ |∇u|; o contorno do motor aparece em ciano tracejado e o de resolução cheia em branco;
+2. rosa do desvio angular em relação à direção "saindo do polo de dano", com R e variância circular;
+3. dispersão local 1 − R, numa janela 9 × 9;
+4. tabela de coerência por região: área no motor, área em resolução cheia, R da faixa da fronteira, |∇u| mediano e fração de platô (halo sem evidência).
+
+Cada figura pode ser baixada em PNG, além de um painel 2 × 2 com as quatro. Em análises reabertas do histórico, o potencial é recalculado. No GT da foto 24, em quatro quadrados de 330 px ao longo do desplacamento, o walker em resolução cheia deu IoU de 65,4 → 70,2, 69,1 → 70,6, 74,3 → 74,3 e 71,2 → 75,8 %.

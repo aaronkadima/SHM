@@ -7215,5 +7215,165 @@ export const DICT={
 "Spalling",
 "Desprendimiento",
 "Épaufrure"
+],
+"Campo do walker": [
+"Walker field",
+"Campo del walker",
+"Champ du walker"
+],
+"Campo do walker (CDM-4)": [
+"Walker field (CDM-4)",
+"Campo del walker (CDM-4)",
+"Champ du walker (CDM-4)"
+],
+"Campo do walker: selecione uma área 1:1 para ver setas, desvio angular, dispersão e coerência": [
+"Walker field: select a 1:1 area to see arrows, angular deviation, dispersion and coherence",
+"Campo del walker: seleccione un área 1:1 para ver flechas, desvío angular, dispersión y coherencia",
+"Champ du walker : sélectionnez une zone 1:1 pour voir flèches, écart angulaire, dispersion et cohérence"
+],
+"Campo do walker · disponível após uma análise do CDM-4": [
+"Walker field · available after a CDM-4 analysis",
+"Campo del walker · disponible tras un análisis del CDM-4",
+"Champ du walker · disponible après une analyse du CDM-4"
+],
+"Campo do walker: arraste um quadrado 1:1 sobre a imagem · Esc cancela": [
+"Walker field: drag a 1:1 square over the image · Esc cancels",
+"Campo del walker: arrastre un cuadrado 1:1 sobre la imagen · Esc cancela",
+"Champ du walker : glissez un carré 1:1 sur l’image · Échap annule"
+],
+"Resolvendo o walker em resolução cheia…": [
+"Solving the walker at full resolution…",
+"Resolviendo el walker en resolución completa…",
+"Résolution du walker en pleine résolution…"
+],
+"O random walker não gerou potencial nesta imagem.": [
+"The random walker produced no potential on this image.",
+"El random walker no generó potencial en esta imagen.",
+"Le random walker n’a produit aucun potentiel sur cette image."
+],
+"Nova seleção": [
+"New selection",
+"Nueva selección",
+"Nouvelle sélection"
+],
+"Painel 2×2": [
+"2×2 panel",
+"Panel 2×2",
+"Panneau 2×2"
+],
+"Baixar figura": [
+"Download figure",
+"Descargar figura",
+"Télécharger la figure"
+],
+"Campo do walker · setas −∇u": [
+"Walker field · −∇u arrows",
+"Campo del walker · flechas −∇u",
+"Champ du walker · flèches −∇u"
+],
+"Intensidade log₁₀ |∇u|": [
+"Intensity log₁₀ |∇u|",
+"Intensidad log₁₀ |∇u|",
+"Intensité log₁₀ |∇u|"
+],
+"ciano tracejado = motor · branco = resolução cheia": [
+"dashed cyan = engine · white = full resolution",
+"cian discontinuo = motor · blanco = resolución completa",
+"cyan pointillé = moteur · blanc = pleine résolution"
+],
+"Desvio angular": [
+"Angular deviation",
+"Desvío angular",
+"Écart angulaire"
+],
+"variância circular": [
+"circular variance",
+"varianza circular",
+"variance circulaire"
+],
+"0° = saindo do polo de dano": [
+"0° = leaving the damage pole",
+"0° = saliendo del polo de daño",
+"0° = sortant du pôle de dommage"
+],
+"amarelo = vetor médio (comprimento R)": [
+"yellow = mean vector (length R)",
+"amarillo = vector medio (longitud R)",
+"jaune = vecteur moyen (longueur R)"
+],
+"Dispersão local 1 − R": [
+"Local dispersion 1 − R",
+"Dispersión local 1 − R",
+"Dispersion locale 1 − R"
+],
+"0 = setas alinhadas · 1 = direções espalhadas": [
+"0 = aligned arrows · 1 = scattered directions",
+"0 = flechas alineadas · 1 = direcciones dispersas",
+"0 = flèches alignées · 1 = directions dispersées"
+],
+"Dispersão local da direção": [
+"Local direction dispersion",
+"Dispersión local de la dirección",
+"Dispersion locale de la direction"
+],
+"Área selecionada": [
+"Selected area",
+"Área seleccionada",
+"Zone sélectionnée"
+],
+"Walker em resolução cheia": [
+"Walker at full resolution",
+"Walker en resolución completa",
+"Walker en pleine résolution"
+],
+"global": [
+"global",
+"global",
+"global"
+],
+"Região": [
+"Region",
+"Región",
+"Région"
+],
+"Área motor": [
+"Engine area",
+"Área motor",
+"Surface moteur"
+],
+"Área cheia": [
+"Full-res area",
+"Área completa",
+"Surface pleine"
+],
+"Platô": [
+"Plateau",
+"Meseta",
+"Plateau"
+],
+"Nenhuma região de dano dentro da seleção.": [
+"No damage region inside the selection.",
+"Ninguna región de daño dentro de la selección.",
+"Aucune région de dommage dans la sélection."
+],
+"R ≥ 0,70: o potencial cai de forma ordenada do dano para o saudável.": [
+"R ≥ 0.70: the potential falls in an orderly way from damage to healthy.",
+"R ≥ 0,70: el potencial cae de forma ordenada del daño al sano.",
+"R ≥ 0,70 : le potentiel décroît de façon ordonnée du dommage vers le sain."
+],
+"R baixo ou |∇u| fraco: transição difusa; o limiar escolhe a borda.": [
+"Low R or weak |∇u|: diffuse transition; the threshold picks the edge.",
+"R bajo o |∇u| débil: transición difusa; el umbral elige el borde.",
+"R faible ou |∇u| faible : transition diffuse ; le seuil choisit le bord."
+],
+"Platô: fração da região sem gradiente (halo sem evidência).": [
+"Plateau: fraction of the region without gradient (halo without evidence).",
+"Meseta: fracción de la región sin gradiente (halo sin evidencia).",
+"Plateau : fraction de la région sans gradient (halo sans évidence)."
+],
+"Área motor: escala do motor · Área cheia: walker refeito na seleção.": [
+"Engine area: engine scale · Full-res area: walker re-solved in the selection.",
+"Área motor: escala del motor · Área completa: walker rehecho en la selección.",
+"Surface moteur : échelle du moteur · Surface pleine : walker recalculé dans la sélection."
 ]
 };

@@ -1,4 +1,4 @@
-// Idioma da plataforma (PT · EN · ES · FR).
+// Idioma da plataforma (PT · EN · ES · FR). Padrão: PT; a escolha fica salva no navegador.
 // O código-fonte é escrito em português; as traduções ficam no dicionário (i18nDict.js), indexado
 // pelo texto em português. Dois caminhos:
 //  · tr("texto") — usado onde o texto não está no DOM: imagens das Etapas, legendas, camadas e
@@ -19,8 +19,8 @@ const KEY="shmLang";
 const listeners=new Set();
 function initial(){
   try{const s=localStorage.getItem(KEY);if(LANGS.some(l=>l.id===s))return s}catch{}
-  const nav=(typeof navigator!=="undefined"&&navigator.language||"pt").slice(0,2).toLowerCase();
-  return LANGS.some(l=>l.id===nav)?nav:"pt";
+  // padrão: português; o idioma só muda por escolha explícita no seletor (não pelo idioma do navegador)
+  return "pt";
 }
 let current=initial();
 export function getLang(){return current}

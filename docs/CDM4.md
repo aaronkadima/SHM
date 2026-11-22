@@ -8,7 +8,7 @@ O núcleo foi copiado do CDM 2.11 (`cdmBrowser.js`). O CDM-1, o CDM-3 espacial, 
 | Ordem | Etapa | Módulo | Opção (`false` desliga) |
 |---|---|---|---|
 | 1 | Morfologia CDM 2.11 (5 famílias, separação hierárquica) | `cdm4Core.js` | — |
-| 2 | IA de contexto corrigida: F1, terreno/água cercado pela estrutura vira neutro; F2, erosão de 0,5 célula; F4, céu superexposto (RGB ≥ 245 ligado à borda) | `cdm4Scene.js` | `cdm4_context_f1`, `cdm4_context_erode_cells`, `cdm4_context_sky` |
+| 2 | IA de contexto corrigida: F1, terreno/água cercado pela estrutura vira neutro; F2, erosão de 0,5 célula; F4, céu superexposto (RGB ≥ 245 ligado à borda); F5, terreno dominante (terra/areia/água > 50 % do quadro, típico de close-up de concreto rugoso) vira neutro | `cdm4Scene.js` | `cdm4_context_f1`, `cdm4_context_erode_cells`, `cdm4_context_sky`, `cdm4_context_f5` |
 | 3 | Canal de diversidade (Ataky 2022: Shannon, Gini-Simpson), referência global | `cdm4Biodiversity.js` | `cdm4_diversity` |
 | 4 | Refino de borda por biodiversidade (`refine` no desplacamento, `gate` na eflorescência; referência de área guardada antes do gate) | `cdm4Biodiversity.js` | `cdm4_biodiversity` |
 | 5 | Random walker de Grady (β = 30, escala 1/2, p > 0,3): polo de dano = núcleo do desplacamento morfológico; polo saudável = longe dos candidatos ou homogêneo (Shannon z < −0,5) | `cdm4RandomWalker.js` | `cdm4_random_walker`, `cdm4_rw_threshold`, `cdm4_rw_beta`, `cdm4_rw_max_grow_px` |
@@ -30,3 +30,5 @@ O núcleo foi copiado do CDM 2.11 (`cdmBrowser.js`). O CDM-1, o CDM-3 espacial, 
 - **Limitação:** o random walker expande qualquer semente, inclusive as falsas. Nas fotos sem desplacamento, a área falsa cresce. A cura é calibrar com mais ground truth: 10–20 fotos anotadas, metade para calibrar e metade para testar.
 - **Fissuras e eflorescência:** não mudam em relação ao CDM 2.11 (0/7 e 0/4 por localização nas 20 fotos).
 - **Tempo:** cerca de 15 s por foto de 1600 px no navegador (Web Worker).
+
+- **Fotos pequenas (< 1000 px):** o random walker usa escala 1 e distâncias dos polos proporcionais ao tamanho; fotos ≥ 1000 px mantêm a calibração validada (resultados das 20 fotos inalterados).

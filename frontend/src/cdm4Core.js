@@ -1,6 +1,6 @@
 import{CONTEXT_MODES,DEFAULT_CONTEXT_SHARE,contextOptionsFrom,gateMasks,sceneObjects,sceneOf}from"./contextFilter.js";
 import{bioFeatures,bioRefineMasks,diversityCandidates,largestComponent}from"./cdm4Biodiversity.js";
-import{neutralizeEnclosedTerrain,overexposedSky}from"./cdm4Scene.js";
+import{neutralizeEnclosedTerrain,neutralizeDominantTerrain,overexposedSky}from"./cdm4Scene.js";
 import{randomWalkerSpalling,RW_DEFAULTS}from"./cdm4RandomWalker.js";
 import{linearRebar,REBAR_DEFAULTS}from"./cdm4Rebar.js";
 import{pigmentMaps,maskComposition,PIGMENT_VECTORS,PIGMENT_DEFAULTS}from"./cdm4Pigments.js";
@@ -863,6 +863,7 @@ function abortError(){
 function prepareContext(current,cfg,log){
   const c=cfg.context;if(!c?.mask||c.abstained)return;
   if(cfg.f1){const r=neutralizeEnclosedTerrain(c);c.mask=r.mask;log.f1_neutralized_cells=r.neutralized_cells}
+  if(cfg.f5){const r=neutralizeDominantTerrain(c,cfg.f5Share);c.mask=r.mask;log.f5_terrain_share=r.share;log.f5_applied=r.applied}
   c.erodeCells=cfg.contextErodeCells;
   if(cfg.sky){const s=overexposedSky(current.data,current.width,current.height);c.extra=s.pixels?s.mask:null;log.sky_px=s.pixels}
   delete c.core;
@@ -898,7 +899,11 @@ function refineCdm4(image,masks,cfg,log,stages=null){
   if(stages)stages.integrated=masks.spalling_dark;
   // 3) random walker: polos = núcleo do desplacamento morfológico (dano) e concreto distante/homogêneo
   if(cfg.randomWalker){
-    const r=randomWalkerSpalling(image.data,w,h,{site,integrated:masks.spalling_dark,exclusion:ex,forbid:masks.efflorescence_white,opts:cfg.rwOpts});
+    // parâmetros espaciais calibrados para 1600 px de lado: proporcionais ao tamanho da foto
+    const side=Math.max(w,h),k=side/1600,rwo={...cfg.rwOpts};
+    // fotos pequenas (< 1000 px): escala 1 e distâncias proporcionais; as demais seguem a calibração validada
+    if(cfg.rwScaleAware!==false&&side<1000){rwo.scale=1;const f=1;rwo.healthyFarPx=Math.max(2,Math.round(rwo.healthyFarPx*k*2/f));rwo.siteGuardPx=Math.max(2,Math.round(rwo.siteGuardPx*k*2/f))}
+    const r=randomWalkerSpalling(image.data,w,h,{site,integrated:masks.spalling_dark,exclusion:ex,forbid:masks.efflorescence_white,opts:rwo});
     if(r.mask)masks.spalling_dark=r.mask;log.random_walker=r.log;
     if(stages&&r.prob)stages.random_walker={prob:r.prob,W:r.W,H:r.H,threshold:r.log.threshold,site};
   }
@@ -1078,6 +1083,8 @@ export function cdm4Config(options={}){
     // CDM-4: cada etapa nova pode ser desligada (cdm4_*: false) para auditoria e ablação
     f1:on(options.cdm4_context_f1),
     sky:on(options.cdm4_context_sky),
+    f5:on(options.cdm4_context_f5),
+    f5Share:clamp(Number(options.cdm4_context_f5_share??.5),.2,1),
     contextErodeCells:clamp(Number(options.cdm4_context_erode_cells??.5),0,4),
     diversity:on(options.cdm4_diversity),
     divOpts:{localRef:false},

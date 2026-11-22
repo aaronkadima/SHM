@@ -42,6 +42,7 @@ function Cdm4Card({cdmOptions,setCdmOptions}){
   const o=cdmOptions||{},set=(k,v)=>setCdmOptions(x=>({...x,[k]:v})),on=k=>o[k]!==false;
   const steps=[
     ["cdm4_context_f1","IA de contexto · terreno/água cercado pela estrutura vira neutro","F1: evita apagar concreto desplacado ou úmido lido como “earth/water”"],
+    ["cdm4_context_f5","IA de contexto · terreno dominante vira neutro","F5: em close-up, concreto rugoso lido como “earth” em > 50 % do quadro não apaga o dano"],
     ["cdm4_context_sky","IA de contexto · céu superexposto excluído","F4: R, G e B ≥ 245 ligados à borda da foto"],
     ["cdm4_diversity","Canal de diversidade (Ataky)","desplacamento como comunidade anômala de cor e textura"],
     ["cdm4_biodiversity","Refino de borda por biodiversidade","compara a borda com o concreto saudável vizinho"],

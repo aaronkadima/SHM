@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import {__cdmTest,cdmConfig} from "../src/cdmBrowser.js";
 import {__cdm4Test,cdm4Config} from "../src/cdm4Core.js";
-import {neutralizeEnclosedTerrain,overexposedSky} from "../src/cdm4Scene.js";
+import {neutralizeEnclosedTerrain,neutralizeDominantTerrain,overexposedSky} from "../src/cdm4Scene.js";
 import {randomWalkerProbability,randomWalkerSpalling} from "../src/cdm4RandomWalker.js";
 import {linearRebar} from "../src/cdm4Rebar.js";
 import {pigmentMaps,maskComposition} from "../src/cdm4Pigments.js";
@@ -25,6 +25,10 @@ const put=(d,w,x,y,c)=>{const i=4*(y*w+x);d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2]};
   assert.equal(r.mask[4*w+4],0,"terreno cercado pela estrutura vira neutro");
   assert.equal(r.mask[2],1,"terreno ligado à borda continua excluído");
   assert.equal(mask[4*w+4],1,"a máscara original não é alterada");
+  const dom=new Uint8Array(w*h).fill(1),domMask=new Uint8Array(w*h).fill(1);for(let i=0;i<20;i++)dom[i]=0;
+  const f5=neutralizeDominantTerrain({w,h,cls:dom,names,mask:domMask});
+  assert.equal(f5.applied,true,"terreno dominante (close-up) vira neutro");assert.equal(f5.mask[w*h-1],0);
+  assert.equal(neutralizeDominantTerrain({w,h,cls,names,mask}).applied,false,"terreno minoritário segue a regra normal");
   const W=20,H=12,img=concrete(W,H);
   for(let y=0;y<3;y++)for(let x=0;x<W;x++)put(img,W,x,y,[252,252,252]);      // céu estourado no topo
   for(let y=7;y<9;y++)for(let x=8;x<11;x++)put(img,W,x,y,[252,252,252]);     // reflexo no meio

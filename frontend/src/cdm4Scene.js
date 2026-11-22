@@ -4,6 +4,8 @@
 //       dessas que não toca a borda da foto está dentro da peça e não pode apagar o dano.
 //  F4 — céu superexposto (R, G e B ≥ 245, ligado à borda da foto) entra na exclusão: o SegFormer
 //       nem sempre o marca como "sky", e o estiramento de contraste o transforma em eflorescência.
+//  F5 — terreno dominante: se as classes ambíguas cobrem a maior parte do quadro, a foto é um close-up
+//       da superfície (o SegFormer lê concreto rugoso como "earth") e essas classes viram neutras.
 // Determinístico: varreduras em largura, sem limiar aprendido.
 
 export const AMBIGUOUS_TERRAIN=new Set(["earth","land","sand","dirt track","mountain","hill","water","sea","river","lake","waterfall","field"]);
@@ -44,4 +46,14 @@ export function overexposedSky(rgba,w,h,minValue=245){
     if(x>0)seed(p-1);if(x<w-1)seed(p+1);if(y>0)seed(p-w);if(y<h-1)seed(p+w);
   }
   return{mask:sky,pixels:tl};
+}
+
+// F5: devolve uma cópia da máscara com as classes ambíguas neutras quando elas dominam o quadro.
+export function neutralizeDominantTerrain(ctx,minShare=.5){
+  const{w,h,cls,names}=ctx,mask=new Uint8Array(ctx.mask),n=w*h;
+  if(!cls||!names)return{mask,share:0,applied:false};
+  let amb=0;const isAmb=new Uint8Array(n);for(let i=0;i<n;i++)if(AMBIGUOUS_TERRAIN.has(labelOf(names,cls[i]))){isAmb[i]=1;amb++}
+  const share=amb/n;if(share<minShare)return{mask,share:+share.toFixed(3),applied:false};
+  for(let i=0;i<n;i++)if(isAmb[i])mask[i]=0;
+  return{mask,share:+share.toFixed(3),applied:true};
 }

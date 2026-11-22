@@ -102,6 +102,12 @@ assert.ok(cor.pigments&&spr.pigments&&cor.pigments.rust_mean>spr.pigments.rust_m
 assert.equal(a.pigments.role,"diagnostic");
 assert.ok(!a.masks_final.cracks.some((v,i)=>v&&a.masks_final.corrosion_rust[i]),"corrosão nunca é fissura");
 
+// Etapas: dados intermediários para o módulo de Etapas (potencial do random walker, pigmentos)
+{const cfg=cdm4Config({});cfg.returnStages=true;const st=__cdm4Test.computeCdm4Core(scene(),null,cfg).stages;
+ assert.ok(st.morphology&&st.integrated&&st.final,"máscaras por etapa");
+ assert.ok(st.random_walker?.prob?.length===st.random_walker.W*st.random_walker.H,"potencial do random walker");
+ assert.ok(st.pigments?.rust?.length===st.pigments.W*st.pigments.H,"mapas de pigmento");}
+
 // t0 → t1: a imagem anterior passa pelas mesmas etapas; mesma imagem ⇒ sem crescimento
 const t=__cdm4Test.computeCdm4Core(scene(),scene(),cdm4Config({}));
 assert.equal(t.temporal.enabled,true);

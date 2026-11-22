@@ -874,9 +874,10 @@ function gateByContext(masks,w,h,cfg){
   if(cfg.contextClip!==false){const clipped=clipMasksByContext(out,w,h,cfg.context,cfg.contextClipCracks===true);out=clipped.masks;clippedPx=clipped.clipped}
   return{masks:out,removed:gated.removed,removed_total:gated.removed_total,clipped_px:clippedPx};
 }
-function refineCdm4(image,masks,cfg,log){
+function refineCdm4(image,masks,cfg,log,stages=null){
   const w=image.width,h=image.height,n=w*h,ex=contextExclusionMask(cfg,w,h);
   masks={...masks};
+  if(stages)stages.morphology={...masks};
   const site=masks.spalling_dark?new Uint8Array(masks.spalling_dark):null;
   // 1) canal de diversidade: desplacamento como comunidade anômala (Shannon/Simpson) que a regra de
   //    cinza não pegou; não invade eflorescência (separação de classes preservada)
@@ -885,6 +886,7 @@ function refineCdm4(image,masks,cfg,log){
     const sp=new Uint8Array(masks.spalling_dark),ef=masks.efflorescence_white;let added=0;
     for(let i=0;i<n;i++)if(d.mask[i]&&!sp[i]&&!(ef&&ef[i])){sp[i]=1;added++}
     masks.spalling_dark=sp;log.diversity={added_px:added,candidates:d.log};
+    if(stages)stages.diversity_added=d.mask;
   }
   // 2) refino de borda pela comunidade saudável vizinha; referência de área guardada antes do gate
   let areaRef=null;
@@ -893,10 +895,12 @@ function refineCdm4(image,masks,cfg,log){
     const r=bioRefineMasks(masks,bioFeatures(image.data,w,h,cfg.bioOpts),{exclusion:ex,opts:cfg.bioOpts});
     masks={...r.masks};log.biodiversity=r.log;
   }
+  if(stages)stages.integrated=masks.spalling_dark;
   // 3) random walker: polos = núcleo do desplacamento morfológico (dano) e concreto distante/homogêneo
   if(cfg.randomWalker){
     const r=randomWalkerSpalling(image.data,w,h,{site,integrated:masks.spalling_dark,exclusion:ex,forbid:masks.efflorescence_white,opts:cfg.rwOpts});
     if(r.mask)masks.spalling_dark=r.mask;log.random_walker=r.log;
+    if(stages&&r.prob)stages.random_walker={prob:r.prob,W:r.W,H:r.H,threshold:r.log.threshold,site};
   }
   // 4) armadura exposta por abertura linear dentro do desplacamento final
   if(cfg.linearRebar){
@@ -904,6 +908,7 @@ function refineCdm4(image,masks,cfg,log){
     const r=linearRebar(gray,blackhat(gray,w,h,k),w,h,masks.spalling_dark,cfg.rebarOpts);
     masks.exposed_rebar=r.mask;log.linear_rebar=r.log;
   }
+  if(stages)stages.final={...masks};
   // 5) o resultado final respeita a exclusão de contexto
   if(ex&&cfg.contextClip!==false)masks=clipMasksByContext(masks,w,h,cfg.context,cfg.contextClipCracks===true).masks;
   return{masks,areaRef};
@@ -932,7 +937,8 @@ function computeCdm4Core(current,previous,cfg,onProgress=null){
     contextFilter={applied:true,removed:g.removed,removed_total:g.removed_total,clipped_px:g.clipped_px,corrections:{f1_enclosed_terrain_neutral:!!cfg.f1,erode_cells:cfg.contextErodeCells,f4_overexposed_sky:!!cfg.sky,...contextLog}};
   }else if(cfg.context)contextFilter={applied:false,abstained:!!cfg.context.abstained};
   emitProgress(onProgress,25,"CDM-4 · biodiversidade e random walker","refine_t1");
-  const refined=refineCdm4(current,masks,cfg,refineLog);masks=refined.masks;
+  const stageData=cfg.returnStages?{}:null;
+  const refined=refineCdm4(current,masks,cfg,refineLog,stageData);masks=refined.masks;
   if(refined.areaRef)cfg.areaRefLargest=refined.areaRef;
   emitProgress(onProgress,35,"CDM-4 · máscaras t1","masks_t1");
   ORDER.forEach((cls,index)=>{
@@ -960,6 +966,10 @@ function computeCdm4Core(current,previous,cfg,onProgress=null){
     for(const r of records){if(r.class==="cracks")continue;const c=polygonComposition(maps,masks[r.class],w,h,r);if(c)r.pigments=c}
     const classes={};for(const cls of ["spalling_dark","exposed_rebar","corrosion_rust","efflorescence_white"]){const c=masks[cls]?maskComposition(maps,masks[cls]):null;if(c)classes[cls]=c}
     let bioPx=0,rustPx=0;for(let i=0;i<w*h;i++){if(maps.biological[i]>maps.opts.bioThreshold)bioPx++;if(maps.rust[i]>maps.opts.rustThreshold)rustPx++}
+    if(stageData){
+      const W2=Math.max(1,w>>1),H2=Math.max(1,h>>1),half=a=>{const o=new Float32Array(W2*H2);for(let y=0;y<H2;y++)for(let x=0;x<W2;x++){const i=2*y*w+2*x;o[y*W2+x]=(a[i]+a[Math.min(i+1,w*h-1)]+a[Math.min(i+w,w*h-1)]+a[Math.min(i+w+1,w*h-1)])/4}return o};
+      stageData.pigments={rust:half(maps.rust),biological:half(maps.biological),W:W2,H:H2,I0:maps.I0,rustThreshold:maps.opts.rustThreshold,bioThreshold:maps.opts.bioThreshold};
+    }
     pigments={method:"beer_lambert_deconvolution",reference_I0:maps.I0,vectors:PIGMENT_VECTORS,rust_threshold:maps.opts.rustThreshold,biological_threshold:maps.opts.bioThreshold,classes,image_rust_fraction:+(rustPx/(w*h)).toFixed(4),image_biological_fraction:+(bioPx/(w*h)).toFixed(4),role:"diagnostic"};
   }
   let temporal={enabled:false,alignment_method:null,alignment:null,stats:{},records:[]};
@@ -985,6 +995,7 @@ function computeCdm4Core(current,previous,cfg,onProgress=null){
     protocol:{stages:["base_image","family_response","candidate_mask","open_close_mask","context_filter","diversity_channel","biodiversity_border","random_walker","linear_rebar","connected_components","pigment_diagnostic"],version:"cdm_4_v3.0.0"}
   };
   if(cfg.returnMasks)out.masks_final=masks;
+  if(stageData)out.stages=stageData;
   return out;
 }
 function runCoreWorker(current,previous,cfg,{signal,onProgress}={}){
@@ -1080,10 +1091,14 @@ export function cdm4Config(options={}){
     pigmentOpts:{...PIGMENT_DEFAULTS},
     returnMasks:options.cdm4_return_masks===true
   };}
+// Dados intermediários (máscaras, potencial do random walker, pigmentos) para o módulo de Etapas.
+// Ficam fora do resultado serializado: não vão para o histórico nem para as exportações.
+const CDM4_STAGE_CACHE=new WeakMap();
+export function cdm4StageData(engineResult){return engineResult?CDM4_STAGE_CACHE.get(engineResult)||null:null}
 export async function runCdm4Browser(file,options={},previousFile=null,control={}){
   const started=performance.now(),onProgress=control?.onProgress,signal=control?.signal;
   if(signal?.aborted)throw abortError();
-  const cfg=cdm4Config(options);
+  const cfg=cdm4Config(options);cfg.returnStages=true;
 
   emitProgress(onProgress,3,"CDM-4 · decodificando t1","decode_t1");
   const decodeStarted=performance.now();
@@ -1176,6 +1191,7 @@ export async function runCdm4Browser(file,options={},previousFile=null,control={
     },
     message:"CDM-4 executado integralmente no navegador; nenhum dado foi enviado ao Railway. Núcleo determinístico CDM 2.11 com refino por biodiversidade, random walker e armadura linear; pigmentos só como diagnóstico. Validação ainda baseada em uma foto com ground truth."+(contextInfo?(contextInfo.status==="ok"?" Filtro de contexto IA ("+(contextInfo.mode==="strict"?"estrito":"conservador")+"): "+(core.context_filter?.removed_total||0)+" componentes descartados em regiões irrelevantes.":contextInfo.status==="abstained"?" Filtro de contexto IA: cena não reconhecida, filtro absteve-se.":" Filtro de contexto IA indisponível ("+contextInfo.error+"); resultado só morfológico."):"")
   };
+  if(core.stages)CDM4_STAGE_CACHE.set(engine,{...core.stages,width:w,height:h});
   return {image_width:w,image_height:h,results:[engine],consensus:{},spatial_consensus:[],consensus_overlay_png_base64:null,metadata:{analysis_id:"browser-cdm4-"+crypto.randomUUID(),api_version:"browser-1.5",generated_at:new Date().toISOString(),mode:"individual",engine_ids:["cdm_4"],implementation:"cdm-4.0.0-browser-worker"}};
 }
 

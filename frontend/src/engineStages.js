@@ -3,10 +3,11 @@
 // intermediários; nada aqui altera o resultado oficial da análise.
 import{opencvCrackStages}from"./opencvCore.js";
 import{__cdmTest}from"./cdmBrowser.js";
+import{__cdm4Test,cdm4Config,cdm4StageData}from"./cdm4Core.js";
 import{getSession}from"./onnxBrowser.js";
 import{liveInputSpec,runLiveEngine,CDM_LIVE_CLASSES}from"./liveEngines.js";
 
-const STAGE_ENGINES=new Set(["opencv_crack","cdm_1","cdm_3","segformer_public_crack","crackenpy_public_crack","yolov8n_public_crack_seg"]);
+const STAGE_ENGINES=new Set(["opencv_crack","cdm_1","cdm_3","cdm_4","segformer_public_crack","crackenpy_public_crack","yolov8n_public_crack_seg"]);
 export function engineStagesSupported(engineId){return STAGE_ENGINES.has(engineId)}
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -93,6 +94,68 @@ async function cdmStages(file,options={}){
   ];
 }
 
+// ---------- CDM-4: etapas a partir dos dados do próprio motor (sem segunda execução) ----------
+// Paleta inferno (perceptual, monotônica em luminância) para o potencial do random walker.
+const INFERNO=[[0,0,4],[40,11,84],[101,21,110],[159,42,99],[212,72,66],[245,125,21],[250,193,39],[252,255,164]];
+const ORANGES=[[255,245,235],[253,208,162],[253,141,60],[217,72,1],[127,39,4]];
+const GREENS=[[247,252,245],[199,233,192],[116,196,118],[35,139,69],[0,68,27]];
+function ramp(stops,v){const t=clamp(v,0,1)*(stops.length-1),i=Math.min(stops.length-2,Math.floor(t)),f=t-i,a=stops[i],b=stops[i+1];return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f]}
+// Mapa escalar com barra de legenda de intensidade à direita (título, marcas e limiar opcional).
+function scalarWithLegend(values,w,h,{stops=INFERNO,min=0,max=1,title="",subtitle="",ticks=[0,.2,.4,.6,.8,1],threshold=null,thresholdLabel="",outW=null}={}){
+  const map=canvas(w,h),mctx=map.getContext("2d"),img=mctx.createImageData(w,h),span=Math.max(1e-9,max-min);
+  for(let i=0,j=0;i<w*h;i++,j+=4){const[r,g,b]=ramp(stops,(values[i]-min)/span);img.data[j]=r;img.data[j+1]=g;img.data[j+2]=b;img.data[j+3]=255}
+  mctx.putImageData(img,0,0);
+  const W=outW||Math.max(w,640),H=Math.round(h*W/w),lw=Math.round(Math.max(110,W*.16)),head=Math.round(Math.max(44,W*.07));
+  const c=canvas(W+lw,H+head),ctx=c.getContext("2d");
+  ctx.fillStyle="#ffffff";ctx.fillRect(0,0,c.width,c.height);
+  ctx.imageSmoothingEnabled=true;ctx.drawImage(map,0,head,W,H);
+  const fs=Math.round(Math.max(12,W*.024));ctx.fillStyle="#17212b";ctx.textAlign="center";
+  ctx.font="600 "+fs+"px Inter,system-ui,sans-serif";ctx.fillText(title,W/2,fs*1.25);
+  if(subtitle){ctx.font=Math.round(fs*.85)+"px Inter,system-ui,sans-serif";ctx.fillStyle="#4a5864";ctx.fillText(subtitle,W/2,fs*2.4)}
+  const bx=W+Math.round(lw*.18),bw=Math.round(lw*.2),by=head+Math.round(H*.18),bh=Math.round(H*.64);
+  for(let y=0;y<bh;y++){const[r,g,b]=ramp(stops,1-y/(bh-1));ctx.fillStyle="rgb("+r+","+g+","+b+")";ctx.fillRect(bx,by+y,bw,1)}
+  ctx.strokeStyle="#33414d";ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,bw,bh);
+  ctx.textAlign="left";ctx.fillStyle="#17212b";ctx.font=Math.round(fs*.8)+"px Inter,system-ui,sans-serif";
+  for(const t of ticks){const y=by+bh-(t-min)/span*bh;ctx.fillRect(bx+bw,Math.round(y),5,1);ctx.fillText(String(+t.toFixed(2)).replace(".",","),bx+bw+8,y+fs*.3)}
+  if(threshold!=null){const y=Math.round(by+bh-(threshold-min)/span*bh);ctx.strokeStyle="#00b8d4";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(bx-4,y);ctx.lineTo(bx+bw+4,y);ctx.stroke();ctx.fillStyle="#007f93";ctx.font="600 "+Math.round(fs*.72)+"px Inter,system-ui,sans-serif";ctx.fillText(thresholdLabel,bx-2,by+bh+fs*1.4)}
+  return url(c);
+}
+function cdm4Overlay(base,layers){
+  return overlayUrl(base,(ctx,W,H)=>{for(const[mask,mw,mh,color]of layers)if(mask)maskOverlay(ctx,mask,mw,mh,W,H,color)});
+}
+async function cdm4Stages(file,options={},result=null){
+  const{canvas:base,image}=await decode(file,1600),w=image.width,h=image.height;
+  let d=cdm4StageData(result);
+  if(!d||d.width!==w||d.height!==h){
+    // resultado vindo do histórico: reexecuta o núcleo (sem IA de contexto) só para montar as etapas
+    const cfg=cdm4Config({...options,cdm_context_filter:"off"});cfg.returnStages=true;
+    const core=__cdm4Test.computeCdm4Core(image,null,cfg);d={...core.stages,width:w,height:h,recomputed:true};
+  }
+  const ORANGE=[255,153,0],GRAY=[160,160,160],RUST=[139,63,0],BLUE=[0,102,204],RED=[230,0,0],CYAN=[0,220,255];
+  const area=m=>{let a=0;if(m)for(const v of m)a+=v;return a},pct=m=>(100*area(m)/(w*h)).toFixed(2)+" %";
+  const st=[stage("input","1 · Entrada","Imagem decodificada a "+w+"×"+h+" px (lado máx. 1600, orientação EXIF aplicada)."+(d.recomputed?" Etapas recalculadas sem a IA de contexto (resultado aberto do histórico).":""),url(base))];
+  const m=d.morphology||{};
+  st.push(stage("morphology","2 · Morfologia CDM 2.11","Famílias de área após a IA de contexto: desplacamento "+pct(m.spalling_dark)+" (laranja), armadura (cinza), corrosão (marrom) e eflorescência (azul). As fissuras só aparecem depois da vetorização pelo esqueleto, no resultado. O núcleo do desplacamento é o polo de dano do random walker.",cdm4Overlay(base,[[m.efflorescence_white,w,h,BLUE],[m.corrosion_rust,w,h,RUST],[m.spalling_dark,w,h,ORANGE],[m.exposed_rebar,w,h,GRAY]])));
+  if(d.integrated)st.push(stage("biodiversity","3 · Diversidade e biodiversidade (Ataky)","Laranja: desplacamento após o canal de diversidade e o refino de borda pela comunidade saudável vizinha ("+pct(d.integrated)+"). Ciano: candidatos acrescentados pelo canal de diversidade.",cdm4Overlay(base,[[d.integrated,w,h,ORANGE],[d.diversity_added,w,h,CYAN]])));
+  const rw=d.random_walker;
+  if(rw?.prob){
+    st.push(stage("random_walker","4 · Potencial do random walker","Equação de Laplace na rede de condutâncias (cor + Shannon). Polo 1 = núcleo escuro do desplacamento; polo 0 = concreto saudável. Probabilidade de dano por pixel (escala 1/2); limiar p > "+String(rw.threshold).replace(".",",")+".",
+      scalarWithLegend(rw.prob,rw.W,rw.H,{title:"Potencial do random walker",subtitle:"polo 1 = núcleo escuro · polo 0 = saudável",threshold:rw.threshold,thresholdLabel:"limiar "+String(rw.threshold).replace(".",",")})));
+  }
+  const f=d.final||{};
+  st.push(stage("spalling_final",(st.length+1)+" · Desplacamento final","Potencial > limiar, fora da exclusão de contexto e da eflorescência: "+pct(f.spalling_dark)+" da imagem.",cdm4Overlay(base,[[f.spalling_dark,w,h,ORANGE]])));
+  st.push(stage("linear_rebar",(st.length+1)+" · Armadura exposta (abertura linear)","Vales escuros, estreitos e longos (black-hat 21, segmento de 61 px em 12 orientações, alongamento ≥ 3) dentro do desplacamento: "+area(f.exposed_rebar)+" px.",cdm4Overlay(base,[[f.spalling_dark,w,h,[255,210,140]],[f.exposed_rebar,w,h,[70,70,70]]])));
+  const pg=d.pigments;
+  if(pg){
+    const mx=a=>{let s=[];for(let i=0;i<a.length;i+=7)s.push(a[i]);s.sort((x,y)=>x-y);return Math.max(.3,s[Math.floor(s.length*.995)])};
+    const mr=mx(pg.rust),mb=mx(pg.biological),tk=v=>[0,v/4,v/2,3*v/4,v].map(x=>+x.toFixed(2));
+    st.push(stage("pigment_rust",(st.length+1)+" · Pigmento · ferrugem","Concentração de óxido de ferro por Beer–Lambert (I₀ = concreto saudável "+pg.I0.join("/")+"). Diagnóstico: não altera as máscaras.",scalarWithLegend(pg.rust,pg.W,pg.H,{stops:ORANGES,min:0,max:mr,ticks:tk(mr),title:"Concentração · ferrugem",subtitle:"densidade óptica relativa ao concreto saudável",threshold:pg.rustThreshold<=mr?pg.rustThreshold:null,thresholdLabel:"limiar "+String(pg.rustThreshold).replace(".",",")})));
+    st.push(stage("pigment_bio",(st.length+1)+" · Pigmento · biológico","Concentração de alga/musgo por Beer–Lambert. Diagnóstico: não altera as máscaras.",scalarWithLegend(pg.biological,pg.W,pg.H,{stops:GREENS,min:0,max:mb,ticks:tk(mb),title:"Concentração · biológico",subtitle:"densidade óptica relativa ao concreto saudável",threshold:pg.bioThreshold<=mb?pg.bioThreshold:null,thresholdLabel:"limiar "+String(pg.bioThreshold).replace(".",",")})));
+  }
+  st.forEach((x,i)=>{x.label=(i+1)+" · "+x.label.replace(/^\d+ · /,"")});
+  return st;
+}
+
 async function onnxStages(engineId,file,control={}){
   const assetStem=engineId==="crackenpy_public_crack"?"crackenpy_public_crack.int8":undefined;
   const loaded=await getSession(engineId,{...control,assetStem});
@@ -142,6 +205,7 @@ export async function computeEngineStages(engineId,file,{options={},control={},r
   let stages;
   if(engineId==="opencv_crack")stages=await opencvStages(file);
   else if(engineId==="cdm_1"||engineId==="cdm_3")stages=await cdmStages(file,options);
+  else if(engineId==="cdm_4")stages=await cdm4Stages(file,options,result);
   else if(STAGE_ENGINES.has(engineId))stages=await onnxStages(engineId,file,control);
   else return[];
   const ctxf=result?.metrics?.context_filter;

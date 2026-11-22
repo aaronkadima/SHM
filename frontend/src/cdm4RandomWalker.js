@@ -147,5 +147,5 @@ export function randomWalkerSpalling(rgba,w,h,{site,integrated,exclusion=null,fo
       if(pv>o.threshold){out[i]=1;area++}
     }
   }
-  return{mask:out,log:{applied:true,threshold:o.threshold,max_grow_px:o.maxGrowPx||null,beta:o.beta,scale:f,seeds:R.seeds,iterations:R.iterations,converged:R.converged,area_px:area,ms:Date.now()-t0}};
+  return{mask:out,prob,W,H,log:{applied:true,threshold:o.threshold,max_grow_px:o.maxGrowPx||null,beta:o.beta,scale:f,seeds:R.seeds,iterations:R.iterations,converged:R.converged,area_px:area,ms:Date.now()-t0}};
 }

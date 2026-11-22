@@ -1306,6 +1306,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
     {group:"Visualizar",label:layersOpen?"Recolher camadas":"Mostrar camadas",icon:Layers3,run:()=>setLayersPanelOpen(v=>!v)},
     {group:"Visualizar",label:"Ajustar à tela",icon:Maximize2,hint:"0",disabled:kind!=="2d",run:fitView},
     {group:"Análise",label:annotating?"Fechar anotação Ground Truth":"Anotação Ground Truth (few-shot)",icon:PenTool,disabled:kind!=="2d",run:()=>setAnnotating(v=>!v)},
+    {group:"Análise",label:fieldTool?"Fechar campo do walker":"Campo do walker (CDM-4)",icon:Crosshair,keywords:"walker setas desvio dispersao coerencia iou",disabled:kind!=="2d"||busy||chosen?.engine_id!=="cdm_4",run:()=>setFieldTool(v=>!v)},
     {group:"Visualizar",label:rulers.visible?"Ocultar réguas":"Mostrar réguas",icon:Ruler,hint:"Ctrl+Shift+R",disabled:kind!=="2d",run:toggleRulers},
     {group:"Visualizar",label:showBoxes?"Ocultar caixas delimitadoras":"Mostrar caixas delimitadoras",icon:SquareDashed,disabled:kind!=="2d",run:()=>setShowBoxes(v=>!v)},
     {group:"Visualizar",label:showLabels?"Ocultar rótulos":"Mostrar rótulos",icon:Tag,disabled:kind!=="2d",run:()=>setShowLabels(v=>!v)},
@@ -1370,6 +1371,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
       onLive&&{label:"Live detecção",disabled:busy,onSelect:onLive},
       {label:"Câmera",disabled:busy,onSelect:()=>setCameraOpen(true)},
       {label:"Paridade CDM (Python ⇄ navegador)",checked:parityOpen,onSelect:()=>setParityOpen(v=>!v)},
+      {label:"Campo do walker (CDM-4)",checked:fieldTool,disabled:kind!=="2d"||busy||chosen?.engine_id!=="cdm_4",onSelect:()=>setFieldTool(v=>!v)},
       {label:"Configurações",hint:"Ctrl+,",onSelect:()=>onSettings?.()},
     ]});
     setContextMenu({x:e.clientX,y:e.clientY,sections});
@@ -1429,6 +1431,7 @@ export default function AnalysisWorkspace({appInfo=null,executionIssue="",refere
           <button type="button" role="menuitem" disabled={busy} onClick={e=>runEditorMenuAction(e,onSettings)}><MenuIcon icon={Settings2}/><span>Configurações</span><small>Ctrl/Cmd+,</small></button>
           <button type="button" role="menuitem" disabled={analysisDisabled} onClick={e=>runEditorMenuAction(e,()=>analyzeButton.current?.click())}><MenuIcon icon={Play}/><span>Executar análise</span><small>Ctrl/Cmd+Enter</small></button>
           <button type="button" role="menuitem" aria-checked={annotationActive} disabled={kind!=="2d"} onClick={e=>runEditorMenuAction(e,()=>setAnnotating(v=>!v))}><MenuIcon icon={PenTool}/><span>Anotação Ground Truth (few-shot)</span><small>multiescala</small></button>
+          <button type="button" role="menuitem" aria-checked={fieldTool} disabled={kind!=="2d"||busy||chosen?.engine_id!=="cdm_4"} title={chosen?.engine_id==="cdm_4"?"Campo do walker: selecione uma área 1:1 para ver setas, desvio angular, dispersão e coerência":"Campo do walker · disponível após uma análise do CDM-4"} onClick={e=>runEditorMenuAction(e,()=>setFieldTool(v=>!v))}><MenuIcon icon={Crosshair}/><span>Campo do walker (CDM-4)</span><small>1:1</small></button>
           <button type="button" role="menuitem" aria-checked={parityOpen} onClick={e=>runEditorMenuAction(e,()=>setParityOpen(v=>!v))}><MenuIcon icon={CdmIcon}/><span>Paridade CDM (Python ⇄ navegador)</span><small>indicadores</small></button>
         </div></details>
         <details className="editorMenu" name="shm-editor-menu"><summary>Ajuda</summary><div className="editorMenuPanel" role="menu">

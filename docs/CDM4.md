@@ -85,10 +85,10 @@ fluxo por evidência, cujos polos já vêm limpos.
 
 ### IoU no Campo do walker
 
-A tabela da ferramenta mostra a IoU de cada contorno dentro da seleção:
+A figura 4 (tabela de coerência) mostra a IoU de cada contorno dentro da seleção:
 - **com GT anotado na sessão** (classe Desplacamento): IoU, precisão e revocação do motor e da resolução cheia,
   e o ganho em pontos percentuais;
 - **sem GT**: IoU de concordância motor × resolução cheia e Δ de área — mede o quanto os contornos divergem,
   não a acurácia.
 
-Clicar numa figura abre a ampliação (← → navegam, Esc fecha).
+Clicar numa figura abre a ampliação (← → navegam, Esc fecha). A ferramenta abre pela barra lateral, pelo menu Análise da barra superior ou pelo menu de contexto.

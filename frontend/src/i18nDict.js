@@ -2671,6 +2671,11 @@ export const DICT={
 "Cerrar capas",
 "Fermer les calques"
 ],
+"Fechar campo do walker": [
+"Close walker field",
+"Cerrar campo del walker",
+"Fermer le champ du walker"
+],
 "Fechar capturas": [
 "Close captures",
 "Cerrar capturas",

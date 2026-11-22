@@ -82,7 +82,6 @@ export default function WalkerFieldTool({active,onClose,result,file,options,canv
           <a className="fieldToolBtn" href={figs.panel} download={"campo-walker-painel-"+(info?.lang||"pt")+".png"}><Download size={15}/> {tr("Painel 2×2")}</a>
           <button type="button" aria-label={tr("Fechar")} onClick={onClose}><X size={17}/></button>
         </header>
-        <IouTable q={info?.iou}/>
         <div className="fieldToolGrid">
           {figs.items.map((u,i)=><figure key={i}><button type="button" className="fieldToolThumb" title={tr("Ampliar")} onClick={()=>setZoom(i)}><img src={u} alt=""/></button><a href={u} download={name(i)} title={tr("Baixar figura")}><Download size={14}/></a></figure>)}
         </div>
@@ -97,14 +96,3 @@ export default function WalkerFieldTool({active,onClose,result,file,options,canv
   </>;
 }
 
-const pct=v=>v==null?"—":(v*100).toFixed(1)+" %";
-function IouTable({q}){
-  if(!q)return null;
-  if(q.mode!=="gt")return <div className="fieldToolIou"><table><thead><tr><th colSpan={2}>{tr("IoU na seleção (sem GT: concordância motor × cheia)")}</th></tr></thead>
-    <tbody><tr><td>{tr("IoU motor × cheia")}</td><td>{pct(q.agreement)}</td></tr><tr><td>{tr("Δ área")}</td><td>{q.area_delta==null?"—":(q.area_delta>=0?"+":"")+(q.area_delta*100).toFixed(1)+" %"}</td></tr></tbody></table>
-    <small>{tr("Anote o desplacamento (GT) para obter a IoU real de cada contorno.")}</small></div>;
-  const gain=(q.full.iou-q.engine.iou)*100;
-  return <div className="fieldToolIou"><table><thead><tr><th>{tr("IoU na seleção (contra o GT anotado)")}</th><th>{tr("IoU")}</th><th>{tr("Precisão")}</th><th>{tr("Revocação")}</th></tr></thead>
-    <tbody>{[[tr("Motor"),q.engine],[tr("Resolução cheia"),q.full]].map(([l,m])=><tr key={l}><td>{l}</td><td>{pct(m.iou)}</td><td>{pct(m.precision)}</td><td>{pct(m.recall)}</td></tr>)}</tbody></table>
-    <small>{tr("Ganho")}: {gain>=0?"+":""}{gain.toFixed(1)} pp</small></div>;
-}

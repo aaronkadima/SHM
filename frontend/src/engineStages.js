@@ -2,6 +2,7 @@
 // Reexecuta o mesmo pipeline do motor (mesmas funções e parâmetros) e captura os estados
 // intermediários; nada aqui altera o resultado oficial da análise.
 import{opencvCrackStages}from"./opencvCore.js";
+import{tr,getLang}from"./i18n.js";
 import{__cdmTest}from"./cdmBrowser.js";
 import{__cdm4Test,cdm4Config,cdm4StageData}from"./cdm4Core.js";
 import{getSession}from"./onnxBrowser.js";
@@ -193,7 +194,7 @@ const THUMB_SIDE=520;
 function toBlobUrl(c,type="image/jpeg",quality=.9){return new Promise(res=>c.toBlob(b=>res(b?URL.createObjectURL(b):c.toDataURL(type,quality)),type,quality))}
 function thumbCanvas(src){const k=Math.min(1,THUMB_SIDE/Math.max(src.width,src.height)),t=canvas(Math.max(1,Math.round(src.width*k)),Math.max(1,Math.round(src.height*k))),ctx=t.getContext("2d");ctx.imageSmoothingQuality="high";ctx.drawImage(src,0,0,t.width,t.height);return t}
 async function imageCanvas(dataUrl){const img=new Image();img.src=dataUrl;await img.decode();const c=canvas(img.naturalWidth,img.naturalHeight);c.getContext("2d").drawImage(img,0,0);return c}
-const fmt=v=>String(+Number(v).toFixed(2)).replace(".",",");
+const fmt=v=>{const t=String(+Number(v).toFixed(2));return getLang()==="en"?t:t.replace(".",",")};
 // Toda etapa vira um quadro do MESMO tamanho da entrada: imagem ajustada (contain), banda inferior
 // suavemente transparente com o título e, quando a etapa é um mapa escalar, a legenda horizontal.
 function composeStage(s,src,W,H){
@@ -208,10 +209,10 @@ function composeStage(s,src,W,H){
   ctx.fillStyle=g;ctx.fillRect(0,y0-fs,W,bandH+fs);
   ctx.textBaseline="alphabetic";ctx.textAlign="left";ctx.fillStyle="#ffffff";
   ctx.font="600 "+fs+"px Inter,system-ui,sans-serif";
-  const label=s.label||"";ctx.fillText(label,pad,L?y0+fs*1.9:H-pad*1.1,L?W*.5-2*pad:W-2*pad);
+  const label=tr(s.label||"");ctx.fillText(label,pad,L?y0+fs*1.9:H-pad*1.1,L?W*.5-2*pad:W-2*pad);
   if(L){
     ctx.font=Math.round(fs*.78)+"px Inter,system-ui,sans-serif";ctx.fillStyle="rgba(255,255,255,.85)";
-    ctx.fillText([label.includes(L.title||"\u0000")?"":L.title,L.subtitle].filter(Boolean).join(" · "),pad,y0+fs*3.2,W*.5-2*pad);
+    ctx.fillText([label.includes(tr(L.title)||"\u0000")?"":tr(L.title),tr(L.subtitle)].filter(Boolean).join(" · "),pad,y0+fs*3.2,W*.5-2*pad);
     // barra horizontal de intensidade
     const bw=Math.round(W*.42),bx=W-pad-bw,bh=Math.round(fs*.75),by=y0+Math.round(fs*1.6),span=Math.max(1e-9,L.max-L.min);
     for(let x=0;x<bw;x++){const[r,gg,b]=ramp(L.stops,x/(bw-1));ctx.fillStyle="rgb("+r+","+gg+","+b+")";ctx.fillRect(bx+x,by,1,bh)}
@@ -219,7 +220,7 @@ function composeStage(s,src,W,H){
     ctx.fillStyle="#ffffff";ctx.font=Math.round(fs*.72)+"px Inter,system-ui,sans-serif";ctx.textAlign="center";
     for(const t of L.ticks||[]){const x=Math.round(bx+(t-L.min)/span*bw);ctx.fillRect(x,by+bh,1,Math.round(fs*.3));ctx.fillText(fmt(t),Math.min(bx+bw-fs*.6,Math.max(bx+fs*.6,x)),by+bh+fs*1.15)}
     if(L.threshold!=null){const x=Math.round(bx+(L.threshold-L.min)/span*bw);ctx.fillStyle="#00e0ff";ctx.fillRect(x-1,by-Math.round(fs*.35),3,bh+Math.round(fs*.7));
-      ctx.font="600 "+Math.round(fs*.7)+"px Inter,system-ui,sans-serif";ctx.textAlign="center";ctx.fillText(L.thresholdLabel||("limiar "+fmt(L.threshold)),Math.min(bx+bw-fs*2,Math.max(bx+fs*2,x)),by-Math.round(fs*.5))}
+      ctx.font="600 "+Math.round(fs*.7)+"px Inter,system-ui,sans-serif";ctx.textAlign="center";ctx.fillText(tr(L.thresholdLabel||("limiar "+fmt(L.threshold))),Math.min(bx+bw-fs*2,Math.max(bx+fs*2,x)),by-Math.round(fs*.5))}
   }
   return out;
 }

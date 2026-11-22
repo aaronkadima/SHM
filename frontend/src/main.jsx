@@ -2,6 +2,7 @@ import React from "react";
 import{createRoot}from"react-dom/client";
 import App from"./App";
 import"./styles.css";
+import{startDomTranslator}from"./i18n.js";
 
 class AppErrorBoundary extends React.Component{
   constructor(props){super(props);this.state={error:null}}
@@ -13,3 +14,5 @@ class AppErrorBoundary extends React.Component{
   }
 }
 createRoot(document.getElementById("root")).render(<AppErrorBoundary><App/></AppErrorBoundary>);
+// tradução da interface (PT · EN · ES · FR) por dicionário, aplicada ao DOM renderizado
+startDomTranslator(document.body);

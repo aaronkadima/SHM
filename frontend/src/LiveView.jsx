@@ -1,4 +1,5 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState}from"react";
+import{tr,langInfo}from"./i18n.js";
 import{Camera,CameraOff,Download,FileJson,FileVideo,Flashlight,ImageDown,Images,MapPin,Play,RefreshCw,ScanSearch,Settings2,SwitchCamera,Trash2,Video,X}from"lucide-react";
 import{LIVE_ENGINES,LIVE_ENGINE_IDS}from"./liveEngines.js";
 
@@ -268,11 +269,11 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
     if(!hud)return;
     const fs=Math.max(12,Math.round(W/75)),pad=Math.round(fs*.7),lineH=Math.round(fs*1.35);
     const meta=s.inspectionMeta||{},g=geoRef.current,eng=LIVE_ENGINES[s.engineId]?.name||s.engineId;
-    const counts=fresh?Object.entries(result.counts||{}).filter(([,n])=>n>0).map(([k,n])=>k+": "+n).join(" · "):"";
+    const counts=fresh?Object.entries(result.counts||{}).filter(([,n])=>n>0).map(([k,n])=>tr(k)+": "+n).join(" · "):"";
     const title="SHM Vision Lab · LIVE · "+eng;
     const where=[meta.oae_id,meta.element_id].filter(Boolean).join(" · ");
-    const when=new Date().toLocaleString("pt-BR")+(g?" · "+g.lat.toFixed(6)+", "+g.lon.toFixed(6)+" ±"+Math.round(g.accuracy_m)+" m":"");
-    const findings=fresh?(counts||"Sem achados no quadro"):(s.detecting?"Carregando motor…":"Detecção pausada");
+    const when=new Date().toLocaleString(langInfo().html)+(g?" · "+g.lat.toFixed(6)+", "+g.lon.toFixed(6)+" ±"+Math.round(g.accuracy_m)+" m":"");
+    const findings=fresh?(counts||tr("Sem achados no quadro")):tr(s.detecting?"Carregando motor…":"Detecção pausada");
     const barH=pad*2+lineH*3,top=H-barH+pad,maxW=W-pad*2;
     ctx.save();ctx.fillStyle="rgba(8,12,18,.62)";ctx.fillRect(0,H-barH,W,barH);
     ctx.font="600 "+fs+"px system-ui,sans-serif";ctx.textBaseline="top";ctx.fillStyle="#fff";

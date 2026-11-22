@@ -1,6 +1,7 @@
 import React,{useEffect,useRef,useState}from"react";
 import{ChevronLeft,ChevronRight,Download,X}from"lucide-react";
 import{computeEngineStages,engineStagesSupported,releaseEngineStages}from"./engineStages.js";
+import{useLang}from"./LanguageSwitcher.jsx";
 
 // Miniaturas flutuantes das etapas de processamento do motor escolhido; clique amplia.
 export default function EngineStages({engineId,engineName,file,result,options,control,hidden=false,onState}){
@@ -8,7 +9,8 @@ export default function EngineStages({engineId,engineName,file,result,options,co
   const[status,setStatus]=useState("idle");
   const[open,setOpen]=useState(-1);
   const[collapsed,setCollapsed]=useState(false);
-  const key=[engineId,file?.size,file?.lastModified,file?.type,result?.latency_ms].join("|");
+  const lang=useLang();// as figuras das etapas são refeitas no idioma escolhido
+  const key=[engineId,file?.size,file?.lastModified,file?.type,result?.latency_ms,lang].join("|");
   const stagesRef=useRef([]);
   useEffect(()=>{const previous=stagesRef.current;stagesRef.current=stages;if(previous!==stages)releaseEngineStages(previous.filter(p=>!stages.includes(p)))},[stages]);
   useEffect(()=>()=>releaseEngineStages(stagesRef.current),[]);

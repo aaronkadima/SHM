@@ -103,6 +103,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-context-filter.mjs
 
+      - name: Platform languages (PT/EN/ES/FR dictionary and figure texts)
+        working-directory: frontend
+        run: node scripts/check-i18n.mjs
+
       - name: CDM-3 image core (context fixes, biodiversity, random walker, linear rebar, pigments; CDM-1 untouched)
         working-directory: frontend
         run: node scripts/check-cdm4-core.mjs

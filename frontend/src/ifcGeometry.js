@@ -93,6 +93,9 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       }
       if(i%25===0)onProgress?.({loaded:18+Math.round(72*(i+1)/Math.max(meshCount,1)),total:100});
     }
+    let coordination=null;
+    try{const C=api.GetCoordinationMatrix?.(modelID);if(C&&C.length===16)coordination=Array.from(C)}catch{}
+    let schema=null;try{schema=api.GetModelSchema?.(modelID)||null}catch{}
     let alignments=[];
     try{alignments=api.GetAllAlignments?.(modelID)||[]}catch{}
     const alignmentInfo=(Array.isArray(alignments)?alignments:[]).map((alignment,index)=>{
@@ -138,6 +141,9 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
       referents,
       referentCount:referents.length,
       coordinateToOrigin:true,
+      // malhas em metros, Y para cima, transladadas: modelo_m = (x−t0, −(z−t2), y−t1), t = translação desta matriz
+      coordination,
+      schema,
       elements:Object.values(elementIndex),
       elementCount:Object.keys(elementIndex).length,
       spatialTree

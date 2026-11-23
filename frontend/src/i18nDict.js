@@ -301,6 +301,11 @@ export const DICT={
 "Apertura 2×2",
 "Ouverture 2×2"
 ],
+"Abra o IFC da estrutura para posicionar o sólido.": [
+"Open the structure's IFC to place the solid.",
+"Abra el IFC de la estructura para colocar el sólido.",
+"Ouvrez l’IFC de la structure pour placer le solide."
+],
 "Abra o Live para detectar em tempo real pela câmera; as capturas podem ser salvas na galeria do dispositivo.": [
 "Open Live to detect in real time with the camera; captures can be saved to the device gallery.",
 "Abra Live para detectar en tiempo real con la cámara; las capturas pueden guardarse en la galería del dispositivo.",
@@ -345,6 +350,11 @@ export const DICT={
 "Open camera",
 "Abrir cámara",
 "Ouvrir la caméra"
+],
+"Abrir modelo IFC (IFC4 ou IFC 4.3)": [
+"Open IFC model (IFC4 or IFC 4.3)",
+"Abrir modelo IFC (IFC4 o IFC 4.3)",
+"Ouvrir le modèle IFC (IFC4 ou IFC 4.3)"
 ],
 "Abrir modo câmera": [
 "Open camera mode",
@@ -775,6 +785,11 @@ export const DICT={
 "File downloaded to the device",
 "Archivo descargado en el dispositivo",
 "Fichier téléchargé sur l’appareil"
+],
+"Arquivo gerado": [
+"File generated",
+"Archivo generado",
+"Fichier généré"
 ],
 "Arquivo importado por arrastar e soltar": [
 "File imported by drag and drop",
@@ -1601,6 +1616,11 @@ export const DICT={
 "Haga clic en un punto de la nube",
 "Cliquez sur un point du nuage"
 ],
+"Clique na face do elemento onde a foto foi tirada.": [
+"Click the element face where the photo was taken.",
+"Haga clic en la cara del elemento donde se tomó la foto.",
+"Cliquez sur la face de l’élément où la photo a été prise."
+],
 "Clique no centro e arraste até o raio; voltas e divergência no painel.": [
 "Click the centre and drag to the radius; turns and divergence in the panel.",
 "Haga clic en el centro y arrastre hasta el radio; vueltas y divergencia en el panel.",
@@ -2126,6 +2146,11 @@ export const DICT={
 "Decodificación",
 "Décodage"
 ],
+"Defina a escala por 4 pontos no Corte de nível": [
+"Set the 4-point scale in Level cut",
+"Defina la escala por 4 puntos en Corte de nivel",
+"Définissez l’échelle par 4 points dans Coupe de niveau"
+],
 "Defina os motores antes de executar a inspeção.": [
 "Set the engines before running the inspection.",
 "Defina los motores antes de ejecutar la inspección.",
@@ -2205,6 +2230,21 @@ export const DICT={
 "Slider · available after the analysis",
 "Deslizador · disponible tras el análisis",
 "Curseur · disponible après l’analyse"
+],
+"Deslocamento horizontal (mm)": [
+"Horizontal offset (mm)",
+"Desplazamiento horizontal (mm)",
+"Décalage horizontal (mm)"
+],
+"Deslocamento vertical (mm)": [
+"Vertical offset (mm)",
+"Desplazamiento vertical (mm)",
+"Décalage vertical (mm)"
+],
+"Deslocar": [
+"Offset",
+"Desplazar",
+"Décaler"
 ],
 "Desplacamento": [
 "Spalling",
@@ -2466,6 +2506,11 @@ export const DICT={
 "Elevación Z",
 "Élévation Z"
 ],
+"Encaixar a imagem na face": [
+"Fit the image to the face",
+"Ajustar la imagen a la cara",
+"Ajuster l’image à la face"
+],
 "Enquadrar modelo": [
 "Frame model",
 "Encuadrar modelo",
@@ -2500,6 +2545,11 @@ export const DICT={
 "Between u = {lo} and {hi}, the walker edge moves {px} px on average along the whole contour.",
 "Entre u = {lo} y {hi}, el borde del walker se desplaza {px} px en promedio en todo el contorno.",
 "Entre u = {lo} et {hi}, le bord du walker se déplace de {px} px en moyenne sur tout le contour."
+],
+"Enviando…": [
+"Sending…",
+"Enviando…",
+"Envoi…"
 ],
 "Erosão da exclusão de contexto (células do mapa)": [
 "Context exclusion erosion (map cells)",
@@ -2561,10 +2611,30 @@ export const DICT={
 "Espacio+arrastrar",
 "Espace+glisser"
 ],
+"Espelhar (foto do lado oposto)": [
+"Mirror (photo from the opposite side)",
+"Reflejar (foto del lado opuesto)",
+"Miroir (photo prise du côté opposé)"
+],
+"Espessura por camada": [
+"Thickness per layer",
+"Espesor por capa",
+"Épaisseur par couche"
+],
+"Espessura por camada (mm)": [
+"Thickness per layer (mm)",
+"Espesor por capa (mm)",
+"Épaisseur par couche (mm)"
+],
 "Esq.": [
 "Left",
 "Izq.",
 "G."
+],
+"Esquema não suportado": [
+"Unsupported schema",
+"Esquema no compatible",
+"Schéma non pris en charge"
 ],
 "Esta lista": [
 "This list",
@@ -2756,6 +2826,11 @@ export const DICT={
 "Exportando…",
 "Export…"
 ],
+"Exportar": [
+"Export",
+"Exportar",
+"Exporter"
+],
 "Exportar ZIP": [
 "Export ZIP",
 "Exportar ZIP",
@@ -2845,6 +2920,11 @@ export const DICT={
 "FWHM (px)",
 "FWHM (px)",
 "FWHM (px)"
+],
+"Face": [
+"Face",
+"Cara",
+"Face"
 ],
 "Faixa (mm)": [
 "Range (mm)",
@@ -3061,6 +3141,11 @@ export const DICT={
 "Cerrar sin guardar",
 "Fermer sans enregistrer"
 ],
+"Fechar sólido de níveis": [
+"Close level solid",
+"Cerrar sólido de niveles",
+"Fermer le solide de niveaux"
+],
 "Fechar visualização": [
 "Close view",
 "Cerrar visualización",
@@ -3160,6 +3245,11 @@ export const DICT={
 "Source:",
 "Fuente:",
 "Source :"
+],
+"Forma aproximada do dano para identificação visual no modelo. A altura de cada camada é o nível do potencial × a espessura escolhida; não é profundidade medida.": [
+"Approximate damage shape for visual identification in the model. Each layer's height is the potential level × the chosen thickness; it is not measured depth.",
+"Forma aproximada del daño para identificarlo visualmente en el modelo. La altura de cada capa es el nivel del potencial × el espesor elegido; no es profundidad medida.",
+"Forme approximative du dommage pour l’identifier visuellement dans le modèle. La hauteur de chaque couche est le niveau du potentiel × l’épaisseur choisie ; ce n’est pas une profondeur mesurée."
 ],
 "Formato": [
 "Format",
@@ -3270,6 +3360,11 @@ export const DICT={
 "Generating multiscale crops",
 "Generando recortes multiescala",
 "Génération des découpes multi-échelle"
+],
+"Gira a orientação da foto na face em 90°": [
+"Rotates the photo orientation on the face by 90°",
+"Gira la orientación de la foto en la cara 90°",
+"Fait pivoter l’orientation de la photo sur la face de 90°"
 ],
 "Girar 90° à direita": [
 "Rotate 90° right",
@@ -3391,6 +3486,21 @@ export const DICT={
 "IA de contexto · terreno/agua rodeado por la estructura pasa a neutro",
 "IA de contexte · terrain/eau entouré par la structure devient neutre"
 ],
+"IFC (no navegador)": [
+"IFC (in the browser)",
+"IFC (en el navegador)",
+"IFC (dans le navigateur)"
+],
+"IFC (servidor · IfcOpenShell)": [
+"IFC (server · IfcOpenShell)",
+"IFC (servidor · IfcOpenShell)",
+"IFC (serveur · IfcOpenShell)"
+],
+"IFC 4.3: IfcSurfaceFeature DEFECT ligada ao elemento por IfcRelAdheresToElement.": [
+"IFC 4.3: IfcSurfaceFeature DEFECT linked to the element by IfcRelAdheresToElement.",
+"IFC 4.3: IfcSurfaceFeature DEFECT vinculada al elemento por IfcRelAdheresToElement.",
+"IFC 4.3 : IfcSurfaceFeature DEFECT liée à l’élément par IfcRelAdheresToElement."
+],
 "IFC anotado": [
 "Annotated IFC",
 "IFC anotado",
@@ -3411,10 +3521,20 @@ export const DICT={
 "IFC · teselado geométrico IFC4.3 en curso…",
 "IFC · tessellation géométrique IFC4.3 en cours…"
 ],
+"IFC4 · 4.3": [
+"IFC4 · 4.3",
+"IFC4 · 4.3",
+"IFC4 · 4.3"
+],
 "IFC4.3 renderizado ·": [
 "IFC4.3 rendered ·",
 "IFC4.3 renderizado ·",
 "IFC4.3 rendu ·"
+],
+"IFC4: IfcSurfaceFeature USERDEFINED (DEFECT) ligada ao elemento por IfcRelAggregates.": [
+"IFC4: IfcSurfaceFeature USERDEFINED (DEFECT) linked to the element by IfcRelAggregates.",
+"IFC4: IfcSurfaceFeature USERDEFINED (DEFECT) vinculada al elemento por IfcRelAggregates.",
+"IFC4 : IfcSurfaceFeature USERDEFINED (DEFECT) liée à l’élément par IfcRelAggregates."
 ],
 "IMAGEM": [
 "IMAGE",
@@ -3620,6 +3740,11 @@ export const DICT={
 "Information",
 "Información",
 "Informations"
+],
+"Informe ao menos um nível entre 0 e 1.": [
+"Enter at least one level between 0 and 1.",
+"Indique al menos un nivel entre 0 y 1.",
+"Indiquez au moins un niveau entre 0 et 1."
 ],
 "Informe três coordenadas numéricas em cada ponto.": [
 "Enter three numeric coordinates for each point.",
@@ -5206,6 +5331,11 @@ export const DICT={
 "Pose resuelta",
 "Pose résolue"
 ],
+"Posição da foto": [
+"Photo position",
+"Posición de la foto",
+"Position de la photo"
+],
 "Posição longitudinal ·": [
 "Longitudinal position ·",
 "Posición longitudinal ·",
@@ -6331,6 +6461,11 @@ export const DICT={
 "Sensibilidad al umbral: IoU × nivel",
 "Sensibilité au seuil : IoU × niveau"
 ],
+"Servidor": [
+"Server",
+"Servidor",
+"Serveur"
+],
 "Severidade": [
 "Severity",
 "Severidad",
@@ -6485,6 +6620,26 @@ export const DICT={
 "Only {p} of the profiles found a crack valley: the axis may not follow the crack, or what lies under it is not a crack (e.g. exposed rebar or a spalling edge). Redraw the axis over the crack.",
 "Solo {p} de los perfiles encontraron un valle de fisura: el eje quizá no siga la fisura, o lo que está bajo él no es fisura (por ejemplo, armadura expuesta o borde de desprendimiento). Vuelva a trazar el eje sobre la fisura.",
 "Seuls {p} des profils ont trouvé une vallée de fissure : l'axe ne suit peut-être pas la fissure, ou ce qui est dessous n'est pas une fissure (par exemple armature exposée ou bord d'épaufrure). Retracez l'axe sur la fissure."
+],
+"Sólido de níveis (IFC)": [
+"Level solid (IFC)",
+"Sólido de niveles (IFC)",
+"Solide de niveaux (IFC)"
+],
+"Sólido de níveis · IFC (CDM-4)": [
+"Level solid · IFC (CDM-4)",
+"Sólido de niveles · IFC (CDM-4)",
+"Solide de niveaux · IFC (CDM-4)"
+],
+"Sólido de níveis · disponível após uma análise do CDM-4": [
+"Level solid · available after a CDM-4 analysis",
+"Sólido de niveles · disponible tras un análisis de CDM-4",
+"Solide de niveaux · disponible après une analyse CDM-4"
+],
+"Sólido de níveis: empilha as curvas de nível do walker sobre a face de um elemento do IFC (IFC4 ou IFC 4.3) como forma aproximada do dano": [
+"Level solid: stacks the walker contour levels on an IFC element face (IFC4 or IFC 4.3) as an approximate damage shape",
+"Sólido de niveles: apila las curvas de nivel del walker sobre la cara de un elemento del IFC (IFC4 o IFC 4.3) como forma aproximada del daño",
+"Solide de niveaux : empile les courbes de niveau du walker sur la face d’un élément IFC (IFC4 ou IFC 4.3) comme forme approximative du dommage"
 ],
 "TAMANHO": [
 "SIZE",
@@ -6686,6 +6841,11 @@ export const DICT={
 "Usado solo cuando se seleccionan dos o más motores.",
 "Utilisé uniquement lorsque deux moteurs ou plus sont sélectionnés."
 ],
+"Usar a escala da foto": [
+"Use the photo scale",
+"Usar la escala de la foto",
+"Utiliser l’échelle de la photo"
+],
 "Usar esta vista como âncora e propagar poses por ORB + PnP/RANSAC": [
 "Use this view as anchor and propagate poses by ORB + PnP/RANSAC",
 "Usar esta vista como ancla y propagar poses por ORB + PnP/RANSAC",
@@ -6886,6 +7046,11 @@ export const DICT={
 "Walker en resolución completa en el borde (experimental)",
 "Walker en pleine résolution à la frontière (expérimental)"
 ],
+"WebGL indisponível neste navegador.": [
+"WebGL is not available in this browser.",
+"WebGL no está disponible en este navegador.",
+"WebGL n’est pas disponible dans ce navigateur."
+],
 "Workspace de análise": [
 "Analysis workspace",
 "Espacio de análisis",
@@ -7010,6 +7175,11 @@ export const DICT={
 "candidates ·",
 "candidatos ·",
 "candidats ·"
+],
+"características": [
+"features",
+"elementos",
+"caractéristiques"
 ],
 "catálogo v": [
 "catalogue v",
@@ -7350,6 +7520,11 @@ export const DICT={
 "incompatible identity(ies)",
 "identidad(es) incompatible(s)",
 "identité(s) incompatible(s)"
+],
+"imagem encaixada na face": [
+"image fitted to the face",
+"imagen ajustada a la cara",
+"image ajustée à la face"
 ],
 "indicadores": [
 "indicators",
@@ -7761,6 +7936,11 @@ export const DICT={
 "región(es)",
 "région(s)"
 ],
+"regiões": [
+"regions",
+"regiones",
+"régions"
+],
 "regiões no CSV": [
 "regions in the CSV",
 "regiones en el CSV",
@@ -7850,6 +8030,11 @@ export const DICT={
 "no correction",
 "sin corrección",
 "sans correction"
+],
+"sem escala": [
+"no scale",
+"sin escala",
+"sans échelle"
 ],
 "sem execução nesta sessão": [
 "no run in this session",
@@ -7980,6 +8165,16 @@ export const DICT={
 "one edge is steep and the other has a plateau, where the threshold decides the position",
 "un borde es pronunciado y el otro tiene meseta, donde el umbral decide la posición",
 "un bord est raide et l'autre a un plateau, où le seuil décide la position"
+],
+"unidade": [
+"unit",
+"unidad",
+"unité"
+],
+"use IFC4 ou IFC 4.3": [
+"use IFC4 or IFC 4.3",
+"use IFC4 o IFC 4.3",
+"utilisez IFC4 ou IFC 4.3"
 ],
 "vai substituir": [
 "will replace",
@@ -8280,6 +8475,16 @@ export const DICT={
 "Engine area: engine scale · Full-res area: walker re-solved in the selection.",
 "Área motor: escala del motor · Área completa: walker rehecho en la selección.",
 "Surface moteur : échelle du moteur · Surface pleine : walker recalculé dans la sélection."
+],
+"Área mínima": [
+"Minimum area",
+"Área mínima",
+"Surface minimale"
+],
+"Área mínima (dm²)": [
+"Minimum area (dm²)",
+"Área mínima (dm²)",
+"Surface minimale (dm²)"
 ],
 "Área mínima (px²)": [
 "Minimum area (px²)",

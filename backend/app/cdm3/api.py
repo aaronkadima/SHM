@@ -284,3 +284,34 @@ async def export_ifc(
         "X-CDM3-Skipped": str(stats.skipped_missing_host + stats.skipped_bad_geometry),
     }
     return Response(content=data, media_type="application/x-step", headers=headers)
+
+
+@router.post("/ifc/level-solid")
+async def export_level_solid(
+    ifc: UploadFile = File(...),
+    payload_json: str = Form(...),
+):
+    """CDM-4: grava o sólido de camadas de nível (forma aproximada do dano) como IfcSurfaceFeature, IFC4 ou IFC 4.3."""
+    _require("ifcopenshell")
+    from .ifc_level_solid import write_level_solid
+    try:
+        payload = json.loads(payload_json)
+        if not isinstance(payload, dict) or "solid" not in payload or "face" not in payload:
+            raise ValueError("payload must contain host_guid, face and solid")
+    except Exception as exc:
+        raise HTTPException(400, f"Invalid payload_json: {exc}") from exc
+    with tempfile.TemporaryDirectory(prefix="shm-cdm4-solid-") as td:
+        root = Path(td)
+        src, out = root / "input.ifc", root / "output.ifc"
+        src.write_bytes(await ifc.read())
+        try:
+            info = write_level_solid(src, payload, out)
+            data = out.read_bytes()
+        except Exception as exc:
+            raise HTTPException(400, f"IFC level solid failed: {type(exc).__name__}: {exc}") from exc
+    headers = {
+        "Content-Disposition": 'attachment; filename="shm-cdm4-damage-shape.ifc"',
+        "X-CDM4-Schema": info["schema"],
+        "X-CDM4-Features": str(len(info["features"])),
+    }
+    return Response(content=data, media_type="application/x-step", headers=headers)

@@ -174,3 +174,34 @@ mediana ≈ 2,7–2,9 px, sinalizada.
 - Validação: homografia sintética recupera distâncias com erro < 1e-6 mm; dois discos a 65 px → 65 px exatos.
   Foto 24 em perspectiva (topo estreitado, 600 × 900 mm): distância entre desplacamentos 31,01 mm (verdade dos mesmos
   pontos 30,98 mm); escala única 34,88 mm; foto de frente 26,65 mm (diferença = contorno detectado, 3–5 px por borda).
+
+## Sólido de níveis no IFC (IFC4 e IFC 4.3)
+
+Forma aproximada do dano para identificação visual no modelo BIM/BrIM. **Não é profundidade:** a altura de cada
+camada é nível do potencial × espessura escolhida; a ressalva é gravada na descrição e no Pset do IFC.
+
+- `levelSolid.js`: curvas de nível fechadas do potencial (`contourRings`, marching squares com interpolação linear e
+  borda zerada, ponto de sela decidido pelo centro), Douglas–Peucker (`simplifyRing`), anéis → polígonos com furos
+  (`ringsToPolygons`), `buildLevelSolid(rw,toPlane,{levels,layerMm,minAreaMm2})`. As regiões são os polígonos do nível
+  mais baixo; os níveis acima entram na região que os contém. Teste: área de cada nível = células com u ≥ t (foto 24:
+  5,9 / 4,9 / 4,2 / 3,7 / 3,0 dm² nos dois cálculos).
+- `ifcFace.js`: face plana sob o clique (triângulos coplanares da malha do web-ifc), moldura n (para fora),
+  ex = cima × n (direita de quem olha), rotação de 90°, canto superior esquerdo como origem. Malhas do web-ifc 0.0.77
+  (`COORDINATE_TO_ORIGIN`) estão em metros, Y para cima: modelo_m = (x − t0, −(z − t2), y − t1), com t a translação de
+  `GetCoordinationMatrix` lida **depois** de carregar a geometria (antes ela vem zerada). Conferido com IfcOpenShell em
+  IFC4 e IFC4X3_ADD2.
+- `imageToFace`: imagem encaixada na face (centralizada) ou escala da foto (homografia de 4 pontos do Corte de nível),
+  com deslocamento e espelhamento.
+- Gravação: `ifcLevelSolidWriter.js` (navegador, acrescenta entidades STEP ao fim do DATA; não altera o original) e
+  `backend/app/cdm3/ifc_level_solid.py` (IfcOpenShell, `POST /cdm3/ifc/level-solid`, mesma entrada JSON).
+  - IFC4X3: `IfcSurfaceFeature` `.DEFECT.` + `IfcRelAdheresToElement`.
+  - IFC4: `.USERDEFINED.` + ObjectType `DEFECT` + `IfcRelAggregates`.
+  - Body `SurfaceModel`: uma `IfcShellBasedSurfaceModel` de `IfcClosedShell` (topo com furos, base, laterais) por camada;
+    `IfcStyledItem` viridis por nível; `IfcLocalPlacement` relativo ao hospedeiro; sem contenção espacial;
+    mm → unidade do modelo; afastamento de 0,5 mm da face.
+  - Pset `CDM_DamageShape`: Representacao, Motor, Classe, Niveis, EspessuraCamada_mm, AreaNivelBase_m2, Area_u*_m2,
+    Imagem, Escala, DataInspecao.
+- Validação: `ifcopenshell.validate` sem erros nos dois esquemas (arquivos do navegador e do backend); vértices sobre a
+  face (normal de 400,5 a 450,5 mm num pilar 1200 × 800 mm girado 30°); web-ifc relê as características (9468
+  triângulos). Testes: `frontend/scripts/check-cdm4-core.mjs` e `backend/tests/check_cdm4_level_solid_ifc.py`
+  (workflow `cdm4-level-solid-ifc.yml`, IfcOpenShell 0.8.5).

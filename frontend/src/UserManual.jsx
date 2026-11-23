@@ -41,7 +41,7 @@ function chapters(shortcuts){
     <FigInterface n={f()}/>
     <Tbl head={["Região","Função"]} rows={[
       ["① Menus","Arquivo (importar, recentes com miniatura, salvar, imprimir, fechar, sair), Editar, Visualizar (modos, camadas, réguas), Análise (configurações, executar, anotação Ground Truth, Campo do walker e Corte de nível do CDM-4, paridade), Ajuda."],
-      ["② Barra lateral","Ferramentas rápidas: importar, executar, caixas, rótulos, Original/Sobrepor/Deslizar/Lado a lado, régua, Live, câmera, paridade (ícone CDM), Campo do walker (mira, CDM-4), Corte de nível (tesoura, CDM-4) e Sobre."],
+      ["② Barra lateral","Ferramentas rápidas: importar, executar, caixas, rótulos, Original/Sobrepor/Deslizar/Lado a lado, régua, Live, câmera, paridade (ícone CDM), Campo do walker (mira, CDM-4), Corte de nível (tesoura, CDM-4), Sólido de níveis (camadas, CDM-4 → IFC) e Sobre."],
       ["③ Imagem","Propriedades do arquivo, resolução, escala mm/px, qualidade e ajustes de tom."],
       ["④ Resultados","Contagens por patologia, total, lista de achados com medidas; expande para o dobro da largura."],
       ["⑤ Canvas","Imagem com sobreposição das máscaras, caixas e rótulos; navegação estilo CAD."],
@@ -164,7 +164,7 @@ function chapters(shortcuts){
     <FigFamilies n={f()}/>
   </>},
 
-  {id:"cdm4",title:"Motor CDM-4 (experimental)",kw:"cdm-4 random walker grady ataky diversidade biodiversidade evidência polos armadura linear pigmentos beer lambert contorno resolução cheia campo setas coerência iou corte de nível binarização otsu perfil terreno hipsométrica tesoura",body:<>
+  {id:"cdm4",title:"Motor CDM-4 (experimental)",kw:"cdm-4 ifc ifc4 ifc4.3 sólido camadas bim brim surfacefeature random walker grady ataky diversidade biodiversidade evidência polos armadura linear pigmentos beer lambert contorno resolução cheia campo setas coerência iou corte de nível binarização otsu perfil terreno hipsométrica tesoura",body:<>
     <p className="umLead">O <b>CDM-4</b> é um motor próprio, separado do CDM-1 e do CDM-3: parte de uma cópia do CDM 2.11 e acrescenta as etapas validadas em fotos reais de inspeção. Continua determinístico e sem pesos treinados na segmentação; a IA de contexto só exclui cena. Roda no navegador, num Web Worker, e é escolhido na página de Configurações (<i>CDM-4 · etapas do núcleo</i>).</p>
     <Note kind="warn">Motor em validação: na foto de referência com Ground Truth, a IoU do desplacamento subiu de 26,6 (CDM 2.11) para cerca de 70 e a da armadura exposta de 13,2 para 53,6, mas ainda são poucas fotos anotadas. Confirme os achados em inspeção técnica.</Note>
     <h3>Dois fluxos para o desplacamento</h3>
@@ -242,6 +242,21 @@ function chapters(shortcuts){
       <li>A correção só vale para pontos no plano do retângulo: relevo e outras faces não são corrigidos.</li>
     </ul>
     <Note>Teste com a foto de referência vista em perspectiva (homografia conhecida, 600 × 900 mm): a distância entre os dois desplacamentos medida pela ferramenta foi 31,01 mm, contra 30,98 mm para os mesmos pontos no plano real (0,1 %). Sem correção, a escala única deu 34,88 mm. A diferença para os 26,65 mm da foto de frente vem do contorno detectado, não da perspectiva: as bordas saíram 3 a 5 px diferentes na imagem deformada.</Note>
+    <h3>Sólido de níveis no modelo IFC (IFC4 e IFC 4.3)</h3>
+    <p>Leva o dano detectado para o modelo BIM/BrIM como um sólido em camadas, por analogia ao bloco-diagrama de curvas de nível de um terreno: ícone de <b>camadas</b> na barra lateral ou <i>Análise › Sólido de níveis · IFC (CDM-4)</i>, depois de uma análise do CDM-4.</p>
+    <Note>O sólido é a <b>forma aproximada do dano</b>, para identificá-lo visualmente no modelo. A altura de cada camada é o nível do potencial do walker × a espessura escolhida; <b>não é profundidade medida</b>. Essa ressalva vai gravada no próprio IFC (descrição e conjunto de propriedades).</Note>
+    <ol>
+      <li><b>Abra o IFC da estrutura</b> (IFC4 ou IFC 4.3; IFC2x3 não é aceito). O modelo aparece em 3D; arraste para girar, botão direito para deslocar, roda para aproximar.</li>
+      <li><b>Clique na face</b> do elemento onde a foto foi tirada. A face plana inteira fica destacada e o painel mostra elemento e dimensões. A foto é orientada com o “para cima” do modelo; use o botão de rotação (90°) e <i>Espelhar</i> quando a foto foi tirada do lado oposto ou a face é horizontal (laje, tabuleiro).</li>
+      <li><b>Posição da foto</b>: <i>Encaixar a imagem na face</i> (padrão, centralizada) ou <i>Usar a escala da foto</i>, quando a escala por 4 pontos foi marcada no Corte de nível — o retângulo de referência passa a ter as dimensões reais e a perspectiva fica corrigida. <i>Deslocar</i> move o sólido na face (mm).</li>
+      <li><b>Camadas</b>: até 5 níveis do walker (padrão 0,1; 0,3; 0,5; 0,7; 0,9), espessura por camada (mm) e área mínima de uma região. Cada nível é uma curva fechada, com furos quando existem; regiões pequenas são descartadas. A cor segue a escala viridis (roxo = nível baixo, amarelo = alto).</li>
+      <li><b>Exportar</b>: <i>IFC (no navegador)</i> grava o arquivo sem servidor; <i>IFC (servidor · IfcOpenShell)</i> faz o mesmo pelo backend. O modelo original fica intacto: as entidades novas são acrescentadas ao fim.</li>
+    </ol>
+    <p>Como fica no IFC: uma <b>IfcSurfaceFeature</b> por região de dano, posicionada em relação ao elemento, com representação <i>Body / SurfaceModel</i> (uma IfcShellBasedSurfaceModel fechada por camada, colorida por nível) e o conjunto de propriedades <b>CDM_DamageShape</b> (representação, motor, classe, níveis, espessura, área por nível, imagem, escala, data).</p>
+    <Tbl head={["Esquema","Tipo da característica","Ligação ao elemento"]} rows={[
+      ["IFC 4.3","PredefinedType DEFECT","IfcRelAdheresToElement"],
+      ["IFC4","USERDEFINED, ObjectType “DEFECT”","IfcRelAggregates (IfcRelAdheresToElement não existe no IFC4)"]]}/>
+    <Note>Validação: os arquivos gerados nos dois esquemas passam no validador do IfcOpenShell sem erros, e a geometria fica sobre a face escolhida (afastamento de 0,5 mm, empilhada para fora), num pilar girado 30° com unidades em mm.</Note>
     <h3>Exportação em SVG (texto editável)</h3>
     <p>Em todo lugar com gráfico há, ao lado do PNG, o botão <b>SVG</b>: figuras do Corte de nível e a folha com todas, figuras e painel 2×2 do Campo do walker, e cada etapa do motor (no visualizador ampliado). Títulos, rótulos, números dos eixos, legendas e interpretações saem como texto <b>editável</b> no Inkscape, Illustrator ou navegador; eixos, curvas, linhas de corte, rosa e barras de cor saem como vetores; só fotos e mapas de cor ficam embutidos como imagem. As figuras são as mesmas do PNG, desenhadas pela mesma rotina.</p>
     <h3>Filtros ao vivo (modo Live)</h3>

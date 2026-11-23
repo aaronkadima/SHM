@@ -1532,3 +1532,26 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 
 .cutToolMode button.dist.on{background:#4fe08a!important;color:#0b1a22!important}
 .cutToolMode button.scale.on{background:#00e0ff!important;color:#0b1a22!important}
+/* Sólido de níveis (CDM-4 → IFC) */
+.solidTool{position:fixed;inset:0;z-index:300;display:grid;grid-template-columns:320px 1fr;background:#0e1a22}
+.solidToolSide{display:flex;flex-direction:column;gap:10px;padding:14px;overflow:auto;background:#12202a;color:#dbe7ea;font:13px Inter,system-ui,sans-serif}
+.solidToolSide header{display:flex;justify-content:space-between;align-items:center;font-size:15px}
+.solidToolSide button{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:inherit;cursor:pointer}
+.solidToolSide button:disabled{opacity:.45;cursor:not-allowed}
+.solidToolSide button.primary{background:#f2c200;color:#12202a;border-color:#f2c200;font-weight:600}
+.solidToolSide small{color:#9fb4ba}
+.solidToolNote{margin:0;padding:8px 10px;border-left:3px solid #f2c200;background:rgba(242,194,0,.08);color:#f1e7b8;line-height:1.4}
+.solidToolFile{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px dashed rgba(255,255,255,.3);border-radius:8px;cursor:pointer;overflow:hidden}
+.solidToolFile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.solidToolFile input{display:none}
+.solidToolProgress{height:4px;border-radius:2px;background:rgba(255,255,255,.1)}.solidToolProgress i{display:block;height:100%;border-radius:2px;background:#2a9db0}
+.solidToolStep{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}
+.solidToolStep label{display:flex;align-items:center;gap:6px}
+.solidToolRow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.solidToolRow input{width:70px;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.2);background:#0e1a22;color:#fff}
+.solidToolRow input.wide{width:170px}
+.solidToolLegend{display:flex;flex-wrap:wrap;gap:8px}.solidToolLegend span{display:inline-flex;align-items:center;gap:4px}.solidToolLegend i{width:12px;height:12px;border-radius:3px}
+.solidToolErr{margin:0;color:#ff9b8a}.solidToolOk{margin:0;color:#8fe0a8}
+.solidToolView{position:relative;min-height:0}.solidToolView canvas{display:block;width:100%;height:100%}
+.solidToolEmpty{position:absolute;inset:0;display:grid;place-items:center;color:#6f8790;font:14px Inter,system-ui,sans-serif;pointer-events:none}
+@media (max-width:760px){.solidTool{grid-template-columns:1fr;grid-template-rows:auto 1fr}.solidToolSide{max-height:46vh}}

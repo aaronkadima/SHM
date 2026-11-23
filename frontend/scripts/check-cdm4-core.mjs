@@ -273,3 +273,41 @@ console.log("crack width + cut widths ok");
   assert.equal(G.pickComponent(masks,w,h,120,10),null,"clique longe de tudo → nada");
 }
 console.log("homography + contour distance ok");
+
+// ---------- sólido de camadas de nível → IFC4 / IFC 4.3 ----------
+{
+  const LS=await import("../src/levelSolid.js"),FW=await import("../src/ifcLevelSolidWriter.js"),FF=await import("../src/ifcFace.js");
+  const fsx=await import("node:fs");
+  // potencial em anel (coroa) + cone: área de cada nível = células com u ≥ t; o anel tem furo
+  const W=120,H=90,P=new Float32Array(W*H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const r1=Math.hypot(x-35,y-45),r2=Math.hypot(x-90,y-45);P[y*W+x]=Math.max(Math.max(0,1-Math.abs(r1-18)/10),Math.max(0,1-r2/22))}
+  const sol=LS.buildLevelSolid({prob:P,W,H,f:1},(x,y)=>[x*2,y*2],{levels:[.2,.5,.8],layerMm:5,minAreaMm2:50});
+  assert.equal(sol.regions.length,2,"duas regiões: anel e cone");
+  for(const t of sol.levels){let n=0;for(const v of P)if(v>=t)n++;const a=sol.regions.reduce((s,R)=>s+(R.areaByLevel.find(q=>q.level===t)?.area_mm2||0),0);
+    assert.ok(Math.abs(a-n*4)/(n*4)<.06,`área do nível ${t}: ${a} vs ${n*4}`)}
+  const ring=sol.regions.find(R=>R.bbox[0]<60);assert.ok(ring.layers[0].polys[0].holes.length===1,"anel com furo");
+  assert.deepEqual(ring.layers.map(L=>[L.z0,L.z1]),[[0,5],[5,10],[10,15]]);
+  // face plana de uma caixa 2 × 1 × 3 m (visualizador, Y para cima): face +Z clicada
+  const box=[[0,0,0],[2,0,0],[2,3,0],[0,3,0],[0,0,-1],[2,0,-1],[2,3,-1],[0,3,-1]],quads=[[0,1,2,3],[5,4,7,6],[1,5,6,2],[4,0,3,7],[3,2,6,7],[4,5,1,0]];
+  const pos=new Float32Array(box.flat()),idx=quads.flatMap(([a,b,c,d])=>[a,b,c,a,c,d]),I=[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1];
+  const tris=FF.worldTriangles(pos,idx,I),F=FF.planarFace(tris,0);
+  assert.ok(Math.abs(F.width-2)<1e-9&&Math.abs(F.height-3)<1e-9,"face 2 × 3 m");assert.deepEqual(F.n.map(v=>+v.toFixed(6)+0),[0,0,1]);
+  assert.deepEqual(F.ex.map(v=>+v.toFixed(6)+0),[1,0,0],"direita de quem olha a face +Z");assert.deepEqual(F.origin.map(v=>+v.toFixed(6)+0),[0,3,0],"canto superior esquerdo");
+  assert.ok(Math.abs(FF.planarFace(tris,0,{rot:1}).width-3)<1e-9,"rotação de 90°");
+  const Fm=FF.faceToModel(F,[1,0,0,0,0,1,0,0,0,0,1,0,10,20,30,1],.001);assert.deepEqual(Fm.origin.map(v=>Math.round(v)),[-10000,30000,-17000]);assert.deepEqual(Fm.n.map(v=>Math.round(v)+0),[0,-1,0]);
+  // gravação nos dois esquemas: entidades, relação, tipo e posição da origem da característica sobre a face
+  const a=Math.PI/6,rot=(x,y)=>[x*Math.cos(a)-y*Math.sin(a),x*Math.sin(a)+y*Math.cos(a)],o=rot(600,400);
+  const face={origin:[100000+o[0],50000+o[1],7000],ex:[...rot(-1,0),0],n:[...rot(0,1),0]};
+  for(const[fx,is43]of[["pier_ifc4.ifc",false],["pier_ifc43.ifc",true]]){
+    const txt=fsx.readFileSync(new URL("./fixtures/"+fx,import.meta.url),"utf8"),guid=txt.match(/IFCCOLUMN\('([^']+)'/)[1];
+    const r=FW.writeLevelSolid(txt,{hostGuid:guid,face,solid:sol});const M=FW.parseStep(r.text),of=t=>[...M.ents.values()].filter(e=>e.type===t);
+    assert.equal(of("IFCSURFACEFEATURE").length,2);assert.equal(of(is43?"IFCRELADHERESTOELEMENT":"IFCRELAGGREGATES").filter(e=>e.raw.includes("CDM-4 danos")).length,1,"relação do esquema");
+    const sf=FW.parseArgs(of("IFCSURFACEFEATURE")[0].raw);assert.equal(sf[8].enum,is43?"DEFECT":"USERDEFINED");assert.equal(sf[4],is43?null:"DEFECT");
+    assert.equal(of("IFCSHELLBASEDSURFACEMODEL").length,6,"uma casca por camada");assert.equal(of("IFCPROPERTYSET").filter(e=>/CDM_DamageShape/.test(e.raw)).length,2);
+    const Mw=FW.placementMatrix(M,sf[5].ref);assert.ok(Math.hypot(Mw[12]-face.origin[0],Mw[13]-face.origin[1],Mw[14]-face.origin[2])<1e-6,"origem sobre a face");
+    assert.ok(Math.abs(Mw[8]*face.n[0]+Mw[9]*face.n[1]-1)<1e-9,"eixo z = normal da face");
+    assert.ok(r.text.includes("n\\X2\\00ED\\X0\\vel")||r.text.includes("\\X2\\"),"texto acentuado codificado em STEP");
+  }
+  assert.throws(()=>FW.writeLevelSolid("ISO-10303-21;HEADER;FILE_SCHEMA(('IFC2X3'));ENDSEC;DATA;ENDSEC;END-ISO-10303-21;",{hostGuid:"x",face,solid:sol}),/IFC2X3/);
+  console.log("level solid → IFC4/IFC4.3 ok");
+}

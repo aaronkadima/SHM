@@ -1485,3 +1485,20 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .fieldToolNav.prev{left:18px}.fieldToolNav.next{right:18px}
 .fieldToolZoomBar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:14px;align-items:center;color:#dfe9ec;font-size:13px;cursor:default}
 .fieldToolZoomBar a,.fieldToolZoomBar button{display:inline-flex;gap:5px;align-items:center;color:#dfe9ec;background:rgba(255,255,255,.1);border:0;border-radius:6px;padding:5px 10px;text-decoration:none;cursor:pointer;font:inherit}
+.cutToolLines{position:fixed;inset:0;pointer-events:none}
+.cutToolBar{position:fixed;top:66px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 8px 6px 14px;border-radius:999px;background:rgba(18,32,42,.92);color:#fff;font-size:12px;font-weight:600;cursor:default;box-shadow:0 8px 24px rgba(10,20,28,.3);white-space:nowrap;max-width:96vw}
+.cutToolHintText{overflow:hidden;text-overflow:ellipsis;max-width:44vw}
+.cutToolHintText em{color:#ffb4a8;font-style:normal}
+.cutToolCount{padding:3px 8px;border-radius:999px;background:rgba(242,194,0,.2);color:#f2c200}
+.cutToolLevels{display:inline-flex;align-items:center;gap:6px;font-weight:500;color:#cfe0e5}
+.cutToolLevels input{width:86px;padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font:inherit}
+.cutToolBar button{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;padding:6px 9px;background:rgba(255,255,255,.1);color:#fff;font:inherit;cursor:pointer}
+.cutToolBar button:hover:not(:disabled){background:rgba(255,255,255,.2)}
+.cutToolBar button:disabled{opacity:.4;cursor:default}
+.cutToolBar button.primary{background:#e07800;padding:6px 12px}
+.cutToolBar button.primary:hover:not(:disabled){background:#f08a12}
+.cutToolGrid{display:grid;grid-template-columns:repeat(2,min(44vw,60vh));gap:10px;padding:10px;background:#12202a;overflow:auto;max-height:calc(96vh - 64px)}
+.cutToolGrid figure{position:relative;margin:0;background:#fff;border-radius:6px;overflow:hidden}
+.cutToolGrid figcaption{padding:5px 10px;font-size:12px;font-weight:600;color:#1d2a33;background:#f3f6f7}
+.cutToolGrid figure>a{position:absolute;top:6px;right:6px;display:grid;place-items:center;width:28px;height:28px;border-radius:6px;background:rgba(18,32,42,.75);color:#fff}
+.fieldToolZoom>img.cutToolZoomImg{width:min(92vw,calc(84vh * 1.5));height:auto}

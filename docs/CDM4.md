@@ -101,3 +101,20 @@ de biodiversidade, e o desplacamento final nunca sai dela (o juiz só remove). A
 desplacamento toda a "armadura" da morfologia, e falsos núcleos que o walker não confirmou voltavam como
 regiões pequenas (na foto 24, três regiões, a maior com 4.231 px²). Foto 24: IoU 68,4 → 70,2;
 com resolução cheia 70,7 → 72,9. Registro: `refinement.walker_bound`.
+
+## Corte de nível: binarização × potencial do walker (ferramenta de análise)
+
+Ícone de tesoura (barra lateral), *Análise › Corte de nível (CDM-4)* ou menu de contexto. O usuário traça
+n linhas de corte (A, B, C…) e escolhe os níveis do walker (padrão 0,3; 0,5; o limiar do motor entra sempre).
+Saem, todas com 1200 × 800 px e faixa de interpretação gerada dos números:
+
+1. **Mapas** — binarização (escuridão normalizada > Otsu), potencial u com curvas de nível, corte u > τ (+ GT).
+2. **Perfil de corte** (um por linha) — perfis de terreno da escuridão e de u, com os planos de corte, faixas de GT,
+   trechos escuros sem polo (escuridão > Otsu e u < 0,05 por ≥ 6 px) e o deslocamento da borda entre níveis.
+3. **Curva de corte** — área acima de cada nível (hipsométrica, log) e IoU × nível (com GT) ou densidade de
+   pixels por nível (sem GT).
+
+Núcleo em `cdm4CutAnalysis.js` (funções puras: `cutBase`, `profile`, `interpret*`; testado em
+`check-cdm4-core`), figuras em `cdm4CutFigures.js`, interface em `CutLevelTool.jsx`.
+Foto 24 (GT): binarização IoU 7,3 % (máx. 13,4 % em qualquer limiar); potencial 69,9 % (65–74 % para t ∈ [0,3; 0,7]);
+borda do walker anda 5,0 px em média entre u = 0,3 e 0,5.

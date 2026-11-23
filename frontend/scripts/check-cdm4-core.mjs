@@ -8,6 +8,7 @@ import {linearRebar} from "../src/cdm4Rebar.js";
 import {pigmentMaps,maskComposition} from "../src/cdm4Pigments.js";
 import {refineContourThresholds,symmetricBoundaryDistance} from "../src/cdm4Contour.js";
 import {analyzeWalkerField,fieldIoU,refineWalkerFullRes} from "../src/cdm4FieldAnalysis.js";
+import {cutBase,profile,otsu,interpretMaps,interpretProfile,interpretCurves} from "../src/cdm4CutAnalysis.js";
 
 // gerador determinístico
 let seed=12345;const rnd=()=>{seed=(seed*1103515245+12345)>>>0;return seed/4294967296};
@@ -169,3 +170,21 @@ assert.deepEqual(c3.records,c1.records,"etapas desligadas ⇒ registros idêntic
 assert.deepEqual(c3.summary,c1.summary,"etapas desligadas ⇒ classificação idêntica ao CDM-1");
 
 console.log("CDM-4 core passed:",{records:a.records.length,classes:[...new Set(a.records.map(r=>r.class))],random_walker:a.refinement.random_walker,linear_rebar:a.refinement.linear_rebar});
+
+// Corte de nível: disco escuro com polo (dano real) + mancha escura sem polo; potencial = disco suavizado
+{
+  const w=200,h=120,img=new Uint8ClampedArray(w*h*4),prob=new Float32Array(w*h),gt=new Uint8Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x,r=Math.hypot(x-60,y-60),stain=Math.hypot(x-150,y-60)<15;
+    const v=r<30||stain?60:170;img.set([v,v,v,255],4*i);prob[i]=1/(1+Math.exp((r-30)/1.5));gt[i]=r<30?1:0}
+  const B=cutBase(img,w,h,{prob,W:w,H:h,threshold:.5},{gt,levels:[.3,.5]});
+  assert.ok(B.otsu>.2&&B.otsu<.8,"otsu separa escuro/claro: "+B.otsu);
+  assert.ok(B.global.walker.iou>.9,"walker segue o disco: "+B.global.walker.iou);
+  assert.ok(B.global.bin.iou<B.global.walker.iou-.15,"binarização inclui a mancha sem polo");
+  const P=profile(B,{x1:0,y1:60,x2:199,y2:60});
+  assert.equal(P.notes.uCross,2);assert.equal(P.notes.poleless.length,1,"uma mancha sem polo na linha");
+  assert.ok(P.notes.shiftMean>0&&P.notes.shiftMean<3,"borda íngreme entre os níveis: "+P.notes.shiftMean);
+  const f=(v,n)=>v.toFixed(n),all=[...interpretMaps(B,f),...interpretProfile(P,f),...interpretCurves(B,f)];
+  for(const[t,v]of all)for(const k of t.match(/\{(\w+)\}/g)||[])assert.ok(k.slice(1,-1) in v,"variável ausente "+k+" em: "+t);
+  assert.ok(Math.abs(otsu(Float32Array.from([.1,.1,.1,.9,.9,.9]))-.5)<.45);
+}
+console.log("cut-level analysis ok");

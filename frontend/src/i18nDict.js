@@ -651,6 +651,11 @@ export const DICT={
 "Anote el desprendimiento (GT) para obtener la IoU real de cada contorno.",
 "Annotez l'épaufrure (GT) pour obtenir l'IoU réelle de chaque contour."
 ],
+"Anote o desplacamento (GT) para ver a IoU em cada nível.": [
+"Annotate the spalling (GT) to see the IoU at each level.",
+"Anote el desprendimiento (GT) para ver la IoU en cada nivel.",
+"Annotez l'épaufrure (GT) pour voir l'IoU à chaque niveau."
+],
 "Anterior": [
 "Previous",
 "Anterior",
@@ -675,6 +680,11 @@ export const DICT={
 "Analysis unavailable with the current configuration.",
 "Análisis no disponible con la configuración actual.",
 "Analyse indisponible avec la configuration actuelle."
+],
+"Ao longo da linha, contra o GT: binarização {b}, walker {u}.": [
+"Along the line, against the GT: binarization {b}, walker {u}.",
+"A lo largo de la línea, frente al GT: binarización {b}, walker {u}.",
+"Le long de la ligne, par rapport au GT : binarisation {b}, walker {u}."
 ],
 "Apagar": [
 "Erase",
@@ -1015,6 +1025,21 @@ export const DICT={
 "Classical baseline",
 "Línea base clásica",
 "Référence classique"
+],
+"Binarização": [
+"Binarization",
+"Binarización",
+"Binarisation"
+],
+"Binarização × potencial do walker": [
+"Binarization × walker potential",
+"Binarización × potencial del walker",
+"Binarisation × potentiel du walker"
+],
+"Binarização: cada pixel é julgado sozinho pela escuridão (Otsu {t}); {a} da imagem passa no corte.": [
+"Binarization: each pixel is judged alone by its darkness (Otsu {t}); {a} of the image passes the cut.",
+"Binarización: cada píxel se juzga solo por su oscuridad (Otsu {t}); {a} de la imagen pasa el corte.",
+"Binarisation : chaque pixel est jugé seul par son obscurité (Otsu {t}) ; {a} de l'image passe la coupe."
 ],
 "Black-hat 15×15": [
 "Black-hat 15×15",
@@ -1566,6 +1591,11 @@ export const DICT={
 "Pegue solo una imagen a la vez.",
 "Collez une seule image à la fois."
 ],
+"Com t entre 0,3 e 0,7, a IoU do walker fica entre {a} e {b}: o resultado não depende de um ajuste fino do limiar.": [
+"With t between 0.3 and 0.7, the walker IoU stays between {a} and {b}: the result does not depend on fine-tuning the threshold.",
+"Con t entre 0,3 y 0,7, la IoU del walker queda entre {a} y {b}: el resultado no depende de un ajuste fino del umbral.",
+"Pour t entre 0,3 et 0,7, l'IoU du walker reste entre {a} et {b} : le résultat ne dépend pas d'un réglage fin du seuil."
+],
 "Como a Caneta do Inkscape: clique = nó de canto; clique e arraste = nó suave com alças. Clique no 1º nó para fechar; Enter/duplo clique termina.": [
 "Like Inkscape’s Pen: click = corner node; click and drag = smooth node with handles. Click the 1st node to close; Enter/double-click finishes.",
 "Como la Pluma de Inkscape: clic = nodo de esquina; clic y arrastrar = nodo suave con manijas. Clic en el 1.er nodo para cerrar; Enter/doble clic termina.",
@@ -1791,6 +1821,11 @@ export const DICT={
 "Conservador · descarta solo lo que está en clases irrelevantes",
 "Conservateur · n’écarte que ce qui est dans des classes non pertinentes"
 ],
+"Contra o GT: IoU da binarização {b}; IoU do walker {u}.": [
+"Against the GT: binarization IoU {b}; walker IoU {u}.",
+"Frente al GT: IoU de la binarización {b}; IoU del walker {u}.",
+"Par rapport au GT : IoU de la binarisation {b} ; IoU du walker {u}."
+],
 "Contraste baixo: maior risco de falsos positivos em motores morfológicos.": [
 "Low contrast: higher risk of false positives in morphological engines.",
 "Contraste bajo: mayor riesgo de falsos positivos en motores morfológicos.",
@@ -1871,6 +1906,41 @@ export const DICT={
 "Corte",
 "Coupe"
 ],
+"Corte de nível": [
+"Level cut",
+"Corte de nivel",
+"Coupe de niveau"
+],
+"Corte de nível (CDM-4)": [
+"Level cut (CDM-4)",
+"Corte de nivel (CDM-4)",
+"Coupe de niveau (CDM-4)"
+],
+"Corte de nível · binarização × potencial do walker": [
+"Level cut · binarization × walker potential",
+"Corte de nivel · binarización × potencial del walker",
+"Coupe de niveau · binarisation × potentiel du walker"
+],
+"Corte de nível · disponível após uma análise do CDM-4": [
+"Level cut · available after a CDM-4 analysis",
+"Corte de nivel · disponible tras un análisis del CDM-4",
+"Coupe de niveau · disponible après une analyse CDM-4"
+],
+"Corte de nível: arraste linhas de corte sobre a imagem (Shift = horizontal/vertical)": [
+"Level cut: drag cut lines over the image (Shift = horizontal/vertical)",
+"Corte de nivel: arrastre líneas de corte sobre la imagen (Shift = horizontal/vertical)",
+"Coupe de niveau : tracez des lignes de coupe sur l'image (Maj = horizontal/vertical)"
+],
+"Corte de nível: trace n linhas de corte e compare binarização × potencial do walker em mapas, perfis e curva de corte": [
+"Level cut: draw n cut lines and compare binarization × walker potential in maps, profiles and the cut curve",
+"Corte de nivel: trace n líneas de corte y compare binarización × potencial del walker en mapas, perfiles y curva de corte",
+"Coupe de niveau : tracez n lignes de coupe et comparez binarisation × potentiel du walker en cartes, profils et courbe de coupe"
+],
+"Corte do potencial": [
+"Potential cut",
+"Corte del potencial",
+"Coupe du potentiel"
+],
 "Crescimento t0→t1": [
 "Growth t0→t1",
 "Crecimiento t0→t1",
@@ -1890,6 +1960,21 @@ export const DICT={
 "S curve",
 "Curva S",
 "Courbe en S"
+],
+"Curva de corte": [
+"Cut curve",
+"Curva de corte",
+"Courbe de coupe"
+],
+"Curva de corte: área e IoU × nível": [
+"Cut curve: area and IoU × level",
+"Curva de corte: área e IoU × nivel",
+"Courbe de coupe : surface et IoU × niveau"
+],
+"Curvas de nível juntas = encosta íngreme (borda firme); espaçadas = platô, onde o limiar decide a borda.": [
+"Tight contour lines = steep slope (firm edge); spread lines = plateau, where the threshold decides the edge.",
+"Curvas de nivel juntas = pendiente pronunciada (borde firme); separadas = meseta, donde el umbral decide el borde.",
+"Courbes de niveau serrées = pente raide (bord net) ; espacées = plateau, où le seuil décide le bord."
 ],
 "Câmera": [
 "Camera",
@@ -1931,6 +2016,11 @@ export const DICT={
 "Fecha",
 "Date"
 ],
+"De u = {lo} a {hi}, a borda anda {mean} px em média (máx. {max} px): {verdict}.": [
+"From u = {lo} to {hi}, the edge moves {mean} px on average (max. {max} px): {verdict}.",
+"De u = {lo} a {hi}, el borde se desplaza {mean} px en promedio (máx. {max} px): {verdict}.",
+"De u = {lo} à {hi}, le bord se déplace de {mean} px en moyenne (max. {max} px) : {verdict}."
+],
 "Decodificação": [
 "Decoding",
 "Decodificación",
@@ -1945,6 +2035,11 @@ export const DICT={
 "Set campaign A",
 "Definir campaña A",
 "Définir la campagne A"
+],
+"Densidade de pixels por nível": [
+"Pixel density per level",
+"Densidad de píxeles por nivel",
+"Densité de pixels par niveau"
 ],
 "Desbloquear": [
 "Unlock",
@@ -1985,6 +2080,11 @@ export const DICT={
 "Undo (Ctrl/Cmd+Z)",
 "Deshacer (Ctrl/Cmd+Z)",
 "Annuler (Ctrl/Cmd+Z)"
+],
+"Desfazer último corte": [
+"Undo last cut",
+"Deshacer último corte",
+"Annuler la dernière coupe"
 ],
 "Desligado · só morfologia": [
 "Off · morphology only",
@@ -2176,6 +2276,11 @@ export const DICT={
 "Editar",
 "Édition"
 ],
+"Editar cortes": [
+"Edit cuts",
+"Editar cortes",
+"Modifier les coupes"
+],
 "Eflorescência": [
 "Efflorescence",
 "Eflorescencia",
@@ -2241,6 +2346,11 @@ export const DICT={
 "Entrada visual no definida",
 "Entrée visuelle non définie"
 ],
+"Entre u = {lo} e {hi}, a borda do walker anda {px} px em média em todo o contorno.": [
+"Between u = {lo} and {hi}, the walker edge moves {px} px on average along the whole contour.",
+"Entre u = {lo} y {hi}, el borde del walker se desplaza {px} px en promedio en todo el contorno.",
+"Entre u = {lo} et {hi}, le bord du walker se déplace de {px} px en moyenne sur tout le contour."
+],
 "Erosão da exclusão de contexto (células do mapa)": [
 "Context exclusion erosion (map cells)",
 "Erosión de la exclusión de contexto (celdas del mapa)",
@@ -2270,6 +2380,11 @@ export const DICT={
 "Choose another file",
 "Elegir otro archivo",
 "Choisir un autre fichier"
+],
+"Escuridão cruza o corte de Otsu {n} vezes; o potencial cruza τ = {tau} {m} vezes.": [
+"Darkness crosses the Otsu cut {n} times; the potential crosses τ = {tau} {m} times.",
+"La oscuridad cruza el corte de Otsu {n} veces; el potencial cruza τ = {tau} {m} veces.",
+"L'obscurité traverse la coupe d'Otsu {n} fois ; le potentiel traverse τ = {tau} {m} fois."
 ],
 "Espaço+arrastar": [
 "Space+drag",
@@ -2681,6 +2796,11 @@ export const DICT={
 "Cerrar capturas",
 "Fermer les captures"
 ],
+"Fechar corte de nível": [
+"Close level cut",
+"Cerrar corte de nivel",
+"Fermer la coupe de niveau"
+],
 "Fechar câmera": [
 "Close camera",
 "Cerrar cámara",
@@ -2801,6 +2921,11 @@ export const DICT={
 "Enfoque adecuado.",
 "Mise au point correcte."
 ],
+"Folha com todas": [
+"Sheet with all",
+"Hoja con todas",
+"Planche complète"
+],
 "Fonte": [
 "Source",
 "Fuente",
@@ -2915,6 +3040,11 @@ export const DICT={
 "Georeference",
 "Georreferenciar",
 "Géoréférencer"
+],
+"Gerando o estudo comparativo…": [
+"Generating the comparative study…",
+"Generando el estudio comparativo…",
+"Génération de l'étude comparative…"
 ],
 "Gerando recortes multiescala": [
 "Generating multiscale crops",
@@ -3316,6 +3446,11 @@ export const DICT={
 "Intensidad log₁₀ |∇u|",
 "Intensité log₁₀ |∇u|"
 ],
+"Interpretação": [
+"Interpretation",
+"Interpretación",
+"Interprétation"
+],
 "Intrínsecos da câmera · opcional": [
 "Camera intrinsics · optional",
 "Intrínsecos de la cámara · opcional",
@@ -3330,6 +3465,11 @@ export const DICT={
 "IoU",
 "IoU",
 "IoU"
+],
+"IoU com o GT": [
+"IoU with the GT",
+"IoU con el GT",
+"IoU avec le GT"
 ],
 "IoU motor × cheia": [
 "Engine × full-res IoU",
@@ -3471,6 +3611,11 @@ export const DICT={
 "Limpiar",
 "Effacer"
 ],
+"Limpar cortes": [
+"Clear cuts",
+"Borrar cortes",
+"Effacer les coupes"
+],
 "Limpar histórico": [
 "Clear history",
 "Limpiar historial",
@@ -3581,6 +3726,11 @@ export const DICT={
 "Mapa de probabilidad",
 "Carte de probabilité"
 ],
+"Mapas": [
+"Maps",
+"Mapas",
+"Cartes"
+],
 "Medidas em px · calibre mm/px em Configurações para obter mm.": [
 "Measurements in px · calibrate mm/px in Settings to get mm.",
 "Medidas en px · calibre mm/px en Configuración para obtener mm.",
@@ -3595,6 +3745,11 @@ export const DICT={
 "3D measurement · select two points on the model",
 "Medición 3D · seleccione dos puntos en el modelo",
 "Mesure 3D · sélectionnez deux points sur le modèle"
+],
+"Melhor IoU possível: binarização {b} em qualquer limiar; walker {u}.": [
+"Best possible IoU: binarization {b} at any threshold; walker {u}.",
+"Mejor IoU posible: binarización {b} con cualquier umbral; walker {u}.",
+"Meilleure IoU possible : binarisation {b} pour tout seuil ; walker {u}."
 ],
 "Memória 2D": [
 "2D memory",
@@ -3986,6 +4141,11 @@ export const DICT={
 "Ninguna región de daño dentro de la selección.",
 "Aucune région de dommage dans la sélection."
 ],
+"Nenhuma região do walker nesta linha: o potencial fica abaixo de τ em todo o corte.": [
+"No walker region on this line: the potential stays below τ along the whole cut.",
+"Ninguna región del walker en esta línea: el potencial queda bajo τ en todo el corte.",
+"Aucune région du walker sur cette ligne : le potentiel reste sous τ sur toute la coupe."
+],
 "Nitidez": [
 "Sharpness",
 "Nitidez",
@@ -4170,6 +4330,11 @@ export const DICT={
 "Not validated",
 "No validado",
 "Non validé"
+],
+"Níveis do walker": [
+"Walker levels",
+"Niveles del walker",
+"Niveaux du walker"
 ],
 "Nível de escala": [
 "Scale level",
@@ -4416,6 +4581,11 @@ export const DICT={
 "Los comentarios al inicio del archivo describen las etapas de entrada, inferencia, posprocesamiento y serialización para facilitar la implementación aislada o la migración a otra plataforma.",
 "Les commentaires en tête du fichier décrivent les étapes d’entrée, d’inférence, de post-traitement et de sérialisation pour faciliter une implémentation isolée ou une migration vers une autre plateforme."
 ],
+"Otsu": [
+"Otsu",
+"Otsu",
+"Otsu"
+],
 "Outro elemento": [
 "Other element",
 "Otro elemento",
@@ -4561,6 +4731,11 @@ export const DICT={
 "Pendientes de runtime",
 "Points en suspens du runtime"
 ],
+"Perfil de corte": [
+"Cut profile",
+"Perfil de corte",
+"Profil de coupe"
+],
 "Permissão de câmera negada. Autorize o acesso nas configurações do navegador.": [
 "Camera permission denied. Allow access in the browser settings.",
 "Permiso de cámara denegado. Autorice el acceso en la configuración del navegador.",
@@ -4600,6 +4775,11 @@ export const DICT={
 "Deep pipeline",
 "Pipeline profundo",
 "Pipeline profond"
+],
+"Pixels a até 0,05 do corte: binarização {b} da imagem, walker {u}; quanto menos pixels no nível do corte, mais estável a borda.": [
+"Pixels within 0.05 of the cut: binarization {b} of the image, walker {u}; the fewer pixels at the cut level, the more stable the edge.",
+"Píxeles a menos de 0,05 del corte: binarización {b} de la imagen, walker {u}; cuantos menos píxeles en el nivel del corte, más estable el borde.",
+"Pixels à moins de 0,05 de la coupe : binarisation {b} de l'image, walker {u} ; moins il y a de pixels au niveau de la coupe, plus le bord est stable."
 ],
 "Pixels da imagem (px)": [
 "Image pixels (px)",
@@ -4655,6 +4835,16 @@ export const DICT={
 "Random walker potential",
 "Potencial del random walker",
 "Potentiel du random walker"
+],
+"Potencial u e curvas de nível": [
+"Potential u and contour lines",
+"Potencial u y curvas de nivel",
+"Potentiel u et courbes de niveau"
+],
+"Potencial: o corte u > {tau} mantém {a} da imagem, só regiões ligadas a um polo de dano (princípio do máximo).": [
+"Potential: the cut u > {tau} keeps {a} of the image, only regions connected to a damage pole (maximum principle).",
+"Potencial: el corte u > {tau} mantiene {a} de la imagen, solo regiones conectadas a un polo de daño (principio del máximo).",
+"Potentiel : la coupe u > {tau} garde {a} de l'image, uniquement des régions reliées à un pôle de dommage (principe du maximum)."
 ],
 "Precisão": [
 "Precision",
@@ -5621,6 +5811,11 @@ export const DICT={
 "Seleccione al menos un motor para definir el modo de ejecución.",
 "Sélectionnez au moins un moteur pour définir le mode d’exécution."
 ],
+"Sem GT: os dois cortes concordam em {a} (IoU de concordância), o que não mede acurácia.": [
+"No GT: the two cuts agree at {a} (agreement IoU), which does not measure accuracy.",
+"Sin GT: los dos cortes concuerdan en {a} (IoU de concordancia), lo que no mide exactitud.",
+"Sans GT : les deux coupes concordent à {a} (IoU d'accord), ce qui ne mesure pas l'exactitude."
+],
 "Sem RGB · Geometria local classifica forma/superfície (planar, linear, irregular e transição). Isto não diagnostica fissuras, corrosão ou manchas.": [
 "No RGB · Local geometry classifies shape/surface (planar, linear, irregular and transition). This does not diagnose cracks, corrosion or stains.",
 "Sin RGB · Geometría local clasifica forma/superficie (planar, lineal, irregular y transición). Esto no diagnostica fisuras, corrosión ni manchas.",
@@ -5700,6 +5895,11 @@ export const DICT={
 "No validated Δ",
 "Sin Δ validado",
 "Aucun Δ validé"
+],
+"Sensibilidade ao limiar: IoU × nível": [
+"Threshold sensitivity: IoU × level",
+"Sensibilidad al umbral: IoU × nivel",
+"Sensibilité au seuil : IoU × niveau"
 ],
 "Severidade": [
 "Severity",
@@ -5815,6 +6015,11 @@ export const DICT={
 "Underexposed: shadows are read as spalling/dark region.",
 "Subexpuesta: las sombras se leen como desprendimiento/región oscura.",
 "Sous-exposée : les ombres sont lues comme épaufrure/région sombre."
+],
+"Subindo o nível em 0,1 em torno de cada corte, a área da binarização cai {b} e a do walker {u}.": [
+"Raising the level by 0.1 around each cut, the binarization area drops {b} and the walker area {u}.",
+"Subiendo el nivel en 0,1 alrededor de cada corte, el área de la binarización cae {b} y la del walker {u}.",
+"En montant le niveau de 0,1 autour de chaque coupe, la surface de la binarisation baisse de {b} et celle du walker de {u}."
 ],
 "Subir camada": [
 "Move layer up",
@@ -6336,6 +6541,11 @@ export const DICT={
 "balance de blancos automático",
 "balance des blancs automatique"
 ],
+"binarização": [
+"binarization",
+"binarización",
+"binarisation"
+],
 "cadeia temporal íntegra": [
 "temporal chain intact",
 "cadena temporal íntegra",
@@ -6355,6 +6565,11 @@ export const DICT={
 "catalogue v",
 "catálogo v",
 "catalogue v"
+],
+"ciano = GT": [
+"cyan = GT",
+"cian = GT",
+"cyan = GT"
 ],
 "ciano tracejado = motor · branco = resolução cheia": [
 "dashed cyan = engine · white = full resolution",
@@ -6396,6 +6611,11 @@ export const DICT={
 "completados",
 "terminés"
 ],
+"concordância": [
+"agreement",
+"concordancia",
+"accord"
+],
 "confiança": [
 "confidence",
 "confianza",
@@ -6416,10 +6636,25 @@ export const DICT={
 "consistencia geométrica residual insuficiente",
 "cohérence géométrique résiduelle insuffisante"
 ],
+"corte Otsu": [
+"Otsu cut",
+"corte Otsu",
+"coupe Otsu"
+],
+"corte(s)": [
+"cut(s)",
+"corte(s)",
+"coupe(s)"
+],
 "crescimento": [
 "growth",
 "crecimiento",
 "croissance"
+],
+"cruzamentos": [
+"crossings",
+"cruces",
+"croisements"
 ],
 "dados da última execução": [
 "last run data",
@@ -6481,6 +6716,11 @@ export const DICT={
 "diferencia moderada de nitidez",
 "différence de netteté modérée"
 ],
+"distância ao longo do corte (px)": [
+"distance along the cut (px)",
+"distancia a lo largo del corte (px)",
+"distance le long de la coupe (px)"
+],
 "divergência(s) SHA-256": [
 "SHA-256 mismatch(es)",
 "divergencia(s) SHA-256",
@@ -6506,10 +6746,25 @@ export const DICT={
 "en Configuración → Conexión de ejecución.",
 "dans Réglages → Connexion d’exécution."
 ],
+"encosta íngreme, borda pouco sensível ao limiar": [
+"steep slope, edge barely sensitive to the threshold",
+"pendiente pronunciada, borde poco sensible al umbral",
+"pente raide, bord peu sensible au seuil"
+],
 "escala": [
 "scale",
 "escala",
 "échelle"
+],
+"escuridão": [
+"darkness",
+"oscuridad",
+"obscurité"
+],
+"escuridão do pixel → binarização": [
+"pixel darkness → binarization",
+"oscuridad del píxel → binarización",
+"obscurité du pixel → binarisation"
 ],
 "exceção(ões)": [
 "exception(s)",
@@ -6536,6 +6791,16 @@ export const DICT={
 "exposición cerca del límite",
 "exposition proche de la limite"
 ],
+"faixa ciano = GT · faixa violeta = escuro sem polo": [
+"cyan band = GT · violet band = dark without pole",
+"franja cian = GT · franja violeta = oscuro sin polo",
+"bande cyan = GT · bande violette = sombre sans pôle"
+],
+"figuras": [
+"figures",
+"figuras",
+"figures"
+],
 "fissuras": [
 "cracks",
 "fisuras",
@@ -6550,6 +6815,11 @@ export const DICT={
 "photometry eligible",
 "fotometría elegible",
 "photométrie éligible"
+],
+"fração da imagem por faixa de 0,02 (log)": [
+"fraction of the image per 0.02 band (log)",
+"fracción de la imagen por franja de 0,02 (log)",
+"fraction de l'image par bande de 0,02 (log)"
 ],
 "geometrias ·": [
 "geometries ·",
@@ -6570,6 +6840,11 @@ export const DICT={
 "persistent local history",
 "historial local persistente",
 "historique local persistant"
+],
+"há platô, o limiar desloca a borda": [
+"there is a plateau, the threshold moves the edge",
+"hay meseta, el umbral desplaza el borde",
+"il y a un plateau, le seuil déplace le bord"
 ],
 "identidade(s) incompatível(is)": [
 "incompatible identity(ies)",
@@ -6666,6 +6941,11 @@ export const DICT={
 "cambio(s) de fuente",
 "changement(s) de source"
 ],
+"muitos pixels no nível do corte = borda instável": [
+"many pixels at the cut level = unstable edge",
+"muchos píxeles en el nivel del corte = borde inestable",
+"beaucoup de pixels au niveau de la coupe = bord instable"
+],
 "multiescala": [
 "multiscale",
 "multiescala",
@@ -6680,6 +6960,11 @@ export const DICT={
 "minimum of 2 rated snapshots",
 "mínimo de 2 instantáneas clasificadas",
 "minimum de 2 instantanés classés"
+],
+"n cortes": [
+"n cuts",
+"n cortes",
+"n coupes"
 ],
 "no Mac).": [
 "on Mac).",
@@ -6746,6 +7031,16 @@ export const DICT={
 "niveles",
 "niveaux"
 ],
+"nível": [
+"level",
+"nivel",
+"niveau"
+],
+"nível de corte t": [
+"cut level t",
+"nivel de corte t",
+"niveau de coupe t"
+],
 "observações": [
 "notes",
 "observaciones",
@@ -6810,6 +7105,11 @@ export const DICT={
 "points visible after the depth test.",
 "puntos visibles tras la prueba de profundidad.",
 "points visibles après le test de profondeur."
+],
+"potencial do walker u": [
+"walker potential u",
+"potencial del walker u",
+"potentiel du walker u"
 ],
 "predecessor esperado": [
 "expected predecessor",
@@ -6971,6 +7271,11 @@ export const DICT={
 "saturación/exposición inadecuada",
 "saturation/exposition inadaptée"
 ],
+"sem GT": [
+"no GT",
+"sin GT",
+"sans GT"
+],
 "sem classificação": [
 "unrated",
 "sin clasificación",
@@ -7096,6 +7401,21 @@ export const DICT={
 "triángulos",
 "triangles"
 ],
+"u": [
+"u",
+"u",
+"u"
+],
+"u = P(chegar primeiro ao polo de dano)": [
+"u = P(reaching the damage pole first)",
+"u = P(llegar primero al polo de daño)",
+"u = P(atteindre d'abord le pôle de dommage)"
+],
+"uma borda é íngreme e outra tem platô, onde o limiar decide a posição": [
+"one edge is steep and the other has a plateau, where the threshold decides the position",
+"un borde es pronunciado y el otro tiene meseta, donde el umbral decide la posición",
+"un bord est raide et l'autre a un plateau, où le seuil décide la position"
+],
 "vai substituir": [
 "will replace",
 "va a sustituir",
@@ -7155,6 +7475,16 @@ export const DICT={
 "legacy link(s)",
 "vínculo(s) heredado(s)",
 "lien(s) hérité(s)"
+],
+"walker": [
+"walker",
+"walker",
+"walker"
+],
+"{k} trecho(s) escuro(s) sem polo ({len} px no total): a binarização marca, o walker fica em u ≈ 0.": [
+"{k} dark stretch(es) without a pole ({len} px in total): binarization marks them, the walker stays at u ≈ 0.",
+"{k} tramo(s) oscuro(s) sin polo ({len} px en total): la binarización los marca, el walker queda en u ≈ 0.",
+"{k} segment(s) sombre(s) sans pôle ({len} px au total) : la binarisation les marque, le walker reste à u ≈ 0."
 ],
 "· NÃO GARANTIDA": [
 "· NOT GUARANTEED",
@@ -7341,6 +7671,11 @@ export const DICT={
 "Área",
 "Surface"
 ],
+"Área acima do corte (curva hipsométrica)": [
+"Area above the cut (hypsometric curve)",
+"Área sobre el corte (curva hipsométrica)",
+"Surface au-dessus de la coupe (courbe hypsométrique)"
+],
 "Área calibrada de": [
 "Calibrated area of",
 "Área calibrada de",
@@ -7410,6 +7745,21 @@ export const DICT={
 "Last available result",
 "Último resultado disponible",
 "Dernier résultat disponible"
+],
+"área": [
+"area",
+"área",
+"surface"
+],
+"área acima do corte (log)": [
+"area above the cut (log)",
+"área sobre el corte (log)",
+"surface au-dessus de la coupe (log)"
+],
+"área do GT": [
+"GT area",
+"área del GT",
+"surface du GT"
 ],
 "último valor registrado": [
 "last recorded value",

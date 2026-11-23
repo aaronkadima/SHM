@@ -40,8 +40,8 @@ function chapters(shortcuts){
   {id:"ui",title:"Interface",kw:"menus barra lateral canvas painéis status",body:<>
     <FigInterface n={f()}/>
     <Tbl head={["Região","Função"]} rows={[
-      ["① Menus","Arquivo (importar, recentes com miniatura, salvar, imprimir, fechar, sair), Editar, Visualizar (modos, camadas, réguas), Análise (configurações, executar, anotação Ground Truth, Campo do walker do CDM-4, paridade), Ajuda."],
-      ["② Barra lateral","Ferramentas rápidas: importar, executar, caixas, rótulos, Original/Sobrepor/Deslizar/Lado a lado, régua, Live, câmera, paridade (ícone CDM), Campo do walker (mira, CDM-4) e Sobre."],
+      ["① Menus","Arquivo (importar, recentes com miniatura, salvar, imprimir, fechar, sair), Editar, Visualizar (modos, camadas, réguas), Análise (configurações, executar, anotação Ground Truth, Campo do walker e Corte de nível do CDM-4, paridade), Ajuda."],
+      ["② Barra lateral","Ferramentas rápidas: importar, executar, caixas, rótulos, Original/Sobrepor/Deslizar/Lado a lado, régua, Live, câmera, paridade (ícone CDM), Campo do walker (mira, CDM-4), Corte de nível (tesoura, CDM-4) e Sobre."],
       ["③ Imagem","Propriedades do arquivo, resolução, escala mm/px, qualidade e ajustes de tom."],
       ["④ Resultados","Contagens por patologia, total, lista de achados com medidas; expande para o dobro da largura."],
       ["⑤ Canvas","Imagem com sobreposição das máscaras, caixas e rótulos; navegação estilo CAD."],
@@ -164,7 +164,7 @@ function chapters(shortcuts){
     <FigFamilies n={f()}/>
   </>},
 
-  {id:"cdm4",title:"Motor CDM-4 (experimental)",kw:"cdm-4 random walker grady ataky diversidade biodiversidade evidência polos armadura linear pigmentos beer lambert contorno resolução cheia campo setas coerência iou",body:<>
+  {id:"cdm4",title:"Motor CDM-4 (experimental)",kw:"cdm-4 random walker grady ataky diversidade biodiversidade evidência polos armadura linear pigmentos beer lambert contorno resolução cheia campo setas coerência iou corte de nível binarização otsu perfil terreno hipsométrica tesoura",body:<>
     <p className="umLead">O <b>CDM-4</b> é um motor próprio, separado do CDM-1 e do CDM-3: parte de uma cópia do CDM 2.11 e acrescenta as etapas validadas em fotos reais de inspeção. Continua determinístico e sem pesos treinados na segmentação; a IA de contexto só exclui cena. Roda no navegador, num Web Worker, e é escolhido na página de Configurações (<i>CDM-4 · etapas do núcleo</i>).</p>
     <Note kind="warn">Motor em validação: na foto de referência com Ground Truth, a IoU do desplacamento subiu de 26,6 (CDM 2.11) para cerca de 70 e a da armadura exposta de 13,2 para 53,6, mas ainda são poucas fotos anotadas. Confirme os achados em inspeção técnica.</Note>
     <h3>Dois fluxos para o desplacamento</h3>
@@ -205,6 +205,19 @@ function chapters(shortcuts){
       <li><b>Sem Ground Truth</b>: IoU de concordância motor × resolução cheia e Δ de área. Mede quanto os dois contornos divergem, não a acurácia; anote o desplacamento para obter a IoU real.</li>
     </ul>
     <p>Clique numa figura para ampliá-la (<K>←</K> <K>→</K> navegam, <K>Esc</K> fecha). Cada figura e o <b>painel 2×2</b> podem ser baixados em PNG, no idioma ativo; <i>Nova seleção</i> recomeça.</p>
+    <h3>Corte de nível: binarização × potencial do walker</h3>
+    <p>Estudo comparativo entre dois conceitos de corte, disponível depois de uma análise do CDM-4: ícone de <b>tesoura</b> na barra lateral, <i>Análise › Corte de nível (CDM-4)</i> ou menu de contexto. A <b>binarização</b> julga cada pixel sozinho pela escuridão normalizada (corte de Otsu). O <b>potencial</b> <i>u</i> do walker é a probabilidade de chegar primeiro ao polo de dano; pelo princípio do máximo, toda região com <M>{"u > \\tau"}</M> contém um polo de dano, e uma mancha escura sem ligação com o dano fica em <i>u</i> ≈ 0.</p>
+    <ol>
+      <li>Arraste <b>n linhas de corte</b> sobre a imagem, em qualquer direção (<K>Shift</K> trava na horizontal ou vertical). Elas recebem as letras A, B, C… <K>Backspace</K> desfaz o último corte; a lixeira limpa todos.</li>
+      <li>Em <b>Níveis do walker</b>, informe até cinco níveis separados por ponto e vírgula (padrão <i>0,3; 0,5</i>). O limiar do motor entra sempre.</li>
+      <li>Clique em <b>Analisar</b>. <i>Editar cortes</i> volta ao desenho mantendo as linhas.</li>
+    </ol>
+    <Tbl head={["Figura (1200 × 800 px)","Conteúdo"]} rows={[
+      ["Mapas","(a) binarização sobre a foto; (b) potencial u em cores, com curvas de nível — juntas = encosta íngreme, espaçadas = platô; (c) corte u > τ e, com GT, o contorno anotado em ciano. As linhas de corte aparecem nos três painéis."],
+      ["Perfil de corte (um por linha)","dois perfis de terreno ao longo da linha: a escuridão com o plano de corte de Otsu e o potencial u com τ e os demais níveis; acima do plano fica colorido. Faixa ciano = GT; faixa violeta = trecho escuro sem polo. Os rótulos em px indicam quanto cada borda anda entre o nível mais baixo e o mais alto."],
+      ["Curva de corte","à esquerda, a área acima de cada nível t (curva hipsométrica, em log); à direita, com GT, a IoU em cada nível ou, sem GT, a densidade de pixels por nível — muitos pixels no nível do corte indicam borda instável."]]}/>
+    <p>Cada figura traz uma faixa de <b>interpretação</b> escrita a partir dos números: quantas vezes cada curva cruza o corte, trechos escuros sem polo, deslocamento da borda entre os níveis (≤ 6 px = encosta íngreme), sensibilidade da área ao limiar e, com GT anotado, a IoU de cada conceito no total e ao longo de cada linha. As figuras saem no idioma ativo; a <b>folha com todas</b> reúne tudo num PNG.</p>
+    <Note>Na foto de referência com GT: binarização IoU 7,3 % (no melhor limiar possível, 13,4 %); corte do potencial IoU 69,9 %, e entre 65 e 74 % para qualquer nível de 0,3 a 0,7. A borda do walker anda 5 px em média entre u = 0,3 e 0,5. A binarização é o caso mais simples (Otsu global); uma binarização adaptativa melhora a IoU, mas continua julgando cada pixel sem saber a que ele está ligado.</Note>
   </>},
 
   {id:"results",title:"Regiões, caixas e resultados",kw:"consolidação caixa rótulo resultado achados lista medidas",body:<>

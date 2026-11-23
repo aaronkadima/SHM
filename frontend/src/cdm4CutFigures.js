@@ -1,7 +1,7 @@
 // Figuras do estudo "Corte de nível" (binarização × potencial do walker), todas com 1200 × 800 px,
 // fundo claro de publicação e faixa inferior com a interpretação anotada (gerada dos números).
 import{tr,getLang}from"./i18n.js";
-import{interpretMaps,interpretProfile,interpretCurves}from"./cdm4CutAnalysis.js";
+import{interpretMaps,interpretProfile,interpretCurves,widthText,measureRows}from"./cdm4CutAnalysis.js";
 import{surface}from"./svgCanvas.js";
 
 export const CUT_FIG_W=1200,CUT_FIG_H=800;
@@ -37,13 +37,15 @@ export function axisTicks(a,b,count=5){
   if(!(b>a))return[a,b];const raw=(b-a)/count,p=10**Math.floor(Math.log10(raw)),st=[1,2,2.5,5,10].map(k=>k*p).find(v=>v>=raw)||raw;
   const t=[a];for(let v=Math.ceil(a/st)*st;v<b;v+=st){if(v-a>st*.4&&b-v>st*.4)t.push(+v.toFixed(10))}t.push(b);return t;
 }
+export const niceUp=v=>{if(!(v>0))return 1;const p=10**Math.floor(Math.log10(v));return([1,1.5,2,2.5,3,4,5,6,8,10].find(m=>m*p>=v*(1-1e-9))||10)*p};
 export function decadeRange(lo,hi){return[10**Math.floor(Math.log10(Math.max(lo,1e-9))+1e-9),10**Math.ceil(Math.log10(Math.max(hi,1e-9))-1e-9)]}
 function chart(x,X,Y,W,H,o){
   const{x0,x1,y0,y1,log}=o,ly=v=>Math.log10(Math.max(v,y0));
   const px=v=>X+(v-x0)/(x1-x0)*W,py=v=>log?Y+H-(ly(v)-ly(y0))/(ly(y1)-ly(y0))*H:Y+H-(v-y0)/(y1-y0)*H;
   x.save();x.strokeStyle=C.grid;x.lineWidth=1;x.fillStyle=C.muted;x.font=font(12);x.textAlign="right";x.textBaseline="middle";
   const yt=o.yticks||(log?(()=>{const r=[];for(let v=y0;v<=y1*1.0001;v*=10)r.push(v);return r})():axisTicks(y0,y1,4));
-  for(const v of yt){if(v<Math.min(y0,y1)*(1-1e-9)||v>Math.max(y0,y1)*(1+1e-9))continue;const yy=py(v);x.beginPath();x.moveTo(X,yy);x.lineTo(X+W,yy);x.stroke();x.fillText(o.yfmt?o.yfmt(v):fmt(v,1),X-6,yy)}
+  const lo_=Math.min(y0,y1),hi_=Math.max(y0,y1),eps=log?hi_*1e-9:(hi_-lo_)*1e-9;
+  for(const v of yt){if(v<lo_-eps||v>hi_+eps)continue;const yy=py(v);x.beginPath();x.moveTo(X,yy);x.lineTo(X+W,yy);x.stroke();x.fillText(o.yfmt?o.yfmt(v):fmt(v,1),X-6,yy)}
   x.textAlign="center";x.textBaseline="top";const xt=o.xticks||axisTicks(x0,x1,o.xcount||5);
   for(const v of xt){const xx=px(v);x.beginPath();x.moveTo(xx,Y);x.lineTo(xx,Y+H);x.stroke();x.fillText(o.xfmt?o.xfmt(v):fmt(v,o.xdec??1),xx,Y+H+5)}
   x.strokeStyle="rgba(29,42,51,.45)";x.strokeRect(X,Y,W,H);
@@ -143,6 +145,16 @@ export function figureProfile(B,P,i,img){
   terrain(x,c2,P.s,P.u,B.tau,C.walker,P.gt,B.levels.filter(l=>Math.abs(l-B.tau)>1e-6),N.poleless);
   cutLabelBox(x,X+6,c2.py(B.tau)-6,`τ = ${fmt(B.tau,1)} · ${N.uCross} ${tr("cruzamentos")}`,C.walker);
   for(const l of B.levels)if(Math.abs(l-B.tau)>1e-6){x.fillStyle=C.walker;x.font=font(11);x.fillText(`${tr("nível")} ${fmt(l,1)}`,X+W-60,c2.py(l)-4)}
+  // cotas de largura: fronteiras em u = τ (traço cheio) e faixa entre os níveis (traço fino)
+  N.regions.forEach((r,ri)=>{
+    const a=c2.px(r.sL),b=c2.px(r.sR),y=c2.py(.9),txt="R"+(ri+1)+" · "+fmt(r.width,1)+" px"+(N.mmPerPx?" · "+fmt(r.width*N.mmPerPx,1)+" mm":"")+(r.open?" *":"");
+    x.save();x.strokeStyle="#1d2a33";x.fillStyle="#1d2a33";x.lineWidth=1.4;
+    for(const xx of[a,b]){x.setLineDash([3,3]);x.beginPath();x.moveTo(xx,c2.py(B.tau));x.lineTo(xx,y-8);x.stroke();x.setLineDash([])}
+    x.beginPath();x.moveTo(a,y);x.lineTo(b,y);x.stroke();
+    const head=(xx,d)=>{x.beginPath();x.moveTo(xx,y);x.lineTo(xx+d*7,y-4);x.lineTo(xx+d*7,y+4);x.closePath();x.fill()};if(b-a>16){head(a,1);head(b,-1)}
+    x.font=font(12,700);x.textAlign="center";const tw=x.measureText(txt).width+10,cx=Math.min(c2.X+c2.W-tw/2,Math.max(c2.X+tw/2,(a+b)/2));
+    x.fillStyle="rgba(255,255,255,.92)";x.fillRect(cx-tw/2,y-22,tw,16);x.fillStyle="#1d2a33";x.fillText(txt,cx,y-9);x.restore();
+  });
   // marcas de deslocamento da borda entre níveis
   x.font=font(11,700);x.textAlign="center";
   for(const sft of N.shifts){const xx=c2.px(sft.at);x.fillStyle="#7a4a00";x.fillText(`${fmt(sft.px,1)} px`,Math.min(X+W-24,Math.max(X+24,xx+(sft.side==="in"?-22:22))),c2.py(.62))}
@@ -189,4 +201,94 @@ function legend(x,X,Y,items){x.font=font(12);const h=items.length*18+10;x.fillSt
 export function figureSheet(list){
   const cols=2,rows=Math.ceil(list.length/cols),s=.5,w=CUT_FIG_W*s,h=CUT_FIG_H*s,c=surface(w*cols+12*(cols+1),h*rows+12*(rows+1)),x=c.getContext("2d");
   x.fillStyle="#e9eef0";x.fillRect(0,0,c.width,c.height);list.forEach((f,i)=>x.drawImage(f,12+(i%cols)*(w+12),12+Math.floor(i/cols)*(h+12),w,h));return c;
+}
+
+// tabela de medidas de todos os cortes (largura em τ, faixa entre os níveis, mm quando há escala)
+export function figureMeasures(B,P,labelOf=cutLabel){
+  const rows=measureRows(P,labelOf),mm=B.mmPerPx>0,{c,x}=frame("Medidas ao longo dos cortes",`u = ${fmt(B.tau,1)} · ${tr("faixa entre os níveis")} ${fmt(B.levels[0],1)} ${tr("e")} ${fmt(B.levels[B.levels.length-1],1)}`+(mm?` · ${fmt(B.mmPerPx,3)} mm/px`:` · ${tr("sem calibração de escala")}`));
+  const notes=[["As fronteiras são os pontos em que o potencial cruza τ, interpolados entre pixels; a faixa é a menor e a maior largura entre os níveis escolhidos.",{}],
+    ["Faixa estreita = encosta íngreme, medida firme; faixa larga = platô, onde a borda depende do limiar.",{}],
+    ...(rows.some(r=>r.open)?[["* região truncada pela ponta do corte: prolongue a linha para medir.",{}]]:[]),
+    ...(mm?[["Conversão em mm válida para foto de frente para a superfície; com perspectiva, a escala muda ao longo da imagem.",{}]]:[["Sem calibração de escala, as larguras ficam em pixels (informe mm/px nas configurações).",{}]])];
+  const probe=canvas(10,10).getContext("2d");probe.font=font(15);let nl=0;for(const[t,v]of notes)nl+=wrap(probe,trf(t,v),CUT_FIG_W-90).length;
+  const bandTop=CUT_FIG_H-(nl*21+44)-16,top=104,X=40,Wt=CUT_FIG_W-80;
+  const cols=mm?[["Corte",.08],["Região",.08],["Largura (px)",.14],["Faixa (px)",.2],["Largura (mm)",.14],["Faixa (mm)",.2],["Início → fim (px)",.16]]:[["Corte",.1],["Região",.1],["Largura (px)",.2],["Faixa (px)",.25],["Início → fim (px)",.35]];
+  const rh=26,maxRows=Math.max(1,Math.floor((bandTop-top-40)/rh)),shown=rows.slice(0,maxRows);
+  x.fillStyle="#e9eff1";x.fillRect(X,top,Wt,rh);x.font=font(13,700);x.fillStyle="#1d2a33";x.textBaseline="middle";
+  let cx=X;const colX=cols.map(([t,w])=>{const p=cx;cx+=w*Wt;return p});
+  cols.forEach(([t],i)=>x.fillText(tr(t),colX[i]+10,top+rh/2,cols[i][1]*Wt-14));
+  x.font=font(13);shown.forEach((r,i)=>{const y=top+rh*(i+1);if(i%2){x.fillStyle="#f6f8f9";x.fillRect(X,y,Wt,rh)}x.fillStyle="#1d2a33";
+    const cells=[r.cut,r.region+(r.open?" *":""),fmt(r.width_px,1),fmt(r.min_px,1)+" – "+fmt(r.max_px,1),...(mm?[fmt(r.width_mm,1),fmt(r.min_mm,1)+" – "+fmt(r.max_mm,1)]:[]),`(${fmt(r.x1,0)}, ${fmt(r.y1,0)}) → (${fmt(r.x2,0)}, ${fmt(r.y2,0)})`];
+    cells.forEach((t,k)=>x.fillText(t,colX[k]+10,y+rh/2,cols[k][1]*Wt-14))});
+  if(!rows.length){x.fillStyle="#5d6d76";x.fillText(tr("Nenhuma região do walker cruza os cortes traçados."),X+10,top+rh*1.5)}
+  if(rows.length>shown.length){x.fillStyle="#5d6d76";x.fillText(`+ ${rows.length-shown.length} ${tr("regiões no CSV")}`,X+10,top+rh*(shown.length+1)+rh/2)}
+  x.strokeStyle="rgba(29,42,51,.25)";x.strokeRect(X,top,Wt,rh*(Math.max(1,shown.length)+1));x.textBaseline="alphabetic";
+  // ponto (largura em τ) + barra (faixa entre os níveis), uma linha por região: compara a firmeza das medidas
+  const cTop=top+rh*(shown.length+1)+56,cH=bandTop-cTop-48,dot=shown.slice(0,Math.max(0,Math.floor(cH/22)));
+  if(dot.length&&cH>60){
+    const val=r=>mm?[r.width_mm,r.min_mm,r.max_mm]:[r.width_px,r.min_px,r.max_px],vmax=Math.max(...dot.map(r=>val(r)[2]))*1.08||1;
+    const ch=chart(x,180,cTop,CUT_FIG_W-180-60,cH,{x0:0,x1:vmax,y0:0,y1:dot.length,yticks:[],xlabel:mm?"largura (mm)":"largura (px)",xdec:0,title:tr("Largura em τ (ponto) e faixa entre os níveis (barra)")});
+    const step=ch.H/dot.length;
+    dot.forEach((r,i)=>{const[v,lo,hi]=val(r),y=ch.Y+step*(i+.5);
+      x.fillStyle="#1d2a33";x.font=font(12,600);x.textAlign="right";x.textBaseline="middle";x.fillText(r.cut+" · "+r.region+(r.open?" *":""),ch.X-10,y);
+      x.strokeStyle=C.walker;x.lineWidth=2.5;x.beginPath();x.moveTo(ch.px(lo),y);x.lineTo(ch.px(hi),y);x.stroke();
+      for(const e of[lo,hi]){x.beginPath();x.moveTo(ch.px(e),y-6);x.lineTo(ch.px(e),y+6);x.stroke()}
+      x.fillStyle=C.walker;x.beginPath();x.arc(ch.px(v),y,5,0,2*Math.PI);x.fill();
+      x.fillStyle="#5d6d76";x.font=font(11);x.textAlign="left";x.fillText(fmt(hi-lo,1)+(mm?" mm":" px"),Math.min(ch.X+ch.W-50,ch.px(hi)+8),y)});
+    x.textAlign="left";x.textBaseline="alphabetic";
+  }
+  notesBand(x,notes);return c;
+}
+
+// ---------- largura de fissura (perfil perpendicular) ----------
+export const crackLabel=i=>"F"+(i+1);
+export function interpretCrack(K,mm,f){
+  const S=K.summary,o=[];if(!S||!S.valid)return[["Nenhum vale escuro com contraste suficiente ao longo do eixo: confira se a linha segue a fissura.",{}]];
+  const u=v=>f(v,1)+" px"+(mm?" ("+f(v*mm,2)+" mm)":"");
+  o.push(["Largura a meia profundidade (FWHM): mediana {med}, p10–p90 {p10}–{p90}, máxima {max}; {v} de {n} perfis válidos.",{med:u(S.median),p10:f(S.p10,1),p90:f(S.p90,1),max:u(S.max),v:S.valid,n:S.n}]);
+  o.push(["Largura equivalente (área do vale ÷ profundidade): mediana {eq}; profundidade do vale {d} níveis de cinza.",{eq:u(S.eqMedian),d:f(S.depthMedian,0)}]);
+  if(S.belowResolution)o.push(["Mediana abaixo de ~3 px: a fissura está no limite de resolução e o borramento da óptica alarga o vale. O valor é um teto (abertura real ≤ {max}); aproxime a câmera para medir.",{max:u(S.median)}]);
+  else o.push(["Fissura resolvida (≥ 3 px): em teste com fissuras sintéticas de largura conhecida, o erro foi menor que 0,5 px.",{}]);
+  if(!mm)o.push(["Sem calibração de escala, a largura fica em pixels (informe mm/px nas configurações).",{}]);
+  return o;
+}
+export function figureCrack(K,i,img,mm=0){
+  const S=K.summary||{},a=K.axis,{c,x}=frame(`${tr("Largura de fissura")} ${crackLabel(i)}`,`(${fmt(a.x1,0)}, ${fmt(a.y1,0)}) → (${fmt(a.x2,0)}, ${fmt(a.y2,0)}) · ${fmt(K.len,0)} px · ${tr("perfis a cada")} ${fmt(K.opts.step,0)} px · ±${fmt(K.opts.R,0)} px`+(mm?` · ${fmt(mm,3)} mm/px`:""));
+  const notes=interpretCrack(K,mm,fmt),probe=canvas(10,10).getContext("2d");probe.font=font(15);let nl=0;for(const[t,v]of notes)nl+=wrap(probe,trf(t,v),CUT_FIG_W-90).length;
+  const bandTop=CUT_FIG_H-(nl*21+44)-16,top=100,bodyH=bandTop-top-20;
+  // recorte da foto em volta do eixo, com as bordas encontradas em cada perfil
+  const pad=K.opts.R+12,bx0=Math.max(0,Math.min(a.x1,a.x2)-pad),by0=Math.max(0,Math.min(a.y1,a.y2)-pad),bx1=Math.min(img.width,Math.max(a.x1,a.x2)+pad),by1=Math.min(img.height,Math.max(a.y1,a.y2)+pad);
+  const bw=bx1-bx0,bh=by1-by0,PW=380,k=Math.min(PW/bw,bodyH/bh),pw=bw*k,ph=bh*k,ox=32+(PW-pw)/2,oy=top+(bodyH-ph)/2;
+  x.imageSmoothingEnabled=k<3;x.drawImage(baseCanvas(img),bx0,by0,bw,bh,ox,oy,pw,ph);x.imageSmoothingEnabled=true;
+  const P=(X,Y)=>[ox+(X-bx0)*k,oy+(Y-by0)*k];
+  x.strokeStyle="rgba(176,108,255,.9)";x.lineWidth=1.5;x.setLineDash([6,4]);x.beginPath();x.moveTo(...P(a.x1,a.y1));x.lineTo(...P(a.x2,a.y2));x.stroke();x.setLineDash([]);
+  const val=K.stations.filter(s=>s.valid),every=Math.max(1,Math.round(val.length/40));
+  val.forEach((s,j)=>{if(j%every)return;x.strokeStyle="rgba(242,194,0,.9)";x.lineWidth=1.2;x.beginPath();x.moveTo(...P(s.lx,s.ly));x.lineTo(...P(s.rx,s.ry));x.stroke();
+    x.fillStyle="#00e0ff";for(const[q,r]of[[s.lx,s.ly],[s.rx,s.ry]]){const[u,v]=P(q,r);x.fillRect(u-1.5,v-1.5,3,3)}});
+  x.strokeStyle="rgba(29,42,51,.35)";x.strokeRect(ox,oy,pw,ph);
+  x.fillStyle=C.muted;x.font=font(11);x.fillText(tr("amarelo = largura em cada perfil · ciano = bordas a meia profundidade"),32,oy+ph+16,PW);
+  // largura ao longo do eixo
+  const X2=32+PW+90,W2=CUT_FIG_W-X2-40,h1=(bodyH-70)*.55,h2=(bodyH-70)*.45;
+  if(val.length){
+    const ymax=niceUp(Math.max(S.p90*1.6,S.max*1.05,4));
+    const c1=chart(x,X2,top+10,W2,h1,{x0:0,x1:Math.round(K.len),y0:0,y1:ymax,xdec:0,xlabel:"distância ao longo do eixo (px)",ylabel:"FWHM (px)",yfmt:v=>fmt(v,1),title:tr("Largura ao longo da fissura")});
+    x.fillStyle="rgba(176,108,255,.12)";x.fillRect(c1.X,c1.py(S.p90),c1.W,c1.py(S.p10)-c1.py(S.p90));
+    if(K.opts.resolutionPx<ymax){x.setLineDash([5,4]);x.strokeStyle=C.bin;x.lineWidth=1.2;x.beginPath();x.moveTo(c1.X,c1.py(K.opts.resolutionPx));x.lineTo(c1.X+c1.W,c1.py(K.opts.resolutionPx));x.stroke();x.setLineDash([]);
+      x.fillStyle=C.bin;x.font=font(11,600);x.textAlign="right";x.fillText(tr("limite de resolução ≈ 3 px"),c1.X+c1.W-6,c1.py(K.opts.resolutionPx)-4);x.textAlign="left"}
+    x.strokeStyle="#7a3fd1";x.lineWidth=1.6;x.beginPath();let first=true;for(const s of K.stations){if(!s.valid){first=true;continue}const p=[c1.px(s.s),c1.py(Math.min(ymax,s.fwhm))];first?x.moveTo(...p):x.lineTo(...p);first=false}x.stroke();
+    x.setLineDash([2,3]);x.strokeStyle="#1d2a33";x.beginPath();x.moveTo(c1.X,c1.py(S.median));x.lineTo(c1.X+c1.W,c1.py(S.median));x.stroke();x.setLineDash([]);
+    x.fillStyle="#1d2a33";x.font=font(11,700);x.fillText(`${tr("mediana")} ${fmt(S.median,1)} px`+(mm?` · ${fmt(S.median*mm,2)} mm`:""),c1.X+6,c1.py(S.median)-5);
+    // perfil médio alinhado no vale
+    const pr=K.profile,mn=Math.min(...pr.I),c2=chart(x,X2,top+h1+70,W2,h2,{x0:-K.opts.R,x1:K.opts.R,y0:-niceUp(-mn*1.1),y1:niceUp(Math.max(10,-mn*.25)),xdec:0,xlabel:"deslocamento perpendicular ao eixo (px)",ylabel:"cinza − fundo",yfmt:v=>fmt(v,0),title:tr("Perfil médio alinhado no vale")});
+    x.strokeStyle=C.terrainLine;x.lineWidth=1.8;x.beginPath();pr.d.forEach((d,j)=>{const p=[c2.px(d),c2.py(pr.I[j])];j?x.lineTo(...p):x.moveTo(...p)});x.stroke();
+    const half=mn/2;x.setLineDash([4,3]);x.strokeStyle=C.walker;x.beginPath();x.moveTo(c2.X,c2.py(half));x.lineTo(c2.X+c2.W,c2.py(half));x.stroke();x.setLineDash([]);
+    const l=c2.px(-S.median/2),r=c2.px(S.median/2);x.strokeStyle="#1d2a33";x.lineWidth=1.4;x.beginPath();x.moveTo(l,c2.py(half));x.lineTo(r,c2.py(half));x.stroke();
+    x.fillStyle=C.walker;x.font=font(11,700);x.fillText(tr("meia profundidade"),c2.X+6,c2.py(half)-5);
+  }
+  notesBand(x,notes);return c;
+}
+export function crackCsv(K,mm){
+  const h=["fissura","estacao","s_px","x_px","y_px","valido","fwhm_px","larg_equivalente_px","profundidade","fwhm_mm","mm_por_px"],n=v=>v==null?"":(+v).toFixed(2),rows=[h.join(";")];
+  K.forEach((k,i)=>k.stations.forEach((s,j)=>rows.push([crackLabel(i),j+1,n(s.s),n(s.x),n(s.y),s.valid?"sim":"nao",s.valid?n(s.fwhm):"",s.valid?n(s.eq):"",n(s.depth),s.valid&&mm?n(s.fwhm*mm):"",mm||""].join(";"))));
+  return rows.join("\n")+"\n";
 }

@@ -1524,3 +1524,8 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .liveFilterLegend .ticks em{position:absolute;top:2px;transform:translateX(-50%);font-style:normal;opacity:.9}
 .liveFilterLegend .ticks em:first-child{transform:none}.liveFilterLegend .ticks em:last-child{transform:translateX(-100%)}
 .liveFilterLegend small{display:block;margin-top:2px;font-weight:500;opacity:.7}
+
+.cutToolMode{display:inline-flex;gap:2px;padding:2px;border-radius:999px;background:rgba(255,255,255,.1)}
+.cutToolMode button{padding:4px 10px!important;background:transparent!important}
+.cutToolMode button.on{background:#f2c200!important;color:#1d2a33!important}
+.cutToolMode button.crack.on{background:#b06cff!important;color:#fff!important}

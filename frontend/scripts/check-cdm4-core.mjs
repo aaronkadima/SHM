@@ -228,3 +228,27 @@ console.log("svg + snap ok");
   assert.ok(a.converged&&b.converged,"as duas soluções convergem");let dmax=0;for(let i=0;i<w*h;i++)dmax=Math.max(dmax,Math.abs(a.prob[i]-b.prob[i]));assert.ok(dmax<1e-3,"grossa→fina = solução direta (dif. "+dmax+")");
 }
 console.log("live filters ok");
+
+// Largura de fissura por perfil perpendicular: fissuras sintéticas (faixa borrada por PSF σ = 1 px, inclinada 20°)
+{
+  const {crackWidth}=await import("../src/cdm4CrackWidth.js");
+  const erf=z=>{const t=1/(1+.3275911*Math.abs(z)),y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-z*z);return z>=0?y:-y};
+  const synth=Wd=>{const w=200,h=200,g=new Float32Array(w*h),a=20*Math.PI/180,nx=-Math.sin(a),ny=Math.cos(a);let s=3;const rnd=()=>{s=(s*1103515245+12345)%2147483648;return s/2147483648-.5};
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const d=(x-100)*nx+(y-100)*ny,frac=.5*(erf((d+Wd/2)/Math.SQRT2)-erf((d-Wd/2)/Math.SQRT2));g[y*w+x]=170-110*frac+4*rnd()}
+    return{g,ax:{x1:100-60*Math.cos(a),y1:100-60*Math.sin(a),x2:100+60*Math.cos(a),y2:100+60*Math.sin(a)}}};
+  for(const Wd of [5,8,12]){const S=synth(Wd),r=crackWidth(S.g,200,200,S.ax);assert.ok(Math.abs(r.summary.median-Wd)<.5,"fissura de "+Wd+" px medida "+r.summary.median);assert.equal(r.summary.belowResolution,false)}
+  const thin=crackWidth(synth(1).g,200,200,synth(1).ax);assert.equal(thin.summary.belowResolution,true,"fissura de 1 px sinalizada abaixo da resolução");
+  assert.ok(thin.summary.median>1,"FWHM de fissura não resolvida é um teto");
+  const flat=crackWidth(new Float32Array(200*200).fill(150),200,200,{x1:20,y1:20,x2:180,y2:20});assert.equal(flat.summary.valid,0,"sem vale, sem medida");
+}
+// Larguras ao longo de um corte: disco de raio 30 → corte pelo centro mede ≈ 60 px, faixa contém o valor
+{
+  const {cutBase,profile,measureRows}=await import("../src/cdm4CutAnalysis.js");
+  const w=160,h=120,img=new Uint8ClampedArray(w*h*4),prob=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const r=Math.hypot(x-80,y-60);img.set(r<30?[70,70,70,255]:[170,170,170,255],4*(y*w+x));prob[y*w+x]=1/(1+Math.exp((r-30)/1.5))}
+  const B=cutBase(img,w,h,{prob,W:w,H:h,threshold:.5},{levels:[.3,.5,.7],mmPerPx:.5});
+  const P=profile(B,{x1:0,y1:60,x2:159,y2:60}),R=P.notes.regions;
+  assert.equal(R.length,1);assert.ok(Math.abs(R[0].width-60)<1.5,"largura do disco "+R[0].width);assert.ok(R[0].wMin<=R[0].width&&R[0].width<=R[0].wMax);
+  const rows=measureRows([P]);assert.ok(Math.abs(rows[0].width_mm-R[0].width*.5)<1e-9);
+}
+console.log("crack width + cut widths ok");

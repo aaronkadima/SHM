@@ -143,3 +143,20 @@ Núcleo em `cdm4Live.js` (`runCdm4FilterLive`, `liveWalker`, `liveEvidenceOpts`)
   o comportamento do motor é idêntico); entre quadros, o potencial anterior é reaproveitado (opção).
 - Tempo por quadro (CPU, worker): 240 px ≈ 0,2–0,26 s; 320 px ≈ 0,3–0,4 s (até ~0,7 s em máquina lenta); 480 px ≈ 0,8–1 s.
 - Próximo passo se a taxa não bastar: walker em WebGL.
+
+### Medidas de largura nos cortes
+
+`profileNotes` devolve `regions`: fronteiras em u = τ interpoladas entre pixels (`sL`, `sR`), largura e faixa
+`[wMin, wMax]` entre os níveis escolhidos; em cada borda, a busca de um nível vai para fora se o pixel da borda já está
+acima do nível e para dentro se está abaixo. Cotas no perfil, figura **Medidas** (tabela + ponto/barra) e CSV
+(`measureRows`, `measuresCsv`). mm via `metrics.mm_per_px` (pixels da imagem processada). Foto 24, níveis 0,3/0,5/0,7,
+0,5 mm/px: corte A 144,4 px (126,4–155,1) = 72,2 mm; corte diagonal C 196,6 px (193,6–198,8).
+
+### Largura de fissura por perfil perpendicular (modo Fissura)
+
+`cdm4CrackWidth.js`: eixo traçado pelo usuário; perfis perpendiculares a cada 2 px, ±R px (padrão 20), média de 3 linhas,
+amostragem 0,25 px; fundo = mediana das pontas (|d| ≥ 0,6R), vale = mínimo em |d| ≤ 0,6R, profundidade mínima
+max(8 níveis, 3·MAD do fundo); FWHM interpolada; largura equivalente = área do vale ÷ profundidade.
+Fissuras sintéticas (PSF σ = 1 px): 3 px → 3,44; 5 → 5,05; 8 → 7,99; 12 → 11,97; 1 e 2 px → 2,65 e 2,93
+(abaixo da resolução, sinalizado quando a mediana < 3 px: o valor vira teto). Fissura real da foto 24 (546,1447)→(549,1540):
+mediana ≈ 2,7–2,9 px, sinalizada.

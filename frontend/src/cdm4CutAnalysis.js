@@ -42,12 +42,12 @@ export function upsamplePotential(rw,w,h){
   return u;
 }
 
-export function cutBase(rgba,w,h,rw,{gt=null,levels=CUT_DEFAULTS.levels}={}){
+export function cutBase(rgba,w,h,rw,{gt=null,levels=CUT_DEFAULTS.levels,mmPerPx=0}={}){
   const t0=Date.now(),dark=darknessMap(rgba,w,h),u=upsamplePotential(rw,w,h),th=otsu(dark);
   const tau=rw.threshold??.5,lv=[...new Set([...levels,tau].map(v=>+(+v).toFixed(3)))].filter(v=>v>0&&v<1).sort((a,b)=>a-b);
   let gtN=0;if(gt)for(const v of gt)gtN+=v?1:0;
   const G=gtN>0?gt:null;
-  return{w,h,dark,u,otsu:th,tau,levels:lv,gt:G,gtN,global:globalStats(dark,u,th,tau,lv,G,w,h),ms:Date.now()-t0};
+  return{w,h,dark,u,otsu:th,tau,levels:lv,gt:G,gtN,mmPerPx:mmPerPx>0?mmPerPx:0,global:globalStats(dark,u,th,tau,lv,G,w,h),ms:Date.now()-t0};
 }
 
 // curvas de corte por histograma: área(v>t) e, com GT, IoU(v>t) para qualquer nível t
@@ -105,15 +105,24 @@ export function profileNotes(P,B){
   const binOn=Array.from(dark,v=>v>B.otsu),uOn=Array.from(u,v=>v>tau);
   const uRuns=runs(uOn,s).filter(r=>r[2]>=2),binRuns=runs(binOn,s).filter(r=>r[2]>=2);
   const poleless=runs(Array.from(dark,(v,i)=>v>B.otsu&&u[i]<o.poleless),s).filter(r=>r[2]>=o.minRun);
-  // deslocamento da borda entre o nível mais baixo e o mais alto, em cada borda das regiões u>τ
-  const shifts=[];
-  for(const[a,b]of uRuns){for(const[k,dir]of[[a,-1],[b+1,1]]){
-    const kk=Math.min(m-1,Math.max(1,k)),pl=crossAt(u,s,lo,kk,dir),ph=crossAt(u,s,hi,dir<0?a+1:b,dir);
-    if(pl!=null&&ph!=null)shifts.push({at:dir<0?s[a]:s[b],px:Math.abs(ph-pl),side:dir<0?"in":"out"})}}
   // inclinação na borda (|du/ds| máximo em ±4 px do cruzamento de τ)
   const slopes=[];for(const[a,b]of uRuns)for(const k of[a,b]){let g=0;for(let i=Math.max(1,k-4);i<=Math.min(m-1,k+4);i++)g=Math.max(g,Math.abs(u[i]-u[i-1])/(s[i]-s[i-1]||1));slopes.push(g)}
   const plateau=u.reduce((a,v)=>a+(v>.1&&v<.9?1:0),0)/m;
-  return{len:s[m-1],binCross:crossings(dark,B.otsu),uCross:crossings(u,tau),binRuns,uRuns,poleless,shifts,
+  // larguras: fronteiras em u = τ interpoladas entre pixels; em cada borda, a busca de um nível segue para fora
+  // se o pixel da borda já está acima do nível, e para dentro se está abaixo. Faixa = menor e maior largura entre os níveis.
+  const edgeAt=(a,b,lv,side)=>{
+    if(side<0){if(a===0)return s[0];return u[a]>lv?crossAt(u,s,lv,a,-1):crossAt(u,s,lv,a+1,1)}
+    if(b===m-1)return s[m-1];return u[b]>lv?crossAt(u,s,lv,b+1,1):crossAt(u,s,lv,b,-1);
+  };
+  const shifts=[],regions=uRuns.map(([a,b])=>{
+    const sL=edgeAt(a,b,tau,-1)??s[a],sR=edgeAt(a,b,tau,1)??s[b],ws=[sR-sL];
+    for(const lv of B.levels){if(Math.abs(lv-tau)<1e-9)continue;const l=edgeAt(a,b,lv,-1),r=edgeAt(a,b,lv,1);ws.push(l==null||r==null||r<=l?0:r-l)}
+    const L0=edgeAt(a,b,lo,-1),L1=edgeAt(a,b,hi,-1),R0=edgeAt(a,b,lo,1),R1=edgeAt(a,b,hi,1);
+    if(a>0&&L0!=null&&L1!=null&&lo!==hi)shifts.push({at:sL,px:Math.abs(L1-L0),side:"in"});
+    if(b<m-1&&R0!=null&&R1!=null&&lo!==hi)shifts.push({at:sR,px:Math.abs(R1-R0),side:"out"});
+    return{sL,sR,width:sR-sL,wMin:Math.min(...ws),wMax:Math.max(...ws),open:a===0||b===m-1};
+  });
+  return{len:s[m-1],binCross:crossings(dark,B.otsu),uCross:crossings(u,tau),binRuns,uRuns,poleless,shifts,regions,mmPerPx:B.mmPerPx||0,
     shiftMean:shifts.length?shifts.reduce((a,x)=>a+x.px,0)/shifts.length:null,shiftMax:shifts.length?Math.max(...shifts.map(x=>x.px)):null,shiftMin:shifts.length?Math.min(...shifts.map(x=>x.px)):null,
     slopeMin:slopes.length?Math.min(...slopes):null,plateau,
     binFrac:binOn.filter(Boolean).length/m,uFrac:uOn.filter(Boolean).length/m,
@@ -137,6 +146,12 @@ export function interpretProfile(P,f){
   if(N.shiftMean!=null)o.push(["De u = {lo} a {hi}, a borda anda {mean} px em média (máx. {max} px): {verdict}.",{lo:f(N.lo,1),hi:f(N.hi,1),mean:f(N.shiftMean,1),max:f(N.shiftMax,1),verdict:N.shiftMax<=6?"encosta íngreme, borda pouco sensível ao limiar":N.shiftMin<=3?"uma borda é íngreme e outra tem platô, onde o limiar decide a posição":"há platô, o limiar desloca a borda"}]);
   else if(!N.uRuns.length)o.push(["Nenhuma região do walker nesta linha: o potencial fica abaixo de τ em todo o corte.",{}]);
   if(N.poleless.length)o.push(["{k} trecho(s) escuro(s) sem polo ({len} px no total): a binarização marca, o walker fica em u ≈ 0.",{k:N.poleless.length,len:f(N.poleless.reduce((a,r)=>a+r[2],0),0)}]);
+  if(N.regions.length){
+    const list=N.regions.slice(0,4).map((r,i)=>"R"+(i+1)+" "+widthText(r,N.mmPerPx,f)).join("; ");
+    o.push(["Larguras em u = {tau} (faixa entre os níveis {lo} e {hi}): {list}.",{tau:f(N.tau,1),lo:f(N.lo,1),hi:f(N.hi,1),list}]);
+    if(N.regions.some(r=>r.open))o.push(["Região que toca a ponta do corte tem largura truncada: prolongue a linha para medir.",{}]);
+    if(!N.mmPerPx)o.push(["Sem calibração de escala, as larguras ficam em pixels (informe mm/px nas configurações).",{}]);
+  }
   if(N.iouBin!=null)o.push(["Ao longo da linha, contra o GT: binarização {b}, walker {u}.",{b:pc(N.iouBin,f),u:pc(N.iouU,f)}]);
   return o;
 }
@@ -152,4 +167,26 @@ export function interpretCurves(B,f){
   }
   o.push(["Entre u = {lo} e {hi}, a borda do walker anda {px} px em média em todo o contorno.",{lo:f(g.levelLo,1),hi:f(g.levelHi,1),px:f(g.edgeShiftPx,1)}]);
   return o;
+}
+
+// texto de uma largura: "212,4 px (205,1–219,0)" e, com escala, "· 106,2 mm (102,6–109,5)"
+export function widthText(r,mmPerPx,f){
+  const px=`${f(r.width,1)} px (${f(r.wMin,1)}–${f(r.wMax,1)})`+(r.open?" *":"");
+  return mmPerPx>0?px+` · ${f(r.width*mmPerPx,1)} mm (${f(r.wMin*mmPerPx,1)}–${f(r.wMax*mmPerPx,1)})`:px;
+}
+// todas as medidas em linhas (CSV e figura de tabela); coordenadas na imagem processada
+export function measureRows(P,labelOf=i=>String.fromCharCode(65+i)){
+  const rows=[];
+  P.forEach((p,ci)=>p.notes.regions.forEach((r,ri)=>{
+    const pt=sv=>{const t=p.len>0?sv/p.len:0;return[p.x1+(p.x2-p.x1)*t,p.y1+(p.y2-p.y1)*t]};
+    const a=pt(r.sL),b=pt(r.sR),mm=p.notes.mmPerPx||0;
+    rows.push({cut:labelOf(ci),region:"R"+(ri+1),x1:a[0],y1:a[1],x2:b[0],y2:b[1],width_px:r.width,min_px:r.wMin,max_px:r.wMax,
+      width_mm:mm?r.width*mm:null,min_mm:mm?r.wMin*mm:null,max_mm:mm?r.wMax*mm:null,open:r.open,tau:p.notes.tau,level_lo:p.notes.lo,level_hi:p.notes.hi});
+  }));
+  return rows;
+}
+export function measuresCsv(rows,mmPerPx){
+  const h=["corte","regiao","x_inicio_px","y_inicio_px","x_fim_px","y_fim_px","largura_px","faixa_min_px","faixa_max_px","largura_mm","faixa_min_mm","faixa_max_mm","truncada","tau","nivel_baixo","nivel_alto","mm_por_px"];
+  const n=v=>v==null?"":(+v).toFixed(2);
+  return[h.join(";"),...rows.map(r=>[r.cut,r.region,n(r.x1),n(r.y1),n(r.x2),n(r.y2),n(r.width_px),n(r.min_px),n(r.max_px),n(r.width_mm),n(r.min_mm),n(r.max_mm),r.open?"sim":"nao",r.tau,r.level_lo,r.level_hi,mmPerPx>0?mmPerPx:""].join(";"))].join("\n")+"\n";
 }

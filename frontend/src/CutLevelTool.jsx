@@ -1,9 +1,10 @@
 import React,{useCallback,useEffect,useRef,useState}from"react";
-import{ChevronLeft,ChevronRight,Download,FileCode2,Pencil,Play,Trash2,Undo2,X}from"lucide-react";
+import{ChevronLeft,ChevronRight,Download,FileCode2,FileSpreadsheet,Pencil,Play,Trash2,Undo2,X}from"lucide-react";
 import{svgUrl}from"./svgCanvas.js";
 import{__cdm4Test,cdm4Config,cdm4StageData}from"./cdm4Core.js";
-import{cutBase,profile}from"./cdm4CutAnalysis.js";
-import{CUT_FIG_W,CUT_FIG_H,cutLabel,figureCurves,figureMaps,figureProfile,figureSheet}from"./cdm4CutFigures.js";
+import{cutBase,profile,measureRows,measuresCsv}from"./cdm4CutAnalysis.js";
+import{CUT_FIG_W,CUT_FIG_H,cutLabel,crackLabel,crackCsv,figureCrack,figureCurves,figureMaps,figureMeasures,figureProfile,figureSheet}from"./cdm4CutFigures.js";
+import{crackWidth,grayOf}from"./cdm4CrackWidth.js";
 import{classMask,usable}from"./annotationCore.js";
 import{tr,getLang}from"./i18n.js";
 
@@ -37,13 +38,13 @@ export function parseLevels(text){
 }
 
 export default function CutLevelTool({active,onClose,result,file,options,canvasElement,gtItems,gtSize}){
-  const[phase,setPhase]=useState("draw"),[cuts,setCuts]=useState([]),[drag,setDrag]=useState(null),[levels,setLevels]=useState("0,3; 0,5"),[step,setStep]=useState(20),[cursor,setCursor]=useState(null);
+  const[phase,setPhase]=useState("draw"),[cuts,setCuts]=useState([]),[drag,setDrag]=useState(null),[levels,setLevels]=useState("0,3; 0,5"),[mode,setMode]=useState("cut"),[cracks,setCracks]=useState([]),[crackR,setCrackR]=useState(20),[step,setStep]=useState(20),[cursor,setCursor]=useState(null);
   const[figs,setFigs]=useState(null),[err,setErr]=useState(""),[zoom,setZoom]=useState(null),[,setTick]=useState(0);
   const start=useRef(null),urls=useRef([]),cache=useRef(null),built=useRef(null);
   const release=()=>{for(const u of urls.current)if(u.startsWith("blob:"))URL.revokeObjectURL(u);urls.current=[]};
   const W=result?.metrics?.processed_width||0,H=result?.metrics?.processed_height||0;
   useEffect(()=>{if(active){setPhase("draw");setFigs(null);setErr("");setZoom(null)}else release()},[active]);
-  useEffect(()=>{cache.current=null;setCuts([])},[result,file]);
+  useEffect(()=>{cache.current=null;setCuts([]);setCracks([])},[result,file]);
   useEffect(()=>()=>release(),[]);
   useEffect(()=>{if(!active)return;const r=()=>setTick(t=>t+1);window.addEventListener("resize",r);return()=>window.removeEventListener("resize",r)},[active]);
   const nFig=figs?.items.length||0;
@@ -51,8 +52,8 @@ export default function CutLevelTool({active,onClose,result,file,options,canvasE
     if(e.target?.tagName==="INPUT")return;
     if(zoom!=null){if(e.key==="Escape"){e.stopPropagation();setZoom(null)}else if(e.key==="ArrowRight"){e.stopPropagation();setZoom(z=>(z+1)%nFig)}else if(e.key==="ArrowLeft"){e.stopPropagation();setZoom(z=>(z+nFig-1)%nFig)}return}
     if(e.key==="Escape"){e.stopPropagation();onClose?.()}
-    else if(phase==="draw"&&(e.key==="Backspace"||(e.key==="z"&&(e.ctrlKey||e.metaKey)))){e.preventDefault();e.stopPropagation();setCuts(c=>c.slice(0,-1))}
-  };window.addEventListener("keydown",k,true);return()=>window.removeEventListener("keydown",k,true)},[active,onClose,zoom,nFig,phase]);
+    else if(phase==="draw"&&(e.key==="Backspace"||(e.key==="z"&&(e.ctrlKey||e.metaKey)))){e.preventDefault();e.stopPropagation();(mode==="crack"?setCracks:setCuts)(c=>c.slice(0,-1))}
+  };window.addEventListener("keydown",k,true);return()=>window.removeEventListener("keydown",k,true)},[active,onClose,zoom,nFig,phase,mode]);
 
   const imageRect=()=>{
     const imgs=[...(canvasElement?.current?.querySelectorAll("img")||[])].filter(i=>i.offsetParent!==null);
@@ -72,24 +73,28 @@ export default function CutLevelTool({active,onClose,result,file,options,canvasE
           const cfg=cdm4Config({...(options||{}),cdm_context_filter:"off",cdm4_flow:result?.metrics?.protocol?.flow||options?.cdm4_flow});cfg.returnStages=true;
           d={...__cdm4Test.computeCdm4Core(img,null,cfg).stages};
         }
-        if(!d?.random_walker?.prob)throw new Error(tr("O random walker não gerou potencial nesta imagem."));
-        C=cache.current={img,rw:d.random_walker};
+        C=cache.current={img,rw:d?.random_walker?.prob?d.random_walker:null,gray:grayOf(img.data,W,H)};
       }
+      if(!C.rw&&(cuts.length||!cracks.length))throw new Error(tr("O random walker não gerou potencial nesta imagem."));
       const lv=parseLevels(levels);
-      const B=cutBase(C.img.data,W,H,C.rw,{gt:gtMask(gtItems,gtSize,W,H),levels:lv.length?lv:[.3,.5]});
-      const P=cuts.map(c=>profile(B,c)),cs=[...cuts];
+      const mmPerPx=Number(result?.metrics?.mm_per_px||options?.cdm_mm_per_px||0);
+      const K=cracks.map(a=>crackWidth(C.gray,W,H,a,{R:crackR}));
+      const B=C.rw?cutBase(C.img.data,W,H,C.rw,{gt:gtMask(gtItems,gtSize,W,H),levels:lv.length?lv:[.3,.5],mmPerPx}):null;
+      const P=B?cuts.map(c=>profile(B,c)):[],cs=[...cuts];
       // construtores: os mesmos desenham o PNG (canvas) e, sob demanda, o SVG com texto editável
-      const builders=[()=>figureMaps(B,C.img,cs),...P.map((p,i)=>()=>figureProfile(B,p,i,C.img)),()=>figureCurves(B)];
+      const builders=[...(B?[()=>figureMaps(B,C.img,cs),...P.map((p,i)=>()=>figureProfile(B,p,i,C.img)),...(P.length?[()=>figureMeasures(B,P)]:[])]:[]),...K.map((k,i)=>()=>figureCrack(k,i,C.img,mmPerPx)),...(B?[()=>figureCurves(B)]:[])];
+      const csv=measuresCsv(measureRows(P,cutLabel),mmPerPx);
       built.current={builders,sheet:()=>figureSheet(builders.map(f=>f()))};
       const list=builders.map(f=>f());
-      const names=["mapas",...P.map((_,i)=>"perfil-"+cutLabel(i)),"curva-de-corte"];
-      const titles=[tr("Mapas"),...P.map((_,i)=>tr("Perfil de corte")+" "+cutLabel(i)),tr("Curva de corte")];
+      const names=[...(B?["mapas",...P.map((_,i)=>"perfil-"+cutLabel(i)),...(P.length?["medidas"]:[])]:[]),...K.map((_,i)=>"fissura-"+crackLabel(i)),...(B?["curva-de-corte"]:[])];
+      const titles=[...(B?[tr("Mapas"),...P.map((_,i)=>tr("Perfil de corte")+" "+cutLabel(i)),...(P.length?[tr("Medidas")]:[])]:[]),...K.map((_,i)=>tr("Largura de fissura")+" "+crackLabel(i)),...(B?[tr("Curva de corte")]:[])];
+      const crackCsvText=K.length?crackCsv(K,mmPerPx):null;
       release();
       const u=await Promise.all([...list,figureSheet(list)].map(toUrl));urls.current=u;
-      setFigs({items:u.slice(0,list.length),sheet:u[list.length],names,titles,lang:getLang(),iou:B.gt?[B.global.bin.iou,B.global.walker.iou]:null,agreement:B.global.agreement});
+      setFigs({items:u.slice(0,list.length),sheet:u[list.length],names,titles,lang:getLang(),csv:P.length?csv:null,crackCsv:crackCsvText,iou:B?.gt?[B.global.bin.iou,B.global.walker.iou]:null,agreement:B?B.global.agreement:null});
       setZoom(null);setPhase("done");
     }catch(e){setErr(String(e?.message||e));setPhase("draw")}
-  },[file,result,options,W,H,gtItems,gtSize,cuts,levels]);
+  },[file,result,options,W,H,gtItems,gtSize,cuts,levels,cracks,crackR]);
 
   if(!active)return null;
   const r=imageRect(),k=r&&W?r.width/W:1;
@@ -98,27 +103,31 @@ export default function CutLevelTool({active,onClose,result,file,options,canvasE
   const onMove=e=>{const s=start.current;if(!s||!r){setCursor(null);return}
     const p=snapCut(s,toImg(e.clientX,e.clientY),{ctrl:e.ctrlKey||e.metaKey,shift:e.shiftKey,step:+step||20,W,H});
     setDrag({x1:s.x,y1:s.y,x2:p.x,y2:p.y});setCursor({x:e.clientX,y:e.clientY,snap:e.ctrlKey||e.metaKey})};
-  const onUp=()=>{const d=drag;start.current=null;setDrag(null);setCursor(null);if(d&&Math.hypot(d.x2-d.x1,d.y2-d.y1)*k>=12)setCuts(c=>[...c,{x1:Math.round(d.x1),y1:Math.round(d.y1),x2:Math.round(d.x2),y2:Math.round(d.y2)}])};
+  const onUp=()=>{const d=drag;start.current=null;setDrag(null);setCursor(null);if(d&&Math.hypot(d.x2-d.x1,d.y2-d.y1)*k>=12)(mode==="crack"?setCracks:setCuts)(c=>[...c,{x1:Math.round(d.x1),y1:Math.round(d.y1),x2:Math.round(d.x2),y2:Math.round(d.y2)}])};
   const stop=e=>e.stopPropagation();
   const pct=v=>v==null?"—":(v*100).toFixed(1)+" %";
   return <>
     {phase!=="done"&&<div className="fieldToolSelect cutToolSelect" onContextMenu={e=>e.preventDefault()} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={()=>{start.current=null;setDrag(null)}}>
       {r&&<svg className="cutToolLines" width="100%" height="100%">
-        {[...cuts,...(drag?[drag]:[])].map((c,i)=>{const a=[r.left+c.x1*k,r.top+c.y1*k],b=[r.left+c.x2*k,r.top+c.y2*k];return <g key={i}>
+        {[...cuts.map((c,i)=>({c,lab:cutLabel(i),col:"#f2c200"})),...cracks.map((c,i)=>({c,lab:crackLabel(i),col:"#b06cff"})),...(drag?[{c:drag,lab:"",col:mode==="crack"?"#b06cff":"#f2c200"}]:[])].map(({c,lab,col},i)=>{const a=[r.left+c.x1*k,r.top+c.y1*k],b=[r.left+c.x2*k,r.top+c.y2*k];return <g key={i}>
           <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke="rgba(0,0,0,.55)" strokeWidth="4"/>
-          <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke="#f2c200" strokeWidth="2" strokeDasharray="7 5"/>
-          {i<cuts.length&&<text x={a[0]+5} y={a[1]-7} fill="#f2c200" stroke="rgba(0,0,0,.75)" strokeWidth="3" paintOrder="stroke" fontSize="15" fontWeight="800">{cutLabel(i)}</text>}
+          <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={col} strokeWidth="2" strokeDasharray="7 5"/>
+          {lab&&<text x={a[0]+5} y={a[1]-7} fill={col} stroke="rgba(0,0,0,.75)" strokeWidth="3" paintOrder="stroke" fontSize="15" fontWeight="800">{lab}</text>}
         </g>})}
       </svg>}
       {drag&&cursor&&(()=>{const L=Math.hypot(drag.x2-drag.x1,drag.y2-drag.y1),a=-Math.atan2(drag.y2-drag.y1,drag.x2-drag.x1)*180/Math.PI;
         return <div className={"cutToolReadout"+(cursor.snap?" snap":"")} style={{left:cursor.x+16,top:cursor.y+16}}>{Math.round(L)} px · {Math.round(a)}°{cursor.snap?" · "+tr("passo")+" "+step+" px":""}</div>})()}
       <div className="cutToolBar" onPointerDown={stop} onPointerUp={stop}>
-        <span className="cutToolHintText">{phase==="running"?tr("Gerando o estudo comparativo…"):tr("Corte de nível: arraste linhas de corte · Ctrl = passos de 15° e de comprimento · Shift = horizontal/vertical")}{err&&<em> · {err}</em>}</span>
-        <span className="cutToolCount">{cuts.length} {tr("corte(s)")}</span>
+        <span className="cutToolHintText">{phase==="running"?tr("Gerando o estudo comparativo…"):(mode==="crack"?tr("Fissura: trace o eixo ao longo da fissura · Ctrl = passos de 15° e de comprimento"):tr("Corte de nível: arraste linhas de corte · Ctrl = passos de 15° e de comprimento · Shift = horizontal/vertical"))}{err&&<em> · {err}</em>}</span>
+        <span className="cutToolMode" role="radiogroup" aria-label={tr("O que traçar")}>
+          <button type="button" role="radio" aria-checked={mode==="cut"} className={mode==="cut"?"on":""} onClick={()=>setMode("cut")} title={tr("Linhas de corte: perfis binarização × potencial e largura do desplacamento")}>{tr("Corte")} · {cuts.length}</button>
+          <button type="button" role="radio" aria-checked={mode==="crack"} className={"crack"+(mode==="crack"?" on":"")} onClick={()=>setMode("crack")} title={tr("Trace o eixo ao longo da fissura: largura pelo perfil perpendicular")}>{tr("Fissura")} · {cracks.length}</button>
+        </span>
         <label className="cutToolLevels" title={tr("Com Ctrl pressionado, o comprimento do corte avança neste passo")}>{tr("Passo (Ctrl)")}<input className="short" type="number" min="1" max="500" value={step} onChange={e=>setStep(Math.max(1,Math.min(500,Math.round(+e.target.value||1))))} aria-label={tr("Passo (Ctrl)")}/>px</label>
-        <label className="cutToolLevels">{tr("Níveis do walker")}<input value={levels} onChange={e=>setLevels(e.target.value)} placeholder="0,3; 0,5" aria-label={tr("Níveis do walker")}/></label>
-        <button type="button" disabled={!cuts.length||phase==="running"} onClick={()=>setCuts(c=>c.slice(0,-1))} title={tr("Desfazer último corte")}><Undo2 size={15}/></button>
-        <button type="button" disabled={!cuts.length||phase==="running"} onClick={()=>setCuts([])} title={tr("Limpar cortes")}><Trash2 size={15}/></button>
+        {mode==="crack"&&<label className="cutToolLevels" title={tr("Meia largura de cada perfil perpendicular ao eixo")}>{tr("Perfil ±")}<input className="short" type="number" min="6" max="80" value={crackR} onChange={e=>setCrackR(Math.max(6,Math.min(80,Math.round(+e.target.value||20))))} aria-label={tr("Perfil ±")}/>px</label>}
+        {mode==="cut"&&<label className="cutToolLevels">{tr("Níveis do walker")}<input value={levels} onChange={e=>setLevels(e.target.value)} placeholder="0,3; 0,5" aria-label={tr("Níveis do walker")}/></label>}
+        <button type="button" disabled={!(mode==="crack"?cracks:cuts).length||phase==="running"} onClick={()=>(mode==="crack"?setCracks:setCuts)(c=>c.slice(0,-1))} title={tr("Desfazer último corte")}><Undo2 size={15}/></button>
+        <button type="button" disabled={!(mode==="crack"?cracks:cuts).length||phase==="running"} onClick={()=>(mode==="crack"?setCracks:setCuts)([])} title={tr("Limpar cortes")}><Trash2 size={15}/></button>
         <button type="button" className="primary" disabled={phase==="running"} onClick={run}><Play size={14}/> {tr("Analisar")}</button>
         <button type="button" aria-label={tr("Fechar")} onClick={onClose}><X size={16}/></button>
       </div>
@@ -126,9 +135,11 @@ export default function CutLevelTool({active,onClose,result,file,options,canvasE
     {phase==="done"&&figs&&<div className="fieldToolPanel" role="dialog" aria-modal="true" aria-label={tr("Corte de nível")}>
       <section className="cutToolPanel">
         <header>
-          <div><b>{tr("Corte de nível · binarização × potencial do walker")}</b><span>{cuts.length} {tr("corte(s)")} · {figs.items.length} {tr("figuras")} · {CUT_FIG_W} × {CUT_FIG_H} px · {figs.iou?`IoU ${tr("binarização")} ${pct(figs.iou[0])} · ${tr("walker")} ${pct(figs.iou[1])}`:`${tr("sem GT")} · ${tr("concordância")} ${pct(figs.agreement)}`}</span></div>
+          <div><b>{tr("Corte de nível · binarização × potencial do walker")}</b><span>{cuts.length} {tr("corte(s)")} · {cracks.length} {tr("fissura(s)")} · {figs.items.length} {tr("figuras")} · {CUT_FIG_W} × {CUT_FIG_H} px · {figs.iou?`IoU ${tr("binarização")} ${pct(figs.iou[0])} · ${tr("walker")} ${pct(figs.iou[1])}`:figs.agreement!=null?`${tr("sem GT")} · ${tr("concordância")} ${pct(figs.agreement)}`:""}</span></div>
           <button type="button" onClick={()=>{setPhase("draw");setFigs(null)}}><Pencil size={15}/> {tr("Editar cortes")}</button>
           <a className="fieldToolBtn" href={figs.sheet} download={"corte-de-nivel-folha-"+figs.lang+".png"}><Download size={15}/> {tr("Folha com todas")}</a>
+          {figs.crackCsv&&<button type="button" title={tr("Largura de cada perfil das fissuras em CSV")} onClick={()=>downloadUrl(URL.createObjectURL(new Blob(["\ufeff"+figs.crackCsv],{type:"text/csv"})),"corte-de-nivel-fissuras.csv")}><FileSpreadsheet size={15}/> {tr("CSV fissuras")}</button>}
+          {figs.csv&&<button type="button" title={tr("Medidas de largura em CSV (separador ponto e vírgula)")} onClick={()=>downloadUrl(URL.createObjectURL(new Blob(["\ufeff"+figs.csv],{type:"text/csv"})),"corte-de-nivel-medidas.csv")}><FileSpreadsheet size={15}/> CSV</button>}
           <button type="button" title={tr("Folha com todas em SVG (texto editável)")} onClick={()=>downloadUrl(svgUrl(built.current.sheet,tr("Corte de nível")),"corte-de-nivel-folha-"+figs.lang+".svg")}><FileCode2 size={15}/> SVG</button>
           <button type="button" aria-label={tr("Fechar")} onClick={onClose}><X size={17}/></button>
         </header>

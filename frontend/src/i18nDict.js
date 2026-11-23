@@ -76,6 +76,11 @@ export const DICT={
 "). clDice mide la continuidad del esqueleto de las fisuras.",
 "). clDice mesure la continuité du squelette des fissures."
 ],
+"* região truncada pela ponta do corte: prolongue a linha para medir.": [
+"* region truncated by the end of the cut: extend the line to measure.",
+"* región truncada por el extremo del corte: prolongue la línea para medir.",
+"* région tronquée par l'extrémité de la coupe : prolongez la ligne pour mesurer."
+],
 "+ adicionar classe…": [
 "+ add class…",
 "+ añadir clase…",
@@ -816,6 +821,11 @@ export const DICT={
 "Artefacto ONNX",
 "Artefact ONNX"
 ],
+"As fronteiras são os pontos em que o potencial cruza τ, interpolados entre pixels; a faixa é a menor e a maior largura entre os níveis escolhidos.": [
+"Boundaries are the points where the potential crosses τ, interpolated between pixels; the range is the smallest and largest width across the chosen levels.",
+"Las fronteras son los puntos donde el potencial cruza τ, interpolados entre píxeles; la franja es el menor y el mayor ancho entre los niveles elegidos.",
+"Les frontières sont les points où le potentiel croise τ, interpolés entre pixels ; la plage est la plus petite et la plus grande largeur entre les niveaux choisis."
+],
 "As imagens selecionadas já estão no conjunto fotométrico.": [
 "The selected images are already in the photometric set.",
 "Las imágenes seleccionadas ya están en el conjunto fotométrico.",
@@ -1210,6 +1220,11 @@ export const DICT={
 "Campaign CSV",
 "CSV de campaña",
 "CSV de campagne"
+],
+"CSV fissuras": [
+"Cracks CSV",
+"CSV fisuras",
+"CSV fissures"
 ],
 "CSV tabular": [
 "Tabular CSV",
@@ -1875,6 +1890,11 @@ export const DICT={
 "3D canvas controls",
 "Controles del lienzo 3D",
 "Commandes du canevas 3D"
+],
+"Conversão em mm válida para foto de frente para a superfície; com perspectiva, a escala muda ao longo da imagem.": [
+"The mm conversion is valid for a photo facing the surface; with perspective, the scale changes across the image.",
+"La conversión a mm vale para una foto de frente a la superficie; con perspectiva, la escala cambia a lo largo de la imagen.",
+"La conversion en mm vaut pour une photo de face ; avec perspective, l'échelle varie dans l'image."
 ],
 "Coordenadas:": [
 "Coordinates:",
@@ -2706,10 +2726,30 @@ export const DICT={
 "FONDO",
 "FOND"
 ],
+"FWHM (px)": [
+"FWHM (px)",
+"FWHM (px)",
+"FWHM (px)"
+],
+"Faixa (mm)": [
+"Range (mm)",
+"Franja (mm)",
+"Plage (mm)"
+],
+"Faixa (px)": [
+"Range (px)",
+"Franja (px)",
+"Plage (px)"
+],
 "Faixa dinâmica (p2–p98)": [
 "Dynamic range (p2–p98)",
 "Rango dinámico (p2–p98)",
 "Plage dynamique (p2–p98)"
+],
+"Faixa estreita = encosta íngreme, medida firme; faixa larga = platô, onde a borda depende do limiar.": [
+"Narrow range = steep slope, firm measure; wide range = plateau, where the edge depends on the threshold.",
+"Franja estrecha = pendiente pronunciada, medida firme; franja ancha = meseta, donde el borde depende del umbral.",
+"Plage étroite = pente raide, mesure ferme ; plage large = plateau, où le bord dépend du seuil."
 ],
 "Faixa p2–p98": [
 "p2–p98 range",
@@ -2946,10 +2986,20 @@ export const DICT={
 "Fisura",
 "Fissure"
 ],
+"Fissura resolvida (≥ 3 px): em teste com fissuras sintéticas de largura conhecida, o erro foi menor que 0,5 px.": [
+"Resolved crack (≥ 3 px): on synthetic cracks of known width, the error was below 0.5 px.",
+"Fisura resuelta (≥ 3 px): en pruebas con fisuras sintéticas de ancho conocido, el error fue menor que 0,5 px.",
+"Fissure résolue (≥ 3 px) : sur des fissures synthétiques de largeur connue, l'erreur était inférieure à 0,5 px."
+],
 "Fissura: caminho aberto com a largura abaixo.": [
 "Crack: open path with the width below.",
 "Fisura: trazado abierto con el ancho de abajo.",
 "Fissure : tracé ouvert avec la largeur ci-dessous."
+],
+"Fissura: trace o eixo ao longo da fissura · Ctrl = passos de 15° e de comprimento": [
+"Crack: draw the axis along the crack · Ctrl = 15° and length steps",
+"Fisura: trace el eje a lo largo de la fisura · Ctrl = pasos de 15° y de longitud",
+"Fissure : tracez l'axe le long de la fissure · Ctrl = pas de 15° et de longueur"
 ],
 "Fissuras": [
 "Cracks",
@@ -3511,6 +3561,11 @@ export const DICT={
 "Inventario de los motores registrados en el repositorio ·",
 "Inventaire des moteurs enregistrés dans le dépôt ·"
 ],
+"Início → fim (px)": [
+"Start → end (px)",
+"Inicio → fin (px)",
+"Début → fin (px)"
+],
 "IoU": [
 "IoU",
 "IoU",
@@ -3616,6 +3671,46 @@ export const DICT={
 "Ancho",
 "Largeur"
 ],
+"Largura (mm)": [
+"Width (mm)",
+"Ancho (mm)",
+"Largeur (mm)"
+],
+"Largura (px)": [
+"Width (px)",
+"Ancho (px)",
+"Largeur (px)"
+],
+"Largura a meia profundidade (FWHM): mediana {med}, p10–p90 {p10}–{p90}, máxima {max}; {v} de {n} perfis válidos.": [
+"Width at half depth (FWHM): median {med}, p10–p90 {p10}–{p90}, max {max}; {v} of {n} valid profiles.",
+"Ancho a media profundidad (FWHM): mediana {med}, p10–p90 {p10}–{p90}, máximo {max}; {v} de {n} perfiles válidos.",
+"Largeur à mi-profondeur (FWHM) : médiane {med}, p10–p90 {p10}–{p90}, max {max} ; {v} sur {n} profils valides."
+],
+"Largura ao longo da fissura": [
+"Width along the crack",
+"Ancho a lo largo de la fisura",
+"Largeur le long de la fissure"
+],
+"Largura de cada perfil das fissuras em CSV": [
+"Width of each crack profile as CSV",
+"Ancho de cada perfil de las fisuras en CSV",
+"Largeur de chaque profil des fissures en CSV"
+],
+"Largura de fissura": [
+"Crack width",
+"Ancho de fisura",
+"Largeur de fissure"
+],
+"Largura em τ (ponto) e faixa entre os níveis (barra)": [
+"Width at τ (dot) and range across levels (bar)",
+"Ancho en τ (punto) y franja entre niveles (barra)",
+"Largeur à τ (point) et plage entre niveaux (barre)"
+],
+"Largura equivalente (área do vale ÷ profundidade): mediana {eq}; profundidade do vale {d} níveis de cinza.": [
+"Equivalent width (valley area ÷ depth): median {eq}; valley depth {d} grey levels.",
+"Ancho equivalente (área del valle ÷ profundidad): mediana {eq}; profundidad del valle {d} niveles de gris.",
+"Largeur équivalente (aire de la vallée ÷ profondeur) : médiane {eq} ; profondeur de la vallée {d} niveaux de gris."
+],
 "Largura fonte": [
 "Source width",
 "Ancho de la fuente",
@@ -3625,6 +3720,11 @@ export const DICT={
 "Mean width:",
 "Ancho medio:",
 "Largeur moyenne :"
+],
+"Larguras em u = {tau} (faixa entre os níveis {lo} e {hi}): {list}.": [
+"Widths at u = {tau} (range between levels {lo} and {hi}): {list}.",
+"Anchos en u = {tau} (franja entre los niveles {lo} y {hi}): {list}.",
+"Largeurs à u = {tau} (plage entre les niveaux {lo} et {hi}) : {list}."
 ],
 "Latência": [
 "Latency",
@@ -3690,6 +3790,11 @@ export const DICT={
 "Timeline",
 "Línea de tiempo",
 "Chronologie"
+],
+"Linhas de corte: perfis binarização × potencial e largura do desplacamento": [
+"Cut lines: binarization × potential profiles and spalling width",
+"Líneas de corte: perfiles binarización × potencial y ancho del desprendimiento",
+"Lignes de coupe : profils binarisation × potentiel et largeur de l'épaufrure"
 ],
 "Listas de achados": [
 "Finding lists",
@@ -3791,6 +3896,26 @@ export const DICT={
 "Mapas",
 "Cartes"
 ],
+"Mediana abaixo de ~3 px: a fissura está no limite de resolução e o borramento da óptica alarga o vale. O valor é um teto (abertura real ≤ {max}); aproxime a câmera para medir.": [
+"Median below ~3 px: the crack is at the resolution limit and optical blur widens the valley. The value is an upper bound (true opening ≤ {max}); move the camera closer to measure.",
+"Mediana por debajo de ~3 px: la fisura está en el límite de resolución y el desenfoque óptico ensancha el valle. El valor es un techo (abertura real ≤ {max}); acerque la cámara para medir.",
+"Médiane sous ~3 px : la fissure est à la limite de résolution et le flou optique élargit la vallée. La valeur est un plafond (ouverture réelle ≤ {max}) ; rapprochez la caméra pour mesurer."
+],
+"Medidas": [
+"Measurements",
+"Medidas",
+"Mesures"
+],
+"Medidas ao longo dos cortes": [
+"Measurements along the cuts",
+"Medidas a lo largo de los cortes",
+"Mesures le long des coupes"
+],
+"Medidas de largura em CSV (separador ponto e vírgula)": [
+"Width measurements as CSV (semicolon separator)",
+"Medidas de ancho en CSV (separador punto y coma)",
+"Mesures de largeur en CSV (séparateur point-virgule)"
+],
 "Medidas em px · calibre mm/px em Configurações para obter mm.": [
 "Measurements in px · calibrate mm/px in Settings to get mm.",
 "Medidas en px · calibre mm/px en Configuración para obtener mm.",
@@ -3805,6 +3930,11 @@ export const DICT={
 "3D measurement · select two points on the model",
 "Medición 3D · seleccione dos puntos en el modelo",
 "Mesure 3D · sélectionnez deux points sur le modèle"
+],
+"Meia largura de cada perfil perpendicular ao eixo": [
+"Half-length of each profile perpendicular to the axis",
+"Media longitud de cada perfil perpendicular al eje",
+"Demi-longueur de chaque profil perpendiculaire à l'axe"
 ],
 "Melhor IoU possível: binarização {b} em qualquer limiar; walker {u}.": [
 "Best possible IoU: binarization {b} at any threshold; walker {u}.",
@@ -4156,6 +4286,11 @@ export const DICT={
 "Ningún resultado procesado",
 "Aucun résultat traité"
 ],
+"Nenhum vale escuro com contraste suficiente ao longo do eixo: confira se a linha segue a fissura.": [
+"No dark valley with enough contrast along the axis: check that the line follows the crack.",
+"Ningún valle oscuro con contraste suficiente a lo largo del eje: verifique que la línea siga la fisura.",
+"Aucune vallée sombre assez contrastée le long de l'axe : vérifiez que la ligne suit la fissure."
+],
 "Nenhuma anotação aceita para exportar": [
 "No accepted annotation to export",
 "Ninguna anotación aceptada para exportar",
@@ -4200,6 +4335,11 @@ export const DICT={
 "No damage region inside the selection.",
 "Ninguna región de daño dentro de la selección.",
 "Aucune région de dommage dans la sélection."
+],
+"Nenhuma região do walker cruza os cortes traçados.": [
+"No walker region crosses the drawn cuts.",
+"Ninguna región del walker cruza los cortes trazados.",
+"Aucune région du walker ne croise les coupes tracées."
 ],
 "Nenhuma região do walker nesta linha: o potencial fica abaixo de τ em todo o corte.": [
 "No walker region on this line: the potential stays below τ along the whole cut.",
@@ -4480,6 +4620,11 @@ export const DICT={
 "The panel does not claim a live stream while no video source is implemented.",
 "El panel no declara una transmisión en vivo mientras no haya una fuente de vídeo implementada.",
 "Le panneau ne déclare pas de diffusion en direct tant qu’aucune source vidéo n’est implémentée."
+],
+"O que traçar": [
+"What to draw",
+"Qué trazar",
+"Que tracer"
 ],
 "O random walker não gerou potencial nesta imagem.": [
 "The random walker produced no potential on this image.",
@@ -4810,6 +4955,16 @@ export const DICT={
 "Cut profile",
 "Perfil de corte",
 "Profil de coupe"
+],
+"Perfil médio alinhado no vale": [
+"Mean profile aligned on the valley",
+"Perfil medio alineado en el valle",
+"Profil moyen aligné sur la vallée"
+],
+"Perfil ±": [
+"Profile ±",
+"Perfil ±",
+"Profil ±"
 ],
 "Permissão de câmera negada. Autorize o acesso nas configurações do navegador.": [
 "Camera permission denied. Allow access in the browser settings.",
@@ -5350,6 +5505,11 @@ export const DICT={
 "Region",
 "Región",
 "Région"
+],
+"Região que toca a ponta do corte tem largura truncada: prolongue a linha para medir.": [
+"A region touching the end of the cut has a truncated width: extend the line to measure.",
+"Una región que toca el extremo del corte tiene ancho truncado: prolongue la línea para medir.",
+"Une région touchant l'extrémité de la coupe a une largeur tronquée : prolongez la ligne pour mesurer."
 ],
 "Rejeitar": [
 "Reject",
@@ -5931,6 +6091,16 @@ export const DICT={
 "Sin línea base",
 "Sans référence"
 ],
+"Sem calibração de escala, a largura fica em pixels (informe mm/px nas configurações).": [
+"Without scale calibration, the width stays in pixels (set mm/px in the settings).",
+"Sin calibración de escala, el ancho queda en píxeles (indique mm/px en la configuración).",
+"Sans étalonnage d'échelle, la largeur reste en pixels (indiquez mm/px dans les réglages)."
+],
+"Sem calibração de escala, as larguras ficam em pixels (informe mm/px nas configurações).": [
+"Without scale calibration, widths stay in pixels (set mm/px in the settings).",
+"Sin calibración de escala, los anchos quedan en píxeles (indique mm/px en la configuración).",
+"Sans étalonnage d'échelle, les largeurs restent en pixels (indiquez mm/px dans les réglages)."
+],
 "Sem classificação": [
 "Unrated",
 "Sin clasificación",
@@ -6281,6 +6451,11 @@ export const DICT={
 "Total",
 "Total"
 ],
+"Trace o eixo ao longo da fissura: largura pelo perfil perpendicular": [
+"Draw the axis along the crack: width from the perpendicular profile",
+"Trace el eje a lo largo de la fisura: ancho por el perfil perpendicular",
+"Tracez l'axe le long de la fissure : largeur par le profil perpendiculaire"
+],
 "Track navegável · sem série quantitativa comparável.": [
 "Navigable track · no comparable quantitative series.",
 "Track navegable · sin serie cuantitativa comparable.",
@@ -6616,6 +6791,11 @@ export const DICT={
 "alternar",
 "basculer"
 ],
+"amarelo = largura em cada perfil · ciano = bordas a meia profundidade": [
+"yellow = width at each profile · cyan = half-depth edges",
+"amarillo = ancho en cada perfil · cian = bordes a media profundidad",
+"jaune = largeur à chaque profil · cyan = bords à mi-profondeur"
+],
 "amarelo = vetor médio (comprimento R)": [
 "yellow = mean vector (length R)",
 "amarillo = vector medio (longitud R)",
@@ -6675,6 +6855,11 @@ export const DICT={
 "dashed cyan = engine · white = full resolution",
 "cian discontinuo = motor · blanco = resolución completa",
 "cyan pointillé = moteur · blanc = pleine résolution"
+],
+"cinza − fundo": [
+"grey − background",
+"gris − fondo",
+"gris − fond"
 ],
 "classes em consenso": [
 "classes in consensus",
@@ -6786,6 +6971,11 @@ export const DICT={
 "descartado por el filtro de contexto IA Escena:",
 "écarté par le filtre de contexte IA Scène :"
 ],
+"deslocamento perpendicular ao eixo (px)": [
+"offset perpendicular to the axis (px)",
+"desplazamiento perpendicular al eje (px)",
+"décalage perpendiculaire à l'axe (px)"
+],
 "desplacamento como comunidade anômala de cor e textura": [
 "spalling as an anomalous community of colour and texture",
 "desprendimiento como comunidad anómala de color y textura",
@@ -6821,10 +7011,20 @@ export const DICT={
 "distancia a lo largo del corte (px)",
 "distance le long de la coupe (px)"
 ],
+"distância ao longo do eixo (px)": [
+"distance along the axis (px)",
+"distancia a lo largo del eje (px)",
+"distance le long de l'axe (px)"
+],
 "divergência(s) SHA-256": [
 "SHA-256 mismatch(es)",
 "divergencia(s) SHA-256",
 "divergence(s) SHA-256"
+],
+"e": [
+"and",
+"y",
+"et"
 ],
 "e limpar o canvas.": [
 "and clear the canvas.",
@@ -6896,10 +7096,20 @@ export const DICT={
 "franja cian = GT · franja violeta = oscuro sin polo",
 "bande cyan = GT · bande violette = sombre sans pôle"
 ],
+"faixa entre os níveis": [
+"range between levels",
+"franja entre niveles",
+"plage entre niveaux"
+],
 "figuras": [
 "figures",
 "figuras",
 "figures"
+],
+"fissura(s)": [
+"crack(s)",
+"fisura(s)",
+"fissure(s)"
 ],
 "fissuras": [
 "cracks",
@@ -6986,10 +7196,25 @@ export const DICT={
 "integridad del contenido",
 "intégrité du contenu"
 ],
+"largura (mm)": [
+"width (mm)",
+"ancho (mm)",
+"largeur (mm)"
+],
+"largura (px)": [
+"width (px)",
+"ancho (px)",
+"largeur (px)"
+],
 "limiar por região em passos decimais até a fronteira estabilizar; reduz o halo sobre concreto saudável": [
 "per-region threshold in decimal steps until the boundary settles; reduces the halo over healthy concrete",
 "umbral por región en pasos decimales hasta que la frontera se estabilice; reduce el halo sobre hormigón sano",
 "seuil par région en pas décimaux jusqu’à stabilisation de la frontière ; réduit le halo sur le béton sain"
+],
+"limite de resolução ≈ 3 px": [
+"resolution limit ≈ 3 px",
+"límite de resolución ≈ 3 px",
+"limite de résolution ≈ 3 px"
 ],
 "manifesto publicado sem SHA-256 válido": [
 "published manifest without a valid SHA-256",
@@ -7000,6 +7225,16 @@ export const DICT={
 "flagged in the catalogue",
 "marcados en el catálogo",
 "signalés dans le catalogue"
+],
+"mediana": [
+"median",
+"mediana",
+"médiane"
+],
+"meia profundidade": [
+"half depth",
+"media profundidad",
+"mi-profondeur"
 ],
 "mesma OAE/elemento · fonte diferente": [
 "same structure/element · different source",
@@ -7186,6 +7421,11 @@ export const DICT={
 "perfil cloud validado",
 "profil cloud validé"
 ],
+"perfis a cada": [
+"profiles every",
+"perfiles cada",
+"profils tous les"
+],
 "polo 1 = evidência de dano · polo 0 = saudável": [
 "pole 1 = damage evidence · pole 0 = healthy",
 "polo 1 = evidencia de daño · polo 0 = sano",
@@ -7316,6 +7556,11 @@ export const DICT={
 "región(es)",
 "région(s)"
 ],
+"regiões no CSV": [
+"regions in the CSV",
+"regiones en el CSV",
+"régions dans le CSV"
+],
 "reprovada(s)": [
 "failed",
 "rechazada(s)",
@@ -7380,6 +7625,11 @@ export const DICT={
 "no GT",
 "sin GT",
 "sans GT"
+],
+"sem calibração de escala": [
+"no scale calibration",
+"sin calibración de escala",
+"sans étalonnage d'échelle"
 ],
 "sem classificação": [
 "unrated",

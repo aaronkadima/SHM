@@ -1486,17 +1486,6 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .fieldToolZoomBar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:14px;align-items:center;color:#dfe9ec;font-size:13px;cursor:default}
 .fieldToolZoomBar a,.fieldToolZoomBar button{display:inline-flex;gap:5px;align-items:center;color:#dfe9ec;background:rgba(255,255,255,.1);border:0;border-radius:6px;padding:5px 10px;text-decoration:none;cursor:pointer;font:inherit}
 .cutToolLines{position:fixed;inset:0;pointer-events:none}
-.cutToolBar{position:fixed;top:66px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 8px 6px 14px;border-radius:999px;background:rgba(18,32,42,.92);color:#fff;font-size:12px;font-weight:600;cursor:default;box-shadow:0 8px 24px rgba(10,20,28,.3);white-space:nowrap;max-width:96vw}
-.cutToolHintText{overflow:hidden;text-overflow:ellipsis;max-width:44vw}
-.cutToolHintText em{color:#ffb4a8;font-style:normal}
-.cutToolCount{padding:3px 8px;border-radius:999px;background:rgba(242,194,0,.2);color:#f2c200}
-.cutToolLevels{display:inline-flex;align-items:center;gap:6px;font-weight:500;color:#cfe0e5}
-.cutToolLevels input{width:86px;padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font:inherit}
-.cutToolBar button{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;padding:6px 9px;background:rgba(255,255,255,.1);color:#fff;font:inherit;cursor:pointer}
-.cutToolBar button:hover:not(:disabled){background:rgba(255,255,255,.2)}
-.cutToolBar button:disabled{opacity:.4;cursor:default}
-.cutToolBar button.primary{background:#e07800;padding:6px 12px}
-.cutToolBar button.primary:hover:not(:disabled){background:#f08a12}
 .cutToolGrid{display:grid;grid-template-columns:repeat(2,min(44vw,60vh));gap:10px;padding:10px;background:#12202a;overflow:auto;max-height:calc(96vh - 64px)}
 .cutToolGrid figure{position:relative;margin:0;background:#fff;border-radius:6px;overflow:hidden}
 .cutToolGrid figcaption{padding:5px 10px;font-size:12px;font-weight:600;color:#1d2a33;background:#f3f6f7}
@@ -1507,9 +1496,6 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .figActions a,.figActions button{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:6px;background:rgba(18,32,42,.78);color:#fff;cursor:pointer;padding:0}
 .figActions a:hover,.figActions button:hover{background:rgba(18,32,42,.95)}
 .fieldToolZoomBar button{cursor:pointer}
-.cutToolLevels input.short{width:58px}
-.cutToolReadout{position:fixed;z-index:310;pointer-events:none;padding:3px 8px;border-radius:6px;background:rgba(18,32,42,.88);color:#fff;font:600 12px Inter,system-ui,sans-serif;white-space:nowrap}
-.cutToolReadout.snap{background:#e07800}
 .fieldToolPanel header button,.cutToolPanel header button{cursor:pointer}
 
 .liveFilterBar{position:absolute;z-index:3;top:calc(max(14px,env(safe-area-inset-top)) + 54px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;max-width:94vw;pointer-events:none}
@@ -1525,33 +1511,106 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .liveFilterLegend .ticks em:first-child{transform:none}.liveFilterLegend .ticks em:last-child{transform:translateX(-100%)}
 .liveFilterLegend small{display:block;margin-top:2px;font-weight:500;opacity:.7}
 
-.cutToolMode{display:inline-flex;gap:2px;padding:2px;border-radius:999px;background:rgba(255,255,255,.1)}
-.cutToolMode button{padding:4px 10px!important;background:transparent!important}
-.cutToolMode button.on{background:#f2c200!important;color:#1d2a33!important}
-.cutToolMode button.crack.on{background:#b06cff!important;color:#fff!important}
 
-.cutToolMode button.dist.on{background:#4fe08a!important;color:#0b1a22!important}
-.cutToolMode button.scale.on{background:#00e0ff!important;color:#0b1a22!important}
-/* Sólido de níveis (CDM-4 → IFC) */
-.solidTool{position:fixed;inset:0;z-index:300;display:grid;grid-template-columns:320px 1fr;background:#0e1a22}
-.solidToolSide{display:flex;flex-direction:column;gap:10px;padding:14px;overflow:auto;background:#12202a;color:#dbe7ea;font:13px Inter,system-ui,sans-serif}
-.solidToolSide header{display:flex;justify-content:space-between;align-items:center;font-size:15px}
-.solidToolSide button{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:inherit;cursor:pointer}
-.solidToolSide button:disabled{opacity:.45;cursor:not-allowed}
-.solidToolSide button.primary{background:#f2c200;color:#12202a;border-color:#f2c200;font-weight:600}
-.solidToolSide small{color:#9fb4ba}
-.solidToolNote{margin:0;padding:8px 10px;border-left:3px solid #f2c200;background:rgba(242,194,0,.08);color:#f1e7b8;line-height:1.4}
-.solidToolFile{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px dashed rgba(255,255,255,.3);border-radius:8px;cursor:pointer;overflow:hidden}
-.solidToolFile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.solidToolFile input{display:none}
-.solidToolProgress{height:4px;border-radius:2px;background:rgba(255,255,255,.1)}.solidToolProgress i{display:block;height:100%;border-radius:2px;background:#2a9db0}
-.solidToolStep{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}
-.solidToolStep label{display:flex;align-items:center;gap:6px}
-.solidToolRow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.solidToolRow input{width:70px;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.2);background:#0e1a22;color:#fff}
-.solidToolRow input.wide{width:170px}
-.solidToolLegend{display:flex;flex-wrap:wrap;gap:8px}.solidToolLegend span{display:inline-flex;align-items:center;gap:4px}.solidToolLegend i{width:12px;height:12px;border-radius:3px}
-.solidToolErr{margin:0;color:#ff9b8a}.solidToolOk{margin:0;color:#8fe0a8}
-.solidToolView{position:relative;min-height:0}.solidToolView canvas{display:block;width:100%;height:100%}
-.solidToolEmpty{position:absolute;inset:0;display:grid;place-items:center;color:#6f8790;font:14px Inter,system-ui,sans-serif;pointer-events:none}
-@media (max-width:760px){.solidTool{grid-template-columns:1fr;grid-template-rows:auto 1fr}.solidToolSide{max-height:46vh}}
+/* Sólido de níveis (CDM-4 → IFC) — dentro do canvas, identidade clara do Studio (Figma); barras superior e inferior visíveis */
+.lst{--ink:#263e4b;--ink-2:#1f3540;--muted:#6f8590;--line:#dce5e8;--teal:#0d766e;--teal-soft:#e7f4f1;--teal-line:#b7d6cf;
+  position:absolute;inset:0;z-index:45;display:flex;flex-direction:column;background:#f5f8f9;color:var(--ink);font:13px Inter,system-ui,sans-serif;text-align:left;place-items:initial}
+.lstHead{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);background:#fff}
+.lstTitle{display:flex;align-items:center;gap:10px;margin-right:auto}
+.lstMark{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--teal-soft);color:var(--teal)}
+.lstTitle small{display:block;color:#7b8f97;font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.lstTitle b{font-size:16px;color:var(--ink-2)}
+.lst button{font:inherit;cursor:pointer}
+.lst button:disabled{opacity:.45;cursor:not-allowed}
+.lstBack,.lstSecondary,.lstRow button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:7px 12px;font-weight:600;font-size:12px}
+.lstBack:hover,.lstSecondary:hover:not(:disabled),.lstRow button:hover{background:#eef6f4;border-color:var(--teal-line)}
+.lst .lstPrimary,.lst .lstPrimary svg{color:#fff}
+.lstPrimary{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--teal);background:var(--teal);color:#fff;border-radius:8px;padding:8px 12px;font-weight:600;font-size:12px}
+.lstPrimary:hover:not(:disabled){background:#075d56}
+.lstSeg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:9px;background:#f4f8f9}
+.lstSeg button{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--muted);border-radius:6px;padding:6px 11px;font-weight:600;font-size:12px}
+.lstSeg button.active{background:#fff;color:var(--teal);box-shadow:0 1px 4px rgba(36,58,68,.12)}
+.lstSeg.small{align-self:flex-start}.lstSeg.small button{padding:5px 10px}
+.lstNote{display:flex;gap:8px;align-items:flex-start;margin:0;padding:10px 12px;border-radius:9px;background:#f2f8f7;border:1px solid #d7ebe6;color:#33505b;font-size:12px;line-height:1.5}
+.lstNote svg{flex:none;margin-top:2px;color:var(--teal)}
+.lstStart{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;
+  background:#dce4e7;background-image:radial-gradient(#c7d3d7 1px,transparent 1px);background-size:24px 24px}
+.lstStart .lstNote{max-width:720px;background:#fff;border-color:var(--line)}
+.lstChoices{display:grid;grid-template-columns:repeat(2,minmax(0,330px));gap:14px}
+.lstChoice{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:20px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);text-align:left;box-shadow:0 6px 18px rgba(36,58,68,.08);transition:border-color .15s,box-shadow .15s}
+.lstChoice:hover{border-color:var(--teal-line);box-shadow:0 10px 26px rgba(36,58,68,.12)}
+.lstChoice b{font-size:15px;color:var(--ink-2)}.lstChoice>span:last-child{color:var(--muted);line-height:1.5;font-size:12px}
+.lstChoiceIcon{display:grid;place-items:center;width:42px;height:42px;border-radius:10px;background:var(--teal-soft);color:var(--teal)}
+.lstBody{flex:1;min-height:0;display:grid;grid-template-columns:300px minmax(0,1fr)}
+.lstPanel{display:flex;flex-direction:column;gap:12px;padding:14px;overflow:auto;background:#fff;border-right:1px solid var(--line)}
+.lstStep{display:flex;flex-direction:column;gap:7px;padding-top:12px;border-top:1px solid #e6edf0}
+.lstStep>b{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#4d6570}
+.lstStep small,.lstHint{color:var(--muted);font-size:11px;line-height:1.45}
+.lstValue{font-weight:600;color:var(--ink-2)}
+.lstFile{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px dashed #b9cbd1;border-radius:8px;background:#f8fafb;cursor:pointer;overflow:hidden;color:var(--ink)}
+.lstFile:hover{border-color:var(--teal);background:#f2f8f7}
+.lstFile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lstFile input{display:none}.lstFile svg{color:var(--teal);flex:none}
+.lstProgress{height:4px;border-radius:2px;background:#e6edf0}.lstProgress i{display:block;height:100%;border-radius:2px;background:var(--teal)}
+.lstRow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--ink)}
+.lstRow input,.lstPanel select{width:72px;padding:5px 7px;border-radius:7px;border:1px solid #cfdde2;background:#fff;color:var(--ink);font:inherit}
+.lstRow input.wide{width:160px}.lstRow input[type=number]{width:64px}
+.lstEdge{color:#a86f0c;font-style:normal;font-weight:500}.lstPanel select{width:100%}
+.lstRow input:focus,.lstPanel select:focus{outline:2px solid #9fd0c7;border-color:var(--teal)}
+.lstCheck{display:flex;align-items:center;gap:7px;color:var(--ink)}
+.lstCheck input{accent-color:var(--teal)}
+.lstErr{margin:0;padding:8px 10px;border-radius:8px;background:#fbeeed;border:1px solid #f0cfcc;color:#a23a34;font-size:12px}
+.lstOk{margin:0;padding:8px 10px;border-radius:8px;background:#e9f5f2;border:1px solid #cfe5e0;color:#0b5f58;font-size:12px}
+.lstView{position:relative;min-width:0;min-height:0;background:#dce4e7;background-image:radial-gradient(#c7d3d7 1px,transparent 1px);background-size:24px 24px}
+.lstCanvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+.lstToolbar{position:absolute;left:16px;top:16px;z-index:2;display:flex;gap:2px;padding:3px;border-radius:8px;background:rgba(250,252,252,.96);border:1px solid #d5e0e4;box-shadow:0 5px 18px rgba(24,46,55,.10)}
+.lstToolbar button{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:5px;background:transparent;color:#536b74}
+.lstToolbar button:hover,.lstToolbar button.active{background:#e8f3f1;color:var(--teal)}
+.lstEmpty{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:10px;color:#6f8590;pointer-events:none;text-align:center;padding:24px}
+.lstEmpty svg{color:#9fb2ba}.lstEmpty b{font-weight:600}
+.lstBanner{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:2;display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:8px;background:#fff;border:1px solid var(--line);box-shadow:0 5px 18px rgba(81,103,114,.14);color:var(--ink);font-weight:600;font-size:12px;pointer-events:none}
+.lstBanner svg{color:var(--teal)}
+.lstLayers{position:absolute;right:16px;top:16px;z-index:2;width:250px;max-height:calc(100% - 32px);display:flex;flex-direction:column;background:#fff;border-radius:10px;box-shadow:0 5px 18px rgba(81,103,114,.16);overflow:hidden}
+.lstLayers header{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-bottom:1px solid #e6edf0}
+.lstLayers header b{font-size:13px;color:var(--ink-2)}.lstLayers header span{font-size:11px;color:var(--muted)}
+.lstLayerList{overflow:auto;padding:6px}
+.lstRegion+.lstRegion{margin-top:6px;padding-top:6px;border-top:1px solid #eef3f5}
+.lstRegionHead{display:flex;justify-content:space-between;padding:2px 6px 4px;font-size:11px;color:var(--muted)}.lstRegionHead b{color:var(--ink-2)}
+.lstLayer{display:grid;grid-template-columns:12px 1fr auto;align-items:center;gap:8px;width:100%;padding:6px 8px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--ink);text-align:left;font-size:12px}
+.lstLayer:hover{background:#f2f8f7}
+.lstLayer.active{background:#e9f5f2;border-color:#cfe5e0;color:var(--teal);font-weight:600}
+.lstLayer i{width:12px;height:12px;border-radius:3px}.lstLayer small{color:var(--muted);font-size:10.5px;font-weight:500}
+.lstLayerHint{margin:0;padding:8px 12px;border-top:1px solid #e6edf0;color:var(--muted);font-size:11px;line-height:1.4}
+.lstPoint{position:absolute;left:16px;bottom:16px;z-index:2;display:grid;gap:4px;min-width:230px;padding:10px 12px;background:#fff;border-radius:10px;box-shadow:0 5px 18px rgba(81,103,114,.16);font-size:12px}
+.lstPoint div{display:flex;justify-content:space-between;gap:16px}.lstPoint span{color:var(--muted)}.lstPoint b{color:var(--ink-2);font-weight:600}
+@media (max-width:900px){.lstBody{grid-template-columns:1fr;grid-template-rows:auto 1fr}.lstPanel{max-height:44%;border-right:0;border-bottom:1px solid var(--line)}.lstChoices{grid-template-columns:1fr}.lstLayers{width:200px}.lstSeg button{padding:6px 8px}}
+
+/* Corte de nível — barra de ferramentas no padrão do Studio (cartão claro dentro do canvas, verde-petróleo) */
+.cutToolBar{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:2;width:max-content;display:flex;flex-direction:column;gap:3px;padding:5px 6px 4px;border-radius:10px;background:#fff;border:1px solid #dce5e8;color:#263e4b;font:500 12px Inter,system-ui,sans-serif;cursor:default;box-shadow:0 5px 18px rgba(81,103,114,.16);max-width:96vw}
+.cutToolBarRow{display:flex;align-items:center;gap:5px;flex-wrap:wrap;white-space:nowrap}
+.cutToolTitle{display:grid;place-items:center;width:30px;height:30px;border-radius:7px;background:#e7f4f1;color:#0d766e}
+.cutToolTitle svg{color:#0d766e}
+.cutToolSep{width:1px;height:22px;background:#e2eaed;margin:0 2px}
+.cutToolBar button{display:inline-flex;align-items:center;gap:6px;height:30px;border:1px solid #dce5e8;border-radius:7px;padding:0 10px;background:#fff;color:#263e4b;font:600 12px Inter,system-ui,sans-serif;cursor:pointer}
+.cutToolBar button:hover:not(:disabled){background:#eef6f4;border-color:#b7d6cf}
+.cutToolBar button:disabled{opacity:.42;cursor:default}
+.cutToolBar button.icon{width:30px;padding:0;justify-content:center;border-color:transparent;color:#536b74}
+.cutToolBar button.icon:hover:not(:disabled){background:#e8f3f1;color:#0d766e;border-color:transparent}
+.cutToolBar button.primary{background:#0d766e;border-color:#0d766e;color:#fff;padding:0 12px}
+.cutToolBar button.primary:hover:not(:disabled){background:#075d56;border-color:#075d56}
+.cutToolMode{display:inline-flex;gap:2px;padding:2px;border:1px solid #dce5e8;border-radius:8px;background:#f4f8f9}
+.cutToolMode button{height:26px;border:0!important;background:transparent!important;color:#6f8590!important;padding:0 9px!important;border-radius:6px!important}
+.cutToolMode button:hover:not(:disabled){color:#263e4b!important}
+.cutToolMode button.on{background:#fff!important;color:#0d766e!important;box-shadow:0 1px 4px rgba(36,58,68,.12)}
+.cutToolMode button b{min-width:18px;padding:1px 5px;border-radius:999px;background:#e6edf0;color:#4d6570;font-size:10.5px;font-weight:650;text-align:center}
+.cutToolMode button.on b{background:#e7f4f1;color:#0d766e}
+.cutDot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.18)}
+.cutDot.cut{background:#f2c200}.cutDot.crack{background:#b06cff}.cutDot.dist{background:#4fe08a}.cutDot.scale{background:#00e0ff}
+.cutToolLevels{display:inline-flex;align-items:center;gap:6px;color:#4d6570;font-weight:500}
+.cutToolLevels input{width:86px;height:28px;padding:0 8px;border-radius:7px;border:1px solid #cfdde2;background:#fff;color:#263e4b;font:inherit}
+.cutToolLevels input:focus{outline:2px solid #9fd0c7;border-color:#0d766e}
+.cutToolLevels input.short{width:66px}
+.cutToolHintText{padding:0 6px 1px;color:#6f8590;font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cutToolHintText em{color:#c2413b;font-style:normal}
+.cutToolReadout{position:fixed;z-index:310;pointer-events:none;padding:3px 8px;border-radius:6px;background:#fff;border:1px solid #dce5e8;box-shadow:0 4px 12px rgba(81,103,114,.18);color:#263e4b;font:600 12px Inter,system-ui,sans-serif;white-space:nowrap}
+.cutToolReadout.snap{background:#0d766e;border-color:#0d766e;color:#fff}
+@media (max-width:900px){.cutToolTitle,.cutToolSep{display:none}.cutToolBar{max-width:calc(100vw - 16px)}}

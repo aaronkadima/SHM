@@ -201,7 +201,14 @@ camada é nível do potencial × espessura escolhida; a ressalva é gravada na d
     mm → unidade do modelo; afastamento de 0,5 mm da face.
   - Pset `CDM_DamageShape`: Representacao, Motor, Classe, Niveis, EspessuraCamada_mm, AreaNivelBase_m2, Area_u*_m2,
     Imagem, Escala, DataInspecao.
-- Validação: `ifcopenshell.validate` sem erros nos dois esquemas (arquivos do navegador e do backend); vértices sobre a
+- Modo **sem importar** (`ifcReferenceHost.js`): IFC mínimo (projeto em mm, terreno, `IfcBuildingElementProxy`
+  "Superfície de referência (foto)" = placa vertical W × H × 50 mm, face frontal y = 0 com normal −Y) que hospeda as
+  características. Escala da placa: 4 pontos do Corte de nível → mm/px do motor → largura informada.
+- Interface dentro do canvas (barras superior e inferior visíveis), tela inicial com os dois modos, foto projetada na
+  face (grade 24 × 24 pelo mapeamento, vale para homografia), lista **Camadas geradas** (região × nível) e seleção por
+  clique: `faceUV` → `layersAtPoint` (camadas que cobrem o ponto) e `potentialAt` via a inversa `toImage` de
+  `imageFaceMapping`. Divergência camada × potencial na foto 24: 0,46 % dos pontos, todos a ≤ 0,1 de um nível (borda).
+- Validação: `ifcopenshell.validate` sem erros nos dois esquemas (arquivos do navegador e do backend, com e sem importação); vértices sobre a
   face (normal de 400,5 a 450,5 mm num pilar 1200 × 800 mm girado 30°); web-ifc relê as características (9468
   triângulos). Testes: `frontend/scripts/check-cdm4-core.mjs` e `backend/tests/check_cdm4_level_solid_ifc.py`
   (workflow `cdm4-level-solid-ifc.yml`, IfcOpenShell 0.8.5).

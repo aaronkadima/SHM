@@ -311,3 +311,32 @@ console.log("homography + contour distance ok");
   assert.throws(()=>FW.writeLevelSolid("ISO-10303-21;HEADER;FILE_SCHEMA(('IFC2X3'));ENDSEC;DATA;ENDSEC;END-ISO-10303-21;",{hostGuid:"x",face,solid:sol}),/IFC2X3/);
   console.log("level solid → IFC4/IFC4.3 ok");
 }
+
+// ---------- sólido sem importação: IFC de referência, mapeamento foto ↔ face e camada por ponto ----------
+{
+  const LS=await import("../src/levelSolid.js"),FW=await import("../src/ifcLevelSolidWriter.js"),FF=await import("../src/ifcFace.js"),RH=await import("../src/ifcReferenceHost.js"),MG=await import("../src/measureGeometry.js");
+  // inversa do mapeamento em todos os modos (encaixe, escala, homografia, espelho e deslocamento)
+  const metric=MG.makeMetric({kind:"homography",quad:[[100,80],[900,120],[880,1500],[60,1450]],wmm:600,hmm:900});
+  for(const o of[{fit:"contain"},{fit:"scale",k:.7},{fit:"metric",metric},{fit:"contain",mirror:true,dx:35,dy:-20},{fit:"metric",metric,mirror:true,dx:-5}]){
+    const m=FF.imageFaceMapping({W:1000,H:1500,faceWmm:1200,faceHmm:5000,...o});
+    for(const[x,y]of[[0,0],[999,0],[500,700],[123,1499]]){const[u,v]=m.toPlane(x,y),[a,b]=m.toImage(u,v);assert.ok(Math.hypot(a-x,b-y)<1e-6,"inversa "+o.fit)}}
+  // camada por ponto = níveis abaixo do potencial (fora de uma faixa de borda)
+  const W=160,H=120,P=new Float32Array(W*H);for(let y=0;y<H;y++)for(let x=0;x<W;x++)P[y*W+x]=Math.max(0,1-Math.hypot((x-80)/50,(y-60)/35));
+  const m=FF.imageFaceMapping({W:320,H:240,faceWmm:640,faceHmm:480,fit:"scale",k:2}),rw={prob:P,W,H,f:2},levels=[.2,.4,.6,.8];
+  const sol=LS.buildLevelSolid(rw,m.toPlane,{levels,layerMm:5,minAreaMm2:0});let agree=0,n=0;
+  for(let i=0;i<4000;i++){const x=(i*37.3)%320,y=(i*19.7)%240,[u,v]=m.toPlane(x,y),p=FF.potentialAt(rw,2,x,y);if(Math.min(...levels.map(t=>Math.abs(p-t)))<.03)continue;n++;
+    const top=LS.layersAtPoint(sol,u,v).at(-1)?.level||0,exp=levels.filter(t=>p>=t).at(-1)||0;if(top===exp)agree++}
+  assert.ok(agree/n>.995,`camada no ponto: ${agree}/${n}`);
+  assert.deepEqual(FF.faceUV({origin:[0,2,0],ex:[1,0,0],ey:[0,1,0],n:[0,0,1]},[.25,1.5,0]).map(v=>Math.round(v)),[250,500]);
+  // IFC de referência + sólido, nos dois esquemas
+  for(const schema of["IFC4","IFC4X3"]){
+    const h=RH.referenceHostIfc({schema,widthMm:640,heightMm:480});const M0=FW.parseStep(h.text);
+    assert.equal(M0.schema,schema==="IFC4"?"IFC4":"IFC4X3_ADD2");assert.equal(FW.lengthUnitMeters(M0),.001);
+    const r=FW.writeLevelSolid(h.text,{hostGuid:h.hostGuid,face:h.face,solid:sol}),M=FW.parseStep(r.text),of=t=>[...M.ents.values()].filter(e=>e.type===t);
+    assert.equal(of("IFCSURFACEFEATURE").length,sol.regions.length);assert.equal(of("IFCBUILDINGELEMENTPROXY").length,1);
+    const sf=FW.parseArgs(of("IFCSURFACEFEATURE")[0].raw),Mw=FW.placementMatrix(M,sf[5].ref);
+    assert.deepEqual([Mw[12],Mw[13],Mw[14]].map(v=>Math.round(v)+0),[0,0,480],"origem no canto superior esquerdo da face frontal");
+    assert.deepEqual([Mw[8],Mw[9],Mw[10]].map(v=>Math.round(v)+0),[0,-1,0],"normal −Y (para fora da placa)");
+  }
+  console.log("level solid sem importação + camada por ponto ok");
+}

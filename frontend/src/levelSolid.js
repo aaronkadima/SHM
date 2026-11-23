@@ -78,3 +78,11 @@ export function buildLevelSolid(rw,toPlane,opts={}){
     const xs=R.layers[0].polys.flatMap(p=>p.outer.map(q=>q[0])),ys=R.layers[0].polys.flatMap(p=>p.outer.map(q=>q[1]));R.bbox=[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]}
   return{regions,levels,layerMm:o.layerMm,units:"mm",note:"forma aproximada; altura = nível do potencial × espessura da camada, não é profundidade"};
 }
+
+// camadas que cobrem um ponto (u, v em mm) do plano da face: [{region, level, z0, z1, area}] do nível mais baixo ao mais alto
+export function layersAtPoint(solid,u,v){
+  const out=[],p=[u,v];
+  for(const R of solid?.regions||[])for(const L of R.layers)for(const poly of L.polys)
+    if(pointInRing(p,poly.outer)&&!poly.holes.some(h=>pointInRing(p,h))){out.push({region:R.id,level:L.level,z0:L.z0,z1:L.z1,area:poly.area});break}
+  return out.sort((a,b)=>a.level-b.level);
+}

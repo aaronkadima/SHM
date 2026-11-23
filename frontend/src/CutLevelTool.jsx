@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useRef,useState}from"react";
-import{ChevronLeft,ChevronRight,Download,FileCode2,FileSpreadsheet,Pencil,Play,Trash2,Undo2,X}from"lucide-react";
+import{ChevronLeft,ChevronRight,Download,FileCode2,FileSpreadsheet,Pencil,Play,Scissors,Trash2,Undo2,X}from"lucide-react";
 import{svgUrl}from"./svgCanvas.js";
 import{__cdm4Test,cdm4Config,cdm4StageData}from"./cdm4Core.js";
 import{cutBase,profile,measureRows,measuresCsv}from"./cdm4CutAnalysis.js";
@@ -118,6 +118,9 @@ export default function CutLevelTool({active,onClose,result,file,options,canvasE
     setDrag({x1:s.x,y1:s.y,x2:p.x,y2:p.y});setCursor({x:e.clientX,y:e.clientY,snap:e.ctrlKey||e.metaKey})};
   const onUp=()=>{const d=drag;start.current=null;setDrag(null);setCursor(null);if(d&&Math.hypot(d.x2-d.x1,d.y2-d.y1)*k>=12)(mode==="crack"?setCracks:setCuts)(c=>[...c,{x1:Math.round(d.x1),y1:Math.round(d.y1),x2:Math.round(d.x2),y2:Math.round(d.y2)}])};
   const stop=e=>e.stopPropagation();
+  // barra dentro do canvas (abaixo da barra superior do Studio), centrada no viewport
+  const vp=canvasElement?.current?.closest?.(".editorViewport")?.getBoundingClientRect?.();
+  const barStyle=vp?{top:vp.top+10,left:vp.left+vp.width/2,maxWidth:Math.max(320,vp.width-24)}:undefined;
   const listOf=m=>m==="crack"?cracks:m==="dist"?dists:m==="scale"?quad:cuts,setterOf=m=>m==="crack"?setCracks:m==="dist"?setDists:m==="scale"?setQuad:setCuts;
   const pct=v=>v==null?"—":(v*100).toFixed(1)+" %";
   return <>
@@ -140,22 +143,28 @@ export default function CutLevelTool({active,onClose,result,file,options,canvasE
       </svg>}
       {drag&&cursor&&(()=>{const L=Math.hypot(drag.x2-drag.x1,drag.y2-drag.y1),a=-Math.atan2(drag.y2-drag.y1,drag.x2-drag.x1)*180/Math.PI;
         return <div className={"cutToolReadout"+(cursor.snap?" snap":"")} style={{left:cursor.x+16,top:cursor.y+16}}>{Math.round(L)} px · {Math.round(a)}°{cursor.snap?" · "+tr("passo")+" "+step+" px":""}</div>})()}
-      <div className="cutToolBar" onPointerDown={stop} onPointerUp={stop}>
-        <span className="cutToolHintText">{phase==="running"?tr("Gerando o estudo comparativo…"):(mode==="dist"?(pendingDist?tr("Distância: agora clique no segundo contorno"):tr("Distância: clique no primeiro contorno")):mode==="scale"?tr("Escala: clique os 4 cantos do retângulo de referência, em sentido horário a partir do superior esquerdo"):mode==="crack"?tr("Fissura: trace o eixo ao longo da fissura · Ctrl = passos de 15° e de comprimento"):tr("Corte de nível: arraste linhas de corte · Ctrl = passos de 15° e de comprimento · Shift = horizontal/vertical"))}{err&&<em> · {err}</em>}</span>
+      <div className="cutToolBar" style={barStyle} onPointerDown={stop} onPointerUp={stop}>
+        <div className="cutToolBarRow">
+        <span className="cutToolTitle" title={tr("Corte de nível")} aria-label={tr("Corte de nível")}><Scissors size={15}/></span>
         <span className="cutToolMode" role="radiogroup" aria-label={tr("O que traçar")}>
-          <button type="button" role="radio" aria-checked={mode==="cut"} className={mode==="cut"?"on":""} onClick={()=>setMode("cut")} title={tr("Linhas de corte: perfis binarização × potencial e largura do desplacamento")}>{tr("Corte")} · {cuts.length}</button>
-          <button type="button" role="radio" aria-checked={mode==="crack"} className={"crack"+(mode==="crack"?" on":"")} onClick={()=>setMode("crack")} title={tr("Trace o eixo ao longo da fissura: largura pelo perfil perpendicular")}>{tr("Fissura")} · {cracks.length}</button>
-          <button type="button" role="radio" aria-checked={mode==="dist"} className={"dist"+(mode==="dist"?" on":"")} onClick={()=>setMode("dist")} title={tr("Clique em dois contornos: menor distância entre eles")}>{tr("Distância")} · {dists.length}</button>
-          <button type="button" role="radio" aria-checked={mode==="scale"} className={"scale"+(mode==="scale"?" on":"")} onClick={()=>setMode("scale")} title={tr("Clique os 4 cantos de um retângulo conhecido no plano da superfície (sentido horário, a partir do canto superior esquerdo)")}>{tr("Escala")} · {quad.length}/4</button>
+          <button type="button" role="radio" aria-checked={mode==="cut"} className={mode==="cut"?"on":""} onClick={()=>setMode("cut")} title={tr("Linhas de corte: perfis binarização × potencial e largura do desplacamento")}><i className="cutDot cut"/>{tr("Corte")}<b>{cuts.length}</b></button>
+          <button type="button" role="radio" aria-checked={mode==="crack"} className={"crack"+(mode==="crack"?" on":"")} onClick={()=>setMode("crack")} title={tr("Trace o eixo ao longo da fissura: largura pelo perfil perpendicular")}><i className="cutDot crack"/>{tr("Fissura")}<b>{cracks.length}</b></button>
+          <button type="button" role="radio" aria-checked={mode==="dist"} className={"dist"+(mode==="dist"?" on":"")} onClick={()=>setMode("dist")} title={tr("Clique em dois contornos: menor distância entre eles")}><i className="cutDot dist"/>{tr("Distância")}<b>{dists.length}</b></button>
+          <button type="button" role="radio" aria-checked={mode==="scale"} className={"scale"+(mode==="scale"?" on":"")} onClick={()=>setMode("scale")} title={tr("Clique os 4 cantos de um retângulo conhecido no plano da superfície (sentido horário, a partir do canto superior esquerdo)")}><i className="cutDot scale"/>{tr("Escala")}<b>{quad.length}/4</b></button>
         </span>
-        <label className="cutToolLevels" title={tr("Com Ctrl pressionado, o comprimento do corte avança neste passo")}>{tr("Passo (Ctrl)")}<input className="short" type="number" min="1" max="500" value={step} onChange={e=>setStep(Math.max(1,Math.min(500,Math.round(+e.target.value||1))))} aria-label={tr("Passo (Ctrl)")}/>px</label>
+        <span className="cutToolSep"/>
+
+        <label className="cutToolLevels" title={tr("Com Ctrl pressionado, o comprimento do corte avança neste passo")}>{tr("Passo")}<input className="short" type="number" min="1" max="500" value={step} onChange={e=>setStep(Math.max(1,Math.min(500,Math.round(+e.target.value||1))))} aria-label={tr("Passo (Ctrl)")}/>px</label>
         {mode==="scale"&&<label className="cutToolLevels" title={tr("Dimensões reais do retângulo de referência")}>{tr("Largura")}<input className="short" type="number" min="1" value={scaleW} onChange={e=>setScaleW(Math.max(1,+e.target.value||1))} aria-label={tr("Largura (mm)")}/>×<input className="short" type="number" min="1" value={scaleH} onChange={e=>setScaleH(Math.max(1,+e.target.value||1))} aria-label={tr("Altura (mm)")}/>mm</label>}
         {mode==="crack"&&<label className="cutToolLevels" title={tr("Meia largura de cada perfil perpendicular ao eixo")}>{tr("Perfil ±")}<input className="short" type="number" min="6" max="80" value={crackR} onChange={e=>setCrackR(Math.max(6,Math.min(80,Math.round(+e.target.value||20))))} aria-label={tr("Perfil ±")}/>px</label>}
         {mode==="cut"&&<label className="cutToolLevels">{tr("Níveis do walker")}<input value={levels} onChange={e=>setLevels(e.target.value)} placeholder="0,3; 0,5" aria-label={tr("Níveis do walker")}/></label>}
-        <button type="button" disabled={!listOf(mode).length||phase==="running"} onClick={()=>{setPendingDist(null);setterOf(mode)(c=>c.slice(0,-1))}} title={tr("Desfazer último corte")}><Undo2 size={15}/></button>
-        <button type="button" disabled={!listOf(mode).length||phase==="running"} onClick={()=>{setPendingDist(null);setterOf(mode)([])}} title={tr("Limpar cortes")}><Trash2 size={15}/></button>
+        <span className="cutToolSep"/>
+        <button type="button" className="icon" disabled={!listOf(mode).length||phase==="running"} onClick={()=>{setPendingDist(null);setterOf(mode)(c=>c.slice(0,-1))}} title={tr("Desfazer último corte")} aria-label={tr("Desfazer último corte")}><Undo2 size={15}/></button>
+        <button type="button" className="icon" disabled={!listOf(mode).length||phase==="running"} onClick={()=>{setPendingDist(null);setterOf(mode)([])}} title={tr("Limpar cortes")} aria-label={tr("Limpar cortes")}><Trash2 size={15}/></button>
         <button type="button" className="primary" disabled={phase==="running"} onClick={run}><Play size={14}/> {tr("Analisar")}</button>
-        <button type="button" aria-label={tr("Fechar")} onClick={onClose}><X size={16}/></button>
+        <button type="button" className="icon" aria-label={tr("Fechar")} title={tr("Fechar")} onClick={onClose}><X size={16}/></button>
+        </div>
+        <div className="cutToolHintText">{phase==="running"?tr("Gerando o estudo comparativo…"):(mode==="dist"?(pendingDist?tr("Distância: agora clique no segundo contorno"):tr("Distância: clique no primeiro contorno")):mode==="scale"?tr("Escala: clique os 4 cantos do retângulo de referência, em sentido horário a partir do superior esquerdo"):mode==="crack"?tr("Fissura: trace o eixo ao longo da fissura · Ctrl = passos de 15° e de comprimento"):tr("Corte de nível: arraste linhas de corte · Ctrl = passos de 15° e de comprimento · Shift = horizontal/vertical"))}{err&&<em> · {err}</em>}</div>
       </div>
     </div>}
     {phase==="done"&&figs&&<div className="fieldToolPanel" role="dialog" aria-modal="true" aria-label={tr("Corte de nível")}>

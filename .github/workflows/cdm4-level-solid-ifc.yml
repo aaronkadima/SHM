@@ -6,11 +6,13 @@ on:
     paths:
       - "backend/app/cdm3/ifc_level_solid.py"
       - "backend/tests/check_cdm4_level_solid_ifc.py"
+      - "backend/tests/fixtures/**"
       - ".github/workflows/cdm4-level-solid-ifc.yml"
   pull_request:
     paths:
       - "backend/app/cdm3/ifc_level_solid.py"
       - "backend/tests/check_cdm4_level_solid_ifc.py"
+      - "backend/tests/fixtures/**"
       - ".github/workflows/cdm4-level-solid-ifc.yml"
   workflow_dispatch:
 

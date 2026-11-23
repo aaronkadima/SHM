@@ -3,6 +3,7 @@
 //   modelo_m = (x − t0, −(z − t2), y − t1), t = translação da matriz de coordenação; direções: (dx, −dz, dy).
 // Verificado com IfcOpenShell em IFC4 e IFC4X3_ADD2 (pilar girado 30°, unidades em mm).
 
+import{applyH}from"./measureGeometry.js";
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
 const norm=v=>{const l=Math.hypot(v[0],v[1],v[2])||1;return[v[0]/l,v[1]/l,v[2]/l]};
@@ -54,13 +55,26 @@ export function faceToModel(F,coordination,unitMeters=1){
 export const facePoint=(F,u,v,h=0)=>[0,1,2].map(i=>F.origin[i]+F.ex[i]*u/1000-F.ey[i]*v/1000+F.n[i]*h/1000);
 
 /**
- * Imagem processada (px) → plano da face (mm). fit: "contain" encaixa a imagem inteira na face, centralizada;
- * "metric": usa a escala/perspectiva da foto (homografia ou mm/px), com a origem no canto do retângulo de referência.
- * dx, dy deslocam (mm, direita/baixo); mirror espelha horizontalmente (foto tirada do outro lado).
+ * Imagem processada (px) ↔ plano da face (mm). fit: "contain" encaixa a imagem inteira na face, centralizada;
+ * "metric": escala/perspectiva da foto (homografia ou mm/px), origem no canto do retângulo de referência;
+ * "scale": k mm por px a partir do canto da imagem (modo sem importação). dx, dy deslocam (mm, direita/baixo);
+ * mirror espelha horizontalmente (foto tirada do outro lado). Devolve {toPlane, toImage}.
  */
-export function imageToFace({W,H,faceWmm,faceHmm,fit="contain",metric=null,dx=0,dy=0,mirror=false}){
-  let map;
-  if(fit==="metric"&&metric)map=(x,y)=>metric.map(x,y);
-  else{const s=Math.min(faceWmm/W,faceHmm/H),ox=(faceWmm-W*s)/2,oy=(faceHmm-H*s)/2;map=(x,y)=>[ox+x*s,oy+y*s]}
-  return(x,y)=>{const[u,v]=map(x,y);return[(mirror?faceWmm-u:u)+dx,v+dy]};
+export function imageFaceMapping({W,H,faceWmm,faceHmm,fit="contain",metric=null,k=1,dx=0,dy=0,mirror=false}){
+  let map,inv;
+  if(fit==="metric"&&metric){map=(x,y)=>metric.map(x,y);
+    inv=metric.kind==="homography"?(u,v)=>applyH(metric.Hinv,u,v):(u,v)=>{const s=metric.mmPerPxAt();return[u/s,v/s]}}
+  else if(fit==="scale"){map=(x,y)=>[x*k,y*k];inv=(u,v)=>[u/k,v/k]}
+  else{const s=Math.min(faceWmm/W,faceHmm/H),ox=(faceWmm-W*s)/2,oy=(faceHmm-H*s)/2;map=(x,y)=>[ox+x*s,oy+y*s];inv=(u,v)=>[(u-ox)/s,(v-oy)/s]}
+  return{toPlane:(x,y)=>{const[u,v]=map(x,y);return[(mirror?faceWmm-u:u)+dx,v+dy]},
+    toImage:(u,v)=>{let a=u-dx;if(mirror)a=faceWmm-a;return inv(a,v-dy)}};
+}
+export const imageToFace=o=>imageFaceMapping(o).toPlane;
+// ponto do visualizador (m) → plano da face (u, v em mm, v para baixo)
+export function faceUV(F,p){const d=[p[0]-F.origin[0],p[1]-F.origin[1],p[2]-F.origin[2]];return[dot(d,F.ex)*1000,-dot(d,F.ey)*1000]}
+// potencial do walker num ponto da imagem processada (bilinear na grade do motor)
+export function potentialAt(rw,f,x,y){
+  const gx=(x+.5)/f-.5,gy=(y+.5)/f-.5;if(gx<-.5||gy<-.5||gx>rw.W-.5||gy>rw.H-.5)return null;
+  const x0=Math.max(0,Math.min(rw.W-1,Math.floor(gx))),y0=Math.max(0,Math.min(rw.H-1,Math.floor(gy))),x1=Math.min(rw.W-1,x0+1),y1=Math.min(rw.H-1,y0+1),fx=Math.max(0,Math.min(1,gx-x0)),fy=Math.max(0,Math.min(1,gy-y0)),P=rw.prob;
+  return(P[y0*rw.W+x0]*(1-fx)+P[y0*rw.W+x1]*fx)*(1-fy)+(P[y1*rw.W+x0]*(1-fx)+P[y1*rw.W+x1]*fx)*fy;
 }

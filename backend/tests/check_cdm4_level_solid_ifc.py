@@ -70,4 +70,25 @@ for schema in ("IFC4", "IFC4X3"):
         }
         for k, val in checks.items():
             print(schema, k, "ok" if val else "FALHOU"); ok &= bool(val)
+# modo sem importação: placa de referência gerada pelo navegador (ifcReferenceHost.js) + sólido gravado pelo backend
+for fx in ("host_IFC4.ifc", "host_IFC4X3.ifc"):
+    src = Path(__file__).parent / "fixtures" / fx
+    h = ifcopenshell.open(str(src))
+    host = h.by_type("IfcBuildingElementProxy")[0]
+    face = {"origin": [0, 0, 900.0], "ex": [1, 0, 0], "n": [0, -1, 0]}
+    with tempfile.TemporaryDirectory() as td:
+        out = Path(td) / "out.ifc"
+        write_level_solid(src, {"host_guid": host.GlobalId, "face": face, "solid": square_solid(), "meta": {}}, out)
+        g = ifcopenshell.open(str(out))
+        lg = ifcopenshell.validate.json_logger(); ifcopenshell.validate.validate(g, lg)
+        s = ifcopenshell.geom.settings()
+        s.set(s.USE_WORLD_COORDS, True) if hasattr(s, "USE_WORLD_COORDS") else s.set("use-world-coords", True)
+        shape = ifcopenshell.geom.create_shape(s, g.by_type("IfcSurfaceFeature")[0])
+        v = np.array(shape.geometry.verts, dtype=float).reshape(-1, 3)
+        checks = {"validação sem erros": not lg.statements,
+                  "x (u = 450..750 mm)": np.allclose([v[:, 0].min(), v[:, 0].max()], [0.45, 0.75], atol=1e-6),
+                  "z (900 − v)": np.allclose([v[:, 2].min(), v[:, 2].max()], [-0.4, -0.1], atol=1e-6),
+                  "à frente da placa": np.allclose([v[:, 1].min(), v[:, 1].max()], [-0.0205, -0.0005], atol=1e-6)}
+        for k, val in checks.items():
+            print(fx, k, "ok" if val else "FALHOU"); ok &= bool(val)
 sys.exit(0 if ok else 1)

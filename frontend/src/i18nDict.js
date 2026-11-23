@@ -311,6 +311,11 @@ export const DICT={
 "Abra Live para detectar en tiempo real con la cámara; las capturas pueden guardarse en la galería del dispositivo.",
 "Ouvrez Live pour détecter en temps réel avec la caméra ; les captures peuvent être enregistrées dans la galerie de l’appareil."
 ],
+"Abra o modelo da estrutura, clique na face fotografada e as camadas são gravadas no próprio arquivo, ligadas ao elemento.": [
+"Open the structure model, click the photographed face and the layers are written into the file itself, linked to the element.",
+"Abra el modelo de la estructura, haga clic en la cara fotografiada y las capas se graban en el propio archivo, vinculadas al elemento.",
+"Ouvrez le modèle de la structure, cliquez sur la face photographiée et les couches sont écrites dans le fichier lui-même, liées à l’élément."
+],
 "Abrindo câmera…": [
 "Opening camera…",
 "Abriendo cámara…",
@@ -620,6 +625,11 @@ export const DICT={
 "Height (mm)",
 "Alto (mm)",
 "Hauteur (mm)"
+],
+"Altura acima da face": [
+"Height above face",
+"Altura sobre la cara",
+"Hauteur au-dessus de la face"
 ],
 "Ampliar": [
 "Enlarge",
@@ -1326,6 +1336,11 @@ export const DICT={
 "Calibre mm/px para exportar IFC",
 "Étalonnez mm/px pour exporter l’IFC"
 ],
+"Camada": [
+"Layer",
+"Capa",
+"Couche"
+],
 "Camada bloqueada": [
 "Layer locked",
 "Capa bloqueada",
@@ -1350,6 +1365,16 @@ export const DICT={
 "Detection layers over the original image",
 "Capas de detección sobre la imagen original",
 "Calques de détection sur l’image originale"
+],
+"Camadas geradas": [
+"Generated layers",
+"Capas generadas",
+"Couches générées"
+],
+"Camadas no ponto": [
+"Layers at point",
+"Capas en el punto",
+"Couches au point"
 ],
 "Camadas recolhidas": [
 "Layers collapsed",
@@ -1625,6 +1650,11 @@ export const DICT={
 "Click the centre and drag to the radius; turns and divergence in the panel.",
 "Haga clic en el centro y arrastre hasta el radio; vueltas y divergencia en el panel.",
 "Cliquez au centre et glissez jusqu’au rayon ; tours et divergence dans le panneau."
+],
+"Clique num ponto da face ou do sólido para achar a camada correspondente.": [
+"Click a point on the face or the solid to find the matching layer.",
+"Haga clic en un punto de la cara o del sólido para hallar la capa correspondiente.",
+"Cliquez sur un point de la face ou du solide pour trouver la couche correspondante."
 ],
 "Clique numa anotação para ver e arrastar nós e alças (Alt = alça independente); Delete apaga.": [
 "Click an annotation to see and drag nodes and handles (Alt = independent handle); Delete removes.",
@@ -2065,6 +2095,11 @@ export const DICT={
 "Growth t0→t1",
 "Crecimiento t0→t1",
 "Croissance t0→t1"
+],
+"Cria um IFC novo com a superfície da foto em escala e as camadas de nível sobre ela. Escolha IFC4 ou IFC 4.3.": [
+"Creates a new IFC with the photo surface to scale and the level layers on it. Choose IFC4 or IFC 4.3.",
+"Crea un IFC nuevo con la superficie de la foto a escala y las capas de nivel sobre ella. Elija IFC4 o IFC 4.3.",
+"Crée un nouvel IFC avec la surface de la photo à l’échelle et les couches de niveau dessus. Choisissez IFC4 ou IFC 4.3."
 ],
 "Ctrl/Cmd+Shift+R mostra as réguas. Calibre a escala mm/px em Configurações → Réguas e escala para medir em mm — a mesma escala alimenta as medidas do CDM-1.": [
 "Ctrl/Cmd+Shift+R shows the rulers. Calibrate the mm/px scale in Settings → Rulers and scale to measure in mm — the same scale feeds the CDM measurements.",
@@ -2511,6 +2546,11 @@ export const DICT={
 "Ajustar la imagen a la cara",
 "Ajuster l’image à la face"
 ],
+"Enquadrar": [
+"Fit view",
+"Encuadrar",
+"Cadrer"
+],
 "Enquadrar modelo": [
 "Frame model",
 "Encuadrar modelo",
@@ -2571,6 +2611,16 @@ export const DICT={
 "Escala (mm por píxel; 0 = sin escala)",
 "Échelle (mm par pixel ; 0 = sans échelle)"
 ],
+"Escala da foto (4 pontos)": [
+"Photo scale (4 points)",
+"Escala de la foto (4 puntos)",
+"Échelle de la photo (4 points)"
+],
+"Escala da superfície": [
+"Surface scale",
+"Escala de la superficie",
+"Échelle de la surface"
+],
 "Escala de cinza": [
 "Greyscale",
 "Escala de grises",
@@ -2630,6 +2680,11 @@ export const DICT={
 "Left",
 "Izq.",
 "G."
+],
+"Esquema IFC": [
+"IFC schema",
+"Esquema IFC",
+"Schéma IFC"
 ],
 "Esquema não suportado": [
 "Unsupported schema",
@@ -3291,6 +3346,11 @@ export const DICT={
 "Foto con el rectángulo de referencia",
 "Photo avec le rectangle de référence"
 ],
+"Foto na face": [
+"Photo on face",
+"Foto en la cara",
+"Photo sur la face"
+],
 "Foto salva nas capturas": [
 "Photo saved to captures",
 "Foto guardada en las capturas",
@@ -3360,6 +3420,11 @@ export const DICT={
 "Generating multiscale crops",
 "Generando recortes multiescala",
 "Génération des découpes multi-échelle"
+],
+"Gerar sem importar": [
+"Generate without importing",
+"Generar sin importar",
+"Générer sans importer"
 ],
 "Gira a orientação da foto na face em 90°": [
 "Rotates the photo orientation on the face by 90°",
@@ -3701,6 +3766,16 @@ export const DICT={
 "Importar",
 "Importer"
 ],
+"Importar IFC": [
+"Import IFC",
+"Importar IFC",
+"Importer un IFC"
+],
+"Importar IFC e gerar": [
+"Import IFC and generate",
+"Importar IFC y generar",
+"Importer un IFC et générer"
+],
 "Importar arquivo · Ctrl/Cmd+O": [
 "Import file · Ctrl/Cmd+O",
 "Importar archivo · Ctrl/Cmd+O",
@@ -3965,6 +4040,16 @@ export const DICT={
 "Mean width:",
 "Ancho medio:",
 "Largeur moyenne :"
+],
+"Largura real da foto": [
+"Real photo width",
+"Ancho real de la foto",
+"Largeur réelle de la photo"
+],
+"Largura real da foto (mm)": [
+"Real photo width (mm)",
+"Ancho real de la foto (mm)",
+"Largeur réelle de la photo (mm)"
 ],
 "Larguras em u = {tau} (faixa entre os níveis {lo} e {hi}): {list}.": [
 "Widths at u = {tau} (range between levels {lo} and {hi}): {list}.",
@@ -4240,6 +4325,11 @@ export const DICT={
 "Current 3D model",
 "Modelo 3D actual",
 "Modèle 3D courant"
+],
+"Modelo IFC": [
+"IFC model",
+"Modelo IFC",
+"Modèle IFC"
 ],
 "Modificado": [
 "Modified",
@@ -5191,6 +5281,11 @@ export const DICT={
 "Partir del potencial del cuadro anterior",
 "Partir du potentiel de l'image précédente"
 ],
+"Passo": [
+"Step",
+"Paso",
+"Pas"
+],
 "Passo (Ctrl)": [
 "Step (Ctrl)",
 "Paso (Ctrl)",
@@ -5320,6 +5415,11 @@ export const DICT={
 "Polygon",
 "Polígono",
 "Polygone"
+],
+"Ponto na face": [
+"Point on face",
+"Punto en la cara",
+"Point sur la face"
 ],
 "Pontos": [
 "Points",
@@ -6441,6 +6541,11 @@ export const DICT={
 "Sin implementación local publicada para verificar.",
 "Aucune implémentation locale publiée à vérifier."
 ],
+"Sem importar": [
+"Without import",
+"Sin importar",
+"Sans import"
+],
 "Sem máscaras do motor para localizar os contornos.": [
 "No engine masks to locate the contours.",
 "Sin máscaras del motor para localizar los contornos.",
@@ -6601,6 +6706,16 @@ export const DICT={
 "Sobreexpuesta: la eflorescencia y las fisuras claras se pierden.",
 "Surexposée : l’efflorescence et les fissures claires se perdent."
 ],
+"Superfície da foto": [
+"Photo surface",
+"Superficie de la foto",
+"Surface de la photo"
+],
+"Superfície de referência (foto)": [
+"Reference surface (photo)",
+"Superficie de referencia (foto)",
+"Surface de référence (photo)"
+],
 "São necessários pelo menos 6 pares 2D–3D.": [
 "At least 6 2D–3D pairs are needed.",
 "Se necesitan al menos 6 pares 2D–3D.",
@@ -6620,6 +6735,11 @@ export const DICT={
 "Only {p} of the profiles found a crack valley: the axis may not follow the crack, or what lies under it is not a crack (e.g. exposed rebar or a spalling edge). Redraw the axis over the crack.",
 "Solo {p} de los perfiles encontraron un valle de fisura: el eje quizá no siga la fisura, o lo que está bajo él no es fisura (por ejemplo, armadura expuesta o borde de desprendimiento). Vuelva a trazar el eje sobre la fisura.",
 "Seuls {p} des profils ont trouvé une vallée de fissure : l'axe ne suit peut-être pas la fissure, ou ce qui est dessous n'est pas une fissure (par exemple armature exposée ou bord d'épaufrure). Retracez l'axe sur la fissure."
+],
+"Sólido de níveis": [
+"Level solid",
+"Sólido de niveles",
+"Solide de niveaux"
 ],
 "Sólido de níveis (IFC)": [
 "Level solid (IFC)",
@@ -6785,6 +6905,11 @@ export const DICT={
 "Cross-beams/end walls · Fr=3",
 "Travesaños/cortinas · Fr=3",
 "Entretoises/murs garde-grève · Fr=3"
+],
+"Trocar face": [
+"Change face",
+"Cambiar cara",
+"Changer de face"
 ],
 "Trocar motor e ajustes": [
 "Change engine and settings",
@@ -7166,6 +7291,11 @@ export const DICT={
 "cadena temporal íntegra",
 "chaîne temporelle intègre"
 ],
+"camadas": [
+"layers",
+"capas",
+"couches"
+],
 "campanhas identificadas": [
 "identified campaigns",
 "campañas identificadas",
@@ -7411,6 +7541,11 @@ export const DICT={
 "escala",
 "échelle"
 ],
+"escala da foto": [
+"photo scale",
+"escala de la foto",
+"échelle de la photo"
+],
 "escuridão": [
 "darkness",
 "oscuridad",
@@ -7480,6 +7615,11 @@ export const DICT={
 "source",
 "fuente",
 "source"
+],
+"fora das camadas": [
+"outside the layers",
+"fuera de las capas",
+"hors des couches"
 ],
 "fotometria elegível": [
 "photometry eligible",
@@ -7571,6 +7711,11 @@ export const DICT={
 "ancho (px)",
 "largeur (px)"
 ],
+"largura informada": [
+"entered width",
+"ancho indicado",
+"largeur saisie"
+],
 "limiar por região em passos decimais até a fronteira estabilizar; reduz o halo sobre concreto saudável": [
 "per-region threshold in decimal steps until the boundary settles; reduces the halo over healthy concrete",
 "umbral por región en pasos decimales hasta que la frontera se estabilice; reduce el halo sobre hormigón sano",
@@ -7605,6 +7750,11 @@ export const DICT={
 "same structure/element · different source",
 "misma estructura/elemento · fuente diferente",
 "même ouvrage/élément · source différente"
+],
+"mm/px do motor": [
+"engine mm/px",
+"mm/px del motor",
+"mm/px du moteur"
 ],
 "motor(es)": [
 "engine(s)",
@@ -7665,6 +7815,11 @@ export const DICT={
 "n cuts",
 "n cortes",
 "n coupes"
+],
+"na borda da camada": [
+"at the layer edge",
+"en el borde de la capa",
+"au bord de la couche"
 ],
 "no Mac).": [
 "on Mac).",
@@ -8450,6 +8605,11 @@ export const DICT={
 "Full-res area",
 "Área completa",
 "Surface pleine"
+],
+"Área da camada": [
+"Layer area",
+"Área de la capa",
+"Surface de la couche"
 ],
 "Área descritiva de snapshot calibrado; não é delta temporal validado.": [
 "Descriptive area of a calibrated snapshot; not a validated temporal delta.",

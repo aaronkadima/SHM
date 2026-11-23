@@ -6481,6 +6481,11 @@ export const DICT={
 "Solo",
 "Seulement"
 ],
+"Só {p} dos perfis encontraram um vale de fissura: o eixo talvez não siga a fissura, ou o que está sob ele não é fissura (por exemplo, armadura exposta ou borda de desplacamento). Retrace o eixo sobre a fissura.": [
+"Only {p} of the profiles found a crack valley: the axis may not follow the crack, or what lies under it is not a crack (e.g. exposed rebar or a spalling edge). Redraw the axis over the crack.",
+"Solo {p} de los perfiles encontraron un valle de fisura: el eje quizá no siga la fisura, o lo que está bajo él no es fisura (por ejemplo, armadura expuesta o borde de desprendimiento). Vuelva a trazar el eje sobre la fisura.",
+"Seuls {p} des profils ont trouvé une vallée de fissure : l'axe ne suit peut-être pas la fissure, ou ce qui est dessous n'est pas une fissure (par exemple armature exposée ou bord d'épaufrure). Retracez l'axe sur la fissure."
+],
 "TAMANHO": [
 "SIZE",
 "TAMAÑO",
@@ -7031,6 +7036,11 @@ export const DICT={
 "clases en consenso",
 "classes en consensus"
 ],
+"colunas": [
+"columns",
+"columnas",
+"colonnes"
+],
 "com pendência/erro": [
 "with pending/error",
 "con pendiente/error",
@@ -7275,6 +7285,11 @@ export const DICT={
 "range between levels",
 "franja entre niveles",
 "plage entre niveaux"
+],
+"faixa retificada ao longo do eixo": [
+"straightened strip along the axis",
+"franja rectificada a lo largo del eje",
+"bande redressée le long de l'axe"
 ],
 "figuras": [
 "figures",

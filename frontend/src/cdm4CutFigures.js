@@ -242,6 +242,14 @@ export function figureMeasures(B,P,labelOf=cutLabel){
 }
 
 // ---------- largura de fissura (perfil perpendicular) ----------
+// imagem reamostrada ao longo do eixo: coluna = deslocamento perpendicular (−hw…hw), linha = distância ao longo do eixo
+function straighten(img,x0,y0,tx,ty,nx,ny,L,hw){
+  const W=2*hw+1,H=L+1,c=canvas(W,H),ctx=c.getContext("2d"),id=ctx.createImageData(W,H),src=img.data,iw=img.width,ih=img.height;
+  for(let sv=0;sv<H;sv++)for(let d=-hw;d<=hw;d++){const X=x0+tx*sv+nx*d,Y=y0+ty*sv+ny*d,o=4*(sv*W+d+hw);
+    if(X<0||Y<0||X>iw-1||Y>ih-1){id.data[o+3]=0;continue}const a=Math.floor(X),b=Math.floor(Y),a1=Math.min(iw-1,a+1),b1=Math.min(ih-1,b+1),fx=X-a,fy=Y-b;
+    for(let ch=0;ch<3;ch++)id.data[o+ch]=(src[4*(b*iw+a)+ch]*(1-fx)+src[4*(b*iw+a1)+ch]*fx)*(1-fy)+(src[4*(b1*iw+a)+ch]*(1-fx)+src[4*(b1*iw+a1)+ch]*fx)*fy;id.data[o+3]=255}
+  ctx.putImageData(id,0,0);c.__photo=true;return c;
+}
 export const crackLabel=i=>"F"+(i+1);
 export const distLabel=i=>"D"+(i+1);
 // texto curto da escala em uso (subtítulos e CSV)
@@ -255,6 +263,7 @@ export function interpretCrack(K,f){
   const M=S.mm,mm=!!M,u=(v,mv)=>f(v,1)+" px"+(M&&mv!=null?" ("+f(mv,2)+" mm)":"");
   o.push(["Largura a meia profundidade (FWHM): mediana {med}, p10–p90 {p10}–{p90}, máxima {max}; {v} de {n} perfis válidos.",{med:u(S.median,M?.median),p10:f(S.p10,1),p90:f(S.p90,1),max:u(S.max,M?.max),v:S.valid,n:S.n}]);
   o.push(["Largura equivalente (área do vale ÷ profundidade): mediana {eq}; profundidade do vale {d} níveis de cinza.",{eq:u(S.eqMedian,M?.eqMedian),d:f(S.depthMedian,0)}]);
+  if(S.valid<S.n*.5)o.push(["Só {p} dos perfis encontraram um vale de fissura: o eixo talvez não siga a fissura, ou o que está sob ele não é fissura (por exemplo, armadura exposta ou borda de desplacamento). Retrace o eixo sobre a fissura.",{p:f(S.valid/S.n*100,0)+" %"}]);
   if(S.belowResolution)o.push(["Mediana abaixo de ~3 px: a fissura está no limite de resolução e o borramento da óptica alarga o vale. O valor é um teto (abertura real ≤ {max}); aproxime a câmera para medir.",{max:u(S.median,M?.median)}]);
   else o.push(["Fissura resolvida (≥ 3 px): em teste com fissuras sintéticas de largura conhecida, o erro foi menor que 0,5 px.",{}]);
   if(!mm)o.push(["Sem calibração de escala, a largura fica em pixels (informe mm/px nas configurações).",{}]);
@@ -264,17 +273,25 @@ export function figureCrack(K,i,img,metric=null){
   const S=K.summary||{},a=K.axis,{c,x}=frame(`${tr("Largura de fissura")} ${crackLabel(i)}`,`(${fmt(a.x1,0)}, ${fmt(a.y1,0)}) → (${fmt(a.x2,0)}, ${fmt(a.y2,0)}) · ${fmt(K.len,0)} px · ${tr("perfis a cada")} ${fmt(K.opts.step,0)} px · ±${fmt(K.opts.R,0)} px · `+scaleText(metric));
   const notes=interpretCrack(K,fmt),probe=canvas(10,10).getContext("2d");probe.font=font(15);let nl=0;for(const[t,v]of notes)nl+=wrap(probe,trf(t,v),CUT_FIG_W-90).length;
   const bandTop=CUT_FIG_H-(nl*21+44)-16,top=100,bodyH=bandTop-top-20;
-  // recorte da foto em volta do eixo, com as bordas encontradas em cada perfil
-  const pad=K.opts.R+12,bx0=Math.max(0,Math.min(a.x1,a.x2)-pad),by0=Math.max(0,Math.min(a.y1,a.y2)-pad),bx1=Math.min(img.width,Math.max(a.x1,a.x2)+pad),by1=Math.min(img.height,Math.max(a.y1,a.y2)+pad);
-  const bw=bx1-bx0,bh=by1-by0,PW=380,k=Math.min(PW/bw,bodyH/bh),pw=bw*k,ph=bh*k,ox=32+(PW-pw)/2,oy=top+(bodyH-ph)/2;
-  x.imageSmoothingEnabled=k<3;x.drawImage(baseCanvas(img),bx0,by0,bw,bh,ox,oy,pw,ph);x.imageSmoothingEnabled=true;
-  const P=(X,Y)=>[ox+(X-bx0)*k,oy+(Y-by0)*k];
-  x.strokeStyle="rgba(176,108,255,.9)";x.lineWidth=1.5;x.setLineDash([6,4]);x.beginPath();x.moveTo(...P(a.x1,a.y1));x.lineTo(...P(a.x2,a.y2));x.stroke();x.setLineDash([]);
-  const val=K.stations.filter(s=>s.valid),every=Math.max(1,Math.round(val.length/40));
-  val.forEach((s,j)=>{if(j%every)return;x.strokeStyle="rgba(242,194,0,.9)";x.lineWidth=1.2;x.beginPath();x.moveTo(...P(s.lx,s.ly));x.lineTo(...P(s.rx,s.ry));x.stroke();
-    x.fillStyle="#00e0ff";for(const[q,r]of[[s.lx,s.ly],[s.rx,s.ry]]){const[u,v]=P(q,r);x.fillRect(u-1.5,v-1.5,3,3)}});
-  x.strokeStyle="rgba(29,42,51,.35)";x.strokeRect(ox,oy,pw,ph);
-  x.fillStyle=C.muted;x.font=font(11);x.fillText(tr("amarelo = largura em cada perfil · ciano = bordas a meia profundidade"),32,oy+ph+16,PW);
+  // faixa retificada ao longo do eixo (eixo vertical no centro), dobrada em colunas lado a lado:
+  // escolhe o número de colunas que dá a maior ampliação no painel, para fissuras curtas ou longas
+  const PW=380,hw=Math.round(K.opts.R+12),L=Math.max(2,Math.round(K.len)),tx=(a.x2-a.x1)/K.len,ty=(a.y2-a.y1)/K.len,nx=-ty,ny=tx;
+  const strip=straighten(img,a.x1,a.y1,tx,ty,nx,ny,L,hw),sw=2*hw+1,gap=10,labH=16;
+  let best={n:1,k:0};for(let n=1;n<=12;n++){const seg=Math.ceil(L/n),k=Math.min((PW-(n-1)*gap)/(n*sw),(bodyH-labH-18)/seg,8);if(k>best.k)best={n,k}}
+  const{n:ncol,k}=best,seg=Math.ceil(L/ncol),colW=sw*k,tot=ncol*colW+(ncol-1)*gap,ox0=32+(PW-tot)/2,oy=top+labH;
+  const val=K.stations.filter(s=>s.valid),every=Math.max(1,Math.round(val.length/(60*ncol)));
+  for(let c=0;c<ncol;c++){
+    const s0=c*seg,s1=Math.min(L,s0+seg),ox=ox0+c*(colW+gap);if(s1<=s0)break;
+    x.imageSmoothingEnabled=k<3;x.drawImage(strip,0,s0,sw,s1-s0,ox,oy,colW,(s1-s0)*k);x.imageSmoothingEnabled=true;
+    const P=(d,sv)=>[ox+(d+hw+.5)*k,oy+(sv-s0)*k];
+    x.strokeStyle="rgba(176,108,255,.85)";x.lineWidth=1.2;x.setLineDash([5,4]);x.beginPath();x.moveTo(...P(0,s0));x.lineTo(...P(0,s1));x.stroke();x.setLineDash([]);
+    val.forEach((st,j)=>{if(j%every||st.s<s0||st.s>=s1)return;const pl=P(st.left,st.s),pr=P(st.right,st.s);
+      x.strokeStyle="rgba(242,194,0,.95)";x.lineWidth=Math.max(1,k*.6);x.beginPath();x.moveTo(...pl);x.lineTo(...pr);x.stroke();
+      x.fillStyle="#00e0ff";const r=Math.max(1.5,k*.6);for(const q of[pl,pr])x.fillRect(q[0]-r,q[1]-r,2*r,2*r)});
+    x.strokeStyle="rgba(29,42,51,.35)";x.lineWidth=1;x.strokeRect(ox,oy,colW,(s1-s0)*k);
+    x.fillStyle=C.muted;x.font=font(10);x.textAlign="center";x.fillText(fmt(s0,0)+"–"+fmt(s1,0)+" px",ox+colW/2,oy-5,colW+gap);x.textAlign="left";
+  }
+  x.fillStyle=C.muted;x.font=font(11);x.fillText(tr("faixa retificada ao longo do eixo")+(ncol>1?" · "+ncol+" "+tr("colunas"):"")+" · ×"+fmt(k,1)+" · "+tr("amarelo = largura em cada perfil · ciano = bordas a meia profundidade"),32,top+bodyH+2,PW+60);
   // largura ao longo do eixo
   const X2=32+PW+90,W2=CUT_FIG_W-X2-40,h1=(bodyH-70)*.55,h2=(bodyH-70)*.45;
   if(val.length){

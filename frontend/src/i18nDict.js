@@ -961,6 +961,16 @@ export const DICT={
 "Baja",
 "Faible"
 ],
+"Baixar a etapa em SVG": [
+"Download the stage as SVG",
+"Descargar la etapa en SVG",
+"Télécharger l'étape en SVG"
+],
+"Baixar a etapa em SVG (texto e legenda editáveis)": [
+"Download the stage as SVG (editable text and legend)",
+"Descargar la etapa en SVG (texto y leyenda editables)",
+"Télécharger l'étape en SVG (texte et légende modifiables)"
+],
 "Baixar figura": [
 "Download figure",
 "Descargar figura",
@@ -1591,6 +1601,11 @@ export const DICT={
 "Pegue solo una imagen a la vez.",
 "Collez une seule image à la fois."
 ],
+"Com Ctrl pressionado, o comprimento do corte avança neste passo": [
+"With Ctrl held, the cut length advances by this step",
+"Con Ctrl pulsado, la longitud del corte avanza en este paso",
+"Avec Ctrl enfoncé, la longueur de la coupe avance de ce pas"
+],
 "Com t entre 0,3 e 0,7, a IoU do walker fica entre {a} e {b}: o resultado não depende de um ajuste fino do limiar.": [
 "With t between 0.3 and 0.7, the walker IoU stays between {a} and {b}: the result does not depend on fine-tuning the threshold.",
 "Con t entre 0,3 y 0,7, la IoU del walker queda entre {a} y {b}: el resultado no depende de un ajuste fino del umbral.",
@@ -1926,10 +1941,10 @@ export const DICT={
 "Corte de nivel · disponible tras un análisis del CDM-4",
 "Coupe de niveau · disponible après une analyse CDM-4"
 ],
-"Corte de nível: arraste linhas de corte sobre a imagem (Shift = horizontal/vertical)": [
-"Level cut: drag cut lines over the image (Shift = horizontal/vertical)",
-"Corte de nivel: arrastre líneas de corte sobre la imagen (Shift = horizontal/vertical)",
-"Coupe de niveau : tracez des lignes de coupe sur l'image (Maj = horizontal/vertical)"
+"Corte de nível: arraste linhas de corte · Ctrl = passos de 15° e de comprimento · Shift = horizontal/vertical": [
+"Level cut: drag cut lines · Ctrl = 15° and length steps · Shift = horizontal/vertical",
+"Corte de nivel: arrastre líneas de corte · Ctrl = pasos de 15° y de longitud · Shift = horizontal/vertical",
+"Coupe de niveau : tracez des lignes de coupe · Ctrl = pas de 15° et de longueur · Maj = horizontal/vertical"
 ],
 "Corte de nível: trace n linhas de corte e compare binarização × potencial do walker em mapas, perfis e curva de corte": [
 "Level cut: draw n cut lines and compare binarization × walker potential in maps, profiles and the cut curve",
@@ -2925,6 +2940,11 @@ export const DICT={
 "Sheet with all",
 "Hoja con todas",
 "Planche complète"
+],
+"Folha com todas em SVG (texto editável)": [
+"Sheet with all as SVG (editable text)",
+"Hoja con todas en SVG (texto editable)",
+"Planche complète en SVG (texte modifiable)"
 ],
 "Fonte": [
 "Source",
@@ -4641,6 +4661,11 @@ export const DICT={
 "Panel 2×2",
 "Panneau 2×2"
 ],
+"Painel 2×2 em SVG (texto editável)": [
+"2×2 panel as SVG (editable text)",
+"Panel 2×2 en SVG (texto editable)",
+"Panneau 2×2 en SVG (texte modifiable)"
+],
 "Painel Imagem": [
 "Image panel",
 "Panel Imagen",
@@ -4710,6 +4735,11 @@ export const DICT={
 "CDM parity · Python ⇄ browser indicators and charts",
 "Paridad CDM · indicadores y gráficos Python ⇄ navegador",
 "Parité CDM · indicateurs et graphiques Python ⇄ navigateur"
+],
+"Passo (Ctrl)": [
+"Step (Ctrl)",
+"Paso (Ctrl)",
+"Pas (Ctrl)"
 ],
 "Patologia": [
 "Damage type",
@@ -7076,6 +7106,11 @@ export const DICT={
 "pares históricos vinculados",
 "paires historiques liées"
 ],
+"passo": [
+"step",
+"paso",
+"pas"
+],
 "perfil cloud validado": [
 "validated cloud profile",
 "perfil cloud validado",
@@ -7395,6 +7430,11 @@ export const DICT={
 "insufficient trend",
 "tendencia insuficiente",
 "tendance insuffisante"
+],
+"texto editável": [
+"editable text",
+"texto editable",
+"texte modifiable"
 ],
 "triângulos": [
 "triangles",

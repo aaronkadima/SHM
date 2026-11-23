@@ -1,5 +1,6 @@
 import React,{useCallback,useEffect,useRef,useState}from"react";
-import{ChevronLeft,ChevronRight,Download,Pencil,Play,Trash2,Undo2,X}from"lucide-react";
+import{ChevronLeft,ChevronRight,Download,FileCode2,Pencil,Play,Trash2,Undo2,X}from"lucide-react";
+import{svgUrl}from"./svgCanvas.js";
 import{__cdm4Test,cdm4Config,cdm4StageData}from"./cdm4Core.js";
 import{cutBase,profile}from"./cdm4CutAnalysis.js";
 import{CUT_FIG_W,CUT_FIG_H,cutLabel,figureCurves,figureMaps,figureProfile,figureSheet}from"./cdm4CutFigures.js";
@@ -18,6 +19,17 @@ function gtMask(items,gtSize,W,H){
   const sp=(items||[]).filter(a=>usable(a)&&a.cls==="spalling_dark");if(!sp.length)return null;
   return classMask(sp,"spalling_dark",W,H,W/Math.max(1,gtSize?.width||W));
 }
+function downloadUrl(url,name){const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
+export const SNAP_DEG=15;
+// Ctrl (ou ⌘): ângulo em múltiplos de 15° e comprimento em passos fixos, como no Inkscape; Shift: horizontal/vertical
+export function snapCut(s,p,{ctrl=false,shift=false,step=20,W=Infinity,H=Infinity}={}){
+  let dx=p.x-s.x,dy=p.y-s.y;
+  if(ctrl){const a=Math.round(Math.atan2(dy,dx)/(SNAP_DEG*Math.PI/180))*(SNAP_DEG*Math.PI/180),st=Math.max(1,step);let L=Math.max(st,Math.round(Math.hypot(dx,dy)/st)*st);
+    const inside=L=>{const x=s.x+L*Math.cos(a),y=s.y+L*Math.sin(a);return x>=0&&y>=0&&x<=W-1&&y<=H-1};
+    while(L>st&&!inside(L))L-=st;dx=L*Math.cos(a);dy=L*Math.sin(a)}
+  else if(shift){if(Math.abs(dx)>=Math.abs(dy))dy=0;else dx=0}
+  return{x:s.x+dx,y:s.y+dy};
+}
 const toUrl=c=>new Promise(res=>c.toBlob(b=>res(b?URL.createObjectURL(b):c.toDataURL("image/png")),"image/png"));
 export function parseLevels(text){
   const v=String(text||"").split(/[;\s]+/).map(t=>parseFloat(t.replace(",","."))).filter(x=>isFinite(x)&&x>0&&x<1);
@@ -25,9 +37,9 @@ export function parseLevels(text){
 }
 
 export default function CutLevelTool({active,onClose,result,file,options,canvasElement,gtItems,gtSize}){
-  const[phase,setPhase]=useState("draw"),[cuts,setCuts]=useState([]),[drag,setDrag]=useState(null),[levels,setLevels]=useState("0,3; 0,5");
+  const[phase,setPhase]=useState("draw"),[cuts,setCuts]=useState([]),[drag,setDrag]=useState(null),[levels,setLevels]=useState("0,3; 0,5"),[step,setStep]=useState(20),[cursor,setCursor]=useState(null);
   const[figs,setFigs]=useState(null),[err,setErr]=useState(""),[zoom,setZoom]=useState(null),[,setTick]=useState(0);
-  const start=useRef(null),urls=useRef([]),cache=useRef(null);
+  const start=useRef(null),urls=useRef([]),cache=useRef(null),built=useRef(null);
   const release=()=>{for(const u of urls.current)if(u.startsWith("blob:"))URL.revokeObjectURL(u);urls.current=[]};
   const W=result?.metrics?.processed_width||0,H=result?.metrics?.processed_height||0;
   useEffect(()=>{if(active){setPhase("draw");setFigs(null);setErr("");setZoom(null)}else release()},[active]);
@@ -65,8 +77,11 @@ export default function CutLevelTool({active,onClose,result,file,options,canvasE
       }
       const lv=parseLevels(levels);
       const B=cutBase(C.img.data,W,H,C.rw,{gt:gtMask(gtItems,gtSize,W,H),levels:lv.length?lv:[.3,.5]});
-      const P=cuts.map(c=>profile(B,c));
-      const list=[figureMaps(B,C.img,cuts),...P.map((p,i)=>figureProfile(B,p,i,C.img)),figureCurves(B)];
+      const P=cuts.map(c=>profile(B,c)),cs=[...cuts];
+      // construtores: os mesmos desenham o PNG (canvas) e, sob demanda, o SVG com texto editável
+      const builders=[()=>figureMaps(B,C.img,cs),...P.map((p,i)=>()=>figureProfile(B,p,i,C.img)),()=>figureCurves(B)];
+      built.current={builders,sheet:()=>figureSheet(builders.map(f=>f()))};
+      const list=builders.map(f=>f());
       const names=["mapas",...P.map((_,i)=>"perfil-"+cutLabel(i)),"curva-de-corte"];
       const titles=[tr("Mapas"),...P.map((_,i)=>tr("Perfil de corte")+" "+cutLabel(i)),tr("Curva de corte")];
       release();
@@ -80,14 +95,14 @@ export default function CutLevelTool({active,onClose,result,file,options,canvasE
   const r=imageRect(),k=r&&W?r.width/W:1;
   const toImg=(cx,cy)=>({x:Math.min(W-1,Math.max(0,(cx-r.left)/k)),y:Math.min(H-1,Math.max(0,(cy-r.top)/k))});
   const onDown=e=>{if(e.button!==0||!r)return;e.currentTarget.setPointerCapture?.(e.pointerId);const p=toImg(e.clientX,e.clientY);start.current=p;setDrag({x1:p.x,y1:p.y,x2:p.x,y2:p.y})};
-  const onMove=e=>{const s=start.current;if(!s||!r)return;let p=toImg(e.clientX,e.clientY);
-    if(e.shiftKey){if(Math.abs(p.x-s.x)>=Math.abs(p.y-s.y))p={x:p.x,y:s.y};else p={x:s.x,y:p.y}} // Shift: horizontal/vertical
-    setDrag({x1:s.x,y1:s.y,x2:p.x,y2:p.y})};
-  const onUp=()=>{const d=drag;start.current=null;setDrag(null);if(d&&Math.hypot(d.x2-d.x1,d.y2-d.y1)*k>=12)setCuts(c=>[...c,{x1:Math.round(d.x1),y1:Math.round(d.y1),x2:Math.round(d.x2),y2:Math.round(d.y2)}])};
+  const onMove=e=>{const s=start.current;if(!s||!r){setCursor(null);return}
+    const p=snapCut(s,toImg(e.clientX,e.clientY),{ctrl:e.ctrlKey||e.metaKey,shift:e.shiftKey,step:+step||20,W,H});
+    setDrag({x1:s.x,y1:s.y,x2:p.x,y2:p.y});setCursor({x:e.clientX,y:e.clientY,snap:e.ctrlKey||e.metaKey})};
+  const onUp=()=>{const d=drag;start.current=null;setDrag(null);setCursor(null);if(d&&Math.hypot(d.x2-d.x1,d.y2-d.y1)*k>=12)setCuts(c=>[...c,{x1:Math.round(d.x1),y1:Math.round(d.y1),x2:Math.round(d.x2),y2:Math.round(d.y2)}])};
   const stop=e=>e.stopPropagation();
   const pct=v=>v==null?"—":(v*100).toFixed(1)+" %";
   return <>
-    {phase!=="done"&&<div className="fieldToolSelect cutToolSelect" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={()=>{start.current=null;setDrag(null)}}>
+    {phase!=="done"&&<div className="fieldToolSelect cutToolSelect" onContextMenu={e=>e.preventDefault()} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={()=>{start.current=null;setDrag(null)}}>
       {r&&<svg className="cutToolLines" width="100%" height="100%">
         {[...cuts,...(drag?[drag]:[])].map((c,i)=>{const a=[r.left+c.x1*k,r.top+c.y1*k],b=[r.left+c.x2*k,r.top+c.y2*k];return <g key={i}>
           <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke="rgba(0,0,0,.55)" strokeWidth="4"/>
@@ -95,9 +110,12 @@ export default function CutLevelTool({active,onClose,result,file,options,canvasE
           {i<cuts.length&&<text x={a[0]+5} y={a[1]-7} fill="#f2c200" stroke="rgba(0,0,0,.75)" strokeWidth="3" paintOrder="stroke" fontSize="15" fontWeight="800">{cutLabel(i)}</text>}
         </g>})}
       </svg>}
+      {drag&&cursor&&(()=>{const L=Math.hypot(drag.x2-drag.x1,drag.y2-drag.y1),a=-Math.atan2(drag.y2-drag.y1,drag.x2-drag.x1)*180/Math.PI;
+        return <div className={"cutToolReadout"+(cursor.snap?" snap":"")} style={{left:cursor.x+16,top:cursor.y+16}}>{Math.round(L)} px · {Math.round(a)}°{cursor.snap?" · "+tr("passo")+" "+step+" px":""}</div>})()}
       <div className="cutToolBar" onPointerDown={stop} onPointerUp={stop}>
-        <span className="cutToolHintText">{phase==="running"?tr("Gerando o estudo comparativo…"):tr("Corte de nível: arraste linhas de corte sobre a imagem (Shift = horizontal/vertical)")}{err&&<em> · {err}</em>}</span>
+        <span className="cutToolHintText">{phase==="running"?tr("Gerando o estudo comparativo…"):tr("Corte de nível: arraste linhas de corte · Ctrl = passos de 15° e de comprimento · Shift = horizontal/vertical")}{err&&<em> · {err}</em>}</span>
         <span className="cutToolCount">{cuts.length} {tr("corte(s)")}</span>
+        <label className="cutToolLevels" title={tr("Com Ctrl pressionado, o comprimento do corte avança neste passo")}>{tr("Passo (Ctrl)")}<input className="short" type="number" min="1" max="500" value={step} onChange={e=>setStep(Math.max(1,Math.min(500,Math.round(+e.target.value||1))))} aria-label={tr("Passo (Ctrl)")}/>px</label>
         <label className="cutToolLevels">{tr("Níveis do walker")}<input value={levels} onChange={e=>setLevels(e.target.value)} placeholder="0,3; 0,5" aria-label={tr("Níveis do walker")}/></label>
         <button type="button" disabled={!cuts.length||phase==="running"} onClick={()=>setCuts(c=>c.slice(0,-1))} title={tr("Desfazer último corte")}><Undo2 size={15}/></button>
         <button type="button" disabled={!cuts.length||phase==="running"} onClick={()=>setCuts([])} title={tr("Limpar cortes")}><Trash2 size={15}/></button>
@@ -111,17 +129,18 @@ export default function CutLevelTool({active,onClose,result,file,options,canvasE
           <div><b>{tr("Corte de nível · binarização × potencial do walker")}</b><span>{cuts.length} {tr("corte(s)")} · {figs.items.length} {tr("figuras")} · {CUT_FIG_W} × {CUT_FIG_H} px · {figs.iou?`IoU ${tr("binarização")} ${pct(figs.iou[0])} · ${tr("walker")} ${pct(figs.iou[1])}`:`${tr("sem GT")} · ${tr("concordância")} ${pct(figs.agreement)}`}</span></div>
           <button type="button" onClick={()=>{setPhase("draw");setFigs(null)}}><Pencil size={15}/> {tr("Editar cortes")}</button>
           <a className="fieldToolBtn" href={figs.sheet} download={"corte-de-nivel-folha-"+figs.lang+".png"}><Download size={15}/> {tr("Folha com todas")}</a>
+          <button type="button" title={tr("Folha com todas em SVG (texto editável)")} onClick={()=>downloadUrl(svgUrl(built.current.sheet,tr("Corte de nível")),"corte-de-nivel-folha-"+figs.lang+".svg")}><FileCode2 size={15}/> SVG</button>
           <button type="button" aria-label={tr("Fechar")} onClick={onClose}><X size={17}/></button>
         </header>
         <div className="cutToolGrid">
           {figs.items.map((u,i)=><figure key={i}><button type="button" className="fieldToolThumb" title={tr("Ampliar")} onClick={()=>setZoom(i)}><img src={u} alt={figs.titles[i]}/></button>
-            <figcaption>{figs.titles[i]}</figcaption><a href={u} download={"corte-de-nivel-"+figs.names[i]+"-"+figs.lang+".png"} title={tr("Baixar figura")}><Download size={14}/></a></figure>)}
+            <figcaption>{figs.titles[i]}</figcaption><span className="figActions"><a href={u} download={"corte-de-nivel-"+figs.names[i]+"-"+figs.lang+".png"} title={tr("Baixar figura")+" (PNG)"}><Download size={14}/></a><button type="button" title={tr("Baixar figura")+" (SVG, "+tr("texto editável")+")"} onClick={()=>downloadUrl(svgUrl(built.current.builders[i],figs.titles[i]),"corte-de-nivel-"+figs.names[i]+"-"+figs.lang+".svg")}><FileCode2 size={14}/></button></span></figure>)}
         </div>
         {zoom!=null&&<div className="fieldToolZoom" onClick={()=>setZoom(null)}>
           <button type="button" className="fieldToolNav prev" aria-label={tr("Anterior")} onClick={e=>{e.stopPropagation();setZoom((zoom+nFig-1)%nFig)}}><ChevronLeft size={26}/></button>
           <img className="cutToolZoomImg" src={figs.items[zoom]} alt="" onClick={e=>e.stopPropagation()}/>
           <button type="button" className="fieldToolNav next" aria-label={tr("Próxima")} onClick={e=>{e.stopPropagation();setZoom((zoom+1)%nFig)}}><ChevronRight size={26}/></button>
-          <div className="fieldToolZoomBar" onClick={e=>e.stopPropagation()}><span>{figs.titles[zoom]} · {zoom+1} / {nFig}</span><a href={figs.items[zoom]} download={"corte-de-nivel-"+figs.names[zoom]+"-"+figs.lang+".png"}><Download size={14}/> {tr("Baixar figura")}</a><button type="button" onClick={()=>setZoom(null)}><X size={15}/> {tr("Fechar")}</button></div>
+          <div className="fieldToolZoomBar" onClick={e=>e.stopPropagation()}><span>{figs.titles[zoom]} · {zoom+1} / {nFig}</span><a href={figs.items[zoom]} download={"corte-de-nivel-"+figs.names[zoom]+"-"+figs.lang+".png"}><Download size={14}/> PNG</a><button type="button" onClick={()=>downloadUrl(svgUrl(built.current.builders[zoom],figs.titles[zoom]),"corte-de-nivel-"+figs.names[zoom]+"-"+figs.lang+".svg")}><FileCode2 size={14}/> SVG</button><button type="button" onClick={()=>setZoom(null)}><X size={15}/> {tr("Fechar")}</button></div>
         </div>}
       </section>
     </div>}

@@ -188,3 +188,25 @@ console.log("CDM-4 core passed:",{records:a.records.length,classes:[...new Set(a
   assert.ok(Math.abs(otsu(Float32Array.from([.1,.1,.1,.9,.9,.9]))-.5)<.45);
 }
 console.log("cut-level analysis ok");
+
+// SVG com texto editável (mesma API do canvas) e encaixe Ctrl dos cortes
+{
+  const {withSvg,surface,SvgCanvas}=await import("../src/svgCanvas.js");
+  const c=withSvg(()=>{const s=surface(200,100),x=s.getContext("2d");x.fillStyle="rgba(255,0,0,.5)";x.fillRect(0,0,10,10);
+    x.save();x.translate(20,30);x.rotate(Math.PI/2);x.font="600 14px Inter,sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillText("Área & <eixo>",0,0);x.restore();
+    x.beginPath();x.rect(0,0,50,50);x.clip();x.setLineDash([3,4]);x.beginPath();x.arc(25,25,10,0,2*Math.PI);x.stroke();
+    const g=x.createLinearGradient(0,0,100,0);g.addColorStop(0,"#000");g.addColorStop(1,"rgb(255,255,255)");x.fillStyle=g;x.fillRect(0,90,100,10);
+    const inner=surface(10,10);inner.getContext("2d").fillText("dentro",1,8);x.drawImage(inner,100,0,20,20);return s});
+  assert.ok(c instanceof SvgCanvas);const svg=c.toSVG("t");
+  assert.match(svg,/<text [^>]*font-weight="600"[^>]*text-anchor="middle"[^>]*>Área &amp; &lt;eixo&gt;<\/text>/,"texto editável com escape");
+  assert.match(svg,/fill="rgb\(255,0,0\)" fill-opacity="0.5"/);assert.match(svg,/<clipPath id="c\d+">/);assert.match(svg,/<linearGradient/);
+  assert.match(svg,/stroke-dasharray="3 4"/);assert.match(svg,/>dentro<\/text>/);
+  assert.equal((svg.match(/<g /g)||[]).length,(svg.match(/<\/g>/g)||[]).length,"grupos balanceados");
+  assert.ok(!svg.includes("NaN"));
+}
+{
+  // encaixe: 15° e passos de comprimento (lógica pura replicada do CutLevelTool)
+  const snap=(s,p,step)=>{const a=Math.round(Math.atan2(p.y-s.y,p.x-s.x)/(Math.PI/12))*(Math.PI/12),L=Math.max(step,Math.round(Math.hypot(p.x-s.x,p.y-s.y)/step)*step);return{x:s.x+L*Math.cos(a),y:s.y+L*Math.sin(a),L,deg:a*180/Math.PI}};
+  const r=snap({x:0,y:0},{x:97,y:-52},20);assert.equal(r.L,120);assert.equal(Math.round(r.deg),-30);
+}
+console.log("svg + snap ok");

@@ -1,6 +1,6 @@
 import React,{useEffect,useRef,useState}from"react";
-import{ChevronLeft,ChevronRight,Download,X}from"lucide-react";
-import{computeEngineStages,engineStagesSupported,releaseEngineStages}from"./engineStages.js";
+import{FileCode2,ChevronLeft,ChevronRight,Download,X}from"lucide-react";
+import{stageHasSvg,stageSvgUrl,computeEngineStages,engineStagesSupported,releaseEngineStages}from"./engineStages.js";
 import{useLang}from"./LanguageSwitcher.jsx";
 
 // Miniaturas flutuantes das etapas de processamento do motor escolhido; clique amplia.
@@ -61,6 +61,7 @@ export default function EngineStages({engineId,engineName,file,result,options,co
         <header>
           <div><b>{current.label}</b><span>{engineName||engineId} · etapa {open+1} de {stages.length}</span></div>
           <a href={current.url} download={(engineId+"-"+current.id+".png")} title="Baixar imagem da etapa" aria-label="Baixar imagem da etapa"><Download size={16}/></a>
+          {stageHasSvg(current)&&<button type="button" title="Baixar a etapa em SVG (texto e legenda editáveis)" aria-label="Baixar a etapa em SVG" onClick={()=>{const u=stageSvgUrl(current);if(!u)return;const l=document.createElement("a");l.href=u;l.download=engineId+"-"+current.id+".svg";document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}}><FileCode2 size={16}/></button>}
           <button onClick={()=>setOpen(-1)} aria-label="Fechar"><X size={18}/></button>
         </header>
         <div className="engineStageLarge">

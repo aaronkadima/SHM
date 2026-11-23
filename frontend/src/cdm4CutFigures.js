@@ -2,6 +2,7 @@
 // fundo claro de publicação e faixa inferior com a interpretação anotada (gerada dos números).
 import{tr,getLang}from"./i18n.js";
 import{interpretMaps,interpretProfile,interpretCurves}from"./cdm4CutAnalysis.js";
+import{surface}from"./svgCanvas.js";
 
 export const CUT_FIG_W=1200,CUT_FIG_H=800;
 const LOC={pt:"pt-BR",en:"en-US",es:"es-ES",fr:"fr-FR"};
@@ -15,7 +16,7 @@ export const cutLabel=i=>String.fromCharCode(65+(i%26))+(i>=26?Math.floor(i/26):
 function canvas(w,h){if(typeof OffscreenCanvas!=="undefined"&&typeof document==="undefined")return new OffscreenCanvas(w,h);const c=document.createElement("canvas");c.width=w;c.height=h;return c}
 const font=(px,wt=400)=>`${wt} ${px}px Inter,system-ui,sans-serif`;
 function frame(title,sub){
-  const c=canvas(CUT_FIG_W,CUT_FIG_H),x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,CUT_FIG_W,CUT_FIG_H);
+  const c=surface(CUT_FIG_W,CUT_FIG_H),x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,CUT_FIG_W,CUT_FIG_H);
   x.fillStyle=C.ink;x.font=font(22,700);x.textBaseline="alphabetic";x.fillText(tr(title),32,42);
   if(sub){x.fillStyle=C.muted;x.font=font(14);x.fillText(sub,32,66,CUT_FIG_W-64)}
   return{c,x};
@@ -31,13 +32,19 @@ function notesBand(x,items){
   x.font=font(15);let y=y0+44;for(const[l,first]of lines){x.fillStyle=first?C.ink:C.ink;if(first)x.fillText("•",40,y);x.fillText(l,56,y);y+=lh}
   return y0;
 }
+// marcas "redondas" dentro do intervalo + as duas pontas (o eixo sempre termina com um valor)
+export function axisTicks(a,b,count=5){
+  if(!(b>a))return[a,b];const raw=(b-a)/count,p=10**Math.floor(Math.log10(raw)),st=[1,2,2.5,5,10].map(k=>k*p).find(v=>v>=raw)||raw;
+  const t=[a];for(let v=Math.ceil(a/st)*st;v<b;v+=st){if(v-a>st*.4&&b-v>st*.4)t.push(+v.toFixed(10))}t.push(b);return t;
+}
+export function decadeRange(lo,hi){return[10**Math.floor(Math.log10(Math.max(lo,1e-9))+1e-9),10**Math.ceil(Math.log10(Math.max(hi,1e-9))-1e-9)]}
 function chart(x,X,Y,W,H,o){
   const{x0,x1,y0,y1,log}=o,ly=v=>Math.log10(Math.max(v,y0));
   const px=v=>X+(v-x0)/(x1-x0)*W,py=v=>log?Y+H-(ly(v)-ly(y0))/(ly(y1)-ly(y0))*H:Y+H-(v-y0)/(y1-y0)*H;
   x.save();x.strokeStyle=C.grid;x.lineWidth=1;x.fillStyle=C.muted;x.font=font(12);x.textAlign="right";x.textBaseline="middle";
-  const yt=o.yticks||(log?[.001,.01,.1,1]:[0,.25,.5,.75,1].map(t=>y0+t*(y1-y0)));
+  const yt=o.yticks||(log?(()=>{const r=[];for(let v=y0;v<=y1*1.0001;v*=10)r.push(v);return r})():axisTicks(y0,y1,4));
   for(const v of yt){if(v<Math.min(y0,y1)*(1-1e-9)||v>Math.max(y0,y1)*(1+1e-9))continue;const yy=py(v);x.beginPath();x.moveTo(X,yy);x.lineTo(X+W,yy);x.stroke();x.fillText(o.yfmt?o.yfmt(v):fmt(v,1),X-6,yy)}
-  x.textAlign="center";x.textBaseline="top";const xt=o.xticks||[0,.2,.4,.6,.8,1].map(t=>x0+t*(x1-x0));
+  x.textAlign="center";x.textBaseline="top";const xt=o.xticks||axisTicks(x0,x1,o.xcount||5);
   for(const v of xt){const xx=px(v);x.beginPath();x.moveTo(xx,Y);x.lineTo(xx,Y+H);x.stroke();x.fillText(o.xfmt?o.xfmt(v):fmt(v,o.xdec??1),xx,Y+H+5)}
   x.strokeStyle="rgba(29,42,51,.45)";x.strokeRect(X,Y,W,H);
   x.fillStyle=C.ink;x.font=font(13);if(o.xlabel)x.fillText(tr(o.xlabel),X+W/2,Y+H+22);
@@ -47,7 +54,8 @@ function chart(x,X,Y,W,H,o){
 }
 
 // ---------- mapas ----------
-function baseCanvas(img){const c=canvas(img.width,img.height);c.getContext("2d").putImageData(img,0,0);return c}
+const BASES=new WeakMap();
+function baseCanvas(img){if(BASES.has(img))return BASES.get(img);const c=canvas(img.width,img.height);c.getContext("2d").putImageData(img,0,0);c.__photo=true;BASES.set(img,c);return c}
 function panelRaster(B,pw,ph,fn){
   const c=canvas(pw,ph),x=c.getContext("2d"),id=x.createImageData(pw,ph),{w,h}=B;
   for(let j=0;j<ph;j++){const yy=Math.min(h-1,Math.floor((j+.5)/ph*h));for(let i=0;i<pw;i++){const p=yy*w+Math.min(w-1,Math.floor((i+.5)/pw*w)),o=4*(j*pw+i),r=fn(p);if(r){id.data[o]=r[0];id.data[o+1]=r[1];id.data[o+2]=r[2];id.data[o+3]=r[3]??255}}}
@@ -99,7 +107,7 @@ export function figureMaps(B,img,cuts){
     drawCuts(x,B,cuts,ox,oy,pw,ph);
     x.strokeStyle="rgba(29,42,51,.35)";x.strokeRect(ox,oy,pw,ph);
     x.fillStyle=C.ink;x.font=font(13,600);x.textAlign="center";x.fillText(titles[p],ox+pw/2,oy-22,pw+gap);x.font=font(12);x.fillStyle=C.muted;x.fillText(subs[p],ox+pw/2,oy-7,pw+gap);x.textAlign="left";
-    if(p===1){const by=oy+ph+10,bw=pw;for(let i=0;i<bw;i++){const[r,gg,b]=vir(i/(bw-1));x.fillStyle=`rgb(${r|0},${gg|0},${b|0})`;x.fillRect(ox+i,by,1,10)}
+    if(p===1){const by=oy+ph+10,bw=pw,gr=x.createLinearGradient(ox,0,ox+bw,0);for(let i=0;i<=20;i++){const[r,gg,b]=vir(i/20);gr.addColorStop(i/20,`rgb(${r|0},${gg|0},${b|0})`)}x.fillStyle=gr;x.fillRect(ox,by,bw,10);
       x.fillStyle=C.muted;x.font=font(11);x.textAlign="left";x.fillText("0",ox,by+23);x.textAlign="right";x.fillText("1",ox+bw,by+23);x.textAlign="center";x.fillText(tr("u = P(chegar primeiro ao polo de dano)"),ox+bw/2,by+23,bw-30);x.textAlign="left"}
   }
   notesBand(x,notes);return c;
@@ -111,7 +119,7 @@ function terrain(x,ch,s,v,cut,color,gt,extra=[],marks=[]){
   if(gt){x.fillStyle="rgba(0,184,200,.14)";let a=-1;for(let i=0;i<=n;i++){const on=i<n&&gt[i];if(on&&a<0)a=i;if(!on&&a>=0){x.fillRect(px(s[a]),ch.Y,px(s[i-1])-px(s[a]),ch.H);a=-1}}}
   for(const m of marks){x.fillStyle="rgba(122,63,209,.13)";x.fillRect(px(s[m[0]]),ch.Y,Math.max(1,px(s[m[1]])-px(s[m[0]])),ch.H)}
   x.beginPath();x.moveTo(px(s[0]),py(0));for(let i=0;i<n;i++)x.lineTo(px(s[i]),py(v[i]));x.lineTo(px(s[n-1]),py(0));x.closePath();x.fillStyle="rgba(185,168,136,.55)";x.fill();
-  x.save();x.beginPath();x.rect(ch.X,py(1.05),ch.W,py(cut)-py(1.05));x.clip();
+  x.save();x.beginPath();x.rect(ch.X,py(1),ch.W,py(cut)-py(1));x.clip();
   x.beginPath();x.moveTo(px(s[0]),py(cut));for(let i=0;i<n;i++)x.lineTo(px(s[i]),py(Math.max(cut,v[i])));x.lineTo(px(s[n-1]),py(cut));x.closePath();x.fillStyle=color;x.globalAlpha=.8;x.fill();x.restore();
   x.beginPath();for(let i=0;i<n;i++)i?x.lineTo(px(s[i]),py(v[i])):x.moveTo(px(s[i]),py(v[i]));x.strokeStyle=C.terrainLine;x.lineWidth=1.1;x.stroke();
   x.strokeStyle=color;x.lineWidth=1.8;x.beginPath();x.moveTo(ch.X,py(cut));x.lineTo(ch.X+ch.W,py(cut));x.stroke();
@@ -127,7 +135,7 @@ export function figureProfile(B,P,i,img){
   const notes=interpretProfile(P,fmt),probe=canvas(10,10).getContext("2d");probe.font=font(15);let nl=0;for(const[t,v]of notes)nl+=wrap(probe,trf(t,v),CUT_FIG_W-90).length;
   const bandTop=CUT_FIG_H-(nl*21+44)-16,X=96,W=CUT_FIG_W-X-40,top=104,avail=bandTop-top-58,hh=(avail-44)/2;
   locator(x,img,B,P,CUT_FIG_W-40-150,10,82);
-  const xo={x0:0,x1:P.len,y0:0,y1:1.05,xdec:0,yticks:[0,.25,.5,.75,1],yfmt:v=>fmt(v,2)};
+  const xo={x0:0,x1:Math.round(P.len),y0:0,y1:1,xdec:0,xcount:6,yticks:[0,.25,.5,.75,1],yfmt:v=>fmt(v,2)};
   const c1=chart(x,X,top,W,hh,{...xo,ylabel:"escuridão",title:`${L} · ${tr("escuridão do pixel → binarização")}`});
   terrain(x,c1,P.s,P.dark,B.otsu,C.bin,P.gt,[],N.poleless);
   cutLabelBox(x,X+6,c1.py(B.otsu)-6,`${tr("corte Otsu")} ${fmt(B.otsu,2)} · ${N.binCross} ${tr("cruzamentos")}`,C.bin);
@@ -147,10 +155,9 @@ export function figureCurves(B){
   const g=B.global,cv=g.curves,{c,x}=frame("Curva de corte: área e IoU × nível",`${tr("binarização")}: ${tr("escuridão")} > t · ${tr("walker")}: u > t`);
   const notes=interpretCurves(B,fmt),probe=canvas(10,10).getContext("2d");probe.font=font(15);let nl=0;for(const[t,v]of notes)nl+=wrap(probe,trf(t,v),CUT_FIG_W-90).length;
   const bandTop=CUT_FIG_H-(nl*21+44)-16,top=110,H=bandTop-top-64,Wc=(CUT_FIG_W-96-40-80)/2;
-  const pf=v=>(v*100>=1?fmt(v*100,0):fmt(v*100,1))+" %";
-  const lo=Math.max(1e-4,Math.min(...cv.binArea,...cv.uArea,g.gtArea||1)*.7);
-  const yt=[1e-4,1e-3,1e-2,.1,1].filter(v=>v>=lo*.99);
-  const a=chart(x,96,top,Wc,H,{x0:0,x1:1,y0:lo,y1:1,log:true,yticks:yt,yfmt:pf,xlabel:"nível de corte t",ylabel:"área acima do corte (log)",title:tr("Área acima do corte (curva hipsométrica)")});
+  const pf=v=>{const q=v*100;return fmt(q,q>=1?0:q>=.1?1:q>=.01?2:3)+" %"};
+  const lo=decadeRange(Math.max(1e-5,Math.min(...cv.binArea,...cv.uArea,g.gtArea||1)),1)[0];
+  const a=chart(x,96,top,Wc,H,{x0:0,x1:1,y0:lo,y1:1,log:true,yfmt:pf,xlabel:"nível de corte t",ylabel:"área acima do corte (log)",title:tr("Área acima do corte (curva hipsométrica)")});
   const line=(ch,ys,color,w=2.4)=>{x.beginPath();cv.t.forEach((t,i)=>{const v=ch.py(Math.max(ys[i],ch===a?lo:0));i?x.lineTo(ch.px(t),v):x.moveTo(ch.px(t),v)});x.strokeStyle=color;x.lineWidth=w;x.stroke()};
   line(a,cv.binArea,C.bin);line(a,cv.uArea,C.walker);
   if(B.gt){x.setLineDash([6,4]);x.strokeStyle=C.gt;x.lineWidth=1.5;x.beginPath();x.moveTo(a.X,a.py(g.gtArea));x.lineTo(a.X+a.W,a.py(g.gtArea));x.stroke();x.setLineDash([])}
@@ -166,8 +173,8 @@ export function figureCurves(B){
   }else{
     // densidade: fração da imagem por faixa de 0,02 de nível (pixels "em cima" de cada corte)
     const dens=ys=>ys.slice(0,-1).map((v,i)=>Math.max(1e-5,v-ys[i+1])); // a última faixa acumularia toda a cauda
-    const db=dens(cv.binArea),du=dens(cv.uArea),dlo=Math.max(1e-5,Math.min(...db,...du)*.8),dt=[1e-5,1e-4,1e-3,1e-2,.1].filter(v=>v>=dlo*.99);
-    const b=chart(x,X2,top,Wc,H,{x0:0,x1:1,y0:dlo,y1:Math.max(.05,Math.max(...db,...du)*1.3),log:true,yticks:dt,yfmt:pf,xlabel:"nível de corte t",ylabel:"fração da imagem por faixa de 0,02 (log)",title:tr("Densidade de pixels por nível")});
+    const db=dens(cv.binArea),du=dens(cv.uArea),[dlo,dhi]=decadeRange(Math.max(1e-5,Math.min(...db,...du)),Math.max(...db,...du));
+    const b=chart(x,X2,top,Wc,H,{x0:0,x1:1,y0:dlo,y1:dhi,log:true,yfmt:pf,xlabel:"nível de corte t",ylabel:"fração da imagem por faixa de 0,02 (log)",title:tr("Densidade de pixels por nível")});
     const dl=(ys,color)=>{x.beginPath();cv.t.slice(0,-1).forEach((t,i)=>{const v=b.py(Math.max(ys[i],dlo));i?x.lineTo(b.px(t),v):x.moveTo(b.px(t),v)});x.strokeStyle=color;x.lineWidth=2.4;x.stroke()};
     dl(db,C.bin);dl(du,C.walker);vline(b,B.otsu,C.bin);vline(b,B.tau,C.walker);
     x.fillStyle=C.muted;x.font=font(12);x.fillText(tr("muitos pixels no nível do corte = borda instável"),b.X+8,b.Y+b.H-10,b.W-16);
@@ -180,6 +187,6 @@ function legend(x,X,Y,items){x.font=font(12);const h=items.length*18+10;x.fillSt
 
 // painel com todas as figuras (grade de 2 colunas), para baixar de uma vez
 export function figureSheet(list){
-  const cols=2,rows=Math.ceil(list.length/cols),s=.5,w=CUT_FIG_W*s,h=CUT_FIG_H*s,c=canvas(w*cols+12*(cols+1),h*rows+12*(rows+1)),x=c.getContext("2d");
+  const cols=2,rows=Math.ceil(list.length/cols),s=.5,w=CUT_FIG_W*s,h=CUT_FIG_H*s,c=surface(w*cols+12*(cols+1),h*rows+12*(rows+1)),x=c.getContext("2d");
   x.fillStyle="#e9eef0";x.fillRect(0,0,c.width,c.height);list.forEach((f,i)=>x.drawImage(f,12+(i%cols)*(w+12),12+Math.floor(i/cols)*(h+12),w,h));return c;
 }

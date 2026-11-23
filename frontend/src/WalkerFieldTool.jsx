@@ -1,5 +1,6 @@
 import React,{useCallback,useEffect,useRef,useState}from"react";
-import{ChevronLeft,ChevronRight,Download,RotateCcw,X}from"lucide-react";
+import{ChevronLeft,ChevronRight,Download,FileCode2,RotateCcw,X}from"lucide-react";
+import{svgUrl}from"./svgCanvas.js";
 import{__cdm4Test,cdm4Config,cdm4StageData}from"./cdm4Core.js";
 import{analyzeWalkerField,fieldIoU}from"./cdm4FieldAnalysis.js";
 import{classMask,usable}from"./annotationCore.js";
@@ -21,11 +22,12 @@ function gtInRoi(items,gtSize,W,F){
   const moved=sp.map(a=>({...a,points:(a.points||[]).map(([px,py])=>[(px*s-x)/k,(py*s-y)/k]),width:(a.width||2)*s/k}));
   return classMask(moved,"spalling_dark",F.n,F.n,1);
 }
+function downloadUrl(url,name){const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
 const toUrl=c=>new Promise(res=>c.toBlob(b=>res(b?URL.createObjectURL(b):c.toDataURL("image/png")),"image/png"));
 
 export default function WalkerFieldTool({active,onClose,result,file,options,canvasElement,gtItems,gtSize}){
   const[phase,setPhase]=useState("select"),[drag,setDrag]=useState(null),[figs,setFigs]=useState(null),[err,setErr]=useState(""),[info,setInfo]=useState(null),[zoom,setZoom]=useState(null);
-  const start=useRef(null),urls=useRef([]);
+  const start=useRef(null),urls=useRef([]),built=useRef(null);
   const release=()=>{for(const u of urls.current)if(u.startsWith("blob:"))URL.revokeObjectURL(u);urls.current=[]};
   useEffect(()=>{if(active){setPhase("select");setDrag(null);setFigs(null);setErr("");setZoom(null)}else release()},[active]);
   useEffect(()=>()=>release(),[]);
@@ -53,7 +55,9 @@ export default function WalkerFieldTool({active,onClose,result,file,options,canv
       await new Promise(r=>setTimeout(r,20));
       const F=analyzeWalkerField(img.data,W,H,rw,roi);
       F.iou=fieldIoU(F,gtInRoi(gtItems,gtSize,W,F));
-      const list=[figureArrows(F),figureRose(F),figureDispersion(F),figureTable(F)];
+      const builders=[()=>figureArrows(F),()=>figureRose(F),()=>figureDispersion(F),()=>figureTable(F)];
+      built.current={builders,panel:()=>figurePanel(builders.map(f=>f()))};
+      const list=builders.map(f=>f());
       release();
       const u=await Promise.all([...list,figurePanel(list)].map(toUrl));urls.current=u;
       setFigs({items:u.slice(0,4),panel:u[4]});setInfo({roi:F.roi,R:F.R,regions:F.regions.length,ms:F.ms,lang:getLang(),iou:F.iou});setZoom(null);setPhase("done");
@@ -80,16 +84,17 @@ export default function WalkerFieldTool({active,onClose,result,file,options,canv
           <div><b>{tr("Campo do walker")}</b><span>{info?.roi?.size} × {info?.roi?.size} px · R {info?.R?.toFixed(2)} · {info?.regions} {tr("região(ões)")} · {FIELD_FIGURE_SIZE} × {FIELD_FIGURE_SIZE} px</span></div>
           <button type="button" onClick={()=>{setPhase("select");setFigs(null)}}><RotateCcw size={15}/> {tr("Nova seleção")}</button>
           <a className="fieldToolBtn" href={figs.panel} download={"campo-walker-painel-"+(info?.lang||"pt")+".png"}><Download size={15}/> {tr("Painel 2×2")}</a>
+          <button type="button" title={tr("Painel 2×2 em SVG (texto editável)")} onClick={()=>downloadUrl(svgUrl(built.current.panel,tr("Campo do walker")),"campo-walker-painel-"+(info?.lang||"pt")+".svg")}><FileCode2 size={15}/> SVG</button>
           <button type="button" aria-label={tr("Fechar")} onClick={onClose}><X size={17}/></button>
         </header>
         <div className="fieldToolGrid">
-          {figs.items.map((u,i)=><figure key={i}><button type="button" className="fieldToolThumb" title={tr("Ampliar")} onClick={()=>setZoom(i)}><img src={u} alt=""/></button><a href={u} download={name(i)} title={tr("Baixar figura")}><Download size={14}/></a></figure>)}
+          {figs.items.map((u,i)=><figure key={i}><button type="button" className="fieldToolThumb" title={tr("Ampliar")} onClick={()=>setZoom(i)}><img src={u} alt=""/></button><span className="figActions"><a href={u} download={name(i)} title={tr("Baixar figura")+" (PNG)"}><Download size={14}/></a><button type="button" title={tr("Baixar figura")+" (SVG, "+tr("texto editável")+")"} onClick={()=>downloadUrl(svgUrl(built.current.builders[i]),name(i).replace(/\.png$/,".svg"))}><FileCode2 size={14}/></button></span></figure>)}
         </div>
         {zoom!=null&&<div className="fieldToolZoom" onClick={()=>setZoom(null)}>
           <button type="button" className="fieldToolNav prev" aria-label={tr("Anterior")} onClick={e=>{e.stopPropagation();setZoom((zoom+3)%4)}}><ChevronLeft size={26}/></button>
           <img src={figs.items[zoom]} alt="" onClick={e=>e.stopPropagation()}/>
           <button type="button" className="fieldToolNav next" aria-label={tr("Próxima")} onClick={e=>{e.stopPropagation();setZoom((zoom+1)%4)}}><ChevronRight size={26}/></button>
-          <div className="fieldToolZoomBar" onClick={e=>e.stopPropagation()}><span>{zoom+1} / 4</span><a href={figs.items[zoom]} download={name(zoom)}><Download size={14}/> {tr("Baixar figura")}</a><button type="button" onClick={()=>setZoom(null)}><X size={15}/> {tr("Fechar")}</button></div>
+          <div className="fieldToolZoomBar" onClick={e=>e.stopPropagation()}><span>{zoom+1} / 4</span><a href={figs.items[zoom]} download={name(zoom)}><Download size={14}/> PNG</a><button type="button" onClick={()=>downloadUrl(svgUrl(built.current.builders[zoom]),name(zoom).replace(/\.png$/,".svg"))}><FileCode2 size={14}/> SVG</button><button type="button" onClick={()=>setZoom(null)}><X size={15}/> {tr("Fechar")}</button></div>
         </div>}
       </section>
     </div>}

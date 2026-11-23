@@ -118,3 +118,15 @@ Núcleo em `cdm4CutAnalysis.js` (funções puras: `cutBase`, `profile`, `interpr
 `check-cdm4-core`), figuras em `cdm4CutFigures.js`, interface em `CutLevelTool.jsx`.
 Foto 24 (GT): binarização IoU 7,3 % (máx. 13,4 % em qualquer limiar); potencial 69,9 % (65–74 % para t ∈ [0,3; 0,7]);
 borda do walker anda 5,0 px em média entre u = 0,3 e 0,5.
+
+### Cortes com passo controlado e exportação SVG
+
+- **Ctrl (⌘) ao traçar um corte**: ângulo em múltiplos de 15° e comprimento em passos fixos (campo *Passo (Ctrl)*,
+  padrão 20 px), com leitura de comprimento e ângulo junto ao cursor — cortes do mesmo tamanho ao longo do walker.
+  Shift continua travando na horizontal/vertical. Lógica em `snapCut` (`CutLevelTool.jsx`).
+- **Eixos**: todos os gráficos terminam com valor nas duas pontas (`axisTicks`, faixas log em décadas inteiras;
+  barras de intensidade das etapas sempre com mínimo e máximo).
+- **SVG com texto editável** em todos os gráficos (Corte de nível, Campo do walker, etapas): `svgCanvas.js` implementa a
+  API do Canvas 2D usada pelas figuras e gera `<text>`, `<path>`, `<linearGradient>`, `<clipPath>`; rasters (fotos e
+  mapas de cor) entram como `<image>`. A mesma rotina desenha o PNG e o SVG. Textos com largura máxima levam
+  `textLength` (layout estável com fonte substituta; suportado por navegadores e Inkscape ≥ 1.0).

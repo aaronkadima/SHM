@@ -13,6 +13,7 @@ export function engineStagesSupported(engineId){return STAGE_ENGINES.has(engineI
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function canvas(w,h){const c=document.createElement("canvas");c.width=w;c.height=h;return c}
+import{surface,svgUrl}from"./svgCanvas.js";
 // As etapas são montadas como canvas e convertidas no fim para blobs (URL de objeto) + miniatura.
 function url(c){return c}
 async function decode(file,maxSide){
@@ -201,7 +202,7 @@ const fmt=v=>{const t=String(+Number(v).toFixed(2));return getLang()==="en"?t:t.
 // Toda etapa vira um quadro do MESMO tamanho da entrada: imagem ajustada (contain), banda inferior
 // suavemente transparente com o título e, quando a etapa é um mapa escalar, a legenda horizontal.
 export function composeStage(s,src,W,H){
-  const out=canvas(W,H),ctx=out.getContext("2d");
+  const out=surface(W,H),ctx=out.getContext("2d");
   if(!s.transparent){ctx.fillStyle="#12202a";ctx.fillRect(0,0,W,H)}
   const k=Math.min(W/src.width,H/src.height),dw=Math.round(src.width*k),dh=Math.round(src.height*k);
   ctx.imageSmoothingEnabled=!s.lowres&&k<4;ctx.imageSmoothingQuality="high";
@@ -218,10 +219,14 @@ export function composeStage(s,src,W,H){
     ctx.fillText([label.includes(tr(L.title)||"\u0000")?"":tr(L.title),tr(L.subtitle)].filter(Boolean).join(" · "),pad,y0+fs*3.2,W*.5-2*pad);
     // barra horizontal de intensidade
     const bw=Math.round(W*.42),bx=W-pad-bw,bh=Math.round(fs*.75),by=y0+Math.round(fs*1.6),span=Math.max(1e-9,L.max-L.min);
-    for(let x=0;x<bw;x++){const[r,gg,b]=ramp(L.stops,x/(bw-1));ctx.fillStyle="rgb("+r+","+gg+","+b+")";ctx.fillRect(bx+x,by,1,bh)}
+    // gradiente com 48 paradas (igual ao mapa; em SVG vira um único <linearGradient> editável)
+    const gr=ctx.createLinearGradient(bx,0,bx+bw,0);for(let i=0;i<=47;i++){const[r,gg,b]=ramp(L.stops,i/47);gr.addColorStop(i/47,"rgb("+Math.round(r)+","+Math.round(gg)+","+Math.round(b)+")")}
+    ctx.fillStyle=gr;ctx.fillRect(bx,by,bw,bh);
     ctx.strokeStyle="rgba(255,255,255,.75)";ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);
     ctx.fillStyle="#ffffff";ctx.font=Math.round(fs*.72)+"px Inter,system-ui,sans-serif";ctx.textAlign="center";
-    for(const t of L.ticks||[]){const x=Math.round(bx+(t-L.min)/span*bw);ctx.fillRect(x,by+bh,1,Math.round(fs*.3));ctx.fillText(fmt(t),Math.min(bx+bw-fs*.6,Math.max(bx+fs*.6,x)),by+bh+fs*1.15)}
+    // a escala sempre termina com valor nas duas pontas (mínimo e máximo); marcas internas muito próximas saem
+    const tk=[L.min,...(L.ticks||[]).filter(t=>t>L.min+span*.08&&t<L.max-span*.08),L.max];
+    for(const t of tk){const x=Math.round(bx+(t-L.min)/span*bw);ctx.fillRect(x,by+bh,1,Math.round(fs*.3));ctx.fillText(fmt(t),Math.min(bx+bw-fs*.6,Math.max(bx+fs*.6,x)),by+bh+fs*1.15)}
     if(L.threshold!=null){const x=Math.round(bx+(L.threshold-L.min)/span*bw);ctx.fillStyle="#00e0ff";ctx.fillRect(x-1,by-Math.round(fs*.35),3,bh+Math.round(fs*.7));
       ctx.font="600 "+Math.round(fs*.7)+"px Inter,system-ui,sans-serif";ctx.textAlign="center";ctx.fillText(tr(L.thresholdLabel||("limiar "+fmt(L.threshold))),Math.min(bx+bw-fs*2,Math.max(bx+fs*2,x)),by-Math.round(fs*.5))}
   }
@@ -234,10 +239,15 @@ async function finalize(stages){
   return Promise.all(stages.map(async(s,i)=>{
     const comp=composeStage(s,srcs[i],W,H),png=!!s.transparent;
     const[full,thumb]=await Promise.all([toBlobUrl(comp,png?"image/png":"image/jpeg"),toBlobUrl(thumbCanvas(comp),png?"image/png":"image/jpeg",.85)]);
+    STAGE_SRC.set(full,{s,src:srcs[i],W,H});
     return{...s,url:full,thumb,width:W,height:H,lowres:false};
   }));
 }
-export function releaseEngineStages(stages=[]){for(const s of stages)for(const u of [s.url,s.thumb])if(typeof u==="string"&&u.startsWith("blob:"))URL.revokeObjectURL(u)}
+// fonte de cada quadro (para SVG sob demanda: texto e legenda vetoriais, imagem embutida)
+const STAGE_SRC=new Map();
+export function stageHasSvg(stage){return!!stage&&STAGE_SRC.has(stage.url)}
+export function stageSvgUrl(stage){const e=STAGE_SRC.get(stage?.url);if(!e)return null;if(!e.s.transparent)e.src.__photo=true;return svgUrl(()=>composeStage(e.s,e.src,e.W,e.H),tr(e.s.label||""))}
+export function releaseEngineStages(stages=[]){for(const s of stages){STAGE_SRC.delete(s.url);for(const u of [s.url,s.thumb])if(typeof u==="string"&&u.startsWith("blob:"))URL.revokeObjectURL(u)}}
 
 // result: resultado oficial do motor (seu overlay vira a última etapa).
 export async function computeEngineStages(engineId,file,{options={},control={},result=null}={}){

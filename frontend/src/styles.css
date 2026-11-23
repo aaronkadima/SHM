@@ -1474,7 +1474,7 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .fieldToolGrid{display:grid;grid-template-columns:repeat(2,min(42vh,44vw));gap:8px;padding:10px;background:#12202a}
 .fieldToolGrid figure{position:relative;margin:0;aspect-ratio:1/1}
 .fieldToolGrid img{width:100%;height:100%;display:block;border-radius:6px}
-.fieldToolGrid figure a{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.9);color:#17384a}
+
 
 .fieldToolThumb{all:unset;cursor:zoom-in;display:block;width:100%}
 .fieldToolThumb img{display:block;width:100%}
@@ -1500,5 +1500,14 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .cutToolGrid{display:grid;grid-template-columns:repeat(2,min(44vw,60vh));gap:10px;padding:10px;background:#12202a;overflow:auto;max-height:calc(96vh - 64px)}
 .cutToolGrid figure{position:relative;margin:0;background:#fff;border-radius:6px;overflow:hidden}
 .cutToolGrid figcaption{padding:5px 10px;font-size:12px;font-weight:600;color:#1d2a33;background:#f3f6f7}
-.cutToolGrid figure>a{position:absolute;top:6px;right:6px;display:grid;place-items:center;width:28px;height:28px;border-radius:6px;background:rgba(18,32,42,.75);color:#fff}
+
 .fieldToolZoom>img.cutToolZoomImg{width:min(92vw,calc(84vh * 1.5));height:auto}
+
+.figActions{position:absolute;top:6px;right:6px;display:flex;gap:4px}
+.figActions a,.figActions button{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:6px;background:rgba(18,32,42,.78);color:#fff;cursor:pointer;padding:0}
+.figActions a:hover,.figActions button:hover{background:rgba(18,32,42,.95)}
+.fieldToolZoomBar button{cursor:pointer}
+.cutToolLevels input.short{width:58px}
+.cutToolReadout{position:fixed;z-index:310;pointer-events:none;padding:3px 8px;border-radius:6px;background:rgba(18,32,42,.88);color:#fff;font:600 12px Inter,system-ui,sans-serif;white-space:nowrap}
+.cutToolReadout.snap{background:#e07800}
+.fieldToolPanel header button,.cutToolPanel header button{cursor:pointer}

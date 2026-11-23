@@ -2,13 +2,14 @@
 // com a mesma banda inferior translúcida das Etapas (título + legenda horizontal) e no idioma ativo.
 import{composeStage,ramp}from"./engineStages.js";
 import{tr,getLang}from"./i18n.js";
+import{surface}from"./svgCanvas.js";
 
 export const FIELD_FIGURE_SIZE=640;
 const VIRIDIS=[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
 const MAGMA=[[0,0,4],[59,15,112],[140,41,129],[222,73,104],[254,159,109],[252,253,191]];
 const num=(v,d=2)=>{const t=Number(v).toFixed(d);return getLang()==="en"?t:t.replace(".",",")};
 function canvas(w,h){const c=document.createElement("canvas");c.width=w;c.height=h;return c}
-function cropCanvas(F){const c=canvas(F.n,F.n);c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(F.img),F.n,F.n),0,0);return c}
+function cropCanvas(F){const c=canvas(F.n,F.n);c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(F.img),F.n,F.n),0,0);c.__photo=true;return c}
 // contorno de uma máscara binária desenhado como arestas entre pixel dentro/fora
 function drawContour(ctx,mask,n,s,color,width,dash=null){
   ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;if(dash)ctx.setLineDash(dash);ctx.beginPath();
@@ -20,7 +21,7 @@ function drawContour(ctx,mask,n,s,color,width,dash=null){
   ctx.stroke();ctx.restore();
 }
 function base(F,S,dim=.25){
-  const c=canvas(S,S),ctx=c.getContext("2d");ctx.imageSmoothingEnabled=F.n<S;ctx.drawImage(cropCanvas(F),0,0,S,S);
+  const c=surface(S,S),ctx=c.getContext("2d");ctx.imageSmoothingEnabled=F.n<S;ctx.drawImage(cropCanvas(F),0,0,S,S);
   if(dim>0){ctx.fillStyle="rgba(10,20,28,"+dim+")";ctx.fillRect(0,0,S,S)}return{c,ctx,s:S/F.n};
 }
 function compose(label,src,S){return composeStage({label},src,S,S)}
@@ -50,7 +51,7 @@ export function figureArrows(F,S=FIELD_FIGURE_SIZE){
 
 // 2 · rosa do desvio angular (0° = saindo do polo de dano), ponderada por |∇u|
 export function figureRose(F,S=FIELD_FIGURE_SIZE){
-  const c=canvas(S,S),ctx=c.getContext("2d");ctx.fillStyle="#12202a";ctx.fillRect(0,0,S,S);
+  const c=surface(S,S),ctx=c.getContext("2d");ctx.fillStyle="#12202a";ctx.fillRect(0,0,S,S);
   const cx=S/2,cy=S*.44,Rm=S*.34,h=F.hist,mx=Math.max(1e-12,...h),nb=h.length;
   ctx.strokeStyle="rgba(255,255,255,.18)";ctx.lineWidth=1;for(const f of [.25,.5,.75,1]){ctx.beginPath();ctx.arc(cx,cy,Rm*f,0,2*Math.PI);ctx.stroke()}
   for(let a=0;a<360;a+=45){const t=a*Math.PI/180;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Rm*Math.sin(t),cy-Rm*Math.cos(t));ctx.stroke()}
@@ -80,7 +81,7 @@ export function figureDispersion(F,S=FIELD_FIGURE_SIZE){
 
 // 4 · tabela de coerência por região
 export function figureTable(F,S=FIELD_FIGURE_SIZE){
-  const c=canvas(S,S),ctx=c.getContext("2d");ctx.fillStyle="#12202a";ctx.fillRect(0,0,S,S);
+  const c=surface(S,S),ctx=c.getContext("2d");ctx.fillStyle="#12202a";ctx.fillRect(0,0,S,S);
   const fs=Math.round(S*.025),pad=Math.round(S*.05);let y=pad+fs;
   ctx.fillStyle="#e7f0f2";ctx.font="600 "+Math.round(fs*1.05)+"px Inter,system-ui,sans-serif";ctx.textAlign="left";
   ctx.fillText(tr("Área selecionada")+": "+F.roi.size+" × "+F.roi.size+" px · ("+F.roi.x+", "+F.roi.y+")",pad,y);y+=fs*1.5;
@@ -120,5 +121,5 @@ export function figureTable(F,S=FIELD_FIGURE_SIZE){
 }
 
 export function figurePanel(figs,S=FIELD_FIGURE_SIZE){
-  const c=canvas(2*S,2*S),ctx=c.getContext("2d");figs.forEach((f,i)=>ctx.drawImage(f,(i%2)*S,Math.floor(i/2)*S,S,S));return c;
+  const c=surface(2*S,2*S),ctx=c.getContext("2d");figs.forEach((f,i)=>ctx.drawImage(f,(i%2)*S,Math.floor(i/2)*S,S,S));return c;
 }

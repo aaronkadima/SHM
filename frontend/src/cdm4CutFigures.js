@@ -3,6 +3,7 @@
 import{tr,getLang}from"./i18n.js";
 import{interpretMaps,interpretProfile,interpretCurves,widthText,measureRows}from"./cdm4CutAnalysis.js";
 import{surface}from"./svgCanvas.js";
+import{scaleSpread,rectify}from"./measureGeometry.js";
 
 export const CUT_FIG_W=1200,CUT_FIG_H=800;
 const LOC={pt:"pt-BR",en:"en-US",es:"es-ES",fr:"fr-FR"};
@@ -147,7 +148,7 @@ export function figureProfile(B,P,i,img){
   for(const l of B.levels)if(Math.abs(l-B.tau)>1e-6){x.fillStyle=C.walker;x.font=font(11);x.fillText(`${tr("nível")} ${fmt(l,1)}`,X+W-60,c2.py(l)-4)}
   // cotas de largura: fronteiras em u = τ (traço cheio) e faixa entre os níveis (traço fino)
   N.regions.forEach((r,ri)=>{
-    const a=c2.px(r.sL),b=c2.px(r.sR),y=c2.py(.9),txt="R"+(ri+1)+" · "+fmt(r.width,1)+" px"+(N.mmPerPx?" · "+fmt(r.width*N.mmPerPx,1)+" mm":"")+(r.open?" *":"");
+    const a=c2.px(r.sL),b=c2.px(r.sR),y=c2.py(.9),txt="R"+(ri+1)+" · "+fmt(r.width,1)+" px"+(r.width_mm!=null?" · "+fmt(r.width_mm,1)+" mm":"")+(r.open?" *":"");
     x.save();x.strokeStyle="#1d2a33";x.fillStyle="#1d2a33";x.lineWidth=1.4;
     for(const xx of[a,b]){x.setLineDash([3,3]);x.beginPath();x.moveTo(xx,c2.py(B.tau));x.lineTo(xx,y-8);x.stroke();x.setLineDash([])}
     x.beginPath();x.moveTo(a,y);x.lineTo(b,y);x.stroke();
@@ -205,11 +206,11 @@ export function figureSheet(list){
 
 // tabela de medidas de todos os cortes (largura em τ, faixa entre os níveis, mm quando há escala)
 export function figureMeasures(B,P,labelOf=cutLabel){
-  const rows=measureRows(P,labelOf),mm=B.mmPerPx>0,{c,x}=frame("Medidas ao longo dos cortes",`u = ${fmt(B.tau,1)} · ${tr("faixa entre os níveis")} ${fmt(B.levels[0],1)} ${tr("e")} ${fmt(B.levels[B.levels.length-1],1)}`+(mm?` · ${fmt(B.mmPerPx,3)} mm/px`:` · ${tr("sem calibração de escala")}`));
+  const rows=measureRows(P,labelOf),mm=!!B.metric,{c,x}=frame("Medidas ao longo dos cortes",`u = ${fmt(B.tau,1)} · ${tr("faixa entre os níveis")} ${fmt(B.levels[0],1)} ${tr("e")} ${fmt(B.levels[B.levels.length-1],1)} · `+scaleText(B.metric));
   const notes=[["As fronteiras são os pontos em que o potencial cruza τ, interpolados entre pixels; a faixa é a menor e a maior largura entre os níveis escolhidos.",{}],
     ["Faixa estreita = encosta íngreme, medida firme; faixa larga = platô, onde a borda depende do limiar.",{}],
     ...(rows.some(r=>r.open)?[["* região truncada pela ponta do corte: prolongue a linha para medir.",{}]]:[]),
-    ...(mm?[["Conversão em mm válida para foto de frente para a superfície; com perspectiva, a escala muda ao longo da imagem.",{}]]:[["Sem calibração de escala, as larguras ficam em pixels (informe mm/px nas configurações).",{}]])];
+    ...(B.metric?.kind==="homography"?[["Conversão em mm pela homografia dos 4 pontos: corrige a perspectiva, válida para pontos no plano do retângulo de referência.",{}]]:mm?[["Conversão em mm válida para foto de frente para a superfície; com perspectiva, use a calibração por 4 pontos.",{}]]:[["Sem calibração de escala, as larguras ficam em pixels (informe mm/px nas configurações ou calibre por 4 pontos).",{}]])];
   const probe=canvas(10,10).getContext("2d");probe.font=font(15);let nl=0;for(const[t,v]of notes)nl+=wrap(probe,trf(t,v),CUT_FIG_W-90).length;
   const bandTop=CUT_FIG_H-(nl*21+44)-16,top=104,X=40,Wt=CUT_FIG_W-80;
   const cols=mm?[["Corte",.08],["Região",.08],["Largura (px)",.14],["Faixa (px)",.2],["Largura (mm)",.14],["Faixa (mm)",.2],["Início → fim (px)",.16]]:[["Corte",.1],["Região",.1],["Largura (px)",.2],["Faixa (px)",.25],["Início → fim (px)",.35]];
@@ -242,19 +243,26 @@ export function figureMeasures(B,P,labelOf=cutLabel){
 
 // ---------- largura de fissura (perfil perpendicular) ----------
 export const crackLabel=i=>"F"+(i+1);
-export function interpretCrack(K,mm,f){
+export const distLabel=i=>"D"+(i+1);
+// texto curto da escala em uso (subtítulos e CSV)
+export function scaleText(metric){
+  if(!metric)return tr("sem calibração de escala");
+  if(metric.kind==="homography"){const sc=metric.scale;return `${tr("perspectiva corrigida")} (4 ${tr("pontos")}, ${fmt(sc.wmm,0)} × ${fmt(sc.hmm,0)} mm)`}
+  return `${fmt(metric.scale?.mmPerPx??0,3)} mm/px`;
+}
+export function interpretCrack(K,f){
   const S=K.summary,o=[];if(!S||!S.valid)return[["Nenhum vale escuro com contraste suficiente ao longo do eixo: confira se a linha segue a fissura.",{}]];
-  const u=v=>f(v,1)+" px"+(mm?" ("+f(v*mm,2)+" mm)":"");
-  o.push(["Largura a meia profundidade (FWHM): mediana {med}, p10–p90 {p10}–{p90}, máxima {max}; {v} de {n} perfis válidos.",{med:u(S.median),p10:f(S.p10,1),p90:f(S.p90,1),max:u(S.max),v:S.valid,n:S.n}]);
-  o.push(["Largura equivalente (área do vale ÷ profundidade): mediana {eq}; profundidade do vale {d} níveis de cinza.",{eq:u(S.eqMedian),d:f(S.depthMedian,0)}]);
-  if(S.belowResolution)o.push(["Mediana abaixo de ~3 px: a fissura está no limite de resolução e o borramento da óptica alarga o vale. O valor é um teto (abertura real ≤ {max}); aproxime a câmera para medir.",{max:u(S.median)}]);
+  const M=S.mm,mm=!!M,u=(v,mv)=>f(v,1)+" px"+(M&&mv!=null?" ("+f(mv,2)+" mm)":"");
+  o.push(["Largura a meia profundidade (FWHM): mediana {med}, p10–p90 {p10}–{p90}, máxima {max}; {v} de {n} perfis válidos.",{med:u(S.median,M?.median),p10:f(S.p10,1),p90:f(S.p90,1),max:u(S.max,M?.max),v:S.valid,n:S.n}]);
+  o.push(["Largura equivalente (área do vale ÷ profundidade): mediana {eq}; profundidade do vale {d} níveis de cinza.",{eq:u(S.eqMedian,M?.eqMedian),d:f(S.depthMedian,0)}]);
+  if(S.belowResolution)o.push(["Mediana abaixo de ~3 px: a fissura está no limite de resolução e o borramento da óptica alarga o vale. O valor é um teto (abertura real ≤ {max}); aproxime a câmera para medir.",{max:u(S.median,M?.median)}]);
   else o.push(["Fissura resolvida (≥ 3 px): em teste com fissuras sintéticas de largura conhecida, o erro foi menor que 0,5 px.",{}]);
   if(!mm)o.push(["Sem calibração de escala, a largura fica em pixels (informe mm/px nas configurações).",{}]);
   return o;
 }
-export function figureCrack(K,i,img,mm=0){
-  const S=K.summary||{},a=K.axis,{c,x}=frame(`${tr("Largura de fissura")} ${crackLabel(i)}`,`(${fmt(a.x1,0)}, ${fmt(a.y1,0)}) → (${fmt(a.x2,0)}, ${fmt(a.y2,0)}) · ${fmt(K.len,0)} px · ${tr("perfis a cada")} ${fmt(K.opts.step,0)} px · ±${fmt(K.opts.R,0)} px`+(mm?` · ${fmt(mm,3)} mm/px`:""));
-  const notes=interpretCrack(K,mm,fmt),probe=canvas(10,10).getContext("2d");probe.font=font(15);let nl=0;for(const[t,v]of notes)nl+=wrap(probe,trf(t,v),CUT_FIG_W-90).length;
+export function figureCrack(K,i,img,metric=null){
+  const S=K.summary||{},a=K.axis,{c,x}=frame(`${tr("Largura de fissura")} ${crackLabel(i)}`,`(${fmt(a.x1,0)}, ${fmt(a.y1,0)}) → (${fmt(a.x2,0)}, ${fmt(a.y2,0)}) · ${fmt(K.len,0)} px · ${tr("perfis a cada")} ${fmt(K.opts.step,0)} px · ±${fmt(K.opts.R,0)} px · `+scaleText(metric));
+  const notes=interpretCrack(K,fmt),probe=canvas(10,10).getContext("2d");probe.font=font(15);let nl=0;for(const[t,v]of notes)nl+=wrap(probe,trf(t,v),CUT_FIG_W-90).length;
   const bandTop=CUT_FIG_H-(nl*21+44)-16,top=100,bodyH=bandTop-top-20;
   // recorte da foto em volta do eixo, com as bordas encontradas em cada perfil
   const pad=K.opts.R+12,bx0=Math.max(0,Math.min(a.x1,a.x2)-pad),by0=Math.max(0,Math.min(a.y1,a.y2)-pad),bx1=Math.min(img.width,Math.max(a.x1,a.x2)+pad),by1=Math.min(img.height,Math.max(a.y1,a.y2)+pad);
@@ -277,7 +285,7 @@ export function figureCrack(K,i,img,mm=0){
       x.fillStyle=C.bin;x.font=font(11,600);x.textAlign="right";x.fillText(tr("limite de resolução ≈ 3 px"),c1.X+c1.W-6,c1.py(K.opts.resolutionPx)-4);x.textAlign="left"}
     x.strokeStyle="#7a3fd1";x.lineWidth=1.6;x.beginPath();let first=true;for(const s of K.stations){if(!s.valid){first=true;continue}const p=[c1.px(s.s),c1.py(Math.min(ymax,s.fwhm))];first?x.moveTo(...p):x.lineTo(...p);first=false}x.stroke();
     x.setLineDash([2,3]);x.strokeStyle="#1d2a33";x.beginPath();x.moveTo(c1.X,c1.py(S.median));x.lineTo(c1.X+c1.W,c1.py(S.median));x.stroke();x.setLineDash([]);
-    x.fillStyle="#1d2a33";x.font=font(11,700);x.fillText(`${tr("mediana")} ${fmt(S.median,1)} px`+(mm?` · ${fmt(S.median*mm,2)} mm`:""),c1.X+6,c1.py(S.median)-5);
+    x.fillStyle="#1d2a33";x.font=font(11,700);x.fillText(`${tr("mediana")} ${fmt(S.median,1)} px`+(S.mm?` · ${fmt(S.mm.median,2)} mm`:""),c1.X+6,c1.py(S.median)-5);
     // perfil médio alinhado no vale
     const pr=K.profile,mn=Math.min(...pr.I),c2=chart(x,X2,top+h1+70,W2,h2,{x0:-K.opts.R,x1:K.opts.R,y0:-niceUp(-mn*1.1),y1:niceUp(Math.max(10,-mn*.25)),xdec:0,xlabel:"deslocamento perpendicular ao eixo (px)",ylabel:"cinza − fundo",yfmt:v=>fmt(v,0),title:tr("Perfil médio alinhado no vale")});
     x.strokeStyle=C.terrainLine;x.lineWidth=1.8;x.beginPath();pr.d.forEach((d,j)=>{const p=[c2.px(d),c2.py(pr.I[j])];j?x.lineTo(...p):x.moveTo(...p)});x.stroke();
@@ -287,8 +295,80 @@ export function figureCrack(K,i,img,mm=0){
   }
   notesBand(x,notes);return c;
 }
-export function crackCsv(K,mm){
-  const h=["fissura","estacao","s_px","x_px","y_px","valido","fwhm_px","larg_equivalente_px","profundidade","fwhm_mm","mm_por_px"],n=v=>v==null?"":(+v).toFixed(2),rows=[h.join(";")];
-  K.forEach((k,i)=>k.stations.forEach((s,j)=>rows.push([crackLabel(i),j+1,n(s.s),n(s.x),n(s.y),s.valid?"sim":"nao",s.valid?n(s.fwhm):"",s.valid?n(s.eq):"",n(s.depth),s.valid&&mm?n(s.fwhm*mm):"",mm||""].join(";"))));
+export function crackCsv(K,scaleLabel=""){
+  const h=["fissura","estacao","s_px","x_px","y_px","valido","fwhm_px","larg_equivalente_px","profundidade","fwhm_mm","larg_equivalente_mm","escala"],n=v=>v==null?"":(+v).toFixed(3),rows=[h.join(";")];
+  K.forEach((k,i)=>k.stations.forEach((s,j)=>rows.push([crackLabel(i),j+1,n(s.s),n(s.x),n(s.y),s.valid?"sim":"nao",s.valid?n(s.fwhm):"",s.valid?n(s.eq):"",n(s.depth),s.valid?n(s.fwhm_mm):"",s.valid?n(s.eq_mm):"",scaleLabel].join(";"))));
   return rows.join("\n")+"\n";
+}
+
+// ---------- menor distância entre contornos ----------
+const CLS_NAME={spalling_dark:"Desplacamento",exposed_rebar:"Armadura exposta",cracks:"Fissura",corrosion_rust:"Corrosão",efflorescence_white:"Eflorescência"};
+export function figureDistances(D,img,metric){
+  const{c,x}=frame("Menor distância entre contornos",`${D.length} ${tr("par(es)")} · `+scaleText(metric));
+  const notes=[["A distância é a menor entre os pixels de borda dos dois contornos{plane}; a precisão é de cerca de 1 px na imagem.",{plane:metric?.kind==="homography"?tr(", procurada no plano retificado (perspectiva corrigida)"):""}],
+    ...(D.some(d=>d.res?.overlap)?[["Distância 0 = contornos em contato ou sobrepostos (por exemplo, armadura dentro do desplacamento).",{}]]:[]),
+    ...(D.some(d=>!d.A||!d.B)?[["Par sem contorno: o clique não caiu sobre nem perto (20 px) de uma região detectada.",{}]]:[]),
+    ...(!metric?[["Sem calibração de escala, as distâncias ficam em pixels (informe mm/px nas configurações ou calibre por 4 pontos).",{}]]:[])];
+  const probe=canvas(10,10).getContext("2d");probe.font=font(15);let nl=0;for(const[t,v]of notes)nl+=wrap(probe,trf(t,v),CUT_FIG_W-90).length;
+  const bandTop=CUT_FIG_H-(nl*21+44)-16,top=96,bodyH=bandTop-top-16,PW=520,k=Math.min(PW/img.width,bodyH/img.height),pw=img.width*k,ph=img.height*k,ox=32+(PW-pw)/2,oy=top;
+  x.drawImage(baseCanvas(img),ox,oy,pw,ph);x.fillStyle="rgba(10,20,28,.25)";x.fillRect(ox,oy,pw,ph);
+  const ring=(R,col)=>{if(!R)return;const step=Math.max(1,Math.round(1/k));x.fillStyle=col;const[x0,y0,x1,y1]=R.bbox;
+    for(let y=y0;y<=y1;y+=step)for(let xx=x0;xx<=x1;xx+=step){const i=y*img.width+xx;if(!R.comp[i])continue;const e=xx===0||y===0||!R.comp[i-1]||!R.comp[i+1]||!R.comp[i-img.width]||!R.comp[i+img.width];
+      if(e)x.fillRect(ox+xx*k-1,oy+y*k-1,2,2)}};
+  D.forEach((d,i)=>{ring(d.A,"#4fe08a");ring(d.B,"#ff5fd2");if(!d.res)return;const a=[ox+d.res.a[0]*k,oy+d.res.a[1]*k],b=[ox+d.res.b[0]*k,oy+d.res.b[1]*k];
+    x.strokeStyle="#fff";x.lineWidth=2.5;x.beginPath();x.moveTo(...a);x.lineTo(...b);x.stroke();x.fillStyle="#fff";for(const p of[a,b]){x.beginPath();x.arc(p[0],p[1],3.5,0,2*Math.PI);x.fill()}
+    x.font=font(13,800);x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.75)";const m=[(a[0]+b[0])/2+6,(a[1]+b[1])/2-6];x.strokeText(distLabel(i),...m);x.fillStyle="#f2c200";x.fillText(distLabel(i),...m)});
+  x.strokeStyle="rgba(29,42,51,.35)";x.strokeRect(ox,oy,pw,ph);
+  x.font=font(11);x.fillStyle=C.muted;x.fillText(tr("verde = primeiro contorno · rosa = segundo · branco = menor distância"),32,oy+ph+14,PW);
+  // tabela
+  const X=32+PW+40,Wt=CUT_FIG_W-X-32,rh=28,cols=[["Par",.12],["Contornos",.42],["Distância (px)",.22],["Distância (mm)",.24]];
+  let cx=X;const colX=cols.map(([,w])=>{const p=cx;cx+=w*Wt;return p});
+  x.fillStyle="#e9eff1";x.fillRect(X,top,Wt,rh);x.fillStyle="#1d2a33";x.font=font(13,700);x.textBaseline="middle";cols.forEach(([t],j)=>x.fillText(tr(t),colX[j]+8,top+rh/2,cols[j][1]*Wt-12));
+  x.font=font(13);D.slice(0,Math.floor((bodyH-rh)/rh)).forEach((d,i)=>{const y=top+rh*(i+1);if(i%2){x.fillStyle="#f6f8f9";x.fillRect(X,y,Wt,rh)}x.fillStyle="#1d2a33";
+    const pair=d.A&&d.B?tr(CLS_NAME[d.A.cls]||d.A.cls)+" ↔ "+tr(CLS_NAME[d.B.cls]||d.B.cls):tr("contorno não encontrado");
+    [distLabel(i),pair,d.res?fmt(d.res.d_px,1):"—",d.res&&d.res.d_mm!=null?fmt(d.res.d_mm,1):"—"].forEach((t,j)=>x.fillText(t,colX[j]+8,y+rh/2,cols[j][1]*Wt-12))});
+  const nRows=Math.min(D.length,Math.floor((bodyH-rh)/rh));
+  x.strokeStyle="rgba(29,42,51,.25)";x.strokeRect(X,top,Wt,rh*(nRows+1));x.textBaseline="alphabetic";
+  // zoom em torno do segmento mínimo (até dois pares)
+  const zs=D.filter(d=>d.res&&!d.res.overlap).slice(0,2),zTop=top+rh*(nRows+1)+40,zH=bandTop-zTop-36;
+  if(zs.length&&zH>120){const gap=24,zW=(Wt-gap*(zs.length-1))/zs.length,side=Math.min(zW,zH);
+    zs.forEach((d,j)=>{const i=D.indexOf(d),mx=(d.res.a[0]+d.res.b[0])/2,my=(d.res.a[1]+d.res.b[1])/2,half=Math.max(30,d.res.d_px*1.1),
+      sx=Math.max(0,mx-half),sy=Math.max(0,my-half),sw=Math.min(img.width-sx,2*half),sh=Math.min(img.height-sy,2*half),kk=side/Math.max(sw,sh),zx=X+j*(zW+gap),zy=zTop;
+      x.drawImage(baseCanvas(img),sx,sy,sw,sh,zx,zy,sw*kk,sh*kk);
+      const ringZ=(R,col)=>{if(!R)return;x.fillStyle=col;for(let y=Math.floor(sy);y<sy+sh;y++)for(let xx=Math.floor(sx);xx<sx+sw;xx++){const q=y*img.width+xx;if(!R.comp[q])continue;
+        if(!R.comp[q-1]||!R.comp[q+1]||!R.comp[q-img.width]||!R.comp[q+img.width])x.fillRect(zx+(xx-sx)*kk,zy+(y-sy)*kk,Math.max(1.5,kk),Math.max(1.5,kk))}};
+      ringZ(d.A,"#4fe08a");ringZ(d.B,"#ff5fd2");
+      const a=[zx+(d.res.a[0]-sx+.5)*kk,zy+(d.res.a[1]-sy+.5)*kk],b=[zx+(d.res.b[0]-sx+.5)*kk,zy+(d.res.b[1]-sy+.5)*kk];
+      x.strokeStyle="#fff";x.lineWidth=2.5;x.beginPath();x.moveTo(...a);x.lineTo(...b);x.stroke();
+      x.strokeStyle="rgba(29,42,51,.35)";x.lineWidth=1;x.strokeRect(zx,zy,sw*kk,sh*kk);
+      x.fillStyle=C.ink;x.font=font(13,600);x.fillText(`${distLabel(i)} · ${fmt(d.res.d_px,1)} px`+(d.res.d_mm!=null?` · ${fmt(d.res.d_mm,1)} mm`:""),zx,zy-8,zW)})}
+  notesBand(x,notes);return c;
+}
+export function distancesCsv(D,scaleLabel=""){
+  const n=v=>v==null?"":(+v).toFixed(2),rows=[["par","contorno_1","contorno_2","x1_px","y1_px","x2_px","y2_px","distancia_px","distancia_mm","contato","escala"].join(";")];
+  D.forEach((d,i)=>rows.push([distLabel(i),d.A?.cls||"",d.B?.cls||"",n(d.res?.a[0]),n(d.res?.a[1]),n(d.res?.b[0]),n(d.res?.b[1]),n(d.res?.d_px),n(d.res?.d_mm),d.res?.overlap?"sim":"nao",scaleLabel].join(";")));
+  return rows.join("\n")+"\n";
+}
+
+// ---------- escala e perspectiva ----------
+export function figureScale(metric,img){
+  const sc=metric.scale,q=sc.quad,sp=scaleSpread(metric,q),{c,x}=frame("Escala e correção de perspectiva",scaleText(metric));
+  const notes=[["Retângulo de referência de {w} × {h} mm marcado por 4 pontos; a homografia leva cada ponto da imagem ao plano da superfície em mm.",{w:fmt(sc.wmm,0),h:fmt(sc.hmm,0)}],
+    ["Dentro do retângulo, a escala local varia de {a} a {b} mm/px ({p} de variação): é o erro que uma escala única cometeria.",{a:fmt(sp.min,3),b:fmt(sp.max,3),p:fmt(sp.spread*100,0)+" %"}],
+    ["Confira a vista retificada: o retângulo deve aparecer com ângulos retos e proporção {w} : {h}. Medidas fora do plano do retângulo (relevo, outra face) não são corrigidas.",{w:fmt(sc.wmm,0),h:fmt(sc.hmm,0)}]];
+  const probe=canvas(10,10).getContext("2d");probe.font=font(15);let nl=0;for(const[t,v]of notes)nl+=wrap(probe,trf(t,v),CUT_FIG_W-90).length;
+  const bandTop=CUT_FIG_H-(nl*21+44)-16,top=96,bodyH=bandTop-top-24,PW=540,k=Math.min(PW/img.width,bodyH/img.height),pw=img.width*k,ph=img.height*k,ox=32+(PW-pw)/2,oy=top;
+  x.drawImage(baseCanvas(img),ox,oy,pw,ph);
+  x.fillStyle="rgba(0,224,255,.05)";x.strokeStyle="#00e0ff";x.lineWidth=2;x.beginPath();q.forEach((p,i)=>i?x.lineTo(ox+p[0]*k,oy+p[1]*k):x.moveTo(ox+p[0]*k,oy+p[1]*k));x.closePath();x.fill();x.stroke();
+  x.font=font(13,800);q.forEach((p,i)=>{const X=ox+p[0]*k,Y=oy+p[1]*k;x.fillStyle="#00e0ff";x.beginPath();x.arc(X,Y,4,0,2*Math.PI);x.fill();x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.75)";x.strokeText(String(i+1),X+6,Y-6);x.fillStyle="#fff";x.fillText(String(i+1),X+6,Y-6)});
+  x.strokeStyle="rgba(29,42,51,.35)";x.lineWidth=1;x.strokeRect(ox,oy,pw,ph);
+  x.fillStyle=C.ink;x.font=font(13,600);x.fillText(tr("Foto com o retângulo de referência"),ox,oy-8);
+  const R=rectify(img,metric,Math.min(CUT_FIG_W-32-PW-80,bodyH));
+  if(R){const X=32+PW+50,Wr=CUT_FIG_W-X-32,kk=Math.min(Wr/R.width,(bodyH-40)/R.height),rw=R.width*kk,rh=R.height*kk,Y=top+(bodyH-40-rh)/2+10;
+    const cv=canvas(R.width,R.height);cv.getContext("2d").putImageData(new ImageData(R.data,R.width,R.height),0,0);cv.__photo=true;x.drawImage(cv,X,Y,rw,rh);
+    x.strokeStyle="#00e0ff";x.lineWidth=2;x.strokeRect(X,Y,rw,rh);
+    x.strokeStyle="rgba(255,255,255,.55)";x.lineWidth=1;x.setLineDash([4,4]);for(let i=1;i<4;i++){x.beginPath();x.moveTo(X+rw*i/4,Y);x.lineTo(X+rw*i/4,Y+rh);x.stroke();x.beginPath();x.moveTo(X,Y+rh*i/4);x.lineTo(X+rw,Y+rh*i/4);x.stroke()}x.setLineDash([]);
+    x.fillStyle=C.ink;x.font=font(13,600);x.fillText(tr("Vista retificada (de frente)"),X,Y-8);x.fillStyle=C.muted;x.font=font(12);x.textAlign="center";
+    x.fillText(fmt(sc.wmm,0)+" mm",X+rw/2,Y+rh+18);x.save();x.translate(X-10,Y+rh/2);x.rotate(-Math.PI/2);x.fillText(fmt(sc.hmm,0)+" mm",0,0);x.restore();x.textAlign="left"}
+  notesBand(x,notes);return c;
 }

@@ -1529,3 +1529,6 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .cutToolMode button{padding:4px 10px!important;background:transparent!important}
 .cutToolMode button.on{background:#f2c200!important;color:#1d2a33!important}
 .cutToolMode button.crack.on{background:#b06cff!important;color:#fff!important}
+
+.cutToolMode button.dist.on{background:#4fe08a!important;color:#0b1a22!important}
+.cutToolMode button.scale.on{background:#00e0ff!important;color:#0b1a22!important}

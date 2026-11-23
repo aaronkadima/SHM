@@ -160,3 +160,17 @@ max(8 níveis, 3·MAD do fundo); FWHM interpolada; largura equivalente = área d
 Fissuras sintéticas (PSF σ = 1 px): 3 px → 3,44; 5 → 5,05; 8 → 7,99; 12 → 11,97; 1 e 2 px → 2,65 e 2,93
 (abaixo da resolução, sinalizado quando a mediana < 3 px: o valor vira teto). Fissura real da foto 24 (546,1447)→(549,1540):
 mediana ≈ 2,7–2,9 px, sinalizada.
+
+### Menor distância entre contornos e correção de perspectiva
+
+`measureGeometry.js`:
+- **Escala**: `makeMetric({kind:"homography",quad,wmm,hmm})` (DLT com 4 pares; quadrilátero convexo exigido) ou
+  `{kind:"mmpx",mmPerPx}`. Todas as medidas usam `metric.len(p,q)`: larguras dos cortes (pontos das fronteiras),
+  largura de fissura por perfil (bordas FWHM) e distâncias. `scaleSpread` dá a variação da escala local no retângulo;
+  `rectify` gera a vista de frente para conferência. Calibração guardada por foto (`localStorage`, nome + tamanho).
+- **Distância**: `pickComponent` (clique sobre ou a ≤ 20 px; prioridade armadura → desplacamento → corrosão →
+  eflorescência → fissura), `minDistance` nos pixels de borda com grade de busca, no plano retificado quando há
+  homografia; 0 = contato. Figura **Distâncias** (mapa, tabela, zoom) e CSV.
+- Validação: homografia sintética recupera distâncias com erro < 1e-6 mm; dois discos a 65 px → 65 px exatos.
+  Foto 24 em perspectiva (topo estreitado, 600 × 900 mm): distância entre desplacamentos 31,01 mm (verdade dos mesmos
+  pontos 30,98 mm); escala única 34,88 mm; foto de frente 26,65 mm (diferença = contorno detectado, 3–5 px por borda).

@@ -252,3 +252,24 @@ console.log("live filters ok");
   const rows=measureRows([P]);assert.ok(Math.abs(rows[0].width_mm-R[0].width*.5)<1e-9);
 }
 console.log("crack width + cut widths ok");
+
+// Escala por 4 pontos (homografia) e menor distância entre contornos
+{
+  const G=await import("../src/measureGeometry.js");
+  const H0=[0.62,0.08,120,-0.05,0.55,90,0.00018,0.00025,1],toImg=(u,v)=>G.applyH(H0,u,v);
+  const quad=[[0,0],[1000,0],[1000,600],[0,600]].map(([u,v])=>toImg(u,v)),M=G.makeMetric({kind:"homography",quad,wmm:1000,hmm:600});
+  assert.ok(M&&M.kind==="homography");let s=11;const rnd=()=>{s=(s*1103515245+12345)%2147483648;return s/2147483648};
+  for(let k=0;k<50;k++){const a=[rnd()*1000,rnd()*600],b=[rnd()*1000,rnd()*600];assert.ok(Math.abs(M.len(toImg(...a),toImg(...b))-Math.hypot(b[0]-a[0],b[1]-a[1]))<1e-6,"homografia recupera mm")}
+  const sp=G.scaleSpread(M,quad);assert.ok(sp.spread>.3,"perspectiva forte detectada: "+sp.spread);
+  assert.equal(G.makeMetric({kind:"homography",quad:[[0,0],[10,0],[10,0],[0,10]],wmm:1,hmm:1}),null,"quadrilátero degenerado recusado");
+  const w=240,h=120,m=new Uint8Array(w*h),m2=new Uint8Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(Math.hypot(x-60,y-60)<=20)m[y*w+x]=1;if(Math.hypot(x-160,y-60)<=15)m2[y*w+x]=1}
+  const masks={spalling_dark:m,cracks:m2},A=G.pickComponent(masks,w,h,60,60),B=G.pickComponent(masks,w,h,175,75);
+  assert.equal(A.cls,"spalling_dark");assert.equal(B.cls,"cracks");assert.ok(B.distance>0,"clique perto (não sobre) o contorno");
+  const D=G.minDistance(A,B,w,h,G.makeMetric({kind:"mmpx",mmPerPx:.5}));assert.equal(D.d_px,65);assert.equal(D.d_mm,32.5);assert.equal(D.overlap,false);
+  const ov=new Uint8Array(w*h);for(let i=0;i<w*h;i++)ov[i]=m[i];const inner=new Uint8Array(w*h);for(let y=55;y<65;y++)for(let x=55;x<65;x++)inner[y*w+x]=1;
+  const R=G.pickComponent({exposed_rebar:inner,spalling_dark:ov},w,h,60,60);assert.equal(R.cls,"exposed_rebar","armadura tem prioridade no clique");
+  assert.equal(G.minDistance(R,A,w,h).d_px,0,"contornos sobrepostos → 0");
+  assert.equal(G.pickComponent(masks,w,h,120,10),null,"clique longe de tudo → nada");
+}
+console.log("homography + contour distance ok");

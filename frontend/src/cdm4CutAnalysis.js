@@ -42,12 +42,12 @@ export function upsamplePotential(rw,w,h){
   return u;
 }
 
-export function cutBase(rgba,w,h,rw,{gt=null,levels=CUT_DEFAULTS.levels,mmPerPx=0}={}){
+export function cutBase(rgba,w,h,rw,{gt=null,levels=CUT_DEFAULTS.levels,mmPerPx=0,metric=null}={}){
   const t0=Date.now(),dark=darknessMap(rgba,w,h),u=upsamplePotential(rw,w,h),th=otsu(dark);
   const tau=rw.threshold??.5,lv=[...new Set([...levels,tau].map(v=>+(+v).toFixed(3)))].filter(v=>v>0&&v<1).sort((a,b)=>a-b);
   let gtN=0;if(gt)for(const v of gt)gtN+=v?1:0;
   const G=gtN>0?gt:null;
-  return{w,h,dark,u,otsu:th,tau,levels:lv,gt:G,gtN,mmPerPx:mmPerPx>0?mmPerPx:0,global:globalStats(dark,u,th,tau,lv,G,w,h),ms:Date.now()-t0};
+  return{w,h,dark,u,otsu:th,tau,levels:lv,gt:G,gtN,mmPerPx:mmPerPx>0?mmPerPx:0,metric:metric||(mmPerPx>0?{kind:"mmpx",scale:{kind:"mmpx",mmPerPx},len:(p,q)=>Math.hypot(q[0]-p[0],q[1]-p[1])*mmPerPx}:null),global:globalStats(dark,u,th,tau,lv,G,w,h),ms:Date.now()-t0};
 }
 
 // curvas de corte por histograma: área(v>t) e, com GT, IoU(v>t) para qualquer nível t
@@ -90,7 +90,12 @@ export function profile(B,line){
     return(A[y0*w+x0]*(1-fx)+A[y0*w+xa]*fx)*(1-fy)+(A[ya*w+x0]*(1-fx)+A[ya*w+xa]*fx)*fy};
   for(let i=0;i<m;i++){const t=i/(m-1),x=x1+(x2-x1)*t,y=y1+(y2-y1)*t;s[i]=t*len;X[i]=x;Y[i]=y;d[i]=bil(B.dark,x,y);u[i]=bil(B.u,x,y);
     if(g)g[i]=B.gt[Math.min(h-1,Math.max(0,Math.round(y)))*w+Math.min(w-1,Math.max(0,Math.round(x)))]}
-  return{...line,len,s,dark:d,u,gt:g,X,Y,notes:profileNotes({s,dark:d,u,gt:g},B)};
+  const notes=profileNotes({s,dark:d,u,gt:g},B);
+  // mm de cada largura pelos pontos das fronteiras na imagem (homografia: corrige a perspectiva ao longo do corte)
+  if(B.metric){const pt=sv=>{const t=len>0?sv/len:0;return[x1+(x2-x1)*t,y1+(y2-y1)*t]};
+    for(const r of notes.regions){r.a=pt(r.sL);r.b=pt(r.sR);r.width_mm=B.metric.len(r.a,r.b);const k=r.width>0?r.width_mm/r.width:0;r.min_mm=r.wMin*k;r.max_mm=r.wMax*k}}
+  notes.hasScale=!!B.metric;
+  return{...line,len,s,dark:d,u,gt:g,X,Y,notes};
 }
 const runs=(on,s)=>{const r=[];let a=-1;for(let i=0;i<=on.length;i++){const v=i<on.length&&on[i];if(v&&a<0)a=i;if(!v&&a>=0){r.push([a,i-1,s[i-1]-s[a]]);a=-1}}return r};
 const crossings=(v,t)=>{let c=0;for(let i=1;i<v.length;i++)if((v[i-1]>t)!==(v[i]>t))c++;return c};
@@ -122,7 +127,7 @@ export function profileNotes(P,B){
     if(b<m-1&&R0!=null&&R1!=null&&lo!==hi)shifts.push({at:sR,px:Math.abs(R1-R0),side:"out"});
     return{sL,sR,width:sR-sL,wMin:Math.min(...ws),wMax:Math.max(...ws),open:a===0||b===m-1};
   });
-  return{len:s[m-1],binCross:crossings(dark,B.otsu),uCross:crossings(u,tau),binRuns,uRuns,poleless,shifts,regions,mmPerPx:B.mmPerPx||0,
+  return{len:s[m-1],binCross:crossings(dark,B.otsu),uCross:crossings(u,tau),binRuns,uRuns,poleless,shifts,regions,
     shiftMean:shifts.length?shifts.reduce((a,x)=>a+x.px,0)/shifts.length:null,shiftMax:shifts.length?Math.max(...shifts.map(x=>x.px)):null,shiftMin:shifts.length?Math.min(...shifts.map(x=>x.px)):null,
     slopeMin:slopes.length?Math.min(...slopes):null,plateau,
     binFrac:binOn.filter(Boolean).length/m,uFrac:uOn.filter(Boolean).length/m,
@@ -147,10 +152,10 @@ export function interpretProfile(P,f){
   else if(!N.uRuns.length)o.push(["Nenhuma região do walker nesta linha: o potencial fica abaixo de τ em todo o corte.",{}]);
   if(N.poleless.length)o.push(["{k} trecho(s) escuro(s) sem polo ({len} px no total): a binarização marca, o walker fica em u ≈ 0.",{k:N.poleless.length,len:f(N.poleless.reduce((a,r)=>a+r[2],0),0)}]);
   if(N.regions.length){
-    const list=N.regions.slice(0,4).map((r,i)=>"R"+(i+1)+" "+widthText(r,N.mmPerPx,f)).join("; ");
+    const list=N.regions.slice(0,4).map((r,i)=>"R"+(i+1)+" "+widthText(r,f)).join("; ");
     o.push(["Larguras em u = {tau} (faixa entre os níveis {lo} e {hi}): {list}.",{tau:f(N.tau,1),lo:f(N.lo,1),hi:f(N.hi,1),list}]);
     if(N.regions.some(r=>r.open))o.push(["Região que toca a ponta do corte tem largura truncada: prolongue a linha para medir.",{}]);
-    if(!N.mmPerPx)o.push(["Sem calibração de escala, as larguras ficam em pixels (informe mm/px nas configurações).",{}]);
+    if(!N.hasScale)o.push(["Sem calibração de escala, as larguras ficam em pixels (informe mm/px nas configurações).",{}]);
   }
   if(N.iouBin!=null)o.push(["Ao longo da linha, contra o GT: binarização {b}, walker {u}.",{b:pc(N.iouBin,f),u:pc(N.iouU,f)}]);
   return o;
@@ -170,23 +175,23 @@ export function interpretCurves(B,f){
 }
 
 // texto de uma largura: "212,4 px (205,1–219,0)" e, com escala, "· 106,2 mm (102,6–109,5)"
-export function widthText(r,mmPerPx,f){
+export function widthText(r,f){
   const px=`${f(r.width,1)} px (${f(r.wMin,1)}–${f(r.wMax,1)})`+(r.open?" *":"");
-  return mmPerPx>0?px+` · ${f(r.width*mmPerPx,1)} mm (${f(r.wMin*mmPerPx,1)}–${f(r.wMax*mmPerPx,1)})`:px;
+  return r.width_mm!=null?px+` · ${f(r.width_mm,1)} mm (${f(r.min_mm,1)}–${f(r.max_mm,1)})`:px;
 }
 // todas as medidas em linhas (CSV e figura de tabela); coordenadas na imagem processada
 export function measureRows(P,labelOf=i=>String.fromCharCode(65+i)){
   const rows=[];
   P.forEach((p,ci)=>p.notes.regions.forEach((r,ri)=>{
     const pt=sv=>{const t=p.len>0?sv/p.len:0;return[p.x1+(p.x2-p.x1)*t,p.y1+(p.y2-p.y1)*t]};
-    const a=pt(r.sL),b=pt(r.sR),mm=p.notes.mmPerPx||0;
+    const a=pt(r.sL),b=pt(r.sR);
     rows.push({cut:labelOf(ci),region:"R"+(ri+1),x1:a[0],y1:a[1],x2:b[0],y2:b[1],width_px:r.width,min_px:r.wMin,max_px:r.wMax,
-      width_mm:mm?r.width*mm:null,min_mm:mm?r.wMin*mm:null,max_mm:mm?r.wMax*mm:null,open:r.open,tau:p.notes.tau,level_lo:p.notes.lo,level_hi:p.notes.hi});
+      width_mm:r.width_mm??null,min_mm:r.min_mm??null,max_mm:r.max_mm??null,open:r.open,tau:p.notes.tau,level_lo:p.notes.lo,level_hi:p.notes.hi});
   }));
   return rows;
 }
-export function measuresCsv(rows,mmPerPx){
-  const h=["corte","regiao","x_inicio_px","y_inicio_px","x_fim_px","y_fim_px","largura_px","faixa_min_px","faixa_max_px","largura_mm","faixa_min_mm","faixa_max_mm","truncada","tau","nivel_baixo","nivel_alto","mm_por_px"];
+export function measuresCsv(rows,scaleLabel=""){
+  const h=["corte","regiao","x_inicio_px","y_inicio_px","x_fim_px","y_fim_px","largura_px","faixa_min_px","faixa_max_px","largura_mm","faixa_min_mm","faixa_max_mm","truncada","tau","nivel_baixo","nivel_alto","escala"];
   const n=v=>v==null?"":(+v).toFixed(2);
-  return[h.join(";"),...rows.map(r=>[r.cut,r.region,n(r.x1),n(r.y1),n(r.x2),n(r.y2),n(r.width_px),n(r.min_px),n(r.max_px),n(r.width_mm),n(r.min_mm),n(r.max_mm),r.open?"sim":"nao",r.tau,r.level_lo,r.level_hi,mmPerPx>0?mmPerPx:""].join(";"))].join("\n")+"\n";
+  return[h.join(";"),...rows.map(r=>[r.cut,r.region,n(r.x1),n(r.y1),n(r.x2),n(r.y2),n(r.width_px),n(r.min_px),n(r.max_px),n(r.width_mm),n(r.min_mm),n(r.max_mm),r.open?"sim":"nao",r.tau,r.level_lo,r.level_hi,scaleLabel].join(";"))].join("\n")+"\n";
 }

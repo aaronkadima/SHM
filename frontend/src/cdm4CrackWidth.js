@@ -54,3 +54,13 @@ export function crackWidth(gray,w,h,axis,opts={}){
     depthMedian:q(ok.map(s=>s.depth),.5),belowResolution:q(fw,.5)<o.resolutionPx}:{n:stations.length,valid:0};
   return{axis,len:L,stations,summary,profile:{d:Array.from(d),I:Array.from(mean)},opts:o};
 }
+
+// mm por perfil: largura FWHM convertida pelos pontos das bordas (homografia corrige a perspectiva local)
+export function applyCrackMetric(K,metric){
+  if(!metric||!K.summary?.valid)return K;
+  const mm=[],eq=[];
+  for(const s of K.stations)if(s.valid){s.fwhm_mm=metric.len([s.lx,s.ly],[s.rx,s.ry]);s.eq_mm=s.fwhm>0?s.eq*s.fwhm_mm/s.fwhm:null;mm.push(s.fwhm_mm);if(s.eq_mm!=null)eq.push(s.eq_mm)}
+  const q=(a,p)=>{const v=[...a].sort((x,y)=>x-y);return v.length?v[Math.min(v.length-1,Math.floor(p*(v.length-1)+.5))]:null};
+  K.summary.mm={median:q(mm,.5),p10:q(mm,.1),p90:q(mm,.9),max:Math.max(...mm),eqMedian:q(eq,.5)};
+  return K;
+}

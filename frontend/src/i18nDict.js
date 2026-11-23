@@ -96,6 +96,11 @@ export const DICT={
 ", nivel",
 ", niveau"
 ],
+", procurada no plano retificado (perspectiva corrigida)": [
+", searched in the rectified plane (perspective corrected)",
+", buscada en el plano rectificado (perspectiva corregida)",
+", recherchée dans le plan rectifié (perspective corrigée)"
+],
 ", sob supervisão do": [
 ", supervised by",
 ", bajo la supervisión de",
@@ -205,6 +210,11 @@ export const DICT={
 "The camera does not accept this resolution; try a lower one.",
 "La cámara no acepta esa resolución; pruebe una menor.",
 "La caméra n’accepte pas cette résolution ; essayez-en une plus basse."
+],
+"A distância é a menor entre os pixels de borda dos dois contornos{plane}; a precisão é de cerca de 1 px na imagem.": [
+"The distance is the smallest between the edge pixels of the two contours{plane}; precision is about 1 px in the image.",
+"La distancia es la menor entre los píxeles de borde de los dos contornos{plane}; la precisión es de alrededor de 1 px en la imagen.",
+"La distance est la plus petite entre les pixels de bord des deux contours{plane} ; la précision est d'environ 1 px dans l'image."
 ],
 "A execução local foi interrompida, mas houve falha ao solicitar cancelamento remoto:": [
 "The local run was stopped, but requesting remote cancellation failed:",
@@ -595,6 +605,11 @@ export const DICT={
 "Toggle projection",
 "Alternar proyección",
 "Basculer la projection"
+],
+"Altura (mm)": [
+"Height (mm)",
+"Alto (mm)",
+"Hauteur (mm)"
 ],
 "Ampliar": [
 "Enlarge",
@@ -1221,6 +1236,11 @@ export const DICT={
 "CSV de campaña",
 "CSV de campagne"
 ],
+"CSV distâncias": [
+"Distances CSV",
+"CSV distancias",
+"CSV distances"
+],
 "CSV fissuras": [
 "Cracks CSV",
 "CSV fisuras",
@@ -1571,6 +1591,11 @@ export const DICT={
 "Haga clic a lo largo de la línea central; doble clic o Enter termina.",
 "Cliquez le long de la ligne médiane ; double-clic ou Entrée termine."
 ],
+"Clique em dois contornos: menor distância entre eles": [
+"Click two contours: shortest distance between them",
+"Haga clic en dos contornos: menor distancia entre ellos",
+"Cliquez sur deux contours : plus courte distance entre eux"
+],
 "Clique em um ponto da nuvem": [
 "Click a point in the cloud",
 "Haga clic en un punto de la nube",
@@ -1585,6 +1610,11 @@ export const DICT={
 "Click an annotation to see and drag nodes and handles (Alt = independent handle); Delete removes.",
 "Haga clic en una anotación para ver y arrastrar nodos y manijas (Alt = manija independiente); Supr borra.",
 "Cliquez sur une annotation pour voir et déplacer nœuds et poignées (Alt = poignée indépendante) ; Suppr efface."
+],
+"Clique os 4 cantos de um retângulo conhecido no plano da superfície (sentido horário, a partir do canto superior esquerdo)": [
+"Click the 4 corners of a known rectangle on the surface plane (clockwise, from the top-left corner)",
+"Haga clic en las 4 esquinas de un rectángulo conocido en el plano de la superficie (sentido horario, desde la esquina superior izquierda)",
+"Cliquez les 4 coins d'un rectangle connu dans le plan de la surface (sens horaire, depuis le coin supérieur gauche)"
 ],
 "Clique os pontos de controle; a curva suave passa perto deles (B-spline cúbica). Clique no 1º ponto para fechar; Enter termina.": [
 "Click the control points; the smooth curve passes near them (cubic B-spline). Click the 1st point to close; Enter finishes.",
@@ -1831,6 +1861,11 @@ export const DICT={
 "Configure la dirección HTTPS del",
 "Configurez l’adresse HTTPS du"
 ],
+"Confira a vista retificada: o retângulo deve aparecer com ângulos retos e proporção {w} : {h}. Medidas fora do plano do retângulo (relevo, outra face) não são corrigidas.": [
+"Check the rectified view: the rectangle must show right angles and a {w} : {h} ratio. Measurements off the rectangle's plane (relief, another face) are not corrected.",
+"Verifique la vista rectificada: el rectángulo debe mostrar ángulos rectos y proporción {w} : {h}. Las medidas fuera del plano del rectángulo (relieve, otra cara) no se corrigen.",
+"Vérifiez la vue rectifiée : le rectangle doit avoir des angles droits et un rapport {w} : {h}. Les mesures hors du plan du rectangle (relief, autre face) ne sont pas corrigées."
+],
 "Confirmados": [
 "Confirmed",
 "Confirmados",
@@ -1866,6 +1901,11 @@ export const DICT={
 "Contorno: u > τ · blanco = contorno",
 "Contour : u > τ · blanc = contour"
 ],
+"Contornos": [
+"Contours",
+"Contornos",
+"Contours"
+],
 "Contra o GT: IoU da binarização {b}; IoU do walker {u}.": [
 "Against the GT: binarization IoU {b}; walker IoU {u}.",
 "Frente al GT: IoU de la binarización {b}; IoU del walker {u}.",
@@ -1891,10 +1931,20 @@ export const DICT={
 "Controles del lienzo 3D",
 "Commandes du canevas 3D"
 ],
+"Conversão em mm pela homografia dos 4 pontos: corrige a perspectiva, válida para pontos no plano do retângulo de referência.": [
+"mm conversion through the 4-point homography: corrects perspective, valid for points on the reference rectangle's plane.",
+"Conversión a mm por la homografía de 4 puntos: corrige la perspectiva, válida para puntos en el plano del rectángulo de referencia.",
+"Conversion en mm par l'homographie à 4 points : corrige la perspective, valable pour les points du plan du rectangle de référence."
+],
 "Conversão em mm válida para foto de frente para a superfície; com perspectiva, a escala muda ao longo da imagem.": [
 "The mm conversion is valid for a photo facing the surface; with perspective, the scale changes across the image.",
 "La conversión a mm vale para una foto de frente a la superficie; con perspectiva, la escala cambia a lo largo de la imagen.",
 "La conversion en mm vaut pour une photo de face ; avec perspective, l'échelle varie dans l'image."
+],
+"Conversão em mm válida para foto de frente para a superfície; com perspectiva, use a calibração por 4 pontos.": [
+"The mm conversion is valid for a photo facing the surface; with perspective, use the 4-point calibration.",
+"La conversión a mm vale para una foto de frente a la superficie; con perspectiva, use la calibración por 4 puntos.",
+"La conversion en mm vaut pour une photo de face ; avec perspective, utilisez l'étalonnage à 4 points."
 ],
 "Coordenadas:": [
 "Coordinates:",
@@ -2091,6 +2141,11 @@ export const DICT={
 "Densidad de píxeles por nivel",
 "Densité de pixels par niveau"
 ],
+"Dentro do retângulo, a escala local varia de {a} a {b} mm/px ({p} de variação): é o erro que uma escala única cometeria.": [
+"Inside the rectangle, the local scale ranges from {a} to {b} mm/px ({p} variation): the error a single scale would make.",
+"Dentro del rectángulo, la escala local varía de {a} a {b} mm/px ({p} de variación): es el error que cometería una escala única.",
+"Dans le rectangle, l'échelle locale varie de {a} à {b} mm/px ({p} de variation) : c'est l'erreur d'une échelle unique."
+],
 "Desbloquear": [
 "Unlock",
 "Desbloquear",
@@ -2236,6 +2291,11 @@ export const DICT={
 "Dimensiones de la imagen RGB no disponibles.",
 "Dimensions de l’image RVB indisponibles."
 ],
+"Dimensões reais do retângulo de referência": [
+"Real dimensions of the reference rectangle",
+"Dimensiones reales del rectángulo de referencia",
+"Dimensions réelles du rectangle de référence"
+],
 "Dir.": [
 "Right",
 "Der.",
@@ -2271,6 +2331,26 @@ export const DICT={
 "Disponible para motores con código local en el navegador",
 "Disponible pour les moteurs avec code navigateur local"
 ],
+"Distância": [
+"Distance",
+"Distancia",
+"Distance"
+],
+"Distância (mm)": [
+"Distance (mm)",
+"Distancia (mm)",
+"Distance (mm)"
+],
+"Distância (px)": [
+"Distance (px)",
+"Distancia (px)",
+"Distance (px)"
+],
+"Distância 0 = contornos em contato ou sobrepostos (por exemplo, armadura dentro do desplacamento).": [
+"Distance 0 = contours touching or overlapping (e.g. rebar inside the spalling).",
+"Distancia 0 = contornos en contacto o superpuestos (por ejemplo, armadura dentro del desprendimiento).",
+"Distance 0 = contours en contact ou superposés (par exemple, armature dans l'épaufrure)."
+],
 "Distância de pareamento 3D": [
 "3D pairing distance",
 "Distancia de emparejamiento 3D",
@@ -2280,6 +2360,21 @@ export const DICT={
 "Distance ·",
 "Distancia ·",
 "Distance ·"
+],
+"Distância: agora clique no segundo contorno": [
+"Distance: now click the second contour",
+"Distancia: ahora haga clic en el segundo contorno",
+"Distance : cliquez maintenant sur le second contour"
+],
+"Distância: clique no primeiro contorno": [
+"Distance: click the first contour",
+"Distancia: haga clic en el primer contorno",
+"Distance : cliquez sur le premier contour"
+],
+"Distâncias": [
+"Distances",
+"Distancias",
+"Distances"
 ],
 "Divergência": [
 "Divergence",
@@ -2416,6 +2511,11 @@ export const DICT={
 "Error reproy.",
 "Erreur reproj."
 ],
+"Escala": [
+"Scale",
+"Escala",
+"Échelle"
+],
 "Escala (mm por pixel; 0 = sem escala)": [
 "Scale (mm per pixel; 0 = no scale)",
 "Escala (mm por píxel; 0 = sin escala)",
@@ -2425,6 +2525,21 @@ export const DICT={
 "Greyscale",
 "Escala de grises",
 "Niveaux de gris"
+],
+"Escala e correção de perspectiva": [
+"Scale and perspective correction",
+"Escala y corrección de perspectiva",
+"Échelle et correction de perspective"
+],
+"Escala e perspectiva": [
+"Scale and perspective",
+"Escala y perspectiva",
+"Échelle et perspective"
+],
+"Escala: clique os 4 cantos do retângulo de referência, em sentido horário a partir do superior esquerdo": [
+"Scale: click the 4 corners of the reference rectangle, clockwise from the top-left",
+"Escala: haga clic en las 4 esquinas del rectángulo de referencia, en sentido horario desde la superior izquierda",
+"Échelle : cliquez les 4 coins du rectangle de référence, en sens horaire depuis le coin supérieur gauche"
 ],
 "Escolha “Salvar imagem/vídeo” para guardar na galeria": [
 "Choose “Save image/video” to keep it in the gallery",
@@ -3080,6 +3195,11 @@ export const DICT={
 "Active spatial formats",
 "Formatos espaciales activos",
 "Formats spatiaux actifs"
+],
+"Foto com o retângulo de referência": [
+"Photo with the reference rectangle",
+"Foto con el rectángulo de referencia",
+"Photo avec le rectangle de référence"
 ],
 "Foto salva nas capturas": [
 "Photo saved to captures",
@@ -3945,6 +4065,16 @@ export const DICT={
 "2D memory",
 "Memoria 2D",
 "Mémoire 2D"
+],
+"Menor distância entre contornos": [
+"Shortest distance between contours",
+"Menor distancia entre contornos",
+"Plus courte distance entre contours"
+],
+"Menores distâncias entre contornos em CSV": [
+"Shortest distances between contours as CSV",
+"Menores distancias entre contornos en CSV",
+"Plus courtes distances entre contours en CSV"
 ],
 "Menu de contexto": [
 "Context menu",
@@ -4866,10 +4996,20 @@ export const DICT={
 "Panel de capas ·",
 "Panneau des calques ·"
 ],
+"Par": [
+"Pair",
+"Par",
+"Paire"
+],
 "Par a par; sem acumulação automática": [
 "Pair by pair; no automatic accumulation",
 "Par a par; sin acumulación automática",
 "Paire par paire ; sans accumulation automatique"
+],
+"Par sem contorno: o clique não caiu sobre nem perto (20 px) de uma região detectada.": [
+"Pair without contour: the click did not land on or near (20 px) a detected region.",
+"Par sin contorno: el clic no cayó sobre ni cerca (20 px) de una región detectada.",
+"Paire sans contour : le clic n'est pas tombé sur ou près (20 px) d'une région détectée."
 ],
 "Para exportar IfcAnnotation, o ativo espacial atual precisa ser um arquivo .ifc.": [
 "To export IfcAnnotation, the current spatial asset must be an .ifc file.",
@@ -5751,6 +5891,11 @@ export const DICT={
 "Reanudar detección",
 "Reprendre la détection"
 ],
+"Retângulo de referência de {w} × {h} mm marcado por 4 pontos; a homografia leva cada ponto da imagem ao plano da superfície em mm.": [
+"Reference rectangle of {w} × {h} mm marked by 4 points; the homography maps each image point to the surface plane in mm.",
+"Rectángulo de referencia de {w} × {h} mm marcado por 4 puntos; la homografía lleva cada punto de la imagen al plano de la superficie en mm.",
+"Rectangle de référence de {w} × {h} mm marqué par 4 points ; l'homographie envoie chaque point de l'image dans le plan de la surface en mm."
+],
 "Revocação": [
 "Recall",
 "Exhaustividad",
@@ -6096,6 +6241,16 @@ export const DICT={
 "Sin calibración de escala, el ancho queda en píxeles (indique mm/px en la configuración).",
 "Sans étalonnage d'échelle, la largeur reste en pixels (indiquez mm/px dans les réglages)."
 ],
+"Sem calibração de escala, as distâncias ficam em pixels (informe mm/px nas configurações ou calibre por 4 pontos).": [
+"Without scale calibration, distances stay in pixels (set mm/px in the settings or calibrate with 4 points).",
+"Sin calibración de escala, las distancias quedan en píxeles (indique mm/px en la configuración o calibre por 4 puntos).",
+"Sans étalonnage d'échelle, les distances restent en pixels (indiquez mm/px dans les réglages ou étalonnez par 4 points)."
+],
+"Sem calibração de escala, as larguras ficam em pixels (informe mm/px nas configurações ou calibre por 4 pontos).": [
+"Without scale calibration, widths stay in pixels (set mm/px in the settings or calibrate with 4 points).",
+"Sin calibración de escala, los anchos quedan en píxeles (indique mm/px en la configuración o calibre por 4 puntos).",
+"Sans étalonnage d'échelle, les largeurs restent en pixels (indiquez mm/px dans les réglages ou étalonnez par 4 points)."
+],
 "Sem calibração de escala, as larguras ficam em pixels (informe mm/px nas configurações).": [
 "Without scale calibration, widths stay in pixels (set mm/px in the settings).",
 "Sin calibración de escala, los anchos quedan en píxeles (indique mm/px en la configuración).",
@@ -6155,6 +6310,11 @@ export const DICT={
 "No published local implementation to verify.",
 "Sin implementación local publicada para verificar.",
 "Aucune implémentation locale publiée à vérifier."
+],
+"Sem máscaras do motor para localizar os contornos.": [
+"No engine masks to locate the contours.",
+"Sin máscaras del motor para localizar los contornos.",
+"Pas de masques du moteur pour localiser les contours."
 ],
 "Sem saturação relevante.": [
 "No relevant saturation.",
@@ -6586,6 +6746,11 @@ export const DICT={
 "Vigas/pilares principales · Fr=5",
 "Poutres/piles principales · Fr=5"
 ],
+"Vista retificada (de frente)": [
+"Rectified view (front-on)",
+"Vista rectificada (de frente)",
+"Vue rectifiée (de face)"
+],
 "Vista transversal à ponte": [
 "Cross-section view of the bridge",
 "Vista transversal al puente",
@@ -6921,6 +7086,11 @@ export const DICT={
 "consistencia geométrica residual insuficiente",
 "cohérence géométrique résiduelle insuffisante"
 ],
+"contorno não encontrado": [
+"contour not found",
+"contorno no encontrado",
+"contour introuvable"
+],
 "corte Otsu": [
 "Otsu cut",
 "corte Otsu",
@@ -7015,6 +7185,11 @@ export const DICT={
 "distance along the axis (px)",
 "distancia a lo largo del eje (px)",
 "distance le long de l'axe (px)"
+],
+"distância(s)": [
+"distance(s)",
+"distancia(s)",
+"distance(s)"
 ],
 "divergência(s) SHA-256": [
 "SHA-256 mismatch(es)",
@@ -7401,6 +7576,11 @@ export const DICT={
 "o modelo 3D",
 "ou modèle 3D"
 ],
+"par(es)": [
+"pair(s)",
+"par(es)",
+"paire(s)"
+],
 "pares": [
 "pairs",
 "pares",
@@ -7426,6 +7606,11 @@ export const DICT={
 "perfiles cada",
 "profils tous les"
 ],
+"perspectiva corrigida": [
+"perspective corrected",
+"perspectiva corregida",
+"perspective corrigée"
+],
 "polo 1 = evidência de dano · polo 0 = saudável": [
 "pole 1 = damage evidence · pole 0 = healthy",
 "polo 1 = evidencia de daño · polo 0 = sano",
@@ -7440,6 +7625,11 @@ export const DICT={
 "damage pole needs z ≥ 3 and diversity ≥ 1",
 "el polo de daño exige z ≥ 3 y diversidad ≥ 1",
 "le pôle de dommage exige z ≥ 3 et diversité ≥ 1"
+],
+"pontos": [
+"points",
+"puntos",
+"points"
 ],
 "pontos receberam cor da imagem.": [
 "points received colour from the image.",
@@ -7790,6 +7980,11 @@ export const DICT={
 "circular variance",
 "varianza circular",
 "variance circulaire"
+],
+"verde = primeiro contorno · rosa = segundo · branco = menor distância": [
+"green = first contour · pink = second · white = shortest distance",
+"verde = primer contorno · rosa = segundo · blanco = menor distancia",
+"vert = premier contour · rose = second · blanc = plus courte distance"
 ],
 "vista(s) registrada(s) automaticamente.": [
 "view(s) registered automatically.",

@@ -2,11 +2,11 @@
 // uma fissura sintética; a lista de motores Live coincide com o catálogo.
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {LIVE_ENGINE_IDS,liveInputSpec,runLiveEngine} from "../src/liveEngines.js";
+import {LIVE_ENGINE_IDS,LIVE_CATALOG_IDS,liveInputSpec,runLiveEngine} from "../src/liveEngines.js";
 
 const catalog=JSON.parse(readFileSync(new URL("../src/engines.json",import.meta.url),"utf8"));
 const liveCatalog=catalog.engines.filter(e=>e.live_ready).map(e=>e.id).sort();
-assert.deepEqual([...LIVE_ENGINE_IDS].sort(),liveCatalog,"liveEngines.js e engines.json divergem");
+assert.deepEqual([...LIVE_CATALOG_IDS].sort(),liveCatalog,"liveEngines.js e engines.json divergem");
 
 // Concreto com gradiente de iluminação (faixa dinâmica realista), textura leve e fissura diagonal de 3 px.
 // Obs.: superfícies de contraste muito baixo saturam o stretch p2–p98 do CDM-1 (ver relatório de vistoria).
@@ -37,3 +37,14 @@ assert.equal(liveInputSpec("cdm_1").mode,"maxSide");
 await assert.rejects(()=>runLiveEngine("segformer_public_crack",frame,{}),/Sessão ONNX/);
 
 console.log("LIVE_ENGINES_PASS",{opencv:cv.counts,cdm:cdm.counts,cdm_cfg:cdm.metrics.cdm_live_cfg});
+
+// CDM-4 · filtros ao vivo: cada filtro devolve uma camada RGBA do tamanho do quadro
+{
+  const spec=liveInputSpec("cdm_4_filters");assert.equal(spec.mode,"maxSide");assert.equal(spec.maxSide,320);
+  for(const filter of ["rough","div","poles","walker","final"]){
+    const r=await runLiveEngine("cdm_4_filters",frame,{opts:{filter,threshold:.5}});
+    assert.equal(r.layers.length,1);const L=r.layers[0];assert.ok(L.rgba instanceof Uint8ClampedArray&&L.rgba.length===L.w*L.h*4,filter);
+    assert.ok(r.metrics&&r.metrics.filter===filter);
+  }
+  console.log("cdm_4_filters ok");
+}

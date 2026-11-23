@@ -16,6 +16,8 @@ export const LIVE_ENGINES={
   cdm_4_filters:{name:"CDM-4 · Filtros (etapas)",kind:"classical",catalogId:"cdm_4",note:"Etapas do fluxo por evidência como filtros ao vivo: rugosidade, diversidade, polos, potencial do walker e contorno"}
 };
 export const LIVE_ENGINE_IDS=Object.keys(LIVE_ENGINES);
+// id do catálogo de cada runtime Live (cdm_4_filters é a forma ao vivo do cdm_4)
+export const LIVE_CATALOG_IDS=[...new Set(LIVE_ENGINE_IDS.map(id=>LIVE_ENGINES[id].catalogId||id))];
 export function liveEngineSupported(id){return Object.prototype.hasOwnProperty.call(LIVE_ENGINES,id)}
 
 export const CDM_LIVE_CLASSES=[

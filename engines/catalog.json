@@ -91,7 +91,7 @@
       "catalog_owned": true,
       "dev_only": true,
       "stage": "dev",
-      "live_ready": false,
+      "live_ready": true,
       "browser_limitations": [
         "Validated on 20 field photos and a single author ground truth (photo 24); calibration with more ground truth is pending",
         "Random walker also expands false spalling seeds; each new stage can be switched off in the settings",

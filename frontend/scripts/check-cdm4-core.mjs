@@ -340,3 +340,39 @@ console.log("homography + contour distance ok");
   }
   console.log("level solid sem importação + camada por ponto ok");
 }
+
+// ---------- relevo contínuo (vales) e sentido para dentro ----------
+{
+  const LS=await import("../src/levelSolid.js"),FW=await import("../src/ifcLevelSolidWriter.js"),RH=await import("../src/ifcReferenceHost.js");
+  // potencial com um vale no meio (anel alto em volta de uma depressão) + um disco pequeno descartado pela área mínima
+  const W=140,H=100,P=new Float32Array(W*H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const r=Math.hypot(x-60,y-50),dome=Math.max(0,1-r/40),valley=.55*Math.exp(-(r*r)/(2*7*7)),s=Math.hypot(x-125,y-15)<4?.9:0;P[y*W+x]=Math.max(0,Math.max(dome-valley,s))}
+  const toPlane=(x,y)=>[x*2,y*2],rw={prob:P,W,H,f:1},sol=LS.buildLevelSolid(rw,toPlane,{levels:[.1,.3,.5],layerMm:10,minAreaMm2:400});
+  assert.equal(sol.regions.length,1,"disco pequeno descartado");
+  const R=LS.buildRelief(rw,toPlane,sol,{stride:1}),M=R.regions[0];assert.equal(R.regions.length,1);
+  // casca fechada e orientada: cada aresta aparece uma vez em cada sentido
+  const E=new Map();for(let t=0;t<M.indices.length;t+=3)for(let k=0;k<3;k++){const a=M.indices[t+k],b=M.indices[t+(k+1)%3];E.set(a+","+b,(E.get(a+","+b)||0)+1)}
+  for(const[k,c]of E){const[a,b]=k.split(",");assert.ok(c===1&&E.get(b+","+a)===1,"aresta aberta "+k)}
+  // altura: 0 na curva t0, máxima H = 3 × 10 mm onde u → 1; vale no centro mais baixo que o anel
+  let zmax=0;for(let i=2;i<M.positions.length;i+=3)zmax=Math.max(zmax,M.positions[i]);
+  const zAt=(u,v)=>{let best=null,bd=1e9;for(let i=0;i<M.positions.length;i+=3){if(M.positions[i+2]===0&&i/3>=M.topCount)continue;const d=Math.hypot(M.positions[i]-u,M.positions[i+1]-v);if(d<bd){bd=d;best=M.positions[i+2]}}return best};
+  const zc=zAt(120,100),zr=zAt(120+2*14,100);let uMax=0;for(let y=0;y<H;y++)for(let x=0;x<110;x++)uMax=Math.max(uMax,P[y*W+x]);
+  assert.ok(Math.abs(zmax-30*(uMax-.1)/.9)<1e-3,`altura máxima ${zmax}`);assert.ok(zc<zr-2,`vale: centro ${zc.toFixed(1)} mm < anel ${zr.toFixed(1)} mm`);
+  // gravação: relevo como IfcTriangulatedFaceSet colorido; para dentro inverte o lado; camadas planas para dentro também
+  for(const schema of["IFC4","IFC4X3"]){
+    const h=RH.referenceHostIfc({schema,widthMm:280,heightMm:200});
+    for(const direction of[1,-1]){
+      const r=FW.writeLevelSolid(h.text,{hostGuid:h.hostGuid,face:h.face,solid:sol,relief:R,direction}),T=FW.parseStep(r.text),of=t=>[...T.ents.values()].filter(e=>e.type===t);
+      assert.equal(of("IFCTRIANGULATEDFACESET").length,1);assert.equal(of("IFCINDEXEDCOLOURMAP").length,1);assert.equal(of("IFCSHELLBASEDSURFACEMODEL").length,0);
+      assert.ok(of("IFCSHAPEREPRESENTATION").some(e=>/'Tessellation'/.test(e.raw)));
+      const pl=FW.parseArgs(of("IFCCARTESIANPOINTLIST3D")[0].raw)[0],zs=pl.map(p=>p[2]);
+      if(direction>0)assert.ok(Math.min(...zs)>0,"para fora: z > 0 no sistema da face");else assert.ok(Math.max(...zs)<0,"para dentro: z < 0");
+      assert.equal(FW.parseArgs(of("IFCCARTESIANPOINTLIST3D")[0].raw).length,schema==="IFC4"?1:2,"TagList só no IFC 4.3");
+      assert.ok(r.text.includes(direction>0?"para fora da face":"para dentro da face"));
+      const t2=FW.writeLevelSolid(h.text,{hostGuid:h.hostGuid,face:h.face,solid:sol,direction}),T2=FW.parseStep(t2.text);
+      const zz=[...T2.ents.values()].filter(e=>e.type==="IFCCARTESIANPOINT").map(e=>FW.parseArgs(e.raw)[0]).filter(c=>c.length===3&&Math.abs(c[2])>.4&&Math.abs(c[2])<40).map(c=>c[2]);
+      assert.ok(zz.length&&zz.every(z=>Math.sign(z)===direction),"camadas planas no sentido pedido");
+    }
+  }
+  console.log("relevo com vales + sentido ok");
+}

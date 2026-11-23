@@ -212,3 +212,18 @@ camada é nível do potencial × espessura escolhida; a ressalva é gravada na d
   face (normal de 400,5 a 450,5 mm num pilar 1200 × 800 mm girado 30°); web-ifc relê as características (9468
   triângulos). Testes: `frontend/scripts/check-cdm4-core.mjs` e `backend/tests/check_cdm4_level_solid_ifc.py`
   (workflow `cdm4-level-solid-ifc.yml`, IfcOpenShell 0.8.5).
+
+### Relevo com vales, sentido e sólidos salvos
+
+- `buildRelief` (`levelSolid.js`): superfície contínua z = H·(u − t0)/(1 − t0), H = nº de níveis × espessura. Triângulos
+  da grade (passo automático pelo detalhe: alto ≈ 60 mil, médio ≈ 20 mil, baixo ≈ 6 mil células) recortados em u ≥ t0
+  por interpolação linear, com o entorno da grade valendo −1 (a borda da imagem também fecha em z = 0). Região do sólido
+  em camadas atribuída por componente conexo (maioria dos centroides); a base é a mesma malha achatada, que fecha a casca.
+  Foto 24: 0 arestas abertas nos três detalhes (médio: 51 mil triângulos, 0,3 s).
+- IFC: relevo como `IfcTriangulatedFaceSet` fechada (`IfcCartesianPointList3D`, com TagList `$` no IFC 4.3) +
+  `IfcIndexedColourMap` por faixa de nível, representação `Body / Tessellation`; orientação pelo volume com sinal.
+- Sentido `direction = −1` (cavidade): z espelhado para dentro do elemento, nas camadas planas e no relevo; Pset com
+  `Estilo` e `Sentido`. Validação IfcOpenShell (0.8.5 e 0.9) e web-ifc nos dois esquemas.
+- Sólidos salvos: `levelSolidStore.js` (IndexedDB `shm-level-solids`, até 40 registros) guarda sólido, relevo, moldura
+  da face, parâmetros do mapeamento, potencial do walker, foto reduzida, IFC importado e miniatura; reabrir permite
+  consultar pontos, exportar IFC/GLB de novo e excluir. Exportação `.glb` via GLTFExporter (sólido + foto, em metros).

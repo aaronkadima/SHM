@@ -93,6 +93,10 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
     Rl = np.linalg.inv(Mh) @ _frame(np.asarray(face["origin"], float), face["ex"], face["n"])
     levels = list(solid["levels"])
     offset = float(meta.get("offsetMm", 0.5))
+    direction = -1 if float(payload.get("direction", 1)) < 0 else 1
+    relief = {int(r["id"]): r for r in (payload.get("relief") or {}).get("regions", [])}
+    style_txt = "relevo contínuo (com vales)" if relief else "camadas planas"
+    dir_txt = "para fora da face" if direction > 0 else "para dentro da face"
     name, cls = meta.get("name", "Dano CDM-4"), meta.get("className", "Desplacamento")
 
     styles = []
@@ -105,11 +109,33 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
     P = lambda x, y, z: f.createIfcCartesianPoint((float(x), float(y), float(z)))
     loop = lambda pts: f.createIfcPolyLoop(pts)
     features, summary = [], []
-    for R in solid["regions"]:
-        items = []
-        for L in R["layers"]:
+    regions_out = [R for R in solid["regions"] if not relief or int(R["id"]) in relief]
+    for R in regions_out:
+        items, rep_type = [], "SurfaceModel"
+        if relief:
+            # relevo contínuo: IfcTriangulatedFaceSet fechada, cores por faixa de nível
+            M3 = relief[int(R["id"])]
+            P3 = np.asarray(M3["positions"], float).reshape(-1, 3)
+            co = np.column_stack([P3[:, 0] * k, -P3[:, 1] * k, direction * (P3[:, 2] + offset) * k])
+            I = np.asarray(M3["indices"], int).reshape(-1, 3)
+            a_, b_, c_ = co[I[:, 0]], co[I[:, 1]], co[I[:, 2]]
+            if np.einsum("ij,ij->i", a_, np.cross(b_, c_)).sum() < 0:
+                I = I[:, [0, 2, 1]]
+            pl = f.create_entity("IfcCartesianPointList3D", CoordList=[tuple(map(float, p)) for p in co])
+            fs = f.create_entity("IfcTriangulatedFaceSet", Coordinates=pl, Closed=True,
+                                 CoordIndex=[tuple(int(x) + 1 for x in t) for t in I])
+            cl = f.create_entity("IfcColourRgbList", ColourList=[level_color(i, len(levels)) for i in range(len(levels))])
+            f.create_entity("IfcIndexedColourMap", MappedTo=fs, Colours=cl, ColourIndex=[int(b) + 1 for b in M3["band"]])
+            f.createIfcStyledItem(fs, [styles[0]], None)
+            items.append(fs)
+            rep_type = "Tessellation"
+        else:
+          for L in R["layers"]:
             shells = []
-            z0, z1 = (L["z0"] + offset) * k, (L["z1"] + offset) * k
+            if direction > 0:
+                z0, z1 = (L["z0"] + offset) * k, (L["z1"] + offset) * k
+            else:
+                z0, z1 = -(L["z1"] + offset) * k, -(L["z0"] + offset) * k
             for poly in L["polys"]:
                 outer = [(u * k, -v * k) for u, v in poly["outer"]]
                 if _signed(outer) < 0:
@@ -135,13 +161,14 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
             sbsm = f.createIfcShellBasedSurfaceModel(shells)
             items.append(sbsm)
             f.createIfcStyledItem(sbsm, [styles[levels.index(L["level"])]], None)
-        rep = f.createIfcShapeRepresentation(ctx, "Body", "SurfaceModel", items)
+        rep = f.createIfcShapeRepresentation(ctx, "Body", rep_type, items)
         pds = f.createIfcProductDefinitionShape(None, None, [rep])
         ax = f.createIfcAxis2Placement3D(P(*Rl[:3, 3]), f.createIfcDirection(tuple(map(float, Rl[:3, 2]))),
                                          f.createIfcDirection(tuple(map(float, Rl[:3, 0]))))
         lp = f.createIfcLocalPlacement(host.ObjectPlacement, ax)
-        desc = (f"{cls}: forma aproximada em {len(R['layers'])} camadas de nível (altura = nível do potencial × "
-                f"{solid['layerMm']} mm; não é profundidade)")
+        shape_txt = "relevo contínuo" if relief else f"{len(R['layers'])} camadas de nível"
+        desc = (f"{cls}: forma aproximada ({shape_txt}, {dir_txt}; altura proporcional ao potencial, "
+                f"{solid['layerMm']} mm por nível; não é profundidade)")
         sf = f.create_entity("IfcSurfaceFeature", GlobalId=ifcopenshell.guid.new(), OwnerHistory=oh,
                              Name=f"{name} R{R['id']}", Description=desc, ObjectType=None if is43 else "DEFECT",
                              ObjectPlacement=lp, Representation=pds,
@@ -152,6 +179,8 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
             ("Representacao", f.createIfcText(NOTE)),
             ("Motor", f.createIfcLabel("CDM-4 (random walker, fluxo por evidência)")),
             ("Classe", f.createIfcLabel(cls)),
+            ("Estilo", f.createIfcLabel(style_txt)),
+            ("Sentido", f.createIfcLabel(dir_txt)),
             ("Niveis", f.createIfcLabel("; ".join(str(v).replace(".", ",") for v in levels))),
             ("EspessuraCamada_mm", f.createIfcReal(float(solid["layerMm"]))),
             ("AreaNivelBase_m2", f.createIfcReal(round(base / 1e6, 6))),

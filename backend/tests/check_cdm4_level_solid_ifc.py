@@ -70,6 +70,35 @@ for schema in ("IFC4", "IFC4X3"):
         }
         for k, val in checks.items():
             print(schema, k, "ok" if val else "FALHOU"); ok &= bool(val)
+# relevo contínuo (IfcTriangulatedFaceSet) e sentido para dentro, nos dois esquemas
+pyr = {"id": 1, "positions": [450, 1000, 0, 750, 1000, 0, 750, 1300, 0, 450, 1300, 0, 600, 1150, 20],
+       "indices": [0, 1, 4, 1, 2, 4, 2, 3, 4, 3, 0, 4, 0, 3, 2, 0, 2, 1], "band": [1, 1, 1, 1, 0, 0]}
+for schema in ("IFC4", "IFC4X3"):
+    f, col, a = pier(schema)
+    rot = lambda x, y: (x * np.cos(a) - y * np.sin(a), x * np.sin(a) + y * np.cos(a))
+    o = rot(600, 400)
+    face = {"origin": [100000 + o[0], 50000 + o[1], 7000], "ex": [*rot(-1, 0), 0], "n": [*rot(0, 1), 0]}
+    for direction, rng in ((1, [0.4005, 0.4205]), (-1, [0.3795, 0.3995])):
+        with tempfile.TemporaryDirectory() as td:
+            src, out = Path(td) / "in.ifc", Path(td) / "out.ifc"
+            f.write(str(src))
+            write_level_solid(src, {"host_guid": col.GlobalId, "face": face, "solid": square_solid(), "relief": {"regions": [pyr]},
+                                    "direction": direction, "meta": {}}, out)
+            g = ifcopenshell.open(str(out))
+            lg = ifcopenshell.validate.json_logger(); ifcopenshell.validate.validate(g, lg)
+            sf = g.by_type("IfcSurfaceFeature")[0]
+            s = ifcopenshell.geom.settings()
+            s.set(s.USE_WORLD_COORDS, True) if hasattr(s, "USE_WORLD_COORDS") else s.set("use-world-coords", True)
+            shape = ifcopenshell.geom.create_shape(s, sf)
+            v = np.array(shape.geometry.verts, dtype=float).reshape(-1, 3) - [100, 50, 2]
+            ly = -np.sin(a) * v[:, 0] + np.cos(a) * v[:, 1]
+            checks = {f"relevo {direction:+d} sem erros": not lg.statements,
+                      f"relevo {direction:+d} tipo Tessellation": sf.Representation.Representations[0].RepresentationType == "Tessellation",
+                      f"relevo {direction:+d} cores por faixa": len(g.by_type("IfcIndexedColourMap")) == 1,
+                      f"relevo {direction:+d} normal da face": np.allclose([ly.min(), ly.max()], rng, atol=1e-6)}
+            for k, val in checks.items():
+                print(schema, k, "ok" if val else "FALHOU"); ok &= bool(val)
+
 # modo sem importação: placa de referência gerada pelo navegador (ifcReferenceHost.js) + sólido gravado pelo backend
 for fx in ("host_IFC4.ifc", "host_IFC4X3.ifc"):
     src = Path(__file__).parent / "fixtures" / fx

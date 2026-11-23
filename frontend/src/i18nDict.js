@@ -621,15 +621,30 @@ export const DICT={
 "Alternar proyección",
 "Basculer la projection"
 ],
+"Alto": [
+"High",
+"Alto",
+"Élevé"
+],
 "Altura (mm)": [
 "Height (mm)",
 "Alto (mm)",
 "Hauteur (mm)"
 ],
+"Altura abaixo da face": [
+"Height below face",
+"Altura bajo la cara",
+"Hauteur sous la face"
+],
 "Altura acima da face": [
 "Height above face",
 "Altura sobre la cara",
 "Hauteur au-dessus de la face"
+],
+"Altura contínua: zero na curva do nível mais baixo, máxima em u = 1; vales onde o potencial cai.": [
+"Continuous height: zero on the lowest level contour, maximum at u = 1; valleys where the potential drops.",
+"Altura continua: cero en la curva del nivel más bajo, máxima en u = 1; valles donde cae el potencial.",
+"Hauteur continue : nulle sur la courbe du niveau le plus bas, maximale à u = 1 ; vallées là où le potentiel baisse."
 ],
 "Ampliar": [
 "Enlarge",
@@ -1051,6 +1066,11 @@ export const DICT={
 "Descargar todas las capturas",
 "Télécharger toutes les captures"
 ],
+"Baixo": [
+"Low",
+"Bajo",
+"Faible"
+],
 "Balanço de branco": [
 "White balance",
 "Balance de blancos",
@@ -1375,6 +1395,11 @@ export const DICT={
 "Layers at point",
 "Capas en el punto",
 "Couches au point"
+],
+"Camadas planas": [
+"Flat layers",
+"Capas planas",
+"Couches planes"
 ],
 "Camadas recolhidas": [
 "Layers collapsed",
@@ -2311,6 +2336,11 @@ export const DICT={
 "Desvío angular",
 "Écart angulaire"
 ],
+"Detalhe do relevo": [
+"Relief detail",
+"Detalle del relieve",
+"Détail du relief"
+],
 "Detecção ativa": [
 "Detection on",
 "Detección activa",
@@ -2821,6 +2851,11 @@ export const DICT={
 "Eliminar",
 "Supprimer"
 ],
+"Excluir sólido salvo": [
+"Delete saved solid",
+"Eliminar sólido guardado",
+"Supprimer le solide enregistré"
+],
 "Excluir todo o histórico local de inspeções deste navegador?": [
 "Delete the whole local inspection history of this browser?",
 "¿Eliminar todo el historial local de inspecciones de este navegador?",
@@ -3300,6 +3335,11 @@ export const DICT={
 "Source:",
 "Fuente:",
 "Source :"
+],
+"Forma": [
+"Shape",
+"Forma",
+"Forme"
 ],
 "Forma aproximada do dano para identificação visual no modelo. A altura de cada camada é o nível do potencial × a espessura escolhida; não é profundidade medida.": [
 "Approximate damage shape for visual identification in the model. Each layer's height is the potential level × the chosen thickness; it is not measured depth.",
@@ -4321,6 +4361,16 @@ export const DICT={
 "Modelo 3D",
 "Modèle 3D"
 ],
+"Modelo 3D (.glb)": [
+"3D model (.glb)",
+"Modelo 3D (.glb)",
+"Modèle 3D (.glb)"
+],
+"Modelo 3D (.glb) baixado": [
+"3D model (.glb) downloaded",
+"Modelo 3D (.glb) descargado",
+"Modèle 3D (.glb) téléchargé"
+],
 "Modelo 3D atual": [
 "Current 3D model",
 "Modelo 3D actual",
@@ -4556,6 +4606,11 @@ export const DICT={
 "Media",
 "Moyenne"
 ],
+"Médio": [
+"Medium",
+"Medio",
+"Moyen"
+],
 "Navegador de motores": [
 "Engine browser",
 "Navegador de motores",
@@ -4710,6 +4765,11 @@ export const DICT={
 "File name",
 "Nombre del archivo",
 "Nom du fichier"
+],
+"Nome do sólido": [
+"Solid name",
+"Nombre del sólido",
+"Nom du solide"
 ],
 "Normalização → contexto → evidência → random walker → juiz de biodiversidade (experimental)": [
 "Normalisation → context → evidence → random walker → biodiversity judge (experimental)",
@@ -5226,10 +5286,20 @@ export const DICT={
 "Par sin contorno: el clic no cayó sobre ni cerca (20 px) de una región detectada.",
 "Paire sans contour : le clic n'est pas tombé sur ou près (20 px) d'une région détectée."
 ],
+"Para dentro (cavidade)": [
+"Into the face (cavity)",
+"Hacia dentro (cavidad)",
+"Dans la face (cavité)"
+],
 "Para exportar IfcAnnotation, o ativo espacial atual precisa ser um arquivo .ifc.": [
 "To export IfcAnnotation, the current spatial asset must be an .ifc file.",
 "Para exportar IfcAnnotation, el activo espacial actual debe ser un archivo .ifc.",
 "Pour exporter IfcAnnotation, l’actif spatial courant doit être un fichier .ifc."
+],
+"Para fora da face": [
+"Out of the face",
+"Hacia fuera de la cara",
+"Hors de la face"
 ],
 "Parar gravação": [
 "Stop recording",
@@ -5911,6 +5981,16 @@ export const DICT={
 "Informes y exportación",
 "Rapports et export"
 ],
+"Relevo com vales": [
+"Relief with valleys",
+"Relieve con valles",
+"Relief avec vallées"
+],
+"Relevo gravado como IfcTriangulatedFaceSet, com cores por faixa de nível.": [
+"Relief written as IfcTriangulatedFaceSet, coloured by level band.",
+"Relieve grabado como IfcTriangulatedFaceSet, con colores por franja de nivel.",
+"Relief écrit en IfcTriangulatedFaceSet, coloré par tranche de niveau."
+],
 "Remover escala": [
 "Remove scale",
 "Quitar escala",
@@ -6336,6 +6416,11 @@ export const DICT={
 "Guardando historial local",
 "Enregistrement de l’historique local"
 ],
+"Salvando…": [
+"Saving…",
+"Guardando…",
+"Enregistrement…"
+],
 "Salvar": [
 "Save",
 "Guardar",
@@ -6350,6 +6435,11 @@ export const DICT={
 "Save and open",
 "Guardar y abrir",
 "Enregistrer et ouvrir"
+],
+"Salvar e exportar": [
+"Save and export",
+"Guardar y exportar",
+"Enregistrer et exporter"
 ],
 "Salvar e fechar": [
 "Save and close",
@@ -6376,6 +6466,11 @@ export const DICT={
 "Guardar en el dispositivo",
 "Enregistrer sur l’appareil"
 ],
+"Salvar sólido": [
+"Save solid",
+"Guardar sólido",
+"Enregistrer le solide"
+],
 "Salvar todas": [
 "Save all",
 "Guardar todas",
@@ -6385,6 +6480,11 @@ export const DICT={
 "Save all to the device gallery",
 "Guardar todas en la galería del dispositivo",
 "Tout enregistrer dans la galerie de l’appareil"
+],
+"Salvos": [
+"Saved",
+"Guardados",
+"Enregistrés"
 ],
 "Saturação": [
 "Saturation",
@@ -6565,6 +6665,11 @@ export const DICT={
 "Threshold sensitivity: IoU × level",
 "Sensibilidad al umbral: IoU × nivel",
 "Sensibilité au seuil : IoU × niveau"
+],
+"Sentido": [
+"Direction",
+"Sentido",
+"Sens"
 ],
 "Servidor": [
 "Server",
@@ -6760,6 +6865,21 @@ export const DICT={
 "Level solid: stacks the walker contour levels on an IFC element face (IFC4 or IFC 4.3) as an approximate damage shape",
 "Sólido de niveles: apila las curvas de nivel del walker sobre la cara de un elemento del IFC (IFC4 o IFC 4.3) como forma aproximada del daño",
 "Solide de niveaux : empile les courbes de niveau du walker sur la face d’un élément IFC (IFC4 ou IFC 4.3) comme forme approximative du dommage"
+],
+"Sólido salvo": [
+"Saved solid",
+"Sólido guardado",
+"Solide enregistré"
+],
+"Sólido salvo não encontrado.": [
+"Saved solid not found.",
+"Sólido guardado no encontrado.",
+"Solide enregistré introuvable."
+],
+"Sólidos salvos": [
+"Saved solids",
+"Sólidos guardados",
+"Solides enregistrés"
 ],
 "TAMANHO": [
 "SIZE",
@@ -7295,6 +7415,11 @@ export const DICT={
 "layers",
 "capas",
 "couches"
+],
+"camadas planas": [
+"flat layers",
+"capas planas",
+"couches planes"
 ],
 "campanhas identificadas": [
 "identified campaigns",
@@ -7926,6 +8051,16 @@ export const DICT={
 "par(es)",
 "paire(s)"
 ],
+"para dentro": [
+"inward",
+"hacia dentro",
+"vers l’intérieur"
+],
+"para fora": [
+"outward",
+"hacia fuera",
+"vers l’extérieur"
+],
 "pares": [
 "pairs",
 "pares",
@@ -8101,6 +8236,11 @@ export const DICT={
 "regiones en el CSV",
 "régions dans le CSV"
 ],
+"relevo com vales": [
+"relief with valleys",
+"relieve con valles",
+"relief avec vallées"
+],
 "reprovada(s)": [
 "failed",
 "rechazada(s)",
@@ -8195,6 +8335,11 @@ export const DICT={
 "no run in this session",
 "sin ejecución en esta sesión",
 "aucune exécution dans cette session"
+],
+"sem importar": [
+"without import",
+"sin importar",
+"sans import"
 ],
 "serviço": [
 "service",
@@ -8305,6 +8450,11 @@ export const DICT={
 "triangles",
 "triángulos",
 "triangles"
+],
+"triângulos no topo": [
+"top triangles",
+"triángulos en la cara superior",
+"triangles en surface"
 ],
 "u": [
 "u",

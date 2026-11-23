@@ -86,3 +86,56 @@ export function layersAtPoint(solid,u,v){
     if(pointInRing(p,poly.outer)&&!poly.holes.some(h=>pointInRing(p,h))){out.push({region:R.id,level:L.level,z0:L.z0,z1:L.z1,area:poly.area});break}
   return out.sort((a,b)=>a.level-b.level);
 }
+
+// ---------- relevo contínuo (superfície irregular, com vales) ----------
+// Em vez de camadas planas, a altura acompanha o potencial: z = H·(u − t0)/(1 − t0) dentro da curva do nível mais baixo t0
+// (z = 0 na curva). Triângulos da grade (reamostrada com passo `stride`) recortados em u ≥ t0 por interpolação linear;
+// a base é a mesma malha achatada em z = 0, que fecha a casca. Cada região do sólido em camadas vira uma malha.
+// detail: células-alvo por imagem (alto ≈ 60 mil, médio ≈ 20 mil, baixo ≈ 6 mil).
+export const RELIEF_DETAIL={alto:60000,medio:20000,baixo:6000};
+export function buildRelief(rw,toPlane,solid,{heightMm=null,detail="medio",stride=null}={}){
+  const levels=solid?.levels||[];if(!levels.length||!solid.regions.length)return{regions:[],stride:1,heightMm:0};
+  const t0=levels[0],H=heightMm??levels.length*solid.layerMm,f=rw.f||1,P=rw.prob,GW=rw.W,GH=rw.H;
+  let inside=0;for(let i=0;i<P.length;i++)if(P[i]>=t0)inside++;
+  const s=stride||Math.max(1,Math.ceil(Math.sqrt(inside/(RELIEF_DETAIL[detail]||20000))));
+  const NX=Math.floor((GW-1)/s)+1,NY=Math.floor((GH-1)/s)+1,val=(i,j)=>P[Math.min(GH-1,j*s)*GW+Math.min(GW-1,i*s)];
+  const g2img=(gx,gy)=>[(gx+.5)*f-.5,(gy+.5)*f-.5],plane=(gx,gy)=>toPlane(...g2img(gx,gy)),zOf=u=>Math.max(0,H*(u-t0)/(1-t0));
+  // regiões: anéis do nível base no plano (com caixa envolvente para teste rápido)
+  const regs=solid.regions.map(R=>{const polys=R.layers[0]?.polys||[];return{R,polys,bb:R.bbox}});
+  const regionOf=(x,y)=>{for(let k=0;k<regs.length;k++){const{bb,polys}=regs[k];if(x<bb[0]||y<bb[1]||x>bb[2]||y>bb[3])continue;
+    for(const p of polys)if(pointInRing([x,y],p.outer)&&!p.holes.some(h=>pointInRing([x,y],h)))return k}return -1};
+  const bandOf=u=>{let b=0;for(let k=0;k<levels.length;k++)if(u>=levels[k])b=k;return b};
+  // 1) malha do topo inteira (u ≥ t0), com vértices compartilhados: nó da grade ("n"), corte numa aresta ("e"); z = 0 no corte.
+  //    Fora da grade o potencial vale −1 (como nas curvas de nível): a borda da imagem também fecha em z = 0.
+  const pos=[],tris=[],tband=[],map=new Map();
+  const vtx=(key,gx,gy,u)=>{let id=map.get(key);if(id==null){const[x,y]=plane(gx,gy);id=pos.length/4;pos.push(x,y,u<=t0?0:zOf(u),u);map.set(key,id)}return id};
+  const node=(a,b)=>{const ins=a>=0&&b>=0&&a<NX&&b<NY,ca=Math.max(0,Math.min(NX-1,a)),cb=Math.max(0,Math.min(NY-1,b));
+    return{gx:Math.min(GW-1,ca*s),gy:Math.min(GH-1,cb*s),u:ins?val(a,b):-1,k:ins?"n"+(b*NX+a):"o"+a+","+b}};
+  const clip=tri=>{const res=[];for(let a=0;a<3;a++){const A=tri[a],B=tri[(a+1)%3],ia=A.u>=t0,ib=B.u>=t0;
+      if(ia)res.push(A);if(ia!==ib){const t=(t0-A.u)/(B.u-A.u),k=A.k<B.k?A.k+"|"+B.k:B.k+"|"+A.k;res.push({gx:A.gx+(B.gx-A.gx)*t,gy:A.gy+(B.gy-A.gy)*t,u:t0,k:"e"+k})}}
+    return res};
+  for(let j=-1;j<NY;j++)for(let i=-1;i<NX;i++){
+    const q=[node(i,j),node(i+1,j),node(i+1,j+1),node(i,j+1)];if(q.every(v=>v.u<t0))continue;
+    for(const tri of[[q[0],q[1],q[2]],[q[0],q[2],q[3]]]){const poly=clip(tri);if(poly.length<3)continue;
+      const ids=poly.map(v=>vtx(v.k,v.gx,v.gy,v.u)),um=poly.reduce((s2,v)=>s2+v.u,0)/poly.length;
+      for(let k=1;k+1<ids.length;k++){tris.push(ids[0],ids[k],ids[k+1]);tband.push(bandOf(um))}}
+  }
+  // 2) componentes conexos (union-find nos vértices) → região do sólido em camadas pela maioria dos centroides;
+  //    componente sem região (menor que a área mínima) sai inteiro, para a casca continuar fechada
+  const nv=pos.length/4,par=new Int32Array(nv).map((_,i)=>i),find=x=>{while(par[x]!==x){par[x]=par[par[x]];x=par[x]}return x};
+  for(let t=0;t<tris.length;t+=3){const a=find(tris[t]);par[find(tris[t+1])]=a;par[find(tris[t+2])]=a}
+  const votes=new Map();for(let t=0;t<tris.length;t+=3){const c=find(tris[t]),cx=(pos[tris[t]*4]+pos[tris[t+1]*4]+pos[tris[t+2]*4])/3,cy=(pos[tris[t]*4+1]+pos[tris[t+1]*4+1]+pos[tris[t+2]*4+1])/3,r=regionOf(cx,cy);
+    if(r<0)continue;let v=votes.get(c);if(!v)votes.set(c,v=new Map());v.set(r,(v.get(r)||0)+1)}
+  const compRegion=new Map();for(const[c,v]of votes){let best=-1,bn=0;for(const[r,nn]of v)if(nn>bn){bn=nn;best=r}compRegion.set(c,best)}
+  const out=regs.map(()=>({pos:[],idx:[],band:[],map:new Map()}));
+  for(let t=0;t<tris.length;t+=3){const r=compRegion.get(find(tris[t]));if(r==null||r<0)continue;const o=out[r];
+    for(let k=0;k<3;k++){const v=tris[t+k];let id=o.map.get(v);if(id==null){id=o.pos.length/4;o.pos.push(pos[v*4],pos[v*4+1],pos[v*4+2],pos[v*4+3]);o.map.set(v,id)}o.idx.push(id)}
+    o.band.push(tband[t/3])}
+  // base: cópia achatada dos vértices internos (os de corte já têm z = 0 e são compartilhados), triângulos invertidos
+  const regions=out.map((o,k)=>{const nTop=o.idx.length/3,nv=o.pos.length/4,base=new Int32Array(nv).fill(-1),pos=o.pos.slice();
+    for(let v=0;v<nv;v++)if(o.pos[v*4+2]>1e-9){base[v]=pos.length/4;pos.push(o.pos[v*4],o.pos[v*4+1],0,o.pos[v*4+3])}else base[v]=v;
+    const idx=o.idx.slice(),band=o.band.slice();for(let t=0;t<nTop;t++){idx.push(base[o.idx[t*3]],base[o.idx[t*3+2]],base[o.idx[t*3+1]]);band.push(0)}
+    const n=pos.length/4,P3=new Float32Array(n*3),U=new Float32Array(n);for(let v=0;v<n;v++){P3[v*3]=pos[v*4];P3[v*3+1]=pos[v*4+1];P3[v*3+2]=pos[v*4+2];U[v]=pos[v*4+3]}
+    return{id:regs[k].R.id,positions:P3,u:U,indices:Uint32Array.from(idx),band:Uint8Array.from(band),topCount:nTop}}).filter(r=>r.topCount>0);
+  return{regions,stride:s,heightMm:H,t0,levels};
+}

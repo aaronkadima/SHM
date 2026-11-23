@@ -130,3 +130,16 @@ borda do walker anda 5,0 px em média entre u = 0,3 e 0,5.
   API do Canvas 2D usada pelas figuras e gera `<text>`, `<path>`, `<linearGradient>`, `<clipPath>`; rasters (fotos e
   mapas de cor) entram como `<image>`. A mesma rotina desenha o PNG e o SVG. Textos com largura máxima levam
   `textLength` (layout estável com fonte substituta; suportado por navegadores e Inkscape ≥ 1.0).
+
+## Filtros ao vivo (modo Live)
+
+Motor Live `cdm_4_filters` (“CDM-4 · Filtros (etapas)”, ligado ao `cdm_4` do catálogo): as etapas do fluxo por evidência
+como filtros sobre o vídeo — rugosidade, diversidade, polos, potencial do walker, contorno (contagem de regiões).
+Núcleo em `cdm4Live.js` (`runCdm4FilterLive`, `liveWalker`, `liveEvidenceOpts`), roda no worker do Live.
+
+- Janelas escaladas ao quadro com piso: rugosidade ≥ 5 px, Shannon ≥ 9 px; núcleo do polo ∝ lado/800.
+  Foto 24 reduzida (média em blocos) a 320 px: IoU 73,6 % (escalado puro 70,9 %; janelas do motor 70,1 %).
+- Walker grossa → fina: solução em meia resolução ampliada como ponto de partida (`solveWalker` aceita `x0`; sem `x0`
+  o comportamento do motor é idêntico); entre quadros, o potencial anterior é reaproveitado (opção).
+- Tempo por quadro (CPU, worker): 240 px ≈ 0,2–0,26 s; 320 px ≈ 0,3–0,4 s (até ~0,7 s em máquina lenta); 480 px ≈ 0,8–1 s.
+- Próximo passo se a taxa não bastar: walker em WebGL.

@@ -1,7 +1,11 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState}from"react";
-import{tr,langInfo}from"./i18n.js";
+import{tr,langInfo,getLang}from"./i18n.js";
 import{Camera,CameraOff,Download,FileJson,FileVideo,Flashlight,ImageDown,Images,MapPin,Play,RefreshCw,ScanSearch,Settings2,SwitchCamera,Trash2,Video,X}from"lucide-react";
 import{LIVE_ENGINES,LIVE_ENGINE_IDS}from"./liveEngines.js";
+import{LIVE_FILTERS}from"./cdm4Live.js";
+// legenda de intensidade do filtro CDM-4 (HTML na tela; desenhada no quadro só em capturas e gravações)
+const LEG_CSS=stops=>"linear-gradient(90deg,"+stops.map((c,i)=>`rgb(${c.join(",")}) ${(i/(stops.length-1)*100).toFixed(1)}%`).join(",")+")";
+const legFmt=v=>{const t=String(+Number(v).toFixed(2));return getLang()==="en"?t:t.replace(".",",")};
 
 const RESOLUTIONS={"720p":[1280,720],"1080p":[1920,1080],"4K":[3840,2160]};
 const DISPLAY_MAX_SIDE=1280;
@@ -39,7 +43,7 @@ async function saveFilesToDevice(files){
 function safeSlug(v){return String(v||"").trim().replace(/[^\w.-]+/g,"_").slice(0,40)}
 
 export default function LiveView({engines=[],selected=[],cdmOptions={},inspectionMeta={},appInfo={},onAnalyzeFrame,onClose}){
-  const liveEngines=useMemo(()=>LIVE_ENGINE_IDS.filter(id=>engines.some(e=>e.id===id&&e.browser_ready)).map(id=>({id,...LIVE_ENGINES[id],catalog:engines.find(e=>e.id===id)})),[engines]);
+  const liveEngines=useMemo(()=>LIVE_ENGINE_IDS.filter(id=>engines.some(e=>e.id===(LIVE_ENGINES[id].catalogId||id)&&e.browser_ready)).map(id=>({id,...LIVE_ENGINES[id],catalog:LIVE_ENGINES[id].catalogId?null:engines.find(e=>e.id===id)})),[engines]);
   const initialEngine=useMemo(()=>{
     const pref=localStorage.getItem("shmLiveEngine");
     if(pref&&liveEngines.some(e=>e.id===pref))return pref;
@@ -61,6 +65,13 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
   const[smoothing,setSmoothing]=useState(true);
   const[fpsCap,setFpsCap]=useState(8);
   const[confidence,setConfidence]=useState(.25);
+  // CDM-4 · filtros ao vivo
+  const[liveFilter,setLiveFilter]=useState(()=>localStorage.getItem("shmLiveFilter")||"walker");
+  const[filterSide,setFilterSide]=useState(()=>Number(localStorage.getItem("shmLiveFilterSide"))||320);
+  const[filterTau,setFilterTau]=useState(.5);
+  const[filterWarm,setFilterWarm]=useState(true);
+  useEffect(()=>{localStorage.setItem("shmLiveFilter",liveFilter)},[liveFilter]);
+  useEffect(()=>{localStorage.setItem("shmLiveFilterSide",String(filterSide))},[filterSide]);
   const[torch,setTorch]=useState({supported:false,on:false});
   const[geoOn,setGeoOn]=useState(false);
   const[geo,setGeo]=useState(null);
@@ -81,7 +92,7 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
   const recorderRef=useRef(null),chunksRef=useRef([]),timelineRef=useRef([]),recStartRef=useRef(0);
   const capturesRef=useRef([]),geoRef=useRef(null),frameCountRef=useRef({display:0,t:performance.now()}),ifpsRef=useRef(0);
   const settingsRef=useRef({});
-  settingsRef.current={engineId,detecting,opacity,showBoxes,smoothing,fpsCap,confidence,cdmOptions,inspectionMeta,geoOn};
+  settingsRef.current={engineId,detecting,opacity,showBoxes,smoothing,fpsCap,confidence,cdmOptions,inspectionMeta,geoOn,liveFilter,filterSide,filterTau,filterWarm};
   useEffect(()=>{capturesRef.current=captures},[captures]);
   useEffect(()=>{geoRef.current=geo},[geo]);
   useEffect(()=>{localStorage.setItem("shmLiveEngine",engineId)},[engineId]);
@@ -104,6 +115,7 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
   // ---------- Worker ----------
   const engineOpts=useCallback(()=>{
     const s=settingsRef.current;
+    if(s.engineId==="cdm_4_filters")return{filter:s.liveFilter,threshold:s.filterTau,warm:s.filterWarm};
     return s.engineId==="cdm_1"?{...s.cdmOptions}:{confidence:s.confidence};
   },[]);
   const workerControl=useMemo(()=>({channel:appInfo.channel,buildSha:appInfo.buildSha}),[appInfo.channel,appInfo.buildSha]);
@@ -111,6 +123,11 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
   const updateLayers=useCallback(result=>{
     const s=settingsRef.current,ema=emaRef.current,canvases=[];
     for(const layer of result.layers||[]){
+      if(layer.rgba){ // camada contínua (filtro CDM-4): suavização temporal opcional sobre o RGBA
+        const{w,h,rgba,id}=layer;let show=rgba;
+        if(s.smoothing){let acc=ema.get(id);if(!acc||acc.length!==rgba.length){acc=Float32Array.from(rgba);ema.set(id,acc)}else for(let i=0;i<rgba.length;i++)acc[i]=acc[i]*.45+rgba[i]*.55;show=Uint8ClampedArray.from(acc)}
+        const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").putImageData(new ImageData(show,w,h),0,0);canvases.push(c);continue;
+      }
       const{w,h,mask,color,id}=layer,n=w*h;
       let show=mask;
       if(s.smoothing){
@@ -267,6 +284,7 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
       }
     }
     if(!hud)return;
+    if(fresh&&result.legend)drawFilterLegend(ctx,W,H,result.legend);
     const fs=Math.max(12,Math.round(W/75)),pad=Math.round(fs*.7),lineH=Math.round(fs*1.35);
     const meta=s.inspectionMeta||{},g=geoRef.current,eng=LIVE_ENGINES[s.engineId]?.name||s.engineId;
     const counts=fresh?Object.entries(result.counts||{}).filter(([,n])=>n>0).map(([k,n])=>tr(k)+": "+n).join(" · "):"";
@@ -293,7 +311,7 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
     const vw=v.videoWidth,vh=v.videoHeight;if(!vw||!vh)return;
     let c=workCanvasRef.current;if(!c){c=document.createElement("canvas");workCanvasRef.current=c}
     let w,h,letterbox=null;
-    if(spec.mode==="maxSide"){const k=Math.min(1,spec.maxSide/Math.max(vw,vh));w=Math.max(1,Math.round(vw*k));h=Math.max(1,Math.round(vh*k))}
+    if(spec.mode==="maxSide"){const side=s.engineId==="cdm_4_filters"?s.filterSide:spec.maxSide,k=Math.min(1,side/Math.max(vw,vh));w=Math.max(1,Math.round(vw*k));h=Math.max(1,Math.round(vh*k))}
     else{w=spec.width;h=spec.height}
     if(c.width!==w)c.width=w;if(c.height!==h)c.height=h;
     const ctx=c.getContext("2d",{willReadFrequently:true});
@@ -485,6 +503,14 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
       </div>
     </div>}
 
+    {/* CDM-4 · filtros: troca com um toque + legenda de intensidade */}
+    {live&&engineId==="cdm_4_filters"&&<div className="liveFilterBar">
+      <div className="liveFilterChips" role="radiogroup" aria-label={tr("Filtro")}>
+        {LIVE_FILTERS.map(f=><button key={f.id} role="radio" aria-checked={liveFilter===f.id} className={liveFilter===f.id?"on":""} onClick={()=>setLiveFilter(f.id)}>{tr(f.label)}</button>)}
+      </div>
+      {resultRef.current?.legend&&detecting&&<FilterLegend legend={resultRef.current.legend} metrics={resultRef.current.metrics}/>}
+    </div>}
+
     {/* Topo: sair · motor · ajustes */}
     <div className="liveFloat liveTop">
       <button className="liveRound" onClick={close} title="Voltar ao Studio (Esc)" aria-label="Fechar modo Live"><X size={20}/></button>
@@ -539,6 +565,12 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
         </label>
         <div className="liveSwitchRow"><span>Detecção ativa</span><button className={"liveSwitch"+(detecting?" on":"")} role="switch" aria-checked={detecting} onClick={()=>setDetecting(d=>!d)}><i/></button></div>
         <label className="liveLabel">Taxa máxima de inferência <b>{fpsCap}/s</b><input type="range" min="1" max="20" value={fpsCap} onChange={e=>setFpsCap(Number(e.target.value))}/></label>
+        {engineId==="cdm_4_filters"&&<>
+          <label className="liveLabel">{tr("Filtro")}<select value={liveFilter} onChange={e=>setLiveFilter(e.target.value)}>{LIVE_FILTERS.map(f=><option key={f.id} value={f.id}>{tr(f.label)}</option>)}</select></label>
+          <label className="liveLabel">{tr("Resolução do filtro")} <b>{filterSide} px</b><select value={filterSide} onChange={e=>setFilterSide(Number(e.target.value))}>{[240,320,400,480].map(v=><option key={v} value={v}>{v} px{v===320?" · "+tr("recomendado"):""}</option>)}</select><small>{tr("Lado maior do quadro analisado. 320 px: cerca de 2 a 5 atualizações/s, conforme o aparelho; 480 px: cerca de 1/s.")}</small></label>
+          {(liveFilter==="walker"||liveFilter==="final")&&<label className="liveLabel">{tr("Limiar τ do walker")} <b>{filterTau.toFixed(2)}</b><input type="range" min=".1" max=".9" step=".05" value={filterTau} onChange={e=>setFilterTau(Number(e.target.value))}/></label>}
+          <div className="liveSwitchRow"><span>{tr("Partir do potencial do quadro anterior")}</span><button className={"liveSwitch"+(filterWarm?" on":"")} role="switch" aria-checked={filterWarm} onClick={()=>setFilterWarm(v=>!v)}><i/></button></div>
+        </>}
         {engineId==="yolov8n_public_crack_seg"&&<label className="liveLabel">Confiança mínima <b>{Math.round(confidence*100)}%</b><input type="range" min=".05" max=".9" step=".05" value={confidence} onChange={e=>setConfidence(Number(e.target.value))}/></label>}
         <label className="liveLabel">Opacidade das camadas <b>{Math.round(opacity*100)}%</b><input type="range" min=".1" max="1" step=".05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/></label>
         <div className="liveSwitchRow"><span>Caixas delimitadoras</span><button className={"liveSwitch"+(showBoxes?" on":"")} role="switch" aria-checked={showBoxes} onClick={()=>setShowBoxes(v=>!v)}><i/></button></div>
@@ -587,4 +619,26 @@ export default function LiveView({engines=[],selected=[],cdmOptions={},inspectio
 
     {!detecting&&live&&<button className="liveResume" onClick={()=>setDetecting(true)}><Play size={14}/> Retomar detecção</button>}
   </section>
+}
+
+function FilterLegend({legend,metrics}){
+  const m=metrics||{},perf=[m.frame?m.frame.join(" × ")+" px":"",m.total_ms!=null?Math.round(m.total_ms)+" ms":"",m.iterations!=null?m.iterations+" it":""].filter(Boolean).join(" · ");
+  if(!legend.stops)return <div className="liveFilterLegend plain"><span>{tr(legend.title)}{legend.kind==="final"&&legend.threshold!=null?" · τ = "+legFmt(legend.threshold):""}</span>{perf&&<small>{perf}</small>}</div>;
+  const span=legend.max-legend.min,pos=v=>((v-legend.min)/span*100)+"%";
+  return <div className="liveFilterLegend">
+    <span>{tr(legend.title)}</span>
+    <div className="bar" style={{background:LEG_CSS(legend.stops)}}>{legend.threshold!=null&&<i style={{left:pos(legend.threshold)}} title={tr(legend.thresholdLabel||"")}/>}</div>
+    <div className="ticks">{legend.ticks.map(t=><em key={t} style={{left:pos(t)}}>{legFmt(t)}</em>)}</div>
+    {perf&&<small>{perf}</small>}
+  </div>;
+}
+function drawFilterLegend(ctx,W,H,L){
+  const fs=Math.max(11,Math.round(W/95)),bw=Math.round(W*.32),bh=Math.round(fs*.8),x=W-bw-fs,y=fs*1.2;
+  ctx.save();ctx.fillStyle="rgba(8,12,18,.62)";ctx.fillRect(x-fs*.6,y-fs*.2,bw+fs*1.2,L.stops?fs*3.6:fs*1.6);
+  ctx.fillStyle="#fff";ctx.font="600 "+fs+"px system-ui,sans-serif";ctx.textBaseline="top";ctx.fillText(tr(L.title)+(L.kind==="final"&&L.threshold!=null?" · τ = "+legFmt(L.threshold):""),x,y,bw);
+  if(L.stops){const g=ctx.createLinearGradient(x,0,x+bw,0);L.stops.forEach((c,i)=>g.addColorStop(i/(L.stops.length-1),"rgb("+c.join(",")+")"));ctx.fillStyle=g;ctx.fillRect(x,y+fs*1.3,bw,bh);
+    const span=L.max-L.min;ctx.font=Math.round(fs*.85)+"px system-ui,sans-serif";ctx.textAlign="center";ctx.fillStyle="#fff";
+    for(const t of L.ticks)ctx.fillText(legFmt(t),Math.min(x+bw-fs,Math.max(x+fs*.5,x+(t-L.min)/span*bw)),y+fs*1.4+bh);
+    if(L.threshold!=null){const tx=x+(L.threshold-L.min)/span*bw;ctx.fillStyle="#00e0ff";ctx.fillRect(tx-1,y+fs*1.1,3,bh+fs*.4)}}
+  ctx.restore();
 }

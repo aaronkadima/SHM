@@ -53,7 +53,7 @@ self.onmessage=async e=>{
       const context=mode&&msg.engineId==="cdm_1"?await contextFor(frame,mode,msg.control||{},opts):null;
       const result=await runLiveEngine(msg.engineId,frame,{loaded,letterbox:msg.letterbox,opts:{...opts,contextExclusion:context?.excl||null}});
       if(context)result.metrics={...(result.metrics||{}),context_filter:{status:context.status,mode,excluded_ratio:context.excl?.excluded_ratio??null,error:context.error||null}};
-      const transfer=result.layers.map(l=>l.mask.buffer);
+      const transfer=result.layers.map(l=>(l.mask||l.rgba).buffer);
       self.postMessage({type:"result",seq:msg.seq,engineId:msg.engineId,latency_ms:performance.now()-started,...result},transfer);
     }catch(error){self.postMessage({type:"error",seq:msg.seq,engineId:msg.engineId,stage:"frame",error:String(error?.message||error)})}
   }

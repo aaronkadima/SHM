@@ -6,12 +6,14 @@ import{opencvCrackCore}from"./opencvCore.js";
 import{__cdmTest}from"./cdmBrowser.js";
 import{gateMasks,sceneOf}from"./contextFilter.js";
 
+import{runCdm4FilterLive,LIVE_FILTERS}from"./cdm4Live.js";
 export const LIVE_ENGINES={
   cdm_1:{name:"CDM-1",kind:"classical",note:"5 famílias de patologia (fissura, desplacamento, armadura, corrosão, eflorescência)"},
   opencv_crack:{name:"OpenCV Crack Baseline",kind:"classical",note:"Candidatos a fissura por black-hat + Otsu"},
   yolov8n_public_crack_seg:{name:"YOLOv8n Crack Seg",kind:"onnx",note:"Instâncias de fissura com caixas e máscaras"},
   segformer_public_crack:{name:"SegFormer-B0 Crack",kind:"onnx",note:"Segmentação semântica de fissura"},
-  crackenpy_public_crack:{name:"CrackenPy FPN",kind:"onnx",assetStem:"crackenpy_public_crack.int8",note:"Segmentação de fissura (INT8, mais pesado)"}
+  crackenpy_public_crack:{name:"CrackenPy FPN",kind:"onnx",assetStem:"crackenpy_public_crack.int8",note:"Segmentação de fissura (INT8, mais pesado)"},
+  cdm_4_filters:{name:"CDM-4 · Filtros (etapas)",kind:"classical",catalogId:"cdm_4",note:"Etapas do fluxo por evidência como filtros ao vivo: rugosidade, diversidade, polos, potencial do walker e contorno"}
 };
 export const LIVE_ENGINE_IDS=Object.keys(LIVE_ENGINES);
 export function liveEngineSupported(id){return Object.prototype.hasOwnProperty.call(LIVE_ENGINES,id)}
@@ -30,6 +32,7 @@ const CDM_REFERENCE_SIDE=1600;
 export function liveInputSpec(engineId,manifest=null,opts={}){
   if(engineId==="opencv_crack")return{mode:"maxSide",maxSide:Number(opts.maxSide||640)};
   if(engineId==="cdm_1")return{mode:"maxSide",maxSide:Number(opts.maxSide||512)};
+  if(engineId==="cdm_4_filters")return{mode:"maxSide",maxSide:Number(opts.maxSide||320)};
   if(engineId==="yolov8n_public_crack_seg"){
     const lb=manifest?.preprocess?.letterbox||{};
     return{mode:"letterbox",width:Number(lb.width||640),height:Number(lb.height||640)};
@@ -77,6 +80,16 @@ function runOpenCVLive(frame){
   };
 }
 
+// CDM-4 · filtros: o potencial do quadro anterior fica guardado no worker (reinicia ao trocar filtro ou tamanho)
+const CDM4_LIVE={sig:"",state:{}};
+function runCdm4Filters(frame,opts={}){
+  const filter=LIVE_FILTERS.some(f=>f.id===opts.filter)?opts.filter:"walker",threshold=clamp(Number(opts.threshold??.5),.05,.95);
+  const sig=filter+"|"+frame.width+"x"+frame.height+"|"+threshold;if(sig!==CDM4_LIVE.sig){CDM4_LIVE.sig=sig;CDM4_LIVE.state={}}
+  const r=runCdm4FilterLive(frame,{filter,threshold,warm:opts.warm!==false},CDM4_LIVE.state);
+  const label=LIVE_FILTERS.find(f=>f.id===filter).label,counts={};
+  if(filter==="final")counts["Desplacamento"]=r.metrics.regions||0;
+  return{layers:[{id:"cdm4_filter",label,rgba:r.rgba,w:r.w,h:r.h}],boxes:[],counts,legend:r.legend,metrics:r.metrics};
+}
 function runCdmLive(frame,opts={}){
   // A análise completa processa a imagem com lado máximo min(1600, original) e aplica os parâmetros
   // nessa escala; o Live usa ≈512 px, então kernel e área mínima são escalados pela razão entre as duas.
@@ -212,6 +225,7 @@ async function runYoloLive(loaded,frame,letterbox,opts){
 export async function runLiveEngine(engineId,frame,{loaded=null,letterbox=null,opts={}}={}){
   if(engineId==="opencv_crack")return runOpenCVLive(frame);
   if(engineId==="cdm_1")return runCdmLive(frame,opts);
+  if(engineId==="cdm_4_filters")return runCdm4Filters(frame,opts);
   if(!loaded)throw new Error("Sessão ONNX não carregada para "+engineId);
   if(engineId==="yolov8n_public_crack_seg")return runYoloLive(loaded,frame,letterbox,opts);
   if(engineId==="segformer_public_crack"||engineId==="crackenpy_public_crack")return runSemanticOnnx(engineId,loaded,frame,opts);

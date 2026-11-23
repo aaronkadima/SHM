@@ -1511,3 +1511,16 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .cutToolReadout{position:fixed;z-index:310;pointer-events:none;padding:3px 8px;border-radius:6px;background:rgba(18,32,42,.88);color:#fff;font:600 12px Inter,system-ui,sans-serif;white-space:nowrap}
 .cutToolReadout.snap{background:#e07800}
 .fieldToolPanel header button,.cutToolPanel header button{cursor:pointer}
+
+.liveFilterBar{position:absolute;z-index:3;top:calc(max(14px,env(safe-area-inset-top)) + 54px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;max-width:94vw;pointer-events:none}
+.liveFilterChips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;pointer-events:auto}
+.liveFilterChips button{border:0;border-radius:999px;padding:6px 12px;background:rgba(10,16,22,.62);color:#fff;font:600 12px Inter,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(6px)}
+.liveFilterChips button.on{background:#e07800}
+.liveFilterLegend{min-width:min(360px,80vw);padding:7px 12px 8px;border-radius:10px;background:rgba(10,16,22,.62);color:#fff;font:600 11px Inter,system-ui,sans-serif;backdrop-filter:blur(6px)}
+.liveFilterLegend.plain{min-width:0;display:flex;gap:10px;align-items:baseline}
+.liveFilterLegend .bar{position:relative;height:10px;border-radius:3px;margin-top:5px}
+.liveFilterLegend .bar i{position:absolute;top:-4px;width:3px;height:18px;margin-left:-1px;background:#00e0ff;border-radius:1px}
+.liveFilterLegend .ticks{position:relative;height:14px;font-weight:500}
+.liveFilterLegend .ticks em{position:absolute;top:2px;transform:translateX(-50%);font-style:normal;opacity:.9}
+.liveFilterLegend .ticks em:first-child{transform:none}.liveFilterLegend .ticks em:last-child{transform:translateX(-100%)}
+.liveFilterLegend small{display:block;margin-top:2px;font-weight:500;opacity:.7}

@@ -118,7 +118,10 @@ export function solveWalker(X,W,H,label,o){
   const xs=new Float64Array(N),r=new Float64Array(N),z=new Float64Array(N),p=new Float64Array(N),Ap=new Float64Array(N);
   const mul=(v,out)=>{for(let i=0;i<N;i++){if(!free[i]){out[i]=0;continue}let s=deg[i]*v[i];const y=(i/W)|0,x=i-y*W;
     if(x>0&&free[i-1])s-=wr[i-1]*v[i-1];if(x<W-1&&free[i+1])s-=wr[i]*v[i+1];if(y>0&&free[i-W])s-=wd[i-W]*v[i-W];if(y<H-1&&free[i+W])s-=wd[i]*v[i+W];out[i]=s}};
-  let bn=0;for(let i=0;i<N;i++)if(free[i]){r[i]=b[i];bn+=b[i]*b[i]}bn=Math.sqrt(bn)||1;
+  let bn=0;for(let i=0;i<N;i++)if(free[i])bn+=b[i]*b[i];bn=Math.sqrt(bn)||1;
+  // ponto de partida opcional (o.x0: potencial aproximado, p. ex. solução grossa ampliada); sem ele, x = 0
+  if(o.x0&&o.x0.length===N){for(let i=0;i<N;i++)xs[i]=free[i]?o.x0[i]:0;mul(xs,Ap);for(let i=0;i<N;i++)if(free[i])r[i]=b[i]-Ap[i]}
+  else for(let i=0;i<N;i++)if(free[i])r[i]=b[i];
   let rz=0;for(let i=0;i<N;i++)if(free[i]){z[i]=r[i]/deg[i];p[i]=z[i];rz+=r[i]*z[i]}
   let it=0,converged=false;
   for(;it<o.maxIter;it++){

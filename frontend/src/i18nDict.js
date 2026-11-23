@@ -1186,6 +1186,11 @@ export const DICT={
 "CDM-3 · puntos patológicos",
 "CDM-3 · points pathologiques"
 ],
+"CDM-4 · Filtros (etapas)": [
+"CDM-4 · Filters (stages)",
+"CDM-4 · Filtros (etapas)",
+"CDM-4 · Filtres (étapes)"
+],
 "CDM-4 · etapas do núcleo": [
 "CDM-4 · core stages",
 "CDM-4 · etapas del núcleo",
@@ -1836,6 +1841,16 @@ export const DICT={
 "Conservador · descarta solo lo que está en clases irrelevantes",
 "Conservateur · n’écarte que ce qui est dans des classes non pertinentes"
 ],
+"Contorno do desplacamento": [
+"Spalling contour",
+"Contorno del desprendimiento",
+"Contour de l'épaufrure"
+],
+"Contorno: u > τ · branco = contorno": [
+"Contour: u > τ · white = contour",
+"Contorno: u > τ · blanco = contorno",
+"Contour : u > τ · blanc = contour"
+],
 "Contra o GT: IoU da binarização {b}; IoU do walker {u}.": [
 "Against the GT: binarization IoU {b}; walker IoU {u}.",
 "Frente al GT: IoU de la binarización {b}; IoU del walker {u}.",
@@ -2251,6 +2266,11 @@ export const DICT={
 "Divergencia",
 "Divergence"
 ],
+"Diversidade de Ataky": [
+"Ataky diversity",
+"Diversidad de Ataky",
+"Diversité d'Ataky"
+],
 "Diversidade de Shannon (z)": [
 "Shannon diversity (z)",
 "Diversidad de Shannon (z)",
@@ -2500,6 +2520,11 @@ export const DICT={
 "Processing stages ·",
 "Etapas de procesamiento ·",
 "Étapes de traitement ·"
+],
+"Etapas do fluxo por evidência como filtros ao vivo: rugosidade, diversidade, polos, potencial do walker e contorno": [
+"Evidence-flow stages as live filters: roughness, diversity, poles, walker potential and contour",
+"Etapas del flujo por evidencia como filtros en vivo: rugosidad, diversidad, polos, potencial del walker y contorno",
+"Étapes du flux par évidence comme filtres en direct : rugosité, diversité, pôles, potentiel du walker et contour"
 ],
 "Etapas do motor": [
 "Engine stages",
@@ -2900,6 +2925,11 @@ export const DICT={
 "3D inspection tools",
 "Herramientas de inspección 3D",
 "Outils d’inspection 3D"
+],
+"Filtro": [
+"Filter",
+"Filtro",
+"Filtre"
 ],
 "Filtro de contexto IA": [
 "Context AI filter",
@@ -3561,6 +3591,11 @@ export const DICT={
 "Lado a lado · disponible tras el análisis",
 "Côte à côte · disponible après l’analyse"
 ],
+"Lado maior do quadro analisado. 320 px: cerca de 2 a 5 atualizações/s, conforme o aparelho; 480 px: cerca de 1/s.": [
+"Longer side of the analysed frame. 320 px: about 2 to 5 updates/s depending on the device; 480 px: about 1/s.",
+"Lado mayor del cuadro analizado. 320 px: unas 2 a 5 actualizaciones/s según el dispositivo; 480 px: alrededor de 1/s.",
+"Plus grand côté de l'image analysée. 320 px : environ 2 à 5 mises à jour/s selon l'appareil ; 480 px : environ 1/s."
+],
 "Lajes/vigas secundárias/apoios · Fr=4": [
 "Slabs/secondary beams/bearings · Fr=4",
 "Losas/vigas secundarias/apoyos · Fr=4",
@@ -3620,6 +3655,11 @@ export const DICT={
 "Otsu threshold",
 "Umbral de Otsu",
 "Seuil d’Otsu"
+],
+"Limiar τ do walker": [
+"Walker threshold τ",
+"Umbral τ del walker",
+"Seuil τ du walker"
 ],
 "Limite de 8 vistas fotométricas atingido.": [
 "Limit of 8 photometric views reached.",
@@ -4736,6 +4776,11 @@ export const DICT={
 "Paridad CDM · indicadores y gráficos Python ⇄ navegador",
 "Parité CDM · indicateurs et graphiques Python ⇄ navigateur"
 ],
+"Partir do potencial do quadro anterior": [
+"Start from the previous frame's potential",
+"Partir del potencial del cuadro anterior",
+"Partir du potentiel de l'image précédente"
+],
 "Passo (Ctrl)": [
 "Step (Ctrl)",
 "Paso (Ctrl)",
@@ -4841,6 +4886,16 @@ export const DICT={
 "Polos del random walker",
 "Pôles du random walker"
 ],
+"Polos do walker": [
+"Walker poles",
+"Polos del walker",
+"Pôles du walker"
+],
+"Polos: laranja = dano · azul = saudável": [
+"Poles: orange = damage · blue = healthy",
+"Polos: naranja = daño · azul = sano",
+"Pôles : orange = dommage · bleu = sain"
+],
 "Polígono": [
 "Polygon",
 "Polígono",
@@ -4865,6 +4920,11 @@ export const DICT={
 "Random walker potential",
 "Potencial del random walker",
 "Potentiel du random walker"
+],
+"Potencial do walker": [
+"Walker potential",
+"Potencial del walker",
+"Potentiel du walker"
 ],
 "Potencial u e curvas de nível": [
 "Potential u and contour lines",
@@ -5411,6 +5471,11 @@ export const DICT={
 "Resolución de entrada del modelo",
 "Résolution d’entrée du modèle"
 ],
+"Resolução do filtro": [
+"Filter resolution",
+"Resolución del filtro",
+"Résolution du filtre"
+],
 "Resolução limitada para fissuras capilares; aproxime a câmera ou use mais pixels.": [
 "Limited resolution for hairline cracks; move the camera closer or use more pixels.",
 "Resolución limitada para fisuras capilares; acerque la cámara o use más píxeles.",
@@ -5560,6 +5625,11 @@ export const DICT={
 "Roughness (z, healthy = 0)",
 "Rugosidad (z, sano = 0)",
 "Rugosité (z, sain = 0)"
+],
+"Rugosidade normalizada": [
+"Normalized roughness",
+"Rugosidad normalizada",
+"Rugosité normalisée"
 ],
 "Runtime opcional": [
 "Optional runtime",

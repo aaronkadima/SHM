@@ -210,3 +210,21 @@ console.log("cut-level analysis ok");
   const r=snap({x:0,y:0},{x:97,y:-52},20);assert.equal(r.L,120);assert.equal(Math.round(r.deg),-30);
 }
 console.log("svg + snap ok");
+
+// Live · filtros CDM-4: partida grossa → fina converge ao mesmo potencial da partida do zero
+{
+  const {solveWalker,RW_DEFAULTS}=await import("../src/cdm4RandomWalker.js");
+  const {runCdm4FilterLive,liveWalker,LIVE_FILTERS}=await import("../src/cdm4Live.js");
+  const w=160,h=120,img=new Uint8ClampedArray(w*h*4);let s=7;const rnd=()=>{s=(s*1103515245+12345)%2147483648;return s/2147483648};
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const inD=Math.hypot(x-60,y-60)<28,i=4*(y*w+x);const v=inD?70+120*rnd():150+8*rnd();img.set([v,inD?v*.9:v,inD?v*.8:v,255],i)}
+  const st={},R={};for(const f of LIVE_FILTERS){R[f.id]=runCdm4FilterLive({width:w,height:h,data:img},{filter:f.id,threshold:.5,warm:true},st);assert.equal(R[f.id].rgba.length,R[f.id].w*R[f.id].h*4)}
+  assert.ok(R.poles.metrics.damage_seed_px>0&&R.poles.metrics.healthy_seed_px>0,"polos no quadro sintético");
+  assert.equal(R.final.metrics.regions,1,"um desplacamento no contorno ao vivo");
+  assert.ok(R.final.metrics.area_frac>.10&&R.final.metrics.area_frac<.20,"área do disco real 12,8 %: "+R.final.metrics.area_frac);
+  // mesma solução com e sem ponto de partida
+  const X=[new Float32Array(w*h).map((_,i)=>(Math.hypot(i%w-60,((i/w)|0)-60)<28?80:160)+3*rnd()),new Float32Array(w*h),new Float32Array(w*h),new Float32Array(w*h)];
+  const lab=new Int8Array(w*h);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const r=Math.hypot(x-60,y-60);lab[y*w+x]=r<10?2:r>45?1:0}
+  const a=solveWalker(X,w,h,lab,{...RW_DEFAULTS,tol:1e-6}),b=liveWalker({W:w,H:h,L:X[0],o1:X[1],o2:X[2],Hs:X[3]},lab,{opts:{tol:1e-6}});
+  assert.ok(a.converged&&b.converged,"as duas soluções convergem");let dmax=0;for(let i=0;i<w*h;i++)dmax=Math.max(dmax,Math.abs(a.prob[i]-b.prob[i]));assert.ok(dmax<1e-3,"grossa→fina = solução direta (dif. "+dmax+")");
+}
+console.log("live filters ok");

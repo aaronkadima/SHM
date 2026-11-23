@@ -961,6 +961,10 @@ function refineEvidence(image,masks,cfg,log,stages=null){
   }
   if(stages)stages.evidence={W:E.W,H:E.H,f,rough:E.rough,div:E.div,dark:E.dark,seedsDamage:seeds.damage,seedsHealthy:seeds.healthy};
   if(stages&&R.prob)stages.random_walker={prob:R.prob,W:E.W,H:E.H,threshold:eo.threshold,site:null};
+  // A máscara do walker (etapa do potencial) é a verdade de fronteira deste fluxo: a armadura da
+  // morfologia, que o juiz anexa ao desplacamento, só vale dentro dela; fora, era falso núcleo.
+  let rebarClipped=0;
+  if(masks.exposed_rebar){const r=new Uint8Array(masks.exposed_rebar);for(let i=0;i<n;i++)if(r[i]&&!sp[i]){r[i]=0;rebarClipped++}masks.exposed_rebar=r}
   // juiz de biodiversidade: cada componente precisa se distinguir da coroa saudável vizinha
   let areaRef=null;
   if(cfg.bio){
@@ -969,6 +973,8 @@ function refineEvidence(image,masks,cfg,log,stages=null){
     const r=bioRefineMasks(cand,bioFeatures(image.data,w,h,cfg.bioOpts),{exclusion:ex,opts:{...cfg.bioOpts,modes:{spalling_dark:"gate",efflorescence_white:"gate"}}});
     masks={...r.masks};log.biodiversity=r.log;
   }else masks.spalling_dark=sp;
+  // o juiz só remove: nada fora da máscara do walker entra no desplacamento
+  {const m=new Uint8Array(masks.spalling_dark);let out=0;for(let i=0;i<n;i++)if(m[i]&&!sp[i]){m[i]=0;out++}masks.spalling_dark=m;log.walker_bound={rebar_clipped_px:rebarClipped,spalling_clipped_px:out}}
   if(stages)stages.integrated=masks.spalling_dark;
   separateFamilies(masks,w,h);
   if(cfg.linearRebar){

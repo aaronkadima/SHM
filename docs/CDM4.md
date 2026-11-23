@@ -92,3 +92,12 @@ A figura 4 (tabela de coerência) mostra a IoU de cada contorno dentro da seleç
   não a acurácia.
 
 Clicar numa figura abre a ampliação (← → navegam, Esc fecha). A ferramenta abre pela barra lateral, pelo menu Análise da barra superior ou pelo menu de contexto.
+
+### Máscara do walker como fronteira (fluxo por evidência)
+
+No fluxo por evidência, a máscara do walker (etapa do potencial, já com resolução cheia ou afinamento,
+quando ligados) é a verdade de fronteira: a armadura da morfologia CDM 2.11 é recortada a ela antes do juiz
+de biodiversidade, e o desplacamento final nunca sai dela (o juiz só remove). Antes, o juiz anexava ao
+desplacamento toda a "armadura" da morfologia, e falsos núcleos que o walker não confirmou voltavam como
+regiões pequenas (na foto 24, três regiões, a maior com 4.231 px²). Foto 24: IoU 68,4 → 70,2;
+com resolução cheia 70,7 → 72,9. Registro: `refinement.walker_bound`.

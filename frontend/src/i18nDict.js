@@ -1791,6 +1791,11 @@ export const DICT={
 "Con leyenda al lado (niveles y salvedad)",
 "Avec légende à côté (niveaux et réserve)"
 ],
+"Com legenda dos níveis do walker": [
+"With walker level legend",
+"Con leyenda de los niveles del walker",
+"Avec légende des niveaux du walker"
+],
 "Com t entre 0,3 e 0,7, a IoU do walker fica entre {a} e {b}: o resultado não depende de um ajuste fino do limiar.": [
 "With t between 0.3 and 0.7, the walker IoU stays between {a} and {b}: the result does not depend on fine-tuning the threshold.",
 "Con t entre 0,3 y 0,7, la IoU del walker queda entre {a} y {b}: el resultado no depende de un ajuste fino del umbral.",
@@ -8340,6 +8345,11 @@ export const DICT={
 "walker potential u",
 "potencial del walker u",
 "potentiel du walker u"
+],
+"potencial u": [
+"potential u",
+"potencial u",
+"potentiel u"
 ],
 "predecessor esperado": [
 "expected predecessor",

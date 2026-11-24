@@ -1652,3 +1652,36 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .editorToolGroup .editorToolGroupItems button{width:38px;height:36px}
 .editorToolGroup:hover .editorToolGroupLabel{color:#0d766e}
 @media(max-width:340px){.editorToolGroup{grid-template-columns:9px 1fr}.editorToolGroupLabel{font-size:7px}.editorToolGroup .editorToolGroupItems button{width:34px;height:34px}}
+/* Barra lateral compacta: botões, ícones e espaços encolhem com a altura da janela para não precisar de rolagem */
+@media (max-height:900px){
+  .editorTools{padding-top:8px;padding-bottom:6px}
+  .editorToolGroup{padding:3px 0 3px;min-height:52px}
+  .editorToolGroupItems{gap:1px}
+  .editorToolGroup .editorToolGroupItems button{width:36px;height:31px}
+  .editorTools svg{width:18px;height:18px}
+  .editorToolButtons button svg.cdmIcon{width:23px!important;height:23px!important}
+  .editorTools .editorAulasLink{width:34px;height:34px;min-height:34px}
+}
+@media (max-height:780px){
+  .editorTools{padding-top:6px;padding-bottom:4px}
+  .editorToolGroup{padding:2px 0;min-height:46px}
+  .editorToolGroupLabel{font-size:7px;letter-spacing:.1em}
+  .editorToolGroup .editorToolGroupItems button{width:34px;height:27px;border-radius:6px}
+  .editorTools svg{width:16px;height:16px}
+  .editorToolButtons button svg.cdmIcon{width:21px!important;height:21px!important}
+  .editorTools .editorAulasLink{width:30px;height:30px;min-height:30px}
+}
+@media (max-height:660px){
+  .editorToolGroup{min-height:40px}
+  .editorToolGroup .editorToolGroupItems button{height:23px}
+  .editorTools svg{width:15px;height:15px}
+  .editorToolButtons button svg.cdmIcon{width:19px!important;height:19px!important}
+  .editorTools .editorAulasLink{width:26px;height:26px;min-height:26px}
+}
+@media (max-height:610px){
+  .editorTools{padding-top:4px;padding-bottom:2px}
+  .editorToolGroup{min-height:36px;padding:1px 0}
+  .editorToolGroup .editorToolGroupItems button{height:21px}
+  .editorTools svg{width:14px;height:14px}
+  .editorTools .editorAulasLink{width:24px;height:24px;min-height:24px}
+}

@@ -1786,6 +1786,11 @@ export const DICT={
 "Con leyenda (niveles y salvedad)",
 "Avec légende (niveaux et réserve)"
 ],
+"Com legenda ao lado (níveis e ressalva)": [
+"With legend alongside (levels and caveat)",
+"Con leyenda al lado (niveles y salvedad)",
+"Avec légende à côté (niveaux et réserve)"
+],
 "Com t entre 0,3 e 0,7, a IoU do walker fica entre {a} e {b}: o resultado não depende de um ajuste fino do limiar.": [
 "With t between 0.3 and 0.7, the walker IoU stays between {a} and {b}: the result does not depend on fine-tuning the threshold.",
 "Con t entre 0,3 y 0,7, la IoU del walker queda entre {a} y {b}: el resultado no depende de un ajuste fino del umbral.",

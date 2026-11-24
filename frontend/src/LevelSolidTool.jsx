@@ -114,22 +114,44 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
   const goView=(name,tl,az)=>{const T=three.current,tg=viewTarget(),d=dirFor(name,tl,az);if(!T||!tg||!d)return;
     const dist=tg.r/Math.tan(T.camera.fov*Math.PI/360)*1.15,p1=tg.c.clone().add(d.multiplyScalar(dist));
     T.anim={p0:T.camera.position.clone(),p1,c0:T.controls.target.clone(),c1:tg.c.clone(),t0:performance.now(),dur:450};T.camera.near=Math.max(1e-4,tg.r/400);T.camera.far=tg.r*400;T.camera.updateProjectionMatrix();setActiveView(name)};
-  // imagem da vista atual em alta definição (fator × resolução da tela), com legenda opcional
+  // imagem da vista atual em alta definição: só o objeto (recorte justo pelo alfa do renderizador, que tem fundo transparente),
+  // sobre fundo branco, com a legenda numa coluna ao lado
   async function exportShot(scale){setErr("");try{const T=three.current;if(!T)return;const r=T.renderer,sz=r.getSize(new THREE.Vector2()),pr=r.getPixelRatio(),gl=r.getContext();
       const maxSide=Math.min(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)||8192,gl.getParameter(gl.MAX_TEXTURE_SIZE)||8192,8192),k=Math.max(1,Math.min(scale,maxSide/Math.max(sz.x,sz.y)));
       r.setPixelRatio(k);r.setSize(sz.x,sz.y,false);r.render(T.scene,T.camera);const src=r.domElement,W0=src.width,H0=src.height;
-      // legenda: título + ressalva à esquerda e níveis à direita; se não couberem lado a lado, níveis numa segunda linha
-      const lev=built?.levels||[],f=v=>`${Math.round(v*k)}px Inter, system-ui, sans-serif`,pad=16*k,mx=document.createElement("canvas").getContext("2d");
-      const title=`${tr("Sólido de níveis")} · CDM-4`,sub=`${curDir<0?tr("Côncava (cavidade)"):tr("Convexa (para fora)")} · ${curStyle==="relief"?tr("relevo com vales"):tr("camadas planas")} · ${tr("Forma aproximada; não é profundidade medida")}`;
-      mx.font="600 "+f(14);let tw=mx.measureText(title).width;mx.font=f(11);tw=Math.max(tw,mx.measureText(sub).width);
-      const items=lev.map((t,i)=>({t:`u ≥ ${lv(t)}`,i})),legW=items.reduce((acc,it)=>acc+mx.measureText(it.t).width+30*k,0),stack=pad+tw+24*k+legW>W0-pad;
-      const band=shotLegend?Math.round((stack?92:64)*k):0,c=document.createElement("canvas");c.width=W0;c.height=H0+band;const x=c.getContext("2d");
-      x.fillStyle="#dce4e7";x.fillRect(0,0,W0,H0);x.fillStyle="#c7d3d7";const g=24*k;for(let yy=g/2;yy<H0;yy+=g)for(let xx=g/2;xx<W0;xx+=g){x.beginPath();x.arc(xx,yy,k*.9,0,7);x.fill()}
-      x.drawImage(src,0,0);r.setPixelRatio(pr);r.setSize(sz.x,sz.y,false);
-      if(band){x.fillStyle="#fff";x.fillRect(0,H0,W0,band);x.fillStyle="#dce5e8";x.fillRect(0,H0,W0,Math.max(1,k));const top=H0+(stack?22:band/2-9)*k/(stack?1:k)*(stack?k:1);
-        const y1=stack?H0+22*k:H0+band/2-9*k,y2=y1+19*k;x.textBaseline="middle";x.fillStyle="#1f3540";x.font="600 "+f(14);x.fillText(title,pad,y1);x.fillStyle="#6f8590";x.font=f(11);x.fillText(sub,pad,y2);
-        x.font=f(11);let lx=stack?pad:W0-pad-legW+16*k;const ly=stack?y2+26*k:H0+band/2;void top;
-        for(const it of items){const col=levelColor(it.i,lev.length).map(v=>Math.round(v*255));x.fillStyle=`rgb(${col})`;x.fillRect(lx,ly-6*k,12*k,12*k);lx+=16*k;x.fillStyle="#263e4b";x.fillText(it.t,lx,ly);lx+=x.measureText(it.t).width+14*k}}
+      const tmp=document.createElement("canvas");tmp.width=W0;tmp.height=H0;const tx=tmp.getContext("2d",{willReadFrequently:true});tx.drawImage(src,0,0);
+      r.setPixelRatio(pr);r.setSize(sz.x,sz.y,false);
+      // caixa do conteúdo (alfa > 8)
+      const A=tx.getImageData(0,0,W0,H0).data;let x0=W0,y0=H0,x1=-1,y1=-1;
+      for(let y=0;y<H0;y++){const row=y*W0*4;for(let xx=0;xx<W0;xx++)if(A[row+xx*4+3]>8){if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(y<y0)y0=y;if(y>y1)y1=y}}
+      if(x1<0){x0=0;y0=0;x1=W0-1;y1=H0-1}
+      const m=Math.round(28*k);x0=Math.max(0,x0-m);y0=Math.max(0,y0-m);x1=Math.min(W0-1,x1+m);y1=Math.min(H0-1,y1+m);const cw=x1-x0+1,ch=y1-y0+1;
+      // legenda lateral
+      const f=v=>`${Math.round(v*k)}px Inter, system-ui, sans-serif`,lw=shotLegend?Math.round(270*k):0,pad=Math.round(20*k),inner=lw-2*pad;
+      const lev=built?.levels||[],rebars=curDir<0?(cavity?.regions||[]).flatMap(rg=>rg.rebars||[]):[],mx=document.createElement("canvas").getContext("2d");
+      const wrap=(text,font,width)=>{mx.font=font;const out=[];let line="";for(const w of String(text).split(" ")){const t=line?line+" "+w:w;if(mx.measureText(t).width>width&&line){out.push(line);line=w}else line=t}if(line)out.push(line);return out};
+      const blocks=[];const push=(text,font,color,gap=6)=>{for(const l of wrap(text,font,inner))blocks.push({t:l,font,color,h:Math.round(parseFloat(font.match(/(\d+)px/)[1])*1.45)});blocks.at(-1).gap=gap*k};
+      if(shotLegend){
+        push(`${tr("Sólido de níveis")} · CDM-4`,"650 "+f(15),"#1f3540",4);
+        push(`${curDir<0?tr("Côncava (cavidade)"):tr("Convexa (para fora)")} · ${curStyle==="relief"?tr("relevo com vales"):tr("camadas planas")}`,f(11.5),"#4d6570",14);
+        push(tr("Níveis do walker").toUpperCase(),"650 "+f(9.5),"#6f8590",6);
+        lev.forEach((t,i)=>blocks.push({chip:levelColor(i,lev.length),t:`u ≥ ${lv(t)}`,sub:curStyle==="relief"?"":`${fmt((i+1)*(built?.layerMm||0),0)} mm`,font:f(11.5),color:"#263e4b",h:Math.round(20*k)}));
+        blocks.at(-1).gap=12*k;
+        if(rebars.length){const ds=[...new Set(rebars.map(b=>b.d))].sort((a,b)=>a-b).map(lv).join("; ");blocks.push({chip:[.48,.37,.3],t:`${tr("Armadura")} · Ø ${ds} mm`,font:f(11.5),color:"#263e4b",h:Math.round(20*k),gap:12*k})}
+        const info=[face?.name,(saved?.image?.name||file?.name||""),new Date(saved?.created_at||Date.now()).toLocaleDateString(loc())].filter(Boolean).join(" · ");
+        push(info,f(10.5),"#6f8590",10);
+        push(tr("Forma aproximada do dano para identificação visual no modelo. A altura de cada camada é o nível do potencial × a espessura escolhida; não é profundidade medida."),f(10),"#8a6a12",0);
+      }
+      const lh=blocks.reduce((acc,b2)=>acc+b2.h+(b2.gap||0),0)+2*pad,W=cw+lw,H=Math.max(ch,lh);
+      const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
+      x.fillStyle="#fff";x.fillRect(0,0,W,H);x.drawImage(tmp,x0,y0,cw,ch,0,Math.round((H-ch)/2),cw,ch);
+      if(lw){x.fillStyle="#f6f9fa";x.fillRect(cw,0,lw,H);x.fillStyle="#dce5e8";x.fillRect(cw,0,Math.max(1,Math.round(k)),H);
+        let y=Math.max(pad,Math.round((H-lh)/2)+pad);x.textBaseline="middle";
+        for(const b2 of blocks){const cy=y+b2.h/2;let lx=cw+pad;
+          if(b2.chip){const col=b2.chip.map(v=>Math.round(v*255));x.fillStyle=`rgb(${col})`;x.fillRect(lx,cy-6*k,12*k,12*k);lx+=20*k}
+          x.font=b2.font;x.fillStyle=b2.color;x.fillText(b2.t,lx,cy);
+          if(b2.sub){x.fillStyle="#6f8590";x.textAlign="right";x.fillText(b2.sub,cw+lw-pad,cy);x.textAlign="left"}
+          y+=b2.h+(b2.gap||0)}}
       const blob=await new Promise(res=>c.toBlob(res,"image/png")),base=(saved?.image?.name||file?.name||"foto").replace(/\.[^.]+$/,"");
       save(`${base}_solido_vista_${c.width}x${c.height}.png`,blob);setDone(`${tr("Imagem da vista")}: ${c.width} × ${c.height} px`);setShotMenu(false)}catch(e){setErr(e?.message||String(e))}}
   async function loadIfcIntoScene(f){const group=await loadIfcThreeModel(f,{onProgress:p=>setLoading(Math.max(1,p.loaded))}),T=three.current;
@@ -455,7 +477,7 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
         {shotMenu&&face&&<div className="lstPop lstShot" role="dialog" aria-label={tr("Exportar imagem da vista")}>
           <b>{tr("Imagem da vista atual (PNG)")}</b>
           <div className="lstViewGrid two">{[2,3,4].map(k=><button key={k} onClick={()=>exportShot(k)}>{k}× · {(()=>{const r=three.current?.renderer?.getSize?.(new THREE.Vector2());return r?`${Math.round(r.x*k)} × ${Math.round(r.y*k)}`:""})()}</button>)}</div>
-          <label className="lstCheck"><input type="checkbox" checked={shotLegend} onChange={e=>setShotLegend(e.target.checked)}/>{tr("Com legenda (níveis e ressalva)")}</label></div>}
+          <label className="lstCheck"><input type="checkbox" checked={shotLegend} onChange={e=>setShotLegend(e.target.checked)}/>{tr("Com legenda ao lado (níveis e ressalva)")}</label></div>}
         {mode==="ifc"&&!saved&&!ifc&&!loading&&<div className="lstEmpty"><FolderOpen size={30}/><b>{tr("Abra o IFC da estrutura para posicionar o sólido.")}</b></div>}
         {mode==="ifc"&&!saved&&ifc&&pickingFace&&<div className="lstBanner"><Crosshair size={14}/>{tr("Clique na face do elemento onde a foto foi tirada.")}</div>}
         {built?.regions&&<div className="lstLayers" aria-label={tr("Camadas geradas")}>

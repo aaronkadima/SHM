@@ -5,7 +5,8 @@ import{Box,ChevronLeft,Crosshair,Download,FolderOpen,ImageIcon,Info,Layers,Maxim
 import{__cdm4Test,cdm4Config,cdm4StageData}from"./cdm4Core.js";
 import{loadIfcThreeModel}from"./ifcGeometry.js";
 import{worldTriangles,planarFace,faceToModel,imageFaceMapping,facePoint,faceUV,potentialAt}from"./ifcFace.js";
-import{buildLevelSolid,buildRelief,layersAtPoint}from"./levelSolid.js";
+import{buildLevelSolid,buildRelief,buildCavity,layersAtPoint}from"./levelSolid.js";
+import{cutHostGeometry,cavityWallsGeometry,cavityGhostGeometry,photoWithHoles}from"./cavityView.js";
 import{parseStep,lengthUnitMeters,writeLevelSolid,levelColor}from"./ifcLevelSolidWriter.js";
 import{referenceHostIfc}from"./ifcReferenceHost.js";
 import{saveLevelSolid,listLevelSolids,getLevelSolid,deleteLevelSolid}from"./levelSolidStore.js";
@@ -38,6 +39,7 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
   const[pick,setPick]=useState(null),[pickingFace,setPickingFace]=useState(true),[rot,setRot]=useState(0),[mirror,setMirror]=useState(false);
   const[levels,setLevels]=useState("0,1; 0,3; 0,5; 0,7; 0,9"),[layerMm,setLayerMm]=useState(10),[minArea,setMinArea]=useState(4);
   const[style,setStyle]=useState("terraces"),[direction,setDirection]=useState(1),[detail,setDetail]=useState("medio");
+  const[cutView,setCutView]=useState("hidden"),[cutIfc,setCutIfc]=useState(true),[cutState,setCutState]=useState(null);
   const[fit,setFit]=useState("contain"),[dx,setDx]=useState(0),[dy,setDy]=useState(0),[showPhoto,setShowPhoto]=useState(true);
   const[size,setSize]=useState("auto"),[widthMm,setWidthMm]=useState(1000),[schema,setSchema]=useState("IFC4X3");
   const[sel,setSel]=useState(null),[point,setPoint]=useState(null),[photo,setPhoto]=useState(null);
@@ -74,16 +76,16 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
     const camera=new THREE.PerspectiveCamera(40,1,.01,5000);camera.position.set(3,2,4);
     const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.screenSpacePanning=true;
     scene.add(new THREE.HemisphereLight(0xffffff,0x8a9aa0,1.1));const sun=new THREE.DirectionalLight(0xffffff,1.5);sun.position.set(4,9,7);scene.add(sun);const fill=new THREE.DirectionalLight(0xffffff,.45);fill.position.set(-6,-2,5);scene.add(fill);
-    const model=new THREE.Group(),solid=new THREE.Group(),mark=new THREE.Group(),pic=new THREE.Group();scene.add(model,pic,solid,mark);
+    const model=new THREE.Group(),solid=new THREE.Group(),mark=new THREE.Group(),pic=new THREE.Group(),cut=new THREE.Group();scene.add(model,cut,pic,solid,mark);
     const resize=()=>{const w=el.clientWidth||800,h=el.clientHeight||600;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};resize();
     const ro=new ResizeObserver(resize);ro.observe(el);let raf=0;const loop=()=>{raf=requestAnimationFrame(loop);controls.update();renderer.render(scene,camera)};loop();
     const ray=new THREE.Raycaster();let down=null;
     const onDown=e=>{down=[e.clientX,e.clientY]};
     const onUp=e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>4)return;const r=renderer.domElement.getBoundingClientRect();
       ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);
-      three.current?.onPick?.(ray.intersectObjects([...solid.children,...pic.children,...model.children],false))};
+      three.current?.onPick?.(ray.intersectObjects([...solid.children,...pic.children,...cut.children,...model.children.filter(m=>m.visible)],false))};
     renderer.domElement.addEventListener("pointerdown",onDown);renderer.domElement.addEventListener("pointerup",onUp);
-    three.current={scene,camera,controls,model,solid,mark,pic,renderer};
+    three.current={scene,camera,controls,model,solid,mark,pic,cut,renderer};
     return()=>{cancelAnimationFrame(raf);ro.disconnect();controls.dispose();renderer.dispose();renderer.domElement.remove();three.current=null};
   },[active,mode]);
   const fitView=(obj,dir=[1,.55,1.3])=>{const T=three.current;obj=obj||T?.model;if(!T||!obj)return;const b=new THREE.Box3().setFromObject(obj);if(b.isEmpty())return;const c=b.getCenter(new THREE.Vector3()),r=b.getSize(new THREE.Vector3()).length()/2||1;
@@ -144,27 +146,61 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
   const reliefLive=useMemo(()=>{if(saved||curStyle!=="relief"||!builtLive?.regions?.length||!mapping||!rw?.prob)return null;
     return buildRelief({prob:rw.prob,W:rw.W,H:rw.H,f:fGrid},mapping.toPlane,builtLive,{detail})},[saved,curStyle,builtLive,mapping,rw,fGrid,detail]);
   const relief=saved?saved.relief:reliefLive;
-  useEffect(()=>{setPoint(null);setSel(null)},[built,relief]);
+  // côncava: cavidade = fundo colorido + recorte em degraus (o mesmo volume gravado no IFC como IfcVoidingFeature)
+  const cavityLive=useMemo(()=>{if(saved||curDir>=0||!builtLive?.regions?.length||!mapping||!rw?.prob)return null;
+    return buildCavity({prob:rw.prob,W:rw.W,H:rw.H,f:fGrid},mapping.toPlane,builtLive,{style:curStyle==="relief"?"relief":"terraces",detail})},[saved,curDir,curStyle,builtLive,mapping,rw,fGrid,detail]);
+  const cavity=saved?saved.cavity||null:cavityLive;
+  const curCutView=saved?saved.params.cutView||"hidden":cutView,curCutIfc=saved?saved.params.cutIfc!==false:cutIfc;
+  const hostGuid=saved?saved.hostGuid:pick?.info?.globalId;
+  useEffect(()=>{setPoint(null);setSel(null)},[built,relief,cavity]);
 
-  // placa de referência (sem importação)
+  // placa de referência (sem importação): sempre mais espessa que a cavidade mais funda, para o recorte não atravessá-la
+  const plateT=Math.max(100,(built?.levels?.length||5)*(built?.layerMm||10)+50);
   useEffect(()=>{const T=three.current;if(!T||mode!=="standalone"||!plate)return;T.model.clear();
-    const w=plate.wmm/1000,h=plate.hmm/1000,t=.05,m=new THREE.Mesh(new THREE.BoxGeometry(w,h,t),new THREE.MeshStandardMaterial({color:0xc9cfd1,roughness:.9,transparent:true}));
-    m.position.set(w/2,h/2,-t/2);m.userData.plate=true;T.model.add(m);fitView(T.model,[.55,.35,1])},[mode,plate]);
+    const w=plate.wmm/1000,h=plate.hmm/1000,t=plateT/1000,m=new THREE.Mesh(new THREE.BoxGeometry(w,h,t),new THREE.MeshStandardMaterial({color:0xc9cfd1,roughness:.9,transparent:true}));
+    m.position.set(w/2,h/2,-t/2);m.userData.plate=true;T.model.add(m);fitView(T.model,[.55,.35,1])},[mode,plate,plateT]);
   // para dentro: o elemento fica translúcido para o sólido aparecer
   useEffect(()=>{const T=three.current;if(!T)return;T.model.traverse(n=>{if(!n.isMesh)return;const mats=Array.isArray(n.material)?n.material:[n.material];
-    for(const m of mats){if(m.userData.op==null)m.userData.op=m.opacity;m.transparent=true;m.opacity=curDir<0?Math.min(.35,m.userData.op):m.userData.op;m.depthWrite=curDir>=0;m.needsUpdate=true}})},[curDir,ifc,plate,mode]);
+    for(const m of mats){if(m.userData.op==null)m.userData.op=m.opacity;m.transparent=true;const glass=curDir<0&&cutState!=="ok";m.opacity=glass?Math.min(.35,m.userData.op):m.userData.op;m.depthWrite=!glass;m.needsUpdate=true}})},[curDir,cutState,ifc,plate,mode]);
+  // recorte na vista: a face do hospedeiro é refeita com a boca da cavidade como furo; paredes e pisos dos degraus com o
+  // material do elemento; no modo transparente, o volume removido aparece como uma película translúcida
+  useEffect(()=>{const T=three.current;if(!T)return;T.cut.clear();T.model.children.forEach(m=>{if(m.userData.cutHidden){m.visible=true;m.userData.cutHidden=false}});
+    if(curDir>=0||!cavity?.regions?.length||!face){setCutState(null);return}
+    const hosts=T.model.children.filter(m=>m.isMesh&&(mode==="standalone"?m.userData.plate:hostGuid&&m.userData.ifc?.globalId===hostGuid));
+    if(!hosts.length){setCutState(null);return}
+    let ok=false,outside=false,color=new THREE.Color(0xb9c1c4);
+    for(const m of hosts){m.updateMatrixWorld(true);const g=m.geometry,tris=worldTriangles(g.attributes.position.array,g.index?.array||null,m.matrixWorld.elements,g.attributes.normal?.array||null);
+      const n=face.n,d0=n[0]*face.origin[0]+n[1]*face.origin[1]+n[2]*face.origin[2];
+      const ft=tris.filter(t=>t.area&&t.n[0]*n[0]+t.n[1]*n[1]+t.n[2]*n[2]>.999&&t.P.every(p=>Math.abs(p[0]*n[0]+p[1]*n[1]+p[2]*n[2]-d0)<.002));if(!ft.length)continue;
+      const cg=cutHostGeometry(face,tris,ft,cavity);if(!cg){outside=true;continue}
+      const mat=(Array.isArray(m.material)?m.material[0]:m.material).clone();mat.transparent=false;mat.opacity=1;mat.depthWrite=true;mat.side=THREE.DoubleSide;color=mat.color?.clone?.()||color;
+      const cm=new THREE.Mesh(cg,mat);cm.userData.cutHost=true;cm.userData.ifc=m.userData.ifc;T.cut.add(cm);m.visible=false;m.userData.cutHidden=true;ok=true}
+    if(ok){const wall=new THREE.Mesh(cavityWallsGeometry(face,cavity),new THREE.MeshStandardMaterial({color:color.clone().multiplyScalar(.82),roughness:.95,side:THREE.DoubleSide}));wall.userData.cutWall=true;T.cut.add(wall);
+      if(curCutView==="transparent")for(const g of cavityGhostGeometry(face,cavity))T.cut.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide})))}
+    setCutState(ok?"ok":outside?"outside":null);
+  },[curDir,cavity,face,mode,hostGuid,ifc,plate,curCutView]);
   // foto projetada na face (em grade: vale também para a homografia)
   useEffect(()=>{const T=three.current;if(!T)return;T.pic.clear();if(!face||!mapping||!photo||!showPhoto||!mapParams)return;
+    if(curDir<0&&cutState==="ok"&&cavity){const m=new THREE.Mesh(photoWithHoles(face,mapping,mapParams.W,mapParams.H,cavity,.3),new THREE.MeshBasicMaterial({map:photo,side:THREE.DoubleSide,transparent:true,opacity:.95,depthWrite:false}));
+      m.userData.photo=true;T.pic.add(m);return}
     const N=24,pos=[],uv=[],idx=[],Wm=mapParams.W,Hm=mapParams.H;for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){const[u,v]=mapping.toPlane(i/N*Wm,j/N*Hm);pos.push(...facePoint(face,u,v,.3*(curDir<0?-1:1)));uv.push(i/N,1-j/N)}
     for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=j*(N+1)+i,b=a+1,c=a+N+1,d=c+1;idx.push(a,c,b,b,c,d)}
     const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));g.setAttribute("uv",new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);
-    const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({map:photo,side:THREE.DoubleSide,transparent:true,opacity:curDir<0?.28:.92,depthWrite:false}));m.userData.photo=true;T.pic.add(m)},[face,mapping,mapParams,photo,showPhoto,curDir]);
+    const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({map:photo,side:THREE.DoubleSide,transparent:true,opacity:curDir<0?.28:.92,depthWrite:false}));m.userData.photo=true;T.pic.add(m)},[face,mapping,mapParams,photo,showPhoto,curDir,cutState,cavity]);
   // face destacada + sólido (camadas planas ou relevo) na moldura da face
   useEffect(()=>{const T=three.current;if(!T)return;T.mark.clear();T.solid.clear();if(!face)return;
     if(face.triangles?.length&&!(photo&&showPhoto)){const pos=new Float32Array(face.triangles.flatMap(t=>t.P.flatMap(p=>[p[0]+face.n[0]*.0004,p[1]+face.n[1]*.0004,p[2]+face.n[2]*.0004]))),g=new THREE.BufferGeometry();
       g.setAttribute("position",new THREE.BufferAttribute(pos,3));T.mark.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0x0d766e,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false})))}
     if(!built?.regions)return;
     const d=curDir<0?-1:1,basis=new THREE.Matrix4().makeBasis(new THREE.Vector3(...face.ex),new THREE.Vector3(...face.ey),new THREE.Vector3(...face.n)).setPosition(...face.origin);
+    if(d<0&&cavity?.regions){
+      // côncava: só o fundo da cavidade, colorido (relevo: cor contínua; degraus: cor da faixa)
+      for(const R of cavity.regions){const L=R.lining,n=L.positions.length/3,pos=new Float32Array(n*3),col=new Float32Array(n*3);
+        for(let v=0;v<n;v++){pos[v*3]=L.positions[v*3]/1000;pos[v*3+1]=-L.positions[v*3+1]/1000;pos[v*3+2]=-L.positions[v*3+2]/1000;
+          col.set(curStyle==="relief"?reliefColor(L.u[v],built.levels):levelColor(bandOf(L.u[v],built.levels),built.levels.length),v*3)}
+        const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.BufferAttribute(pos,3));g.setAttribute("color",new THREE.BufferAttribute(col,3));g.setIndex(new THREE.BufferAttribute(L.indices,1));g.computeVertexNormals();
+        const mesh=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.75,side:THREE.DoubleSide,transparent:true}));mesh.matrixAutoUpdate=false;mesh.matrix.copy(basis);mesh.userData.layer={region:R.id,relief:true,u:L.u,base:col.slice()};T.solid.add(mesh)}
+      return}
     if(curStyle==="relief"&&relief?.regions){
       for(const R of relief.regions){const n=R.positions.length/3,pos=new Float32Array(n*3),col=new Float32Array(n*3);
         for(let v=0;v<n;v++){pos[v*3]=R.positions[v*3]/1000;pos[v*3+1]=-R.positions[v*3+1]/1000;pos[v*3+2]=d*(R.positions[v*3+2]+.5)/1000;col.set(reliefColor(R.u[v],built.levels),v*3)}
@@ -175,7 +211,7 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
       for(const p of L.polys){const sh=new THREE.Shape(p.outer.map(([u,v])=>new THREE.Vector2(u/1000,-v/1000)));sh.holes=p.holes.map(h=>new THREE.Path(h.map(([u,v])=>new THREE.Vector2(u/1000,-v/1000))));
         const geo=new THREE.ExtrudeGeometry(sh,{depth:(L.z1-L.z0)/1000,bevelEnabled:false,curveSegments:1});geo.translate(0,0,(d>0?L.z0+.5:-(L.z1+.5))/1000);
         const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:new THREE.Color(r,g,b),roughness:.7,side:THREE.DoubleSide,transparent:true}));mesh.matrixAutoUpdate=false;mesh.matrix.copy(basis);mesh.userData.layer={key:keyOf(R.id,L.level),region:R.id,level:L.level};T.solid.add(mesh)}}
-  },[face,built,relief,curStyle,curDir,photo,showPhoto]);
+  },[face,built,relief,cavity,curStyle,curDir,photo,showPhoto]);
   // destaque da camada selecionada (no relevo: a faixa de potencial da camada) e marcador do ponto
   useEffect(()=>{const T=three.current;if(!T)return;const[sr,st]=sel?sel.slice(1).split(":").map(Number):[null,null];
     T.solid.children.forEach(m=>{const L=m.userData.layer;if(!L)return;
@@ -184,7 +220,7 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
       const on=!sel||L.key===sel;m.material.opacity=on?1:.16;m.material.depthWrite=on;m.material.emissive?.setHex(sel&&on?0x1d3c40:0);m.material.needsUpdate=true});
     T.mark.children.filter(c=>c.userData.point).forEach(c=>T.mark.remove(c));
     if(point&&face){const d=curDir<0?-1:1,top=point.layers.at(-1),lev=built?.levels||[],H0=lev.length*(built?.layerMm||0),
-        hR=point.pot!=null&&lev.length?Math.max(0,H0*(point.pot-lev[0])/(1-lev[0])):0,h=curStyle==="relief"?hR+.5:(top?top.z1+.5:1),
+        hR=point.pot!=null&&lev.length?Math.max(0,H0*(point.pot-lev[0])/(1-lev[0])):0,h=curDir<0?(curStyle==="relief"?hR:(top?top.z1:0))+.3:curStyle==="relief"?hR+.5:(top?top.z1+.5:1),
         p=facePoint(face,point.u,point.v,d*h),s=new THREE.Mesh(new THREE.SphereGeometry(Math.max(face.width,face.height)/160,16,12),new THREE.MeshBasicMaterial({color:0xc2413b}));s.position.set(...p);s.userData.point=true;T.mark.add(s)}
   },[sel,point,face,built,relief,curStyle,curDir]);
 
@@ -203,21 +239,22 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
   const exportJob=async()=>{
     const src=saved||null,imgName=src?.image?.name||file?.name||"foto",base=imgName.replace(/\.[^.]+$/,"");
     const meta={className:tr("Desplacamento"),image:imgName,date:(src?.created_at||new Date().toISOString()).slice(0,10)};
-    const extra={relief:curStyle==="relief"?relief:null,direction:curDir};
-    if(mode==="standalone"){const h=referenceHostIfc({schema,widthMm:plate.wmm,heightMm:plate.hmm,description:`${imgName} · ${plate.label}`,fileName:base+"_CDM4.ifc"});
+    const extra={relief:curStyle==="relief"&&curDir>=0?relief:null,direction:curDir,cavity:curDir<0?cavity:null,voids:curCutIfc};
+    if(mode==="standalone"){const h=referenceHostIfc({schema,widthMm:plate.wmm,heightMm:plate.hmm,thicknessMm:plateT,description:`${imgName} · ${plate.label}`,fileName:base+"_CDM4.ifc"});
       return{text:h.text,name:`${base}_CDM4_forma_dano_${h.schema}.ifc`,payload:{host_guid:h.hostGuid,face:h.face,solid:built,meta:{...meta,scale:plate.label},...extra}}}
     if(src)return{text:await src.ifc.blob.text(),name:src.ifc.name.replace(/\.ifc$/i,"")+"_CDM4_forma_dano.ifc",payload:{host_guid:src.hostGuid,face:src.faceModel,solid:built,meta:{...meta,scale:src.scaleLabel||""},...extra}};
     return{text:ifc.text,name:ifc.name.replace(/\.ifc$/i,"")+"_CDM4_forma_dano.ifc",payload:{host_guid:pick.info.globalId,face:faceToModel(face,ifc.coordination,ifc.unitM),solid:built,meta:{...meta,scale:fit==="metric"&&metric?metric.label:tr("imagem encaixada na face")},...extra}};
   };
+  const jsonCavity=c=>c?{...c,regions:c.regions.map(x=>({id:x.id,lining:{positions:Array.from(x.lining.positions),indices:Array.from(x.lining.indices),band:Array.from(x.lining.band)},steps:x.steps}))}:null;
   const jsonRelief=r=>r?{...r,regions:r.regions.map(x=>({id:x.id,positions:Array.from(x.positions),indices:Array.from(x.indices),band:Array.from(x.band)}))}:null;
-  async function exportBrowser(){setErr("");try{const j=await exportJob(),p=j.payload,r=writeLevelSolid(j.text,{hostGuid:p.host_guid,face:p.face,solid:p.solid,meta:p.meta,relief:p.relief,direction:p.direction});
-    save(j.name,new Blob([r.text],{type:"application/x-step"}));setDone(`${tr("Arquivo gerado")}: ${r.schema} · ${r.features.length} ${tr("características")} · ${r.relation}`)}catch(e){setErr(e?.message||String(e))}}
-  async function exportServer(){setErr("");setBusy("server");try{const j=await exportJob(),base=serverEndpoint(),fd=new FormData();fd.append("ifc",new Blob([j.text],{type:"application/x-step"}),j.name);fd.append("payload_json",JSON.stringify({...j.payload,relief:jsonRelief(j.payload.relief)}));
+  async function exportBrowser(){setErr("");try{const j=await exportJob(),p=j.payload,r=writeLevelSolid(j.text,{hostGuid:p.host_guid,face:p.face,solid:p.solid,meta:p.meta,relief:p.relief,direction:p.direction,cavity:p.cavity,voids:p.voids});
+    save(j.name,new Blob([r.text],{type:"application/x-step"}));setDone(`${tr("Arquivo gerado")}: ${r.schema} · ${r.features.length} ${tr("características")}${r.voids?` · ${r.voids} ${tr("recortes")}`:""} · ${r.relation}`)}catch(e){setErr(e?.message||String(e))}}
+  async function exportServer(){setErr("");setBusy("server");try{const j=await exportJob(),base=serverEndpoint(),fd=new FormData();fd.append("ifc",new Blob([j.text],{type:"application/x-step"}),j.name);fd.append("payload_json",JSON.stringify({...j.payload,relief:jsonRelief(j.payload.relief),cavity:jsonCavity(j.payload.cavity)}));
     const r=await fetch(base+"/cdm3/ifc/level-solid",{method:"POST",body:fd});if(!r.ok)throw new Error(await r.text());save(j.name,await r.blob());
     setDone(`${tr("Arquivo gerado")}: ${r.headers.get("X-CDM4-Schema")||""} · ${r.headers.get("X-CDM4-Features")||"?"} ${tr("características")} · IfcOpenShell`)}catch(e){setErr(tr("Servidor")+": "+(e?.message||String(e)))}finally{setBusy("")}}
   // 3D (.glb): sólido + foto projetada, em metros, Y para cima
   async function exportGlb(){setErr("");try{const T=three.current;if(!T)return;const{GLTFExporter}=await import("three/addons/exporters/GLTFExporter.js");
-    const g=new THREE.Group();for(const m of[...T.solid.children,...T.pic.children]){const c=m.clone();c.material=m.material.clone();c.material.opacity=1;c.material.transparent=false;if(m.userData.layer?.relief){c.geometry=m.geometry.clone();c.geometry.attributes.color.array.set(m.userData.layer.base)}c.matrixAutoUpdate=false;c.matrix.copy(m.matrixWorld);c.matrix.decompose(c.position,c.quaternion,c.scale);c.matrixAutoUpdate=true;g.add(c)}
+    const g=new THREE.Group();for(const m of[...T.solid.children,...T.pic.children,...T.cut.children.filter(c=>!c.material.transparent)]){const c=m.clone();c.material=m.material.clone();c.material.opacity=1;c.material.transparent=false;if(m.userData.layer?.relief){c.geometry=m.geometry.clone();c.geometry.attributes.color.array.set(m.userData.layer.base)}c.matrixAutoUpdate=false;c.matrix.copy(m.matrixWorld);c.matrix.decompose(c.position,c.quaternion,c.scale);c.matrixAutoUpdate=true;g.add(c)}
     const bin=await new GLTFExporter().parseAsync(g,{binary:true});const base=(saved?.image?.name||file?.name||"foto").replace(/\.[^.]+$/,"");
     save(`${base}_CDM4_forma_dano.glb`,new Blob([bin],{type:"model/gltf-binary"}));setDone(tr("Modelo 3D (.glb) baixado"))}catch(e){setErr(e?.message||String(e))}}
   const defaultName=()=>`${(file?.name||"foto").replace(/\.[^.]+$/,"")} · ${curStyle==="relief"?tr("relevo com vales"):tr("camadas planas")}${mode==="ifc"&&face?` · ${face.name}`:""}`;
@@ -226,14 +263,14 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
       const ph=file?await shrinkPhoto(file,1024):null,photoBlob=ph?await new Promise(r=>ph.toBlob(r,"image/jpeg",.85)):null;
       const faceSave={origin:face.origin,ex:face.ex,ey:face.ey,n:face.n,width:face.width,height:face.height,name:face.name,triangles:[]};
       const rec={name:(saveName||defaultName()).trim(),mode,image:{name:file?.name||"",size:file?.size||0},schema:mode==="standalone"?schema:ifc?.schema,
-        params:{levels:built.levels,layerMm:built.layerMm,minArea:+minArea,style:curStyle,direction:curDir,detail},
-        solid:built,relief:curStyle==="relief"?relief:null,face:faceSave,map:mapParams,plate:mode==="standalone"?plate:null,
+        params:{levels:built.levels,layerMm:built.layerMm,minArea:+minArea,style:curStyle,direction:curDir,detail,cutView,cutIfc},
+        solid:built,relief:curStyle==="relief"&&curDir>=0?relief:null,cavity:curDir<0?cavity:null,face:faceSave,map:mapParams,plate:mode==="standalone"?plate:null,
         rw:{prob:rw.prob,W:rw.W,H:rw.H,f:fGrid},photo:photoBlob,thumbnail};
-      if(mode==="ifc"){rec.ifc={name:ifc.name,schema:ifc.schema,unitM:ifc.unitM,coordination:ifc.coordination,blob:new Blob([ifc.text],{type:"application/x-step"})};rec.hostGuid=pick.info.globalId;rec.faceModel=faceToModel(face,ifc.coordination,ifc.unitM);rec.scaleLabel=fit==="metric"&&metric?metric.label:tr("imagem encaixada na face")}
+      rec.hostGuid=mode==="ifc"?pick.info.globalId:null;if(mode==="ifc"){rec.ifc={name:ifc.name,schema:ifc.schema,unitM:ifc.unitM,coordination:ifc.coordination,blob:new Blob([ifc.text],{type:"application/x-step"})};rec.hostGuid=pick.info.globalId;rec.faceModel=faceToModel(face,ifc.coordination,ifc.unitM);rec.scaleLabel=fit==="metric"&&metric?metric.label:tr("imagem encaixada na face")}
       const out=await saveLevelSolid(rec);setSaveName("");refreshLibrary();setDone(tr("Sólido salvo")+": "+out.name)}catch(e){setErr(e?.message||String(e))}finally{setBusy("")}}
 
   if(!active)return null;
-  const nFeat=built?.regions?.length||0,canExport=!!(face&&nFeat&&(saved||mode==="standalone"||(ifc&&pick?.info?.globalId)))&&(curStyle!=="relief"||!!relief?.regions?.length);
+  const nFeat=built?.regions?.length||0,canExport=!!(face&&nFeat&&(saved||mode==="standalone"||(ifc&&pick?.info?.globalId)))&&(curDir<0?!!cavity?.regions?.length:(curStyle!=="relief"||!!relief?.regions?.length));
   const outSchema=mode==="standalone"?schema:ifc?.schema||saved?.ifc?.schema||"";
   const selInfo=sel&&built?.regions?(()=>{const[r,t]=sel.slice(1).split(":"),R=built.regions.find(x=>x.id===+r),L=R?.layers.find(x=>x.level===+t);return L?{R,L,area:L.polys.reduce((s,p)=>s+p.area,0)}:null})():null;
   const note=<p className="lstNote"><Info size={15}/><span>{tr("Forma aproximada do dano para identificação visual no modelo. A altura de cada camada é o nível do potencial × a espessura escolhida; não é profundidade medida.")}</span></p>;
@@ -295,12 +332,19 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
             <button role="radio" aria-checked={style==="relief"} className={style==="relief"?"active":""} onClick={()=>setStyle("relief")}>{tr("Relevo com vales")}</button></div>
           <span className="lstLabel">{tr("Sentido")}</span>
           <div className="lstSeg small" role="radiogroup" aria-label={tr("Sentido")}>
-            <button role="radio" aria-checked={direction>0} className={direction>0?"active":""} onClick={()=>setDirection(1)}>{tr("Para fora da face")}</button>
-            <button role="radio" aria-checked={direction<0} className={direction<0?"active":""} onClick={()=>setDirection(-1)}>{tr("Para dentro (cavidade)")}</button></div>
+            <button role="radio" aria-checked={direction>0} className={direction>0?"active":""} onClick={()=>setDirection(1)}>{tr("Convexa (para fora)")}</button>
+            <button role="radio" aria-checked={direction<0} className={direction<0?"active":""} onClick={()=>setDirection(-1)}>{tr("Côncava (cavidade)")}</button></div>
+          {direction<0&&<><span className="lstLabel">{tr("Interseção com o elemento")}</span>
+            <div className="lstSeg small" role="radiogroup" aria-label={tr("Interseção com o elemento")}>
+              <button role="radio" aria-checked={cutView==="hidden"} className={cutView==="hidden"?"active":""} onClick={()=>setCutView("hidden")}>{tr("Oculta (recorte)")}</button>
+              <button role="radio" aria-checked={cutView==="transparent"} className={cutView==="transparent"?"active":""} onClick={()=>setCutView("transparent")}>{tr("Transparente")}</button></div>
+            <label className="lstCheck"><input type="checkbox" checked={cutIfc} onChange={e=>setCutIfc(e.target.checked)}/>{tr("Recortar o elemento no IFC exportado")}</label>
+            <small>{cutIfc?tr("O recorte é um IfcVoidingFeature separado, ligado por IfcRelVoidsElement: a geometria do elemento não muda e apagar o recorte restaura a vista original."):tr("Sem recorte no IFC: o fundo colorido fica dentro do elemento e só aparece com o elemento transparente.")}</small>
+            {cutState==="outside"&&<p className="lstErr">{tr("A cavidade passa da borda da face: na vista o elemento fica translúcido; o recorte no IFC continua.")}</p>}</>}
           <div className="lstRow">{tr("Níveis do walker")}<input className="wide" value={levels} onChange={e=>setLevels(e.target.value)} aria-label={tr("Níveis do walker")}/></div>
           <div className="lstRow">{tr("Espessura por camada")}<input type="number" min=".1" value={layerMm} onChange={e=>setLayerMm(e.target.value)} aria-label={tr("Espessura por camada (mm)")}/>mm</div>
           <div className="lstRow">{tr("Área mínima")}<input type="number" min="0" step=".5" value={minArea} onChange={e=>setMinArea(e.target.value)} aria-label={tr("Área mínima (dm²)")}/>dm²</div>
-          {style==="relief"&&<div className="lstRow">{tr("Detalhe do relevo")}<select className="inline" value={detail} onChange={e=>setDetail(e.target.value)} aria-label={tr("Detalhe do relevo")}>
+          {(style==="relief"||direction<0)&&<div className="lstRow">{tr("Detalhe do relevo")}<select className="inline" value={detail} onChange={e=>setDetail(e.target.value)} aria-label={tr("Detalhe do relevo")}>
             <option value="alto">{tr("Alto")}</option><option value="medio">{tr("Médio")}</option><option value="baixo">{tr("Baixo")}</option></select></div>}
           {style==="relief"&&relief&&<small>{tr("Altura contínua: zero na curva do nível mais baixo, máxima em u = 1; vales onde o potencial cai.")} {relief.regions.reduce((s,r)=>s+r.topCount,0).toLocaleString(loc())} {tr("triângulos no topo")} · {tr("passo")} {relief.stride}</small>}
           {built?.error&&<p className="lstErr">{built.error}</p>}</div>}

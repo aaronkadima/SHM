@@ -93,13 +93,15 @@ export function layersAtPoint(solid,u,v){
 // a base é a mesma malha achatada em z = 0, que fecha a casca. Cada região do sólido em camadas vira uma malha.
 // detail: células-alvo por imagem (alto ≈ 60 mil, médio ≈ 20 mil, baixo ≈ 6 mil).
 export const RELIEF_DETAIL={alto:60000,medio:20000,baixo:6000};
-export function buildRelief(rw,toPlane,solid,{heightMm=null,detail="medio",stride=null}={}){
+export function buildRelief(rw,toPlane,solid,{heightMm=null,detail="medio",stride=null,quantize=false}={}){
   const levels=solid?.levels||[];if(!levels.length||!solid.regions.length)return{regions:[],stride:1,heightMm:0};
   const t0=levels[0],H=heightMm??levels.length*solid.layerMm,f=rw.f||1,P=rw.prob,GW=rw.W,GH=rw.H;
   let inside=0;for(let i=0;i<P.length;i++)if(P[i]>=t0)inside++;
   const s=stride||Math.max(1,Math.ceil(Math.sqrt(inside/(RELIEF_DETAIL[detail]||20000))));
   const NX=Math.floor((GW-1)/s)+1,NY=Math.floor((GH-1)/s)+1,val=(i,j)=>P[Math.min(GH-1,j*s)*GW+Math.min(GW-1,i*s)];
-  const g2img=(gx,gy)=>[(gx+.5)*f-.5,(gy+.5)*f-.5],plane=(gx,gy)=>toPlane(...g2img(gx,gy)),zOf=u=>Math.max(0,H*(u-t0)/(1-t0));
+  const g2img=(gx,gy)=>[(gx+.5)*f-.5,(gy+.5)*f-.5],plane=(gx,gy)=>toPlane(...g2img(gx,gy)),
+    // contínuo (vales) ou em degraus (camadas planas: espessura × nº de níveis abaixo de u)
+    zOf=quantize?u=>{let k=0;for(const t of levels)if(u>=t)k++;return k*solid.layerMm}:u=>Math.max(0,H*(u-t0)/(1-t0));
   // regiões: anéis do nível base no plano (com caixa envolvente para teste rápido)
   const regs=solid.regions.map(R=>{const polys=R.layers[0]?.polys||[];return{R,polys,bb:R.bbox}});
   const regionOf=(x,y)=>{for(let k=0;k<regs.length;k++){const{bb,polys}=regs[k];if(x<bb[0]||y<bb[1]||x>bb[2]||y>bb[3])continue;
@@ -139,3 +141,39 @@ export function buildRelief(rw,toPlane,solid,{heightMm=null,detail="medio",strid
     return{id:regs[k].R.id,positions:P3,u:U,indices:Uint32Array.from(idx),band:Uint8Array.from(band),topCount:nTop}}).filter(r=>r.topCount>0);
   return{regions,stride:s,heightMm:H,t0,levels};
 }
+
+// ---------- cavidade (projeção côncava) ----------
+// Para dentro da face, a forma do dano vira uma cavidade:
+//  · lining: o fundo colorido (superfície aberta = topo do relevo, contínuo ou em degraus), profundidade positiva para dentro;
+//  · steps: o volume a remover do elemento, em degraus extrudados — um polígono (com furos) por nível, da tampa 1 mm FORA da
+//    face até abaixo do fundo naquele trecho. Degraus extrudados são o que os motores booleanos dos visualizadores IFC
+//    processam bem (um vazio triangulado com milhares de faces faz o IfcOpenShell desistir do recorte).
+// Profundidade do degrau k: relevo = H·(t(k+1) − t0)/(1 − t0) + margem (u < t(k+1) dentro do degrau), degraus = (k+1)·espessura + margem.
+export function buildCavity(rw,toPlane,solid,{style="relief",detail="medio",stride=null,capMm=1,extraMm=1.5,simplifyMm=5}){
+  const R=buildRelief(rw,toPlane,solid,{detail,stride,quantize:style!=="relief"}),levels=solid.levels,t0=levels[0],H=R.heightMm;
+  const depthOf=k=>style==="relief"?(k+1<levels.length?H*(levels[k+1]-t0)/(1-t0):H):(k+1)*solid.layerMm;
+  // dilatação de uma célula da grade do relevo: o recorte cobre a rampa da borda (anel externo cresce, furos encolhem)
+  const c0=toPlane(0,0),c1=toPlane((rw.f||1)*R.stride,0),grow=Math.hypot(c1[0]-c0[0],c1[1]-c0[1]);
+  const simp=r=>{const o=simplifyRing(r,simplifyMm);return o.length>=3?o:r};
+  const offset=(r,d)=>{const n=r.length,sg=Math.sign(ringArea(r))||1;return r.map((p,i)=>{const a=r[(i+n-1)%n],b=r[(i+1)%n],tx=b[0]-a[0],ty=b[1]-a[1],L=Math.hypot(tx,ty)||1;
+    // normal para fora do anel (depende do sentido); deslocamento d (>0 cresce a área do anel)
+    return[p[0]+sg*ty/L*d,p[1]-sg*tx/L*d]})};
+  const regions=R.regions.map(M=>{
+    const nTop=M.topCount,used=new Map(),lp=[],lu=[],li=[];
+    for(let t=0;t<nTop*3;t++){const v=M.indices[t];let id=used.get(v);if(id==null){id=lp.length/3;used.set(v,id);lp.push(M.positions[v*3],M.positions[v*3+1],M.positions[v*3+2]);lu.push(M.u[v])}li.push(id)}
+    const SR=solid.regions.find(x=>x.id===M.id);
+    const steps=(SR?.layers||[]).map(L=>{const k=levels.indexOf(L.level);return{level:L.level,depthMm:depthOf(k),
+      polys:L.polys.map(p=>({outer:offset(simp(p.outer),grow),holes:p.holes.map(simp).filter(h=>Math.abs(ringArea(h))>Math.max(simplifyMm,grow*2)**2*4).map(h=>offset(h,-grow))}))}});
+    // calibração: cada degrau desce até o vértice do fundo mais fundo que cai nele (a grade do relevo e o polígono simplificado
+    // não coincidem exatamente na borda entre níveis); depois a margem
+    for(let v=0;v<lp.length;v+=3){let best=-1;for(let k=0;k<steps.length;k++)if(steps[k].polys.some(p=>pointInRing([lp[v],lp[v+1]],p.outer)&&!p.holes.some(h=>pointInRing([lp[v],lp[v+1]],h))))best=k;
+      if(best>=0)steps[best].depthMm=Math.max(steps[best].depthMm,lp[v+2])}
+    for(let k=0;k<steps.length;k++)steps[k].depthMm=Math.max(steps[k].depthMm+extraMm,k?steps[k-1].depthMm:0);
+    // fatias: cada degrau começa 0,5 mm acima do fundo do anterior (o primeiro, na tampa fora da face) — sem colunas sobrepostas
+    for(let k=0;k<steps.length;k++)steps[k].topMm=k?Math.max(-capMm,steps[k-1].depthMm-.5):-capMm;
+    return{id:M.id,lining:{positions:Float32Array.from(lp),u:Float32Array.from(lu),indices:Uint32Array.from(li),band:M.band.slice(0,nTop)},steps};
+  });
+  return{regions,stride:R.stride,style,levels,capMm,extraMm,depthMm:H};
+}
+// profundidade do recorte num ponto do plano (o degrau mais fundo que contém o ponto); 0 fora
+export function cavityDepthAt(region,u,v){let d=0;for(const st of region.steps)for(const p of st.polys)if(st.depthMm>d&&pointInRing([u,v],p.outer)&&!p.holes.some(h=>pointInRing([u,v],h)))d=st.depthMm;return d}

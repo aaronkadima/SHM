@@ -93,7 +93,7 @@ const ringSigned=r=>{let s=0;for(let i=0,j=r.length-1;i<r.length;j=i++)s+=r[j][0
  * com ex = direita na foto e n = normal para fora; ey = n × ex (para cima). solid: buildLevelSolid() em mm no plano da face
  * (u para a direita, v para baixo, origem no canto superior esquerdo do retângulo de referência).
  */
-export function writeLevelSolid(stepText,{hostGuid,face,solid,meta={},relief=null,direction=1}){
+export function writeLevelSolid(stepText,{hostGuid,face,solid,meta={},relief=null,direction=1,cavity=null,voids=true}){
   const M=parseStep(stepText),schema=M.schema.toUpperCase(),is43=schema.startsWith("IFC4X3"),isIfc4=schema==="IFC4"||schema.startsWith("IFC4X1")||schema.startsWith("IFC4X2")||is43;
   if(!isIfc4)throw new Error(`Esquema ${M.schema} não suportado: use IFC4 ou IFC 4.3`);
   const host=findByGuid(M,hostGuid);if(!host)throw new Error("Elemento hospedeiro não encontrado: "+hostGuid);
@@ -104,16 +104,36 @@ export function writeLevelSolid(stepText,{hostGuid,face,solid,meta={},relief=nul
   const Mh=placementMatrix(M,hostPl),F=frameMatrix(face.origin,face.ex,face.n),Rl=mul4(invertRigid(Mh),F);
   let id=M.maxId;const lines=[],add=s=>{id++;lines.push(`#${id}=${s};`);return id},ref=i=>i==null?"$":"#"+i,num=v=>{const r=Math.abs(v)<1e-12?0:v;const s=(+r.toPrecision(12)).toString();return /[.eE]/.test(s)?s.replace(/e/,"E"):s+"."};
   const P3=(x,y,z)=>add(`IFCCARTESIANPOINT((${num(x)},${num(y)},${num(z)}))`),D3=(x,y,z)=>add(`IFCDIRECTION((${num(x)},${num(y)},${num(z)}))`);
-  const name=meta.name||"Dano CDM-4",cls=meta.className||"Desplacamento",n=solid.levels.length,offset=(meta.offsetMm??.5),dir=direction<0?-1:1,isRelief=!!relief?.regions?.length;
+  const name=meta.name||"Dano CDM-4",cls=meta.className||"Desplacamento",n=solid.levels.length,offset=(meta.offsetMm??.5),isCavity=!!cavity?.regions?.length,dir=isCavity||direction<0?-1:1,isRelief=!isCavity&&!!relief?.regions?.length,cut=isCavity&&voids!==false;
   // estilos por nível (reaproveitados por todas as regiões)
   const styles=solid.levels.map((t,i)=>{const[r,g,b]=levelColor(i,n),col=add(`IFCCOLOURRGB($,${num(r)},${num(g)},${num(b)})`),sh=add(`IFCSURFACESTYLESHADING(${ref(col)},${num(.15)})`);
     return add(`IFCSURFACESTYLE(${encodeStepString("CDM-4 nível "+String(t).replace(".",","))},.BOTH.,(${ref(sh)}))`)});
   const features=[],summary=[];
-  const reliefById=new Map((relief?.regions||[]).map(r=>[r.id,r]));
-  const regionsOut=isRelief?solid.regions.filter(R=>reliefById.has(R.id)):solid.regions;
+  const reliefById=new Map((relief?.regions||[]).map(r=>[r.id,r])),cavityById=new Map((cavity?.regions||[]).map(r=>[r.id,r]));
+  const regionsOut=isCavity?solid.regions.filter(R=>cavityById.has(R.id)):isRelief?solid.regions.filter(R=>reliefById.has(R.id)):solid.regions;
+  // malha triangulada (mm no plano da face: u, v para baixo, profundidade para dentro) → IfcTriangulatedFaceSet em unidades do modelo.
+  // orient: "volume" = normais para fora do volume (fechada); "up" = normais para fora da face (superfície aberta)
+  const faceSet=(P,I,{closed,zSign,zOff=0,orient})=>{const nv=P.length/3,co=new Float64Array(nv*3);
+    for(let v=0;v<nv;v++){co[v*3]=P[v*3]*k;co[v*3+1]=-P[v*3+1]*k;co[v*3+2]=zSign*(P[v*3+2]+zOff)*k}
+    let acc=0;for(let t=0;t<I.length;t+=3){const a=I[t]*3,b=I[t+1]*3,c=I[t+2]*3;
+      if(orient==="volume")acc+=co[a]*(co[b+1]*co[c+2]-co[b+2]*co[c+1])-co[a+1]*(co[b]*co[c+2]-co[b+2]*co[c])+co[a+2]*(co[b]*co[c+1]-co[b+1]*co[c]);
+      else acc+=(co[b]-co[a])*(co[c+1]-co[a+1])-(co[b+1]-co[a+1])*(co[c]-co[a])}
+    const flip=acc<0,tri=[];for(let t=0;t<I.length;t+=3)tri.push(flip?`(${I[t]+1},${I[t+2]+1},${I[t+1]+1})`:`(${I[t]+1},${I[t+1]+1},${I[t+2]+1})`);
+    const pts=[];for(let v=0;v<nv;v++)pts.push(`(${num(co[v*3])},${num(co[v*3+1])},${num(co[v*3+2])})`);
+    const pl=add(`IFCCARTESIANPOINTLIST3D((${pts.join(",")})${is43?",$":""})`);return add(`IFCTRIANGULATEDFACESET(${ref(pl)},$,${closed?".T.":".F."},(${tri.join(",")}),$)`)};
+  const colourMap=(fs,band)=>{const cl=add(`IFCCOLOURRGBLIST((${solid.levels.map((_,i)=>{const c=levelColor(i,n);return`(${num(c[0])},${num(c[1])},${num(c[2])})`}).join(",")}))`);
+    add(`IFCINDEXEDCOLOURMAP(${ref(fs)},$,${ref(cl)},(${Array.from(band,b=>b+1).join(",")}))`);add(`IFCSTYLEDITEM(${ref(fs)},(${ref(styles[Math.floor((n-1)/2)])}),$)`)}; // cor de reserva: nível do meio (para visualizadores sem mapa de cores)
+  const voidStyle=cut?(()=>{const c=add("IFCCOLOURRGB($,0.62,0.66,0.68)"),sh=add(`IFCSURFACESTYLESHADING(${ref(c)},0.)`);return add(`IFCSURFACESTYLE('CDM-4 recorte',.BOTH.,(${ref(sh)}))`)})():null;
+  const voidsOut=[];
   for(const R of regionsOut){
     const items=[];let repType="SurfaceModel";
-    if(isRelief){
+    let cav=null;
+    if(isCavity){
+      // côncavo: o fundo da cavidade (superfície aberta, colorida por faixa) é a característica de superfície;
+      // o volume a remover vai num IfcVoidingFeature separado (abaixo) — a geometria do elemento não é alterada
+      cav=cavityById.get(R.id);const fs=faceSet(cav.lining.positions,cav.lining.indices,{closed:false,zSign:-1,orient:"up"});
+      colourMap(fs,cav.lining.band);items.push(fs);repType="Tessellation";
+    }else if(isRelief){
       // relevo contínuo: uma IfcTriangulatedFaceSet fechada, cores por faixa de nível (IfcIndexedColourMap)
       const M3=reliefById.get(R.id),P=M3.positions,I=M3.indices,nv=P.length/3,co=new Float64Array(nv*3);
       for(let v=0;v<nv;v++){co[v*3]=P[v*3]*k;co[v*3+1]=-P[v*3+1]*k;co[v*3+2]=dir*(P[v*3+2]+offset)*k}
@@ -123,7 +143,7 @@ export function writeLevelSolid(stepText,{hostGuid,face,solid,meta={},relief=nul
       const pl=add(`IFCCARTESIANPOINTLIST3D((${pts.join(",")})${is43?",$":""})`),fs=add(`IFCTRIANGULATEDFACESET(${ref(pl)},$,.T.,(${tri.join(",")}),$)`);
       const cl=add(`IFCCOLOURRGBLIST((${solid.levels.map((_,i)=>{const c=levelColor(i,n);return`(${num(c[0])},${num(c[1])},${num(c[2])})`}).join(",")}))`);
       add(`IFCINDEXEDCOLOURMAP(${ref(fs)},$,${ref(cl)},(${Array.from(M3.band,b=>b+1).join(",")}))`);
-      add(`IFCSTYLEDITEM(${ref(fs)},(${ref(styles[0])}),$)`);items.push(fs);repType="Tessellation";
+      add(`IFCSTYLEDITEM(${ref(fs)},(${ref(styles[Math.floor((n-1)/2)])}),$)`);items.push(fs);repType="Tessellation";
     }else R.layers.forEach((L,li)=>{
       const lvIdx=solid.levels.indexOf(L.level),shells=[];
       for(const poly of L.polys){
@@ -145,7 +165,7 @@ export function writeLevelSolid(stepText,{hostGuid,face,solid,meta={},relief=nul
     });
     const rep=add(`IFCSHAPEREPRESENTATION(${ref(ctx)},'Body','${repType}',(${items.map(ref).join(",")}))`),pds=add(`IFCPRODUCTDEFINITIONSHAPE($,$,(${ref(rep)}))`);
     const ax=add(`IFCAXIS2PLACEMENT3D(${ref(P3(Rl[12],Rl[13],Rl[14]))},${ref(D3(Rl[8],Rl[9],Rl[10]))},${ref(D3(Rl[0],Rl[1],Rl[2]))})`),lp=add(`IFCLOCALPLACEMENT(${ref(hostPl)},${ref(ax)})`);
-    const styleTxt=isRelief?"relevo contínuo":`${R.layers.length} camadas de nível`,dirTxt=dir>0?"para fora da face":"para dentro da face";
+    const styleTxt=isCavity?(cavity.style==="relief"?"cavidade com vales":"cavidade em degraus"):isRelief?"relevo contínuo":`${R.layers.length} camadas de nível`,dirTxt=dir>0?"para fora da face":"para dentro da face";
     const label=`${name} R${R.id}`,desc=`${cls}: forma aproximada (${styleTxt}, ${dirTxt}; altura proporcional ao potencial, ${solid.layerMm} mm por nível; não é profundidade)`;
     const sf=add(`IFCSURFACEFEATURE(${encodeStepString(ifcGuid())},${ref(oh)},${encodeStepString(label)},${encodeStepString(desc)},${is43?"$":"'DEFECT'"},${ref(lp)},${ref(pds)},$,${is43?".DEFECT.":".USERDEFINED."})`);
     features.push(sf);
@@ -153,21 +173,42 @@ export function writeLevelSolid(stepText,{hostGuid,face,solid,meta={},relief=nul
     const prop=(nm,type,v)=>add(`IFCPROPERTYSINGLEVALUE(${encodeStepString(nm)},$,${type}(${typeof v==="string"?encodeStepString(v):num(v)}),$)`);
     const base=R.areaByLevel[0]?.area_mm2||0,props=[
       prop("Representacao","IFCTEXT","Forma aproximada do dano para identificação visual; altura = nível do potencial × espessura da camada, não é profundidade"),
-      prop("Motor","IFCLABEL","CDM-4 (random walker, fluxo por evidência)"),prop("Estilo","IFCLABEL",isRelief?"relevo contínuo (com vales)":"camadas planas"),prop("Sentido","IFCLABEL",dirTxt),prop("Classe","IFCLABEL",cls),
+      prop("Motor","IFCLABEL","CDM-4 (random walker, fluxo por evidência)"),prop("Estilo","IFCLABEL",isCavity?(cavity.style==="relief"?"cavidade com vales":"cavidade em degraus"):isRelief?"relevo contínuo (com vales)":"camadas planas"),prop("Sentido","IFCLABEL",dirTxt),
+      ...(isCavity?[prop("Recorte","IFCLABEL",cut?"IfcVoidingFeature + IfcRelVoidsElement (geometria do elemento inalterada; apagar o recorte restaura a vista original)":"sem recorte")]:[]),prop("Classe","IFCLABEL",cls),
       prop("Niveis","IFCLABEL",solid.levels.map(v=>String(v).replace(".",",")).join("; ")),prop("EspessuraCamada_mm","IFCREAL",solid.layerMm),
       prop("AreaNivelBase_m2","IFCREAL",+(base/1e6).toFixed(6)),
       ...R.areaByLevel.map(a=>prop("Area_u"+String(a.level).replace(".","_")+"_m2","IFCREAL",+(a.area_mm2/1e6).toFixed(6))),
       ...(meta.image?[prop("Imagem","IFCLABEL",meta.image)]:[]),...(meta.scale?[prop("Escala","IFCLABEL",meta.scale)]:[]),
       ...(meta.date?[prop("DataInspecao","IFCLABEL",meta.date)]:[])];
     const ps=add(`IFCPROPERTYSET(${encodeStepString(ifcGuid())},${ref(oh)},'CDM_DamageShape',$,(${props.map(ref).join(",")}))`);
-    add(`IFCRELDEFINESBYPROPERTIES(${encodeStepString(ifcGuid())},${ref(oh)},$,$,(${ref(sf)}),${ref(ps)})`);
-    summary.push({region:R.id,feature:sf,layers:R.layers.length,area_m2:base/1e6,style:isRelief?"relief":"terraces"});
+    let vf=null;
+    if(cut){
+      // volume do recorte: um IfcExtrudedAreaSolid por polígono de cada degrau (perfil com furos), da tampa 1 mm fora da face até
+      // a profundidade do degrau — forma que os motores booleanos dos visualizadores processam de forma robusta
+      const cap=cavity.capMm??1,dn=add("IFCDIRECTION((0.,0.,-1.))"),posAt=new Map(),solids=[];
+      const pos=top=>{const key=num(top);if(!posAt.has(key))posAt.set(key,add(`IFCAXIS2PLACEMENT3D(${ref(P3(0,0,-top*k))},$,$)`));return posAt.get(key)};
+      const curve=r=>{const pts=r.map(([u,v])=>add(`IFCCARTESIANPOINT((${num(u*k)},${num(-v*k)}))`));return add(`IFCPOLYLINE((${[...pts,pts[0]].map(ref).join(",")}))`)};
+      for(const st of cav.steps)for(const pg of st.polys){if(pg.outer.length<3)continue;
+        const prof=pg.holes.length?add(`IFCARBITRARYPROFILEDEFWITHVOIDS(.AREA.,$,${ref(curve(pg.outer))},(${pg.holes.map(h=>ref(curve(h))).join(",")}))`):add(`IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,$,${ref(curve(pg.outer))})`);
+        const top=st.topMm??-cap;solids.push(add(`IFCEXTRUDEDAREASOLID(${ref(prof)},${ref(pos(top))},${ref(dn)},${num((st.depthMm-top)*k)})`))}
+      for(const x of solids)add(`IFCSTYLEDITEM(${ref(x)},(${ref(voidStyle)}),$)`);
+      const vrep=add(`IFCSHAPEREPRESENTATION(${ref(ctx)},'Body','SweptSolid',(${solids.map(ref).join(",")}))`),vpds=add(`IFCPRODUCTDEFINITIONSHAPE($,$,(${ref(vrep)}))`);
+      const vlp=add(`IFCLOCALPLACEMENT(${ref(hostPl)},${ref(ax)})`);
+      vf=add(`IFCVOIDINGFEATURE(${encodeStepString(ifcGuid())},${ref(oh)},${encodeStepString(`Recorte ${label}`)},${encodeStepString(`${cls}: volume removido só para visualização da forma aproximada do dano (não é profundidade medida)`)},'DEFECT',${ref(vlp)},${ref(vpds)},$,.USERDEFINED.)`);
+      add(`IFCRELVOIDSELEMENT(${encodeStepString(ifcGuid())},${ref(oh)},'CDM-4 recorte',$,${ref(host.id)},${ref(vf)})`);voidsOut.push(vf);
+    }
+    add(`IFCRELDEFINESBYPROPERTIES(${encodeStepString(ifcGuid())},${ref(oh)},$,$,(${[sf,vf].filter(Boolean).map(ref).join(",")}),${ref(ps)})`);
+    summary.push({region:R.id,feature:sf,layers:R.layers.length,area_m2:base/1e6,style:isCavity?"cavity":isRelief?"relief":"terraces",void:vf});
   }
   if(features.length){
     if(is43)add(`IFCRELADHERESTOELEMENT(${encodeStepString(ifcGuid())},${ref(oh)},'CDM-4 danos',$,${ref(host.id)},(${features.map(ref).join(",")}))`);
-    else add(`IFCRELAGGREGATES(${encodeStepString(ifcGuid())},${ref(oh)},'CDM-4 danos',$,${ref(host.id)},(${features.map(ref).join(",")}))`);
+    else if(cut){
+      // IFC4 com recorte: cada fundo colorido é agregado ao seu IfcVoidingFeature (o defeito contém o revestimento). Agregá-lo
+      // ao elemento faria visualizadores como o web-ifc aplicarem o recorte também ao fundo, que está dentro do vazio.
+      summary.forEach(x=>add(`IFCRELAGGREGATES(${encodeStepString(ifcGuid())},${ref(oh)},'CDM-4 dano',$,${ref(x.void)},(${ref(x.feature)}))`));
+    }else add(`IFCRELAGGREGATES(${encodeStepString(ifcGuid())},${ref(oh)},'CDM-4 danos',$,${ref(host.id)},(${features.map(ref).join(",")}))`);
   }
   const end=stepText.lastIndexOf("ENDSEC;");if(end<0)throw new Error("Arquivo IFC sem seção DATA");
   const out=stepText.slice(0,end)+lines.join("\n")+"\n"+stepText.slice(end);
-  return{text:out,schema:M.schema,relation:is43?"IfcRelAdheresToElement":"IfcRelAggregates",predefinedType:is43?"DEFECT":"USERDEFINED (ObjectType DEFECT)",features:summary,newEntities:lines.length,unitMeters:unitM};
+  return{text:out,voids:voidsOut.length,schema:M.schema,relation:is43?"IfcRelAdheresToElement":cut?"IfcRelAggregates (recorte → fundo)":"IfcRelAggregates",predefinedType:is43?"DEFECT":"USERDEFINED (ObjectType DEFECT)",features:summary,newEntities:lines.length,unitMeters:unitM};
 }

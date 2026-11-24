@@ -99,6 +99,47 @@ for schema in ("IFC4", "IFC4X3"):
             for k, val in checks.items():
                 print(schema, k, "ok" if val else "FALHOU"); ok &= bool(val)
 
+# projeção côncava: fundo da cavidade + recorte (IfcVoidingFeature + IfcRelVoidsElement), elemento inalterado
+def vol(shape):
+    v = np.array(shape.geometry.verts, dtype=float).reshape(-1, 3); fc = np.array(shape.geometry.faces).reshape(-1, 3)
+    return abs(np.einsum("ij,ij->i", v[fc[:, 0]], np.cross(v[fc[:, 1]], v[fc[:, 2]])).sum() / 6)
+sq = lambda x, y, s: [[x, y], [x + s, y], [x + s, y + s], [x, y + s]]
+cav = {"style": "relief", "capMm": 1, "regions": [{"id": 1,
+       "lining": {"positions": [450, 1000, 0, 750, 1000, 0, 750, 1300, 0, 450, 1300, 0, 600, 1150, 20],
+                  "indices": [0, 1, 4, 1, 2, 4, 2, 3, 4, 3, 0, 4], "band": [1, 1, 1, 1]},
+       "steps": [{"level": 0.2, "topMm": -1, "depthMm": 11.5, "polys": [{"outer": sq(445, 995, 310), "holes": []}]},
+                 {"level": 0.6, "topMm": 11, "depthMm": 21.5, "polys": [{"outer": sq(520, 1070, 160), "holes": []}]}]}]}
+for schema in ("IFC4", "IFC4X3"):
+    f, col, a = pier(schema)
+    rot = lambda x, y: (x * np.cos(a) - y * np.sin(a), x * np.sin(a) + y * np.cos(a))
+    o = rot(600, 400)
+    face = {"origin": [100000 + o[0], 50000 + o[1], 7000], "ex": [*rot(-1, 0), 0], "n": [*rot(0, 1), 0]}
+    for voids in (True, False):
+        with tempfile.TemporaryDirectory() as td:
+            src, out = Path(td) / "in.ifc", Path(td) / "out.ifc"
+            f.write(str(src))
+            host_before = ifcopenshell.open(str(src)).by_guid(col.GlobalId).Representation.Representations[0].Items[0].Depth
+            info = write_level_solid(src, {"host_guid": col.GlobalId, "face": face, "solid": square_solid(), "cavity": cav, "voids": voids, "meta": {}}, out)
+            g = ifcopenshell.open(str(out))
+            lg = ifcopenshell.validate.json_logger(); ifcopenshell.validate.validate(g, lg)
+            s = ifcopenshell.geom.settings()
+            s.set(s.USE_WORLD_COORDS, True) if hasattr(s, "USE_WORLD_COORDS") else s.set("use-world-coords", True)
+            host = g.by_guid(col.GlobalId)
+            shape = ifcopenshell.geom.create_shape(s, host)
+            removed = 0.31 * 0.31 * 0.0115 + 0.16 * 0.16 * 0.0215 - 0.16 * 0.16 * 0.0115  # degraus dentro do pilar (m³)
+            sf = g.by_type("IfcSurfaceFeature")[0]
+            lining = ifcopenshell.geom.create_shape(s, sf)
+            tag = "recorte" if voids else "sem recorte"
+            checks = {f"{tag}: sem erros": not lg.statements,
+                      f"{tag}: elemento com a mesma geometria": host.Representation.Representations[0].Items[0].Depth == host_before,
+                      f"{tag}: recortes": info["voids"] == (1 if voids else 0) and len(g.by_type("IfcRelVoidsElement")) == (1 if voids else 0),
+                      f"{tag}: volume do pilar": abs(vol(shape) - (4.8 - (removed if voids else 0))) < 2e-4,
+                      f"{tag}: fundo intacto": len(lining.geometry.faces) // 3 == 4}
+            if voids and schema == "IFC4":
+                checks[f"{tag}: IFC4 fundo agregado ao recorte"] = sf.Decomposes[0].RelatingObject.is_a("IfcVoidingFeature")
+            for kk, val in checks.items():
+                print(schema, kk, "ok" if val else "FALHOU"); ok &= bool(val)
+
 # modo sem importação: placa de referência gerada pelo navegador (ifcReferenceHost.js) + sólido gravado pelo backend
 for fx in ("host_IFC4.ifc", "host_IFC4X3.ifc"):
     src = Path(__file__).parent / "fixtures" / fx

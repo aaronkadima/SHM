@@ -71,6 +71,8 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
     root.name=file.name;
     const meshes=api.LoadAllGeometry(modelID);
     const meshCount=meshes.size();
+    // elementos de subtração (aberturas, recortes como o da cavidade do CDM-4) só furam o hospedeiro: não são desenhados
+    const SUBTRACTION=new Set([WebIFC.IFCOPENINGELEMENT,WebIFC.IFCOPENINGSTANDARDCASE,WebIFC.IFCVOIDINGFEATURE].filter(v=>v!=null));
     let geometryCount=0,triangleCount=0;
     for(let i=0;i<meshCount;i++){
       const flat=meshes.get(i);
@@ -83,6 +85,7 @@ export async function loadIfcThreeModel(file,{onProgress=null}={}){
         mesh.matrix.fromArray(placed.flatTransformation);
         let line=null;
         try{line=api.GetLine(modelID,flat.expressID,false)}catch{}
+        if(line&&SUBTRACTION.has(line.type)){geometry.dispose();continue}
         const info={expressID:flat.expressID,geometryExpressID:placed.geometryExpressID,type:line?.type||null,globalId:line?.GlobalId?.value||null,name:line?.Name?.value||null,description:line?.Description?.value||null,objectType:line?.ObjectType?.value||null};
         mesh.userData.ifc=info;
         if(!elementIndex[flat.expressID])elementIndex[flat.expressID]={...info,meshCount:0};

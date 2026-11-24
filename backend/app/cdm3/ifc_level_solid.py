@@ -93,9 +93,15 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
     Rl = np.linalg.inv(Mh) @ _frame(np.asarray(face["origin"], float), face["ex"], face["n"])
     levels = list(solid["levels"])
     offset = float(meta.get("offsetMm", 0.5))
-    direction = -1 if float(payload.get("direction", 1)) < 0 else 1
-    relief = {int(r["id"]): r for r in (payload.get("relief") or {}).get("regions", [])}
-    style_txt = "relevo contínuo (com vales)" if relief else "camadas planas"
+    cavity_in = payload.get("cavity") or None
+    cavity = {int(r["id"]): r for r in (cavity_in or {}).get("regions", [])}
+    cut = bool(cavity) and payload.get("voids", True) is not False
+    direction = -1 if cavity or float(payload.get("direction", 1)) < 0 else 1
+    relief = {} if cavity else {int(r["id"]): r for r in (payload.get("relief") or {}).get("regions", [])}
+    if cavity:
+        style_txt = "cavidade com vales" if cavity_in.get("style") == "relief" else "cavidade em degraus"
+    else:
+        style_txt = "relevo contínuo (com vales)" if relief else "camadas planas"
     dir_txt = "para fora da face" if direction > 0 else "para dentro da face"
     name, cls = meta.get("name", "Dano CDM-4"), meta.get("className", "Desplacamento")
 
@@ -109,10 +115,37 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
     P = lambda x, y, z: f.createIfcCartesianPoint((float(x), float(y), float(z)))
     loop = lambda pts: f.createIfcPolyLoop(pts)
     features, summary = [], []
-    regions_out = [R for R in solid["regions"] if not relief or int(R["id"]) in relief]
+    def face_set(P3, I, closed, orient):
+        co = np.column_stack([P3[:, 0] * k, -P3[:, 1] * k, -P3[:, 2] * k])
+        a_, b_, c_ = co[I[:, 0]], co[I[:, 1]], co[I[:, 2]]
+        if orient == "volume":
+            acc = np.einsum("ij,ij->i", a_, np.cross(b_, c_)).sum()
+        else:
+            acc = (np.cross(b_ - a_, c_ - a_)[:, 2]).sum()
+        if acc < 0:
+            I = I[:, [0, 2, 1]]
+        pl = f.create_entity("IfcCartesianPointList3D", CoordList=[tuple(map(float, p)) for p in co])
+        return f.create_entity("IfcTriangulatedFaceSet", Coordinates=pl, Closed=closed,
+                               CoordIndex=[tuple(int(x) + 1 for x in t) for t in I])
+
+    if cut:
+        vcol = f.createIfcColourRgb(None, 0.62, 0.66, 0.68)
+        void_style = f.createIfcSurfaceStyle("CDM-4 recorte", "BOTH", [f.createIfcSurfaceStyleShading(vcol, 0.0)])
+    voids_out = []
+    regions_out = [R for R in solid["regions"] if (int(R["id"]) in cavity if cavity else (not relief or int(R["id"]) in relief))]
     for R in regions_out:
         items, rep_type = [], "SurfaceModel"
-        if relief:
+        cav = cavity.get(int(R["id"])) if cavity else None
+        if cav:
+            # côncava: fundo da cavidade (superfície aberta, colorida por faixa); o volume removido vai num IfcVoidingFeature
+            L = cav["lining"]
+            fs = face_set(np.asarray(L["positions"], float).reshape(-1, 3), np.asarray(L["indices"], int).reshape(-1, 3), False, "up")
+            cl = f.create_entity("IfcColourRgbList", ColourList=[level_color(i, len(levels)) for i in range(len(levels))])
+            f.create_entity("IfcIndexedColourMap", MappedTo=fs, Colours=cl, ColourIndex=[int(b) + 1 for b in L["band"]])
+            f.createIfcStyledItem(fs, [styles[(len(levels) - 1) // 2]], None)
+            items.append(fs)
+            rep_type = "Tessellation"
+        elif relief:
             # relevo contínuo: IfcTriangulatedFaceSet fechada, cores por faixa de nível
             M3 = relief[int(R["id"])]
             P3 = np.asarray(M3["positions"], float).reshape(-1, 3)
@@ -126,7 +159,7 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
                                  CoordIndex=[tuple(int(x) + 1 for x in t) for t in I])
             cl = f.create_entity("IfcColourRgbList", ColourList=[level_color(i, len(levels)) for i in range(len(levels))])
             f.create_entity("IfcIndexedColourMap", MappedTo=fs, Colours=cl, ColourIndex=[int(b) + 1 for b in M3["band"]])
-            f.createIfcStyledItem(fs, [styles[0]], None)
+            f.createIfcStyledItem(fs, [styles[(len(levels) - 1) // 2]], None)
             items.append(fs)
             rep_type = "Tessellation"
         else:
@@ -166,7 +199,7 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
         ax = f.createIfcAxis2Placement3D(P(*Rl[:3, 3]), f.createIfcDirection(tuple(map(float, Rl[:3, 2]))),
                                          f.createIfcDirection(tuple(map(float, Rl[:3, 0]))))
         lp = f.createIfcLocalPlacement(host.ObjectPlacement, ax)
-        shape_txt = "relevo contínuo" if relief else f"{len(R['layers'])} camadas de nível"
+        shape_txt = style_txt if cavity else ("relevo contínuo" if relief else f"{len(R['layers'])} camadas de nível")
         desc = (f"{cls}: forma aproximada ({shape_txt}, {dir_txt}; altura proporcional ao potencial, "
                 f"{solid['layerMm']} mm por nível; não é profundidade)")
         sf = f.create_entity("IfcSurfaceFeature", GlobalId=ifcopenshell.guid.new(), OwnerHistory=oh,
@@ -181,6 +214,9 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
             ("Classe", f.createIfcLabel(cls)),
             ("Estilo", f.createIfcLabel(style_txt)),
             ("Sentido", f.createIfcLabel(dir_txt)),
+            *([("Recorte", f.createIfcLabel(
+                "IfcVoidingFeature + IfcRelVoidsElement (geometria do elemento inalterada; apagar o recorte restaura a vista original)"
+                if cut else "sem recorte"))] if cavity else []),
             ("Niveis", f.createIfcLabel("; ".join(str(v).replace(".", ",") for v in levels))),
             ("EspessuraCamada_mm", f.createIfcReal(float(solid["layerMm"]))),
             ("AreaNivelBase_m2", f.createIfcReal(round(base / 1e6, 6))),
@@ -191,15 +227,48 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
         ]
         ps = f.createIfcPropertySet(ifcopenshell.guid.new(), oh, "CDM_DamageShape", None,
                                     [f.createIfcPropertySingleValue(n, None, v, None) for n, v in props])
-        f.createIfcRelDefinesByProperties(ifcopenshell.guid.new(), oh, None, None, [sf], ps)
-        summary.append({"region": R["id"], "global_id": sf.GlobalId, "layers": len(R["layers"]), "area_m2": base / 1e6})
+        vf = None
+        if cut:
+            # recorte: degraus extrudados (perfil com furos), da tampa 1 mm fora da face até o fundo de cada degrau
+            cap = float(cavity_in.get("capMm", 1))
+            dn = f.createIfcDirection((0.0, 0.0, -1.0))
+            curve = lambda r: f.createIfcPolyline([f.createIfcCartesianPoint((float(u * k), float(-v * k))) for u, v in [*r, r[0]]])
+            solids = []
+            for st in cav["steps"]:
+                top = float(st.get("topMm", -cap))
+                pos = f.createIfcAxis2Placement3D(P(0, 0, -top * k), None, None)
+                for pg in st["polys"]:
+                    if len(pg["outer"]) < 3:
+                        continue
+                    if pg.get("holes"):
+                        prof = f.createIfcArbitraryProfileDefWithVoids("AREA", None, curve(pg["outer"]), [curve(h) for h in pg["holes"]])
+                    else:
+                        prof = f.createIfcArbitraryClosedProfileDef("AREA", None, curve(pg["outer"]))
+                    x = f.createIfcExtrudedAreaSolid(prof, pos, dn, float((st["depthMm"] - top) * k))
+                    f.createIfcStyledItem(x, [void_style], None)
+                    solids.append(x)
+            vrep = f.createIfcShapeRepresentation(ctx, "Body", "SweptSolid", solids)
+            vf = f.create_entity("IfcVoidingFeature", GlobalId=ifcopenshell.guid.new(), OwnerHistory=oh,
+                                 Name=f"Recorte {name} R{R['id']}", ObjectType="DEFECT",
+                                 Description=f"{cls}: volume removido só para visualização da forma aproximada do dano (não é profundidade medida)",
+                                 ObjectPlacement=f.createIfcLocalPlacement(host.ObjectPlacement, ax),
+                                 Representation=f.createIfcProductDefinitionShape(None, None, [vrep]), PredefinedType="USERDEFINED")
+            f.createIfcRelVoidsElement(ifcopenshell.guid.new(), oh, "CDM-4 recorte", None, host, vf)
+            voids_out.append(vf)
+        f.createIfcRelDefinesByProperties(ifcopenshell.guid.new(), oh, None, None, [x for x in (sf, vf) if x], ps)
+        summary.append({"region": R["id"], "global_id": sf.GlobalId, "layers": len(R["layers"]), "area_m2": base / 1e6,
+                        "void": vf.GlobalId if vf else None})
     if features:
         if is43:
             f.create_entity("IfcRelAdheresToElement", GlobalId=ifcopenshell.guid.new(), OwnerHistory=oh,
                             Name="CDM-4 danos", RelatingElement=host, RelatedSurfaceFeatures=features)
+        elif cut:
+            # IFC4 com recorte: cada fundo é agregado ao seu recorte (agregá-lo ao elemento faria o web-ifc recortar o fundo também)
+            for sf_, vf_ in zip(features, voids_out):
+                f.createIfcRelAggregates(ifcopenshell.guid.new(), oh, "CDM-4 dano", None, vf_, [sf_])
         else:
             f.createIfcRelAggregates(ifcopenshell.guid.new(), oh, "CDM-4 danos", None, host, features)
     Path(ifc_out).parent.mkdir(parents=True, exist_ok=True)
     f.write(str(ifc_out))
     return {"schema": f.schema, "relation": "IfcRelAdheresToElement" if is43 else "IfcRelAggregates",
-            "features": summary}
+            "features": summary, "voids": len(voids_out)}

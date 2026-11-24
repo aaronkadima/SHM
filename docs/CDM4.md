@@ -227,3 +227,21 @@ camada é nível do potencial × espessura escolhida; a ressalva é gravada na d
 - Sólidos salvos: `levelSolidStore.js` (IndexedDB `shm-level-solids`, até 40 registros) guarda sólido, relevo, moldura
   da face, parâmetros do mapeamento, potencial do walker, foto reduzida, IFC importado e miniatura; reabrir permite
   consultar pontos, exportar IFC/GLB de novo e excluir. Exportação `.glb` via GLTFExporter (sólido + foto, em metros).
+
+### Projeção côncava (cavidade) com recorte do elemento
+
+- `buildCavity` (`levelSolid.js`): **fundo** = topo do relevo (contínuo ou em degraus, `quantize`) como superfície aberta;
+  **recorte** = degraus extrudados, um polígono (com furos) por nível, simplificados (5 mm) e dilatados uma célula da
+  grade, da tampa 1 mm fora da face até abaixo do fundo; profundidade de cada degrau calibrada pelo vértice do fundo mais
+  fundo que cai nele (+1,5 mm). Cobertura na foto 24: ≥ 99,96 % dos vértices do fundo.
+- Por que degraus extrudados: um vazio triangulado (20–40 mil faces) fez o IfcOpenShell levar 88–369 s e **desistir do
+  recorte** (o pilar ficou inteiro). Com degraus extrudados: ~4 s (IfcOpenShell) e < 1 s (web-ifc), pilar 4,8 → 4,771 m³.
+- IFC: `IfcSurfaceFeature` (fundo, `IfcTriangulatedFaceSet` aberta, cores por faixa) + `IfcVoidingFeature`
+  (USERDEFINED, ObjectType DEFECT, `Body/SweptSolid`) + `IfcRelVoidsElement`. A representação do elemento não é tocada.
+  IFC 4.3: fundo ligado por `IfcRelAdheresToElement`. IFC4 com recorte: fundo agregado ao `IfcVoidingFeature` — agregado
+  ao elemento, o web-ifc aplicava o recorte também ao fundo (12 mil → 727 triângulos) e levava 36 s.
+- `ifcGeometry.js`: `IfcOpeningElement`, `IfcOpeningStandardCase` e `IfcVoidingFeature` não são desenhados (só furam).
+- Vista (`cavityView.js`, sem biblioteca de CSG — a instalação de dependência nova foi bloqueada no ambiente): a face
+  escolhida é refeita com a boca como furo (earcut do three) e o resto do elemento fica igual; paredes e piso do degrau
+  mais fundo com o material do elemento; foto recortada; modo transparente = degraus como película translúcida.
+  Placa de referência ≥ profundidade + 50 mm (não é atravessada).

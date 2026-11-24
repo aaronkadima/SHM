@@ -186,6 +186,11 @@ export const DICT={
 "El análisis ya está guardado en el historial local.",
 "L’analyse est déjà enregistrée dans l’historique local."
 ],
+"A cavidade passa da borda da face: na vista o elemento fica translúcido; o recorte no IFC continua.": [
+"The cavity goes past the face edge: in the view the element becomes translucent; the IFC cut-out is kept.",
+"La cavidad sobrepasa el borde de la cara: en la vista el elemento queda translúcido; el recorte en el IFC se mantiene.",
+"La cavité dépasse le bord de la face : dans la vue l’élément devient translucide ; la découpe dans l’IFC est conservée."
+],
 "A correção não recupera informação ausente (foco, resolução ou superfície sem contraste e com ruído). Recomenda-se refazer a foto com mais luz, câmera estável e mais próxima.": [
 "Correction cannot recover missing information (focus, resolution or a low-contrast noisy surface). Retake the photo with more light, a steady camera and closer.",
 "La corrección no recupera información ausente (enfoque, resolución o superficie sin contraste y con ruido). Se recomienda repetir la foto con más luz, cámara estable y más cerca.",
@@ -2021,6 +2026,11 @@ export const DICT={
 "La conversión a mm vale para una foto de frente a la superficie; con perspectiva, use la calibración por 4 puntos.",
 "La conversion en mm vaut pour une photo de face ; avec perspective, utilisez l'étalonnage à 4 points."
 ],
+"Convexa (para fora)": [
+"Convex (outward)",
+"Convexa (hacia fuera)",
+"Convexe (vers l’extérieur)"
+],
 "Coordenadas:": [
 "Coordinates:",
 "Coordenadas:",
@@ -2185,6 +2195,11 @@ export const DICT={
 "Cameras & sources",
 "Cámaras y fuentes",
 "Caméras et sources"
+],
+"Côncava (cavidade)": [
+"Concave (cavity)",
+"Cóncava (cavidad)",
+"Concave (cavité)"
 ],
 "DELTAS TEMPORAIS VALIDADOS": [
 "VALIDATED TEMPORAL DELTAS",
@@ -3911,6 +3926,11 @@ export const DICT={
 "Interpretación",
 "Interprétation"
 ],
+"Interseção com o elemento": [
+"Intersection with the element",
+"Intersección con el elemento",
+"Intersection avec l’élément"
+],
 "Intrínsecos da câmera · opcional": [
 "Camera intrinsics · optional",
 "Intrínsecos de la cámara · opcional",
@@ -5036,6 +5056,11 @@ export const DICT={
 "El random walker no generó potencial en esta imagen.",
 "Le random walker n’a produit aucun potentiel sur cette image."
 ],
+"O recorte é um IfcVoidingFeature separado, ligado por IfcRelVoidsElement: a geometria do elemento não muda e apagar o recorte restaura a vista original.": [
+"The cut-out is a separate IfcVoidingFeature linked by IfcRelVoidsElement: the element geometry is not changed and deleting the cut-out restores the original view.",
+"El recorte es un IfcVoidingFeature separado, vinculado por IfcRelVoidsElement: la geometría del elemento no cambia y borrar el recorte restaura la vista original.",
+"La découpe est un IfcVoidingFeature distinct, lié par IfcRelVoidsElement : la géométrie de l’élément ne change pas et supprimer la découpe rétablit la vue d’origine."
+],
 "O serviço atende ao motor": [
 "The service serves the engine",
 "El servicio atiende al motor",
@@ -5100,6 +5125,11 @@ export const DICT={
 "Scene objects (AI)",
 "Objetos de la escena (IA)",
 "Objets de la scène (IA)"
+],
+"Oculta (recorte)": [
+"Hidden (cut-out)",
+"Oculta (recorte)",
+"Masquée (découpe)"
 ],
 "Ocultar caixas delimitadoras": [
 "Hide bounding boxes",
@@ -5810,6 +5840,11 @@ export const DICT={
 "Recommended (",
 "Recomendados (",
 "Recommandés ("
+],
+"Recortar o elemento no IFC exportado": [
+"Cut the element in the exported IFC",
+"Recortar el elemento en el IFC exportado",
+"Découper l’élément dans l’IFC exporté"
 ],
 "Recortar regiões de área pela máscara de contexto": [
 "Clip area regions by the context mask",
@@ -6651,6 +6686,11 @@ export const DICT={
 "Sin máscaras del motor para localizar los contornos.",
 "Pas de masques du moteur pour localiser les contours."
 ],
+"Sem recorte no IFC: o fundo colorido fica dentro do elemento e só aparece com o elemento transparente.": [
+"No cut-out in the IFC: the coloured floor stays inside the element and only shows with the element transparent.",
+"Sin recorte en el IFC: el fondo coloreado queda dentro del elemento y solo aparece con el elemento transparente.",
+"Sans découpe dans l’IFC : le fond coloré reste dans l’élément et n’apparaît qu’avec l’élément transparent."
+],
 "Sem saturação relevante.": [
 "No relevant saturation.",
 "Sin saturación relevante.",
@@ -7020,6 +7060,11 @@ export const DICT={
 "Navigable track · no comparable quantitative series.",
 "Track navegable · sin serie cuantitativa comparable.",
 "Piste navigable · sans série quantitative comparable."
+],
+"Transparente": [
+"Transparent",
+"Transparente",
+"Transparente"
 ],
 "Transversinas/cortinas · Fr=3": [
 "Cross-beams/end walls · Fr=3",
@@ -8175,6 +8220,11 @@ export const DICT={
 "recommended",
 "recomendados",
 "recommandés"
+],
+"recortes": [
+"cut-outs",
+"recortes",
+"découpes"
 ],
 "redução de ruído": [
 "noise reduction",

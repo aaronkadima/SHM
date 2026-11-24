@@ -376,3 +376,42 @@ console.log("homography + contour distance ok");
   }
   console.log("relevo com vales + sentido ok");
 }
+
+// ---------- projeção côncava: cavidade com recorte (IfcVoidingFeature) sem alterar a geometria do elemento ----------
+{
+  const LS=await import("../src/levelSolid.js"),FW=await import("../src/ifcLevelSolidWriter.js"),RH=await import("../src/ifcReferenceHost.js"),CV=await import("../src/cavityView.js");
+  const fsx=await import("node:fs");
+  const W=140,H=100,P=new Float32Array(W*H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const r=Math.hypot(x-70,y-50),dome=Math.max(0,1-r/40),valley=.5*Math.exp(-(r*r)/(2*7*7));P[y*W+x]=Math.max(0,dome-valley)}
+  const toPlane=(x,y)=>[100+x*2,100+y*2],rw={prob:P,W,H,f:1},sol=LS.buildLevelSolid(rw,toPlane,{levels:[.1,.3,.5],layerMm:10,minAreaMm2:400});
+  for(const style of["relief","terraces"]){
+    const C=LS.buildCavity(rw,toPlane,sol,{style,stride:1});assert.equal(C.regions.length,1);const r=C.regions[0];
+    // o recorte cobre o fundo (≥ 99,9 % dos vértices) e os degraus ficam cada vez mais fundos
+    let n=0,ok=0;for(let i=0;i<r.lining.positions.length;i+=3){n++;if(LS.cavityDepthAt(r,r.lining.positions[i],r.lining.positions[i+1])>=r.lining.positions[i+2])ok++}
+    assert.ok(ok/n>=.999,`${style}: recorte cobre ${ok}/${n}`);
+    for(let k=1;k<r.steps.length;k++)assert.ok(r.steps[k].depthMm>=r.steps[k-1].depthMm,"degraus monotônicos");
+    assert.ok(r.steps[0].topMm<0,"tampa fora da face");
+  }
+  const C=LS.buildCavity(rw,toPlane,sol,{style:"relief",stride:1});
+  for(const schema of["IFC4","IFC4X3"]){
+    const h=RH.referenceHostIfc({schema,widthMm:500,heightMm:400,thicknessMm:120});
+    const r=FW.writeLevelSolid(h.text,{hostGuid:h.hostGuid,face:h.face,solid:sol,cavity:C}),M=FW.parseStep(r.text),of=t=>[...M.ents.values()].filter(e=>e.type===t);
+    assert.equal(r.voids,1);assert.equal(of("IFCVOIDINGFEATURE").length,1);assert.equal(of("IFCRELVOIDSELEMENT").length,1);
+    const vf=of("IFCVOIDINGFEATURE")[0],rv=FW.parseArgs(of("IFCRELVOIDSELEMENT")[0].raw);assert.equal(rv[5].ref,vf.id);assert.equal(FW.parseArgs(vf.raw)[8].enum,"USERDEFINED");
+    assert.ok(of("IFCEXTRUDEDAREASOLID").length>=C.regions[0].steps.length,"recorte em degraus extrudados");
+    assert.ok(of("IFCTRIANGULATEDFACESET").every(e=>/,\.F\.,/.test(e.raw)),"fundo = superfície aberta");
+    // a geometria do elemento hospedeiro não muda: a entidade é idêntica à do arquivo original
+    const hostLine=t=>t.split("\n").find(l=>l.includes(h.hostGuid)&&l.includes("IFCBUILDINGELEMENTPROXY"));assert.equal(hostLine(r.text),hostLine(h.text));
+    if(schema==="IFC4"){const ag=of("IFCRELAGGREGATES").filter(e=>e.raw.includes("CDM-4 dano'"));assert.equal(ag.length,1);assert.equal(FW.parseArgs(ag[0].raw)[4].ref,vf.id,"IFC4: fundo agregado ao recorte")}
+    else assert.equal(of("IFCRELADHERESTOELEMENT").length,1);
+    const r2=FW.writeLevelSolid(h.text,{hostGuid:h.hostGuid,face:h.face,solid:sol,cavity:C,voids:false});assert.equal(r2.voids,0);assert.ok(!r2.text.includes("IFCVOIDINGFEATURE"));
+  }
+  // vista: face recortada (área = face − boca + ilha) e boca fora da face → sem recorte
+  const face={origin:[0,1,0],ex:[1,0,0],ey:[0,1,0],n:[0,0,1]},tri=(a,b,c)=>({P:[a,b,c],n:[0,0,1],area:.5}),T=[tri([0,1,0],[0,0,0],[1,0,0]),tri([0,1,0],[1,0,0],[1,1,0])];
+  const sq=(x,y,s)=>[[x,y],[x+s,y],[x+s,y+s],[x,y+s],[x,y]];
+  const g=CV.cutHostGeometry(face,T,T,{regions:[{steps:[{depthMm:20,polys:[{outer:sq(400,400,200),holes:[sq(470,470,40)]}]}]}]}),Pp=g.attributes.position.array;let area=0;
+  for(let i=0;i<Pp.length;i+=9)area+=Math.abs((Pp[i+3]-Pp[i])*(Pp[i+7]-Pp[i+1])-(Pp[i+4]-Pp[i+1])*(Pp[i+6]-Pp[i]))/2;
+  assert.ok(Math.abs(area-(1-.04+.0016))<1e-6,"face recortada "+area);
+  assert.equal(CV.cutHostGeometry(face,T,T,{regions:[{steps:[{depthMm:20,polys:[{outer:sq(900,400,200),holes:[]}]}]}]}),null);
+  console.log("cavidade côncava + recorte IFC ok");
+}

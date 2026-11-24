@@ -415,3 +415,28 @@ console.log("homography + contour distance ok");
   assert.equal(CV.cutHostGeometry(face,T,T,{regions:[{steps:[{depthMm:20,polys:[{outer:sq(900,400,200),holes:[]}]}]}]}),null);
   console.log("cavidade côncava + recorte IFC ok");
 }
+
+// ---------- armadura exposta projetada na cavidade ----------
+{
+  const RB=await import("../src/rebarCenterlines.js"),LS=await import("../src/levelSolid.js"),FW=await import("../src/ifcLevelSolidWriter.js"),RH=await import("../src/ifcReferenceHost.js");
+  // barra longitudinal (8 px) cortada por um estribo (6 px) e uma barra inclinada (6 px) + ruído
+  const w=320,h=220,m=new Uint8Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(Math.abs(x-80)<4&&y>10&&y<210)m[y*w+x]=1;if(Math.abs(y-110)<3&&x>50&&x<110)m[y*w+x]=1;
+    const d=Math.abs((y-110)-.3*(x-220))/Math.hypot(1,.3);if(d<3&&x>140&&x<310)m[y*w+x]=1;if(Math.hypot(x-200,y-20)<2)m[y*w+x]=1}
+  const L=RB.rebarCenterlines(m,w,h),long=L.find(b=>b.len>180&&Math.abs(b.pts[0][0]-80)<3),incl=L.find(b=>Math.abs((b.pts.at(-1)[1]-b.pts[0][1])/(b.pts.at(-1)[0]-b.pts[0][0])-.3)<.05);
+  assert.ok(long,"longitudinal contínua através do cruzamento com o estribo");assert.ok(Math.abs(long.r-4)<.6,"raio da longitudinal "+long.r);
+  assert.ok(incl&&Math.abs(incl.r-3)<.6,"barra inclinada");assert.ok(!L.some(b=>b.len<10),"ruído descartado");
+  assert.equal(RB.nearestGauge(11.3),12.5);assert.equal(RB.nearestGauge(6.6),6.3);
+  const T=RB.rebarTubes([{pts:[[0,0,10],[100,0,10],[100,50,12]],d:10}]),E=new Map();
+  for(let i=0;i<T.indices.length;i+=3)for(let k=0;k<3;k++){const a=T.indices[i+k],b=T.indices[i+(k+1)%3];E.set(a+","+b,(E.get(a+","+b)||0)+1)}
+  for(const[k,c]of E){const[a,b]=k.split(",");assert.ok(c===1&&E.get(b+","+a)===1,"tubo fechado")}
+  // gravação: tubos no corpo da característica côncava + propriedade "Armadura"; sem IfcReinforcingBar
+  const W=140,H=100,P=new Float32Array(W*H);for(let y=0;y<H;y++)for(let x=0;x<W;x++)P[y*W+x]=Math.max(0,1-Math.hypot((x-70)/40,(y-50)/30));
+  const toPlane=(x,y)=>[100+x*2,100+y*2],rw={prob:P,W,H,f:1},sol=LS.buildLevelSolid(rw,toPlane,{levels:[.1,.5],layerMm:10,minAreaMm2:400}),C=LS.buildCavity(rw,toPlane,sol,{stride:1});
+  const tube=RB.rebarTubes([{pts:[[180,200,15],[300,200,15]],d:10}]),cav={...C,regions:C.regions.map(r=>({...r,rebars:[{...tube,d:10}]})),rebar:{diameter:"auto",mode:"floor"}};
+  for(const schema of["IFC4","IFC4X3"]){const hst=RH.referenceHostIfc({schema,widthMm:500,heightMm:400,thicknessMm:120});
+    const r=FW.writeLevelSolid(hst.text,{hostGuid:hst.hostGuid,face:hst.face,solid:sol,cavity:cav}),M=FW.parseStep(r.text),of=t=>[...M.ents.values()].filter(e=>e.type===t);
+    assert.equal(of("IFCTRIANGULATEDFACESET").length,2,"fundo + 1 barra");assert.ok(of("IFCTRIANGULATEDFACESET").some(e=>/,\.T\.,/.test(e.raw)),"barra fechada");
+    assert.ok(r.text.includes("'Armadura'")&&r.text.includes("armadura exposta"),"propriedade Armadura");assert.equal(of("IFCREINFORCINGBAR").length,0)}
+  console.log("armadura exposta na cavidade ok");
+}

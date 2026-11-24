@@ -1,12 +1,13 @@
 import React,{useEffect,useMemo,useRef,useState}from"react";
 import*as THREE from"three";
 import{OrbitControls}from"three/addons/controls/OrbitControls.js";
-import{Box,ChevronLeft,Crosshair,Download,FolderOpen,ImageIcon,Info,Layers,Maximize2,RotateCw,Save,Server,SquareDashedMousePointer,Trash2,FolderClock}from"lucide-react";
+import{Box,ChevronLeft,Crosshair,Download,FolderOpen,ImageDown,ImageIcon,Info,Mountain,Maximize2,Rotate3d,RotateCw,Save,Server,SquareDashedMousePointer,Trash2,FolderClock}from"lucide-react";
 import{__cdm4Test,cdm4Config,cdm4StageData}from"./cdm4Core.js";
 import{loadIfcThreeModel}from"./ifcGeometry.js";
 import{worldTriangles,planarFace,faceToModel,imageFaceMapping,facePoint,faceUV,potentialAt}from"./ifcFace.js";
 import{buildLevelSolid,buildRelief,buildCavity,layersAtPoint}from"./levelSolid.js";
 import{cutHostGeometry,cavityWallsGeometry,cavityGhostGeometry,photoWithHoles}from"./cavityView.js";
+import{rebarCenterlines,rebarTubes,nearestGauge,REBAR_GAUGES}from"./rebarCenterlines.js";
 import{parseStep,lengthUnitMeters,writeLevelSolid,levelColor}from"./ifcLevelSolidWriter.js";
 import{referenceHostIfc}from"./ifcReferenceHost.js";
 import{saveLevelSolid,listLevelSolids,getLevelSolid,deleteLevelSolid}from"./levelSolidStore.js";
@@ -25,6 +26,7 @@ const LOCALE={pt:"pt-BR",en:"en-US",es:"es-ES",fr:"fr-FR"};
 const loc=()=>LOCALE[String(getLang?.()||"pt").toLowerCase()]||"pt-BR";
 const fmt=(v,d=2)=>Number(v).toLocaleString(loc(),{maximumFractionDigits:d,minimumFractionDigits:d});
 const lv=t=>Number(t).toLocaleString(loc(),{maximumFractionDigits:3});
+const pointIn=(p,r)=>{let ins=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const[xi,yi]=r[i],[xj,yj]=r[j];if((yi>p[1])!==(yj>p[1])&&p[0]<(xj-xi)*(p[1]-yi)/(yj-yi)+xi)ins=!ins}return ins};
 const keyOf=(r,t)=>`R${r}:${t}`;
 const when=iso=>{try{return new Date(iso).toLocaleString(loc(),{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}catch{return iso}};
 // cor contínua do relevo: posição do potencial entre o primeiro e o último nível
@@ -40,6 +42,7 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
   const[levels,setLevels]=useState("0,1; 0,3; 0,5; 0,7; 0,9"),[layerMm,setLayerMm]=useState(10),[minArea,setMinArea]=useState(4);
   const[style,setStyle]=useState("terraces"),[direction,setDirection]=useState(1),[detail,setDetail]=useState("medio");
   const[cutView,setCutView]=useState("hidden"),[cutIfc,setCutIfc]=useState(true),[cutState,setCutState]=useState(null);
+  const[rebarOn,setRebarOn]=useState(false),[rebarDia,setRebarDia]=useState("auto"),[rebarPos,setRebarPos]=useState("floor"),[coverMm,setCoverMm]=useState(25),[rebarMask,setRebarMask]=useState(null);
   const[fit,setFit]=useState("contain"),[dx,setDx]=useState(0),[dy,setDy]=useState(0),[showPhoto,setShowPhoto]=useState(true);
   const[size,setSize]=useState("auto"),[widthMm,setWidthMm]=useState(1000),[schema,setSchema]=useState("IFC4X3");
   const[sel,setSel]=useState(null),[point,setPoint]=useState(null),[photo,setPhoto]=useState(null);
@@ -52,7 +55,7 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
     (async()=>{try{let d=cdm4StageData(result);
       if(!d?.random_walker?.prob){const bmp=await createImageBitmap(file,{imageOrientation:"from-image"}),c=document.createElement("canvas");c.width=W;c.height=H;const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(bmp,0,0,W,H);bmp.close?.();
         const cfg=cdm4Config({...(options||{}),cdm_context_filter:"off",cdm4_flow:result?.metrics?.protocol?.flow||options?.cdm4_flow});cfg.returnStages=true;d={...__cdm4Test.computeCdm4Core(ctx.getImageData(0,0,W,H),null,cfg).stages}}
-      if(live)setRw(d?.random_walker?.prob?d.random_walker:false)}catch(e){if(live){setRw(false);setErr(e?.message||String(e))}}})();
+      if(live){setRw(d?.random_walker?.prob?d.random_walker:false);const rm=d?.final?.exposed_rebar;setRebarMask(rm&&rm.length===W*H?{mask:rm,W,H}:null)}}catch(e){if(live){setRw(false);setErr(e?.message||String(e))}}})();
     return()=>{live=false}},[active,result,file,W,H]);
   // foto como textura (até 2048 px): a da análise ou a guardada no sólido salvo
   useEffect(()=>{if(!active)return;let live=true,tex=null;
@@ -63,7 +66,10 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
     return v?.quad?.length===4&&quadOk(v.quad)?{m:makeMetric({kind:"homography",quad:v.quad,wmm:+v.wmm,hmm:+v.hmm}),scale:{quad:v.quad,wmm:+v.wmm,hmm:+v.hmm},label:`${v.wmm} × ${v.hmm} mm`}:null}catch{return null}},[file,active]);
   const refreshLibrary=()=>listLevelSolids().then(setLibrary).catch(()=>setLibrary([]));
   useEffect(()=>{if(active)refreshLibrary()},[active]);
-  useEffect(()=>{if(!active)return;const k=e=>{if(e.key==="Escape"&&!/INPUT|SELECT/.test(e.target?.tagName||"")){e.stopPropagation();onClose?.()}};window.addEventListener("keydown",k,true);return()=>window.removeEventListener("keydown",k,true)},[active,onClose]);
+  useEffect(()=>{if(!active)return;const k=e=>{if(e.key!=="Escape"||/INPUT|SELECT/.test(e.target?.tagName||""))return;
+    // com um menu da barra superior aberto (ou um painel de vistas/imagem), Esc fecha só ele
+    if(document.querySelector(".editorMenu[open]"))return;if(viewMenuRef.current||shotMenuRef.current){e.stopPropagation();setViewMenu(false);setShotMenu(false);return}
+    e.stopPropagation();onClose?.()};window.addEventListener("keydown",k,true);return()=>window.removeEventListener("keydown",k,true)},[active,onClose]);
   useEffect(()=>{if(!active){setMode(null);setIfc(null);setPick(null);setPoint(null);setSel(null);setErr("");setDone("");setSaved(null)}},[active]);
   const chooseMode=m=>{setMode(m);setSaved(null);setIfc(null);setPick(null);setPickingFace(true);setPoint(null);setSel(null);setErr("");setDone("")};
 
@@ -78,7 +84,10 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
     scene.add(new THREE.HemisphereLight(0xffffff,0x8a9aa0,1.1));const sun=new THREE.DirectionalLight(0xffffff,1.5);sun.position.set(4,9,7);scene.add(sun);const fill=new THREE.DirectionalLight(0xffffff,.45);fill.position.set(-6,-2,5);scene.add(fill);
     const model=new THREE.Group(),solid=new THREE.Group(),mark=new THREE.Group(),pic=new THREE.Group(),cut=new THREE.Group();scene.add(model,cut,pic,solid,mark);
     const resize=()=>{const w=el.clientWidth||800,h=el.clientHeight||600;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};resize();
-    const ro=new ResizeObserver(resize);ro.observe(el);let raf=0;const loop=()=>{raf=requestAnimationFrame(loop);controls.update();renderer.render(scene,camera)};loop();
+    const ro=new ResizeObserver(resize);ro.observe(el);let raf=0;const loop=()=>{raf=requestAnimationFrame(loop);const A=three.current?.anim;
+      // transição suave entre vistas (posição e alvo da câmera)
+      if(A){const t=Math.min(1,(performance.now()-A.t0)/A.dur),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;camera.position.lerpVectors(A.p0,A.p1,e);controls.target.lerpVectors(A.c0,A.c1,e);if(t>=1)three.current.anim=null}
+      controls.update();renderer.render(scene,camera)};loop();
     const ray=new THREE.Raycaster();let down=null;
     const onDown=e=>{down=[e.clientX,e.clientY]};
     const onUp=e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>4)return;const r=renderer.domElement.getBoundingClientRect();
@@ -90,6 +99,39 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
   },[active,mode]);
   const fitView=(obj,dir=[1,.55,1.3])=>{const T=three.current;obj=obj||T?.model;if(!T||!obj)return;const b=new THREE.Box3().setFromObject(obj);if(b.isEmpty())return;const c=b.getCenter(new THREE.Vector3()),r=b.getSize(new THREE.Vector3()).length()/2||1;
     T.controls.target.copy(c);T.camera.position.copy(c.clone().add(new THREE.Vector3(...dir).normalize().multiplyScalar(r*3)));T.camera.near=r/500;T.camera.far=r*100;T.camera.updateProjectionMatrix()};
+  // ---------- vistas padrão e inclinadas (na moldura da face: n = para fora, ey = para cima, ex = direita) ----------
+  const viewMenuRef=useRef(false),shotMenuRef=useRef(false);
+  const[viewMenu,setViewMenu]=useState(false),[tilt,setTilt]=useState(35),[azim,setAzim]=useState(25),[shotMenu,setShotMenu]=useState(false),[shotLegend,setShotLegend]=useState(true),[activeView,setActiveView]=useState("");
+  viewMenuRef.current=viewMenu;shotMenuRef.current=shotMenu;
+  const viewTarget=()=>{const T=three.current;if(!T)return null;const obj=T.solid.children.length?T.solid:T.cut.children.length?T.cut:T.model;const b=new THREE.Box3().setFromObject(obj);
+    if(b.isEmpty())return null;const c=b.getCenter(new THREE.Vector3()),r=Math.max(b.getSize(new THREE.Vector3()).length()/2,.05);return{c,r}};
+  const dirFor=(name,tl=tilt,az=azim)=>{if(!face)return null;const n=new THREE.Vector3(...face.n),ey=new THREE.Vector3(...face.ey),ex=new THREE.Vector3(...face.ex);
+    const tiltDir=(t,a)=>{const tr=t*Math.PI/180,ar=a*Math.PI/180,d=n.clone().multiplyScalar(Math.cos(tr)).add(ey.clone().multiplyScalar(Math.sin(tr)));return d.applyAxisAngle(n,ar).normalize()};
+    switch(name){case"front":return n.clone().add(ey.clone().multiplyScalar(.002)).normalize();case"top":return ey.clone().add(n.clone().multiplyScalar(.02)).normalize();
+      case"bottom":return ey.clone().negate().add(n.clone().multiplyScalar(.02)).normalize();case"left":return ex.clone().negate().add(n.clone().multiplyScalar(.02)).normalize();
+      case"right":return ex.clone().add(n.clone().multiplyScalar(.02)).normalize();case"iso":return n.clone().add(ey.clone().multiplyScalar(.7)).add(ex.clone().multiplyScalar(.7)).normalize();
+      case"graze":return tiltDir(72,az);default:return tiltDir(tl,az)}};
+  const goView=(name,tl,az)=>{const T=three.current,tg=viewTarget(),d=dirFor(name,tl,az);if(!T||!tg||!d)return;
+    const dist=tg.r/Math.tan(T.camera.fov*Math.PI/360)*1.15,p1=tg.c.clone().add(d.multiplyScalar(dist));
+    T.anim={p0:T.camera.position.clone(),p1,c0:T.controls.target.clone(),c1:tg.c.clone(),t0:performance.now(),dur:450};T.camera.near=Math.max(1e-4,tg.r/400);T.camera.far=tg.r*400;T.camera.updateProjectionMatrix();setActiveView(name)};
+  // imagem da vista atual em alta definição (fator × resolução da tela), com legenda opcional
+  async function exportShot(scale){setErr("");try{const T=three.current;if(!T)return;const r=T.renderer,sz=r.getSize(new THREE.Vector2()),pr=r.getPixelRatio(),gl=r.getContext();
+      const maxSide=Math.min(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)||8192,gl.getParameter(gl.MAX_TEXTURE_SIZE)||8192,8192),k=Math.max(1,Math.min(scale,maxSide/Math.max(sz.x,sz.y)));
+      r.setPixelRatio(k);r.setSize(sz.x,sz.y,false);r.render(T.scene,T.camera);const src=r.domElement,W0=src.width,H0=src.height;
+      // legenda: título + ressalva à esquerda e níveis à direita; se não couberem lado a lado, níveis numa segunda linha
+      const lev=built?.levels||[],f=v=>`${Math.round(v*k)}px Inter, system-ui, sans-serif`,pad=16*k,mx=document.createElement("canvas").getContext("2d");
+      const title=`${tr("Sólido de níveis")} · CDM-4`,sub=`${curDir<0?tr("Côncava (cavidade)"):tr("Convexa (para fora)")} · ${curStyle==="relief"?tr("relevo com vales"):tr("camadas planas")} · ${tr("Forma aproximada; não é profundidade medida")}`;
+      mx.font="600 "+f(14);let tw=mx.measureText(title).width;mx.font=f(11);tw=Math.max(tw,mx.measureText(sub).width);
+      const items=lev.map((t,i)=>({t:`u ≥ ${lv(t)}`,i})),legW=items.reduce((acc,it)=>acc+mx.measureText(it.t).width+30*k,0),stack=pad+tw+24*k+legW>W0-pad;
+      const band=shotLegend?Math.round((stack?92:64)*k):0,c=document.createElement("canvas");c.width=W0;c.height=H0+band;const x=c.getContext("2d");
+      x.fillStyle="#dce4e7";x.fillRect(0,0,W0,H0);x.fillStyle="#c7d3d7";const g=24*k;for(let yy=g/2;yy<H0;yy+=g)for(let xx=g/2;xx<W0;xx+=g){x.beginPath();x.arc(xx,yy,k*.9,0,7);x.fill()}
+      x.drawImage(src,0,0);r.setPixelRatio(pr);r.setSize(sz.x,sz.y,false);
+      if(band){x.fillStyle="#fff";x.fillRect(0,H0,W0,band);x.fillStyle="#dce5e8";x.fillRect(0,H0,W0,Math.max(1,k));const top=H0+(stack?22:band/2-9)*k/(stack?1:k)*(stack?k:1);
+        const y1=stack?H0+22*k:H0+band/2-9*k,y2=y1+19*k;x.textBaseline="middle";x.fillStyle="#1f3540";x.font="600 "+f(14);x.fillText(title,pad,y1);x.fillStyle="#6f8590";x.font=f(11);x.fillText(sub,pad,y2);
+        x.font=f(11);let lx=stack?pad:W0-pad-legW+16*k;const ly=stack?y2+26*k:H0+band/2;void top;
+        for(const it of items){const col=levelColor(it.i,lev.length).map(v=>Math.round(v*255));x.fillStyle=`rgb(${col})`;x.fillRect(lx,ly-6*k,12*k,12*k);lx+=16*k;x.fillStyle="#263e4b";x.fillText(it.t,lx,ly);lx+=x.measureText(it.t).width+14*k}}
+      const blob=await new Promise(res=>c.toBlob(res,"image/png")),base=(saved?.image?.name||file?.name||"foto").replace(/\.[^.]+$/,"");
+      save(`${base}_solido_vista_${c.width}x${c.height}.png`,blob);setDone(`${tr("Imagem da vista")}: ${c.width} × ${c.height} px`);setShotMenu(false)}catch(e){setErr(e?.message||String(e))}}
   async function loadIfcIntoScene(f){const group=await loadIfcThreeModel(f,{onProgress:p=>setLoading(Math.max(1,p.loaded))}),T=three.current;
     if(T){T.model.clear();while(group.children.length)T.model.add(group.children[0]);T.model.updateMatrixWorld(true);fitView(T.model)}return group}
 
@@ -149,7 +191,29 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
   // côncava: cavidade = fundo colorido + recorte em degraus (o mesmo volume gravado no IFC como IfcVoidingFeature)
   const cavityLive=useMemo(()=>{if(saved||curDir>=0||!builtLive?.regions?.length||!mapping||!rw?.prob)return null;
     return buildCavity({prob:rw.prob,W:rw.W,H:rw.H,f:fGrid},mapping.toPlane,builtLive,{style:curStyle==="relief"?"relief":"terraces",detail})},[saved,curDir,curStyle,builtLive,mapping,rw,fGrid,detail]);
-  const cavity=saved?saved.cavity||null:cavityLive;
+  // armadura exposta projetada na cavidade: eixos da máscara exposed_rebar → tubos no plano da face, com diâmetro nominal
+  // (NBR 7480) estimado pela largura detectada ou informado, apoiados no fundo da cavidade ou a um cobrimento dado
+  const rebarLines=useMemo(()=>{if(saved||!rebarMask)return null;try{return rebarCenterlines(rebarMask.mask,rebarMask.W,rebarMask.H)}catch{return null}},[saved,rebarMask]);
+  const rebarLive=useMemo(()=>{
+    if(saved||curDir>=0||!rebarOn||!rebarLines?.length||!cavityLive||!mapping||!rw?.prob||!builtLive?.levels)return null;
+    const lev=builtLive.levels,t0=lev[0],Hh=lev.length*builtLive.layerMm,relief=curStyle==="relief";
+    const floorAt=(x,y)=>{const u=potentialAt(rw,fGrid,x,y);if(u==null||u<t0)return 0;if(relief)return Hh*(u-t0)/(1-t0);let k=0;for(const t of lev)if(u>=t)k++;return k*builtLive.layerMm};
+    const scaleAt=(x,y)=>{const a=mapping.toPlane(x,y),b=mapping.toPlane(x+1,y),c=mapping.toPlane(x,y+1);return(Math.hypot(b[0]-a[0],b[1]-a[1])+Math.hypot(c[0]-a[0],c[1]-a[1]))/2};
+    const bars=[];for(const L of rebarLines){
+      const mid=L.pts[L.pts.length>>1],dEst=2*L.r*scaleAt(...mid),d=rebarDia==="auto"?nearestGauge(dEst):+rebarDia;
+      // densifica a cada ~2 px para a profundidade acompanhar o fundo
+      const dense=[];for(let k=0;k+1<L.pts.length;k++){const[a,b]=[L.pts[k],L.pts[k+1]],n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/2));for(let i=0;i<n;i++)dense.push([a[0]+(b[0]-a[0])*i/n,a[1]+(b[1]-a[1])*i/n])}dense.push(L.pts.at(-1));
+      const pts=dense.map(([x,y])=>{const[u,v]=mapping.toPlane(x,y),axis=rebarPos==="cover"?(+coverMm||0)+d/2:Math.max(d/2+1,floorAt(x,y)-.15*d);return[u,v,axis]});
+      // suaviza a profundidade (média móvel) para o tubo não serrilhar sobre o relevo
+      const sm=pts.map((p,i)=>{let s2=0,n2=0;for(let j=Math.max(0,i-4);j<=Math.min(pts.length-1,i+4);j++){s2+=pts[j][2];n2++}return[p[0],p[1],s2/n2]});
+      bars.push({pts:sm,d,dEst,len:L.len})}
+    return bars},[saved,curDir,rebarOn,rebarLines,cavityLive,mapping,rw,fGrid,builtLive,curStyle,rebarDia,rebarPos,coverMm]);
+  // cada barra vai para a região da cavidade que contém o seu ponto médio
+  const cavityWithRebar=useMemo(()=>{if(!cavityLive)return null;if(!rebarLive?.length)return cavityLive;
+    const regs=cavityLive.regions.map(r=>({...r,rebars:[]}));
+    for(const b of rebarLive){const m=b.pts[b.pts.length>>1];let k=regs.findIndex(r=>r.steps.some(st=>st.polys.some(p=>pointIn(m,p.outer))));if(k<0)k=0;const t=rebarTubes([b]);regs[k].rebars.push({...t,d:b.d,dEst:b.dEst,len:b.len})}
+    return{...cavityLive,regions:regs,rebar:{count:rebarLive.length,mode:rebarPos,coverMm:+coverMm,diameter:rebarDia}}},[cavityLive,rebarLive,rebarPos,coverMm,rebarDia]);
+  const cavity=saved?saved.cavity||null:cavityWithRebar;
   const curCutView=saved?saved.params.cutView||"hidden":cutView,curCutIfc=saved?saved.params.cutIfc!==false:cutIfc;
   const hostGuid=saved?saved.hostGuid:pick?.info?.globalId;
   useEffect(()=>{setPoint(null);setSel(null)},[built,relief,cavity]);
@@ -199,7 +263,11 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
         for(let v=0;v<n;v++){pos[v*3]=L.positions[v*3]/1000;pos[v*3+1]=-L.positions[v*3+1]/1000;pos[v*3+2]=-L.positions[v*3+2]/1000;
           col.set(curStyle==="relief"?reliefColor(L.u[v],built.levels):levelColor(bandOf(L.u[v],built.levels),built.levels.length),v*3)}
         const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.BufferAttribute(pos,3));g.setAttribute("color",new THREE.BufferAttribute(col,3));g.setIndex(new THREE.BufferAttribute(L.indices,1));g.computeVertexNormals();
-        const mesh=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.75,side:THREE.DoubleSide,transparent:true}));mesh.matrixAutoUpdate=false;mesh.matrix.copy(basis);mesh.userData.layer={region:R.id,relief:true,u:L.u,base:col.slice()};T.solid.add(mesh)}
+        const mesh=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.75,side:THREE.DoubleSide,transparent:true}));mesh.matrixAutoUpdate=false;mesh.matrix.copy(basis);mesh.userData.layer={region:R.id,relief:true,u:L.u,base:col.slice()};T.solid.add(mesh)
+        // armadura exposta (aço com oxidação), mesma moldura da face
+        for(const rb of R.rebars||[]){const n2=rb.positions.length/3,pp=new Float32Array(n2*3);for(let v=0;v<n2;v++){pp[v*3]=rb.positions[v*3]/1000;pp[v*3+1]=-rb.positions[v*3+1]/1000;pp[v*3+2]=-rb.positions[v*3+2]/1000}
+          const gg=new THREE.BufferGeometry();gg.setAttribute("position",new THREE.BufferAttribute(pp,3));gg.setIndex(new THREE.BufferAttribute(rb.indices,1));gg.computeVertexNormals();
+          const bm=new THREE.Mesh(gg,new THREE.MeshStandardMaterial({color:0x7a5f4c,metalness:.55,roughness:.42,side:THREE.DoubleSide}));bm.matrixAutoUpdate=false;bm.matrix.copy(basis);bm.userData.rebar={d:rb.d,dEst:rb.dEst,len:rb.len};T.solid.add(bm)}}
       return}
     if(curStyle==="relief"&&relief?.regions){
       for(const R of relief.regions){const n=R.positions.length/3,pos=new Float32Array(n*3),col=new Float32Array(n*3);
@@ -232,6 +300,7 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
     if(mode==="ifc"&&!saved&&(pickingFace||!face)){const h=hits.find(x=>x.object.userData?.ifc?.globalId);if(!h)return;const m=h.object,g=m.geometry;m.updateMatrixWorld(true);
       setPick({tris:worldTriangles(g.attributes.position.array,g.index?.array||null,m.matrixWorld.elements,g.attributes.normal?.array||null),tri:h.faceIndex,info:m.userData.ifc});setPickingFace(false);setDone("");return}
     const h=hits[0];if(!face)return;
+    if(h.object.userData?.rebar){pickPoint(h.point.toArray());setPoint(p=>p&&{...p,rebar:h.object.userData.rebar});return}
     if(h.object.userData?.layer||h.object.userData?.photo||h.object.userData?.plate){pickPoint(h.point.toArray());return}
     const p=h.point.toArray(),dd=face.n[0]*(p[0]-face.origin[0])+face.n[1]*(p[1]-face.origin[1])+face.n[2]*(p[2]-face.origin[2]);if(Math.abs(dd)<.06)pickPoint(p)};
 
@@ -245,7 +314,7 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
     if(src)return{text:await src.ifc.blob.text(),name:src.ifc.name.replace(/\.ifc$/i,"")+"_CDM4_forma_dano.ifc",payload:{host_guid:src.hostGuid,face:src.faceModel,solid:built,meta:{...meta,scale:src.scaleLabel||""},...extra}};
     return{text:ifc.text,name:ifc.name.replace(/\.ifc$/i,"")+"_CDM4_forma_dano.ifc",payload:{host_guid:pick.info.globalId,face:faceToModel(face,ifc.coordination,ifc.unitM),solid:built,meta:{...meta,scale:fit==="metric"&&metric?metric.label:tr("imagem encaixada na face")},...extra}};
   };
-  const jsonCavity=c=>c?{...c,regions:c.regions.map(x=>({id:x.id,lining:{positions:Array.from(x.lining.positions),indices:Array.from(x.lining.indices),band:Array.from(x.lining.band)},steps:x.steps}))}:null;
+  const jsonCavity=c=>c?{...c,regions:c.regions.map(x=>({id:x.id,lining:{positions:Array.from(x.lining.positions),indices:Array.from(x.lining.indices),band:Array.from(x.lining.band)},steps:x.steps,rebars:(x.rebars||[]).map(b=>({positions:Array.from(b.positions),indices:Array.from(b.indices),d:b.d,dEst:b.dEst}))}))}:null;
   const jsonRelief=r=>r?{...r,regions:r.regions.map(x=>({id:x.id,positions:Array.from(x.positions),indices:Array.from(x.indices),band:Array.from(x.band)}))}:null;
   async function exportBrowser(){setErr("");try{const j=await exportJob(),p=j.payload,r=writeLevelSolid(j.text,{hostGuid:p.host_guid,face:p.face,solid:p.solid,meta:p.meta,relief:p.relief,direction:p.direction,cavity:p.cavity,voids:p.voids});
     save(j.name,new Blob([r.text],{type:"application/x-step"}));setDone(`${tr("Arquivo gerado")}: ${r.schema} · ${r.features.length} ${tr("características")}${r.voids?` · ${r.voids} ${tr("recortes")}`:""} · ${r.relation}`)}catch(e){setErr(e?.message||String(e))}}
@@ -263,7 +332,7 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
       const ph=file?await shrinkPhoto(file,1024):null,photoBlob=ph?await new Promise(r=>ph.toBlob(r,"image/jpeg",.85)):null;
       const faceSave={origin:face.origin,ex:face.ex,ey:face.ey,n:face.n,width:face.width,height:face.height,name:face.name,triangles:[]};
       const rec={name:(saveName||defaultName()).trim(),mode,image:{name:file?.name||"",size:file?.size||0},schema:mode==="standalone"?schema:ifc?.schema,
-        params:{levels:built.levels,layerMm:built.layerMm,minArea:+minArea,style:curStyle,direction:curDir,detail,cutView,cutIfc},
+        params:{levels:built.levels,layerMm:built.layerMm,minArea:+minArea,style:curStyle,direction:curDir,detail,cutView,cutIfc,rebar:curDir<0&&rebarOn?{diameter:rebarDia,mode:rebarPos,coverMm:+coverMm}:null},
         solid:built,relief:curStyle==="relief"&&curDir>=0?relief:null,cavity:curDir<0?cavity:null,face:faceSave,map:mapParams,plate:mode==="standalone"?plate:null,
         rw:{prob:rw.prob,W:rw.W,H:rw.H,f:fGrid},photo:photoBlob,thumbnail};
       rec.hostGuid=mode==="ifc"?pick.info.globalId:null;if(mode==="ifc"){rec.ifc={name:ifc.name,schema:ifc.schema,unitM:ifc.unitM,coordination:ifc.coordination,blob:new Blob([ifc.text],{type:"application/x-step"})};rec.hostGuid=pick.info.globalId;rec.faceModel=faceToModel(face,ifc.coordination,ifc.unitM);rec.scaleLabel=fit==="metric"&&metric?metric.label:tr("imagem encaixada na face")}
@@ -281,7 +350,7 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
       <button className="lstLibDel" onClick={()=>removeSaved(r.id)} title={tr("Excluir")} aria-label={tr("Excluir")+" "+r.name}><Trash2 size={14}/></button></div>)}</div></div>;
   return <section className="lst" aria-label={tr("Sólido de níveis (IFC)")}>
     <header className="lstHead">
-      <div className="lstTitle"><span className="lstMark"><Layers size={16}/></span><div><small>CDM-4 · IFC4 · IFC 4.3</small><b>{tr("Sólido de níveis")}{saved?` · ${saved.name}`:""}</b></div></div>
+      <div className="lstTitle"><span className="lstMark"><Mountain size={16}/></span><div><small>CDM-4 · IFC4 · IFC 4.3</small><b>{tr("Sólido de níveis")}{saved?` · ${saved.name}`:""}</b></div></div>
       {mode&&<div className="lstSeg" role="radiogroup" aria-label={tr("Modo")}>
         <button role="radio" aria-checked={mode==="standalone"&&!saved} className={mode==="standalone"&&!saved?"active":""} onClick={()=>chooseMode("standalone")}><Box size={14}/>{tr("Sem importar")}</button>
         <button role="radio" aria-checked={mode==="ifc"&&!saved} className={mode==="ifc"&&!saved?"active":""} onClick={()=>chooseMode("ifc")}><FolderOpen size={14}/>{tr("Importar IFC")}</button>
@@ -340,6 +409,15 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
               <button role="radio" aria-checked={cutView==="transparent"} className={cutView==="transparent"?"active":""} onClick={()=>setCutView("transparent")}>{tr("Transparente")}</button></div>
             <label className="lstCheck"><input type="checkbox" checked={cutIfc} onChange={e=>setCutIfc(e.target.checked)}/>{tr("Recortar o elemento no IFC exportado")}</label>
             <small>{cutIfc?tr("O recorte é um IfcVoidingFeature separado, ligado por IfcRelVoidsElement: a geometria do elemento não muda e apagar o recorte restaura a vista original."):tr("Sem recorte no IFC: o fundo colorido fica dentro do elemento e só aparece com o elemento transparente.")}</small>
+            <label className="lstCheck" title={rebarLines?.length?"":tr("Nenhuma armadura exposta detectada nesta imagem")}><input type="checkbox" disabled={!rebarLines?.length} checked={rebarOn&&!!rebarLines?.length} onChange={e=>setRebarOn(e.target.checked)}/>{tr("Projetar armadura exposta")}{rebarLines?` (${rebarLines.length} ${tr("trechos detectados")})`:""}</label>
+            {rebarOn&&rebarLines?.length>0&&<>
+              <div className="lstRow">{tr("Diâmetro")}<select className="inline" value={rebarDia} onChange={e=>setRebarDia(e.target.value)} aria-label={tr("Diâmetro da armadura")}>
+                <option value="auto">{tr("Automático (largura detectada)")}</option>{REBAR_GAUGES.map(g=><option key={g} value={g}>Ø {lv(g)} mm</option>)}</select></div>
+              <div className="lstSeg small" role="radiogroup" aria-label={tr("Posição da armadura")}>
+                <button role="radio" aria-checked={rebarPos==="floor"} className={rebarPos==="floor"?"active":""} onClick={()=>setRebarPos("floor")}>{tr("Sobre o fundo")}</button>
+                <button role="radio" aria-checked={rebarPos==="cover"} className={rebarPos==="cover"?"active":""} onClick={()=>setRebarPos("cover")}>{tr("Cobrimento fixo")}</button></div>
+              {rebarPos==="cover"&&<div className="lstRow">{tr("Cobrimento")}<input type="number" min="0" value={coverMm} onChange={e=>setCoverMm(e.target.value)} aria-label={tr("Cobrimento (mm)")}/>mm</div>}
+              <small>{rebarPos==="cover"?tr("Eixo da barra a cobrimento + Ø/2 da face: a barra só aparece onde a cavidade é mais funda que ela, como numa inspeção real."):tr("A barra acompanha o fundo da cavidade, levemente embutida, para ficar sempre visível.")} {tr("Posição e diâmetro aproximados, a partir da máscara de armadura exposta do CDM-4.")}</small></>}
             {cutState==="outside"&&<p className="lstErr">{tr("A cavidade passa da borda da face: na vista o elemento fica translúcido; o recorte no IFC continua.")}</p>}</>}
           <div className="lstRow">{tr("Níveis do walker")}<input className="wide" value={levels} onChange={e=>setLevels(e.target.value)} aria-label={tr("Níveis do walker")}/></div>
           <div className="lstRow">{tr("Espessura por camada")}<input type="number" min=".1" value={layerMm} onChange={e=>setLayerMm(e.target.value)} aria-label={tr("Espessura por camada (mm)")}/>mm</div>
@@ -362,7 +440,22 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
       </aside>
       <div className="lstView" ref={host}>
         <div className="lstToolbar"><button onClick={()=>fitView(three.current?.model?.children.length?three.current.model:three.current?.solid)} title={tr("Enquadrar")} aria-label={tr("Enquadrar")}><Maximize2 size={15}/></button>
-          <button className={showPhoto?"active":""} onClick={()=>setShowPhoto(v=>!v)} title={tr("Foto na face")} aria-label={tr("Foto na face")} aria-pressed={showPhoto}><ImageIcon size={15}/></button></div>
+          <button className={showPhoto?"active":""} onClick={()=>setShowPhoto(v=>!v)} title={tr("Foto na face")} aria-label={tr("Foto na face")} aria-pressed={showPhoto}><ImageIcon size={15}/></button>
+          <span className="lstToolSep"/>
+          <button className={viewMenu?"active":""} disabled={!face} onClick={()=>{setViewMenu(v=>!v);setShotMenu(false)}} title={tr("Vistas")} aria-label={tr("Vistas")} aria-expanded={viewMenu}><Rotate3d size={15}/></button>
+          <button className={shotMenu?"active":""} disabled={!face} onClick={()=>{setShotMenu(v=>!v);setViewMenu(false)}} title={tr("Exportar imagem da vista")} aria-label={tr("Exportar imagem da vista")} aria-expanded={shotMenu}><ImageDown size={15}/></button></div>
+        {viewMenu&&face&&<div className="lstPop lstViews" role="dialog" aria-label={tr("Vistas")}>
+          <b>{tr("Vistas padrão")}</b>
+          <div className="lstViewGrid">{[["front",tr("Frente")],["top",tr("Topo")],["bottom",tr("Base")],["left",tr("Esquerda")],["right",tr("Direita")],["iso",tr("Isométrica")]].map(([id,l])=><button key={id} className={activeView===id?"active":""} onClick={()=>goView(id)}>{l}</button>)}</div>
+          <b>{tr("Inclinada (profundidade em perspectiva)")}</b>
+          <label className="lstSlider"><span>{tr("Inclinação")}</span><input type="range" min="0" max="85" value={tilt} onChange={e=>{const t=+e.target.value;setTilt(t);goView("tilt",t,azim)}}/><em>{tilt}°</em></label>
+          <label className="lstSlider"><span>{tr("Rotação")}</span><input type="range" min="-180" max="180" value={azim} onChange={e=>{const a=+e.target.value;setAzim(a);goView("tilt",tilt,a)}}/><em>{azim}°</em></label>
+          <div className="lstViewGrid">{[[30,0],[45,30],[60,-30],[75,45]].map(([t,a])=><button key={t+"/"+a} onClick={()=>{setTilt(t);setAzim(a);goView("tilt",t,a)}}>{t}° · {a}°</button>)}</div>
+          <small>{tr("Inclinação: ângulo a partir da frente, em direção ao topo da face. Rotação: giro em torno da normal da face. Vistas rasantes realçam o relevo e a profundidade da cavidade.")}</small></div>}
+        {shotMenu&&face&&<div className="lstPop lstShot" role="dialog" aria-label={tr("Exportar imagem da vista")}>
+          <b>{tr("Imagem da vista atual (PNG)")}</b>
+          <div className="lstViewGrid two">{[2,3,4].map(k=><button key={k} onClick={()=>exportShot(k)}>{k}× · {(()=>{const r=three.current?.renderer?.getSize?.(new THREE.Vector2());return r?`${Math.round(r.x*k)} × ${Math.round(r.y*k)}`:""})()}</button>)}</div>
+          <label className="lstCheck"><input type="checkbox" checked={shotLegend} onChange={e=>setShotLegend(e.target.checked)}/>{tr("Com legenda (níveis e ressalva)")}</label></div>}
         {mode==="ifc"&&!saved&&!ifc&&!loading&&<div className="lstEmpty"><FolderOpen size={30}/><b>{tr("Abra o IFC da estrutura para posicionar o sólido.")}</b></div>}
         {mode==="ifc"&&!saved&&ifc&&pickingFace&&<div className="lstBanner"><Crosshair size={14}/>{tr("Clique na face do elemento onde a foto foi tirada.")}</div>}
         {built?.regions&&<div className="lstLayers" aria-label={tr("Camadas geradas")}>
@@ -380,6 +473,7 @@ export default function LevelSolidTool({active,onClose,result,file,options,serve
           {selInfo&&<div><span>{curDir<0?tr("Altura abaixo da face"):tr("Altura acima da face")}</span><b>{fmt(selInfo.L.z0,0)}–{fmt(selInfo.L.z1,0)} mm</b></div>}
           {selInfo&&<div><span>{tr("Área da camada")}</span><b>{fmt(selInfo.area/1e6,3)} m²</b></div>}
           {point?.layers.length>1&&<div><span>{tr("Camadas no ponto")}</span><b>{point.layers.map(x=>lv(x.level)).join(" · ")}</b></div>}
+          {point?.rebar&&<div><span>{tr("Armadura")}</span><b>Ø {lv(point.rebar.d)} mm{rebarDia==="auto"&&!saved?` (${tr("detectado")} ≈ ${fmt(point.rebar.dEst,1)} mm)`:""}</b></div>}
           {face&&<div><span>{tr("Face")}</span><b>{face.name}</b></div>}
         </div>}
       </div>

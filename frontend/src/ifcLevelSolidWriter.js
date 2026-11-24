@@ -124,7 +124,8 @@ export function writeLevelSolid(stepText,{hostGuid,face,solid,meta={},relief=nul
   const colourMap=(fs,band)=>{const cl=add(`IFCCOLOURRGBLIST((${solid.levels.map((_,i)=>{const c=levelColor(i,n);return`(${num(c[0])},${num(c[1])},${num(c[2])})`}).join(",")}))`);
     add(`IFCINDEXEDCOLOURMAP(${ref(fs)},$,${ref(cl)},(${Array.from(band,b=>b+1).join(",")}))`);add(`IFCSTYLEDITEM(${ref(fs)},(${ref(styles[Math.floor((n-1)/2)])}),$)`)}; // cor de reserva: nível do meio (para visualizadores sem mapa de cores)
   const voidStyle=cut?(()=>{const c=add("IFCCOLOURRGB($,0.62,0.66,0.68)"),sh=add(`IFCSURFACESTYLESHADING(${ref(c)},0.)`);return add(`IFCSURFACESTYLE('CDM-4 recorte',.BOTH.,(${ref(sh)}))`)})():null;
-  const voidsOut=[];
+  const voidsOut=[];let rebarStyleId=null;
+  const rebarStyle=()=>rebarStyleId||(rebarStyleId=(()=>{const c=add("IFCCOLOURRGB($,0.48,0.37,0.3)"),sh=add(`IFCSURFACESTYLERENDERING(${ref(c)},0.,$,$,$,$,$,$,.NOTDEFINED.)`);return add(`IFCSURFACESTYLE('CDM-4 armadura exposta',.BOTH.,(${ref(sh)}))`)})());
   for(const R of regionsOut){
     const items=[];let repType="SurfaceModel";
     let cav=null;
@@ -133,6 +134,8 @@ export function writeLevelSolid(stepText,{hostGuid,face,solid,meta={},relief=nul
       // o volume a remover vai num IfcVoidingFeature separado (abaixo) — a geometria do elemento não é alterada
       cav=cavityById.get(R.id);const fs=faceSet(cav.lining.positions,cav.lining.indices,{closed:false,zSign:-1,orient:"up"});
       colourMap(fs,cav.lining.band);items.push(fs);repType="Tessellation";
+      // armadura exposta projetada: tubos fechados no mesmo corpo (é parte da representação do dano, não um IfcReinforcingBar)
+      for(const rb of cav.rebars||[]){const bf=faceSet(rb.positions,rb.indices,{closed:true,zSign:-1,orient:"volume"});add(`IFCSTYLEDITEM(${ref(bf)},(${ref(rebarStyle())}),$)`);items.push(bf)}
     }else if(isRelief){
       // relevo contínuo: uma IfcTriangulatedFaceSet fechada, cores por faixa de nível (IfcIndexedColourMap)
       const M3=reliefById.get(R.id),P=M3.positions,I=M3.indices,nv=P.length/3,co=new Float64Array(nv*3);
@@ -174,6 +177,8 @@ export function writeLevelSolid(stepText,{hostGuid,face,solid,meta={},relief=nul
     const base=R.areaByLevel[0]?.area_mm2||0,props=[
       prop("Representacao","IFCTEXT","Forma aproximada do dano para identificação visual; altura = nível do potencial × espessura da camada, não é profundidade"),
       prop("Motor","IFCLABEL","CDM-4 (random walker, fluxo por evidência)"),prop("Estilo","IFCLABEL",isCavity?(cavity.style==="relief"?"cavidade com vales":"cavidade em degraus"):isRelief?"relevo contínuo (com vales)":"camadas planas"),prop("Sentido","IFCLABEL",dirTxt),
+      ...(isCavity&&cavityById.get(R.id)?.rebars?.length?[prop("Armadura","IFCTEXT",(()=>{const rbs=cavityById.get(R.id).rebars,ds=[...new Set(rbs.map(b=>b.d))].sort((a,b)=>a-b),rc=cavity.rebar||{};
+        return`${rbs.length} trecho(s) de armadura exposta projetado(s) · Ø ${ds.join("; ").replace(/\./g,",")} mm (${rc.diameter==="auto"||!rc.diameter?"estimado pela largura detectada":"informado"}) · ${rc.mode==="cover"?`cobrimento ${rc.coverMm} mm`:"sobre o fundo da cavidade"} · posição aproximada, a partir da máscara de armadura exposta`})())]:[]),
       ...(isCavity?[prop("Recorte","IFCLABEL",cut?"IfcVoidingFeature + IfcRelVoidsElement (geometria do elemento inalterada; apagar o recorte restaura a vista original)":"sem recorte")]:[]),prop("Classe","IFCLABEL",cls),
       prop("Niveis","IFCLABEL",solid.levels.map(v=>String(v).replace(".",",")).join("; ")),prop("EspessuraCamada_mm","IFCREAL",solid.layerMm),
       prop("AreaNivelBase_m2","IFCREAL",+(base/1e6).toFixed(6)),

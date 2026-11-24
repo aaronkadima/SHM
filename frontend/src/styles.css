@@ -1514,7 +1514,7 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 
 /* Sólido de níveis (CDM-4 → IFC) — dentro do canvas, identidade clara do Studio (Figma); barras superior e inferior visíveis */
 .lst{--ink:#263e4b;--ink-2:#1f3540;--muted:#6f8590;--line:#dce5e8;--teal:#0d766e;--teal-soft:#e7f4f1;--teal-line:#b7d6cf;
-  position:absolute;inset:0;z-index:45;display:flex;flex-direction:column;background:#f5f8f9;color:var(--ink);font:13px Inter,system-ui,sans-serif;text-align:left;place-items:initial}
+  position:absolute;inset:0;z-index:39;display:flex;flex-direction:column;background:#f5f8f9;color:var(--ink);font:13px Inter,system-ui,sans-serif;text-align:left;place-items:initial}
 .lstHead{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);background:#fff}
 .lstTitle{display:flex;align-items:center;gap:10px;margin-right:auto}
 .lstMark{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--teal-soft);color:var(--teal)}
@@ -1631,3 +1631,24 @@ body.shmContextHelp,body.shmContextHelp *{cursor:help!important}
 .lstLibOpen span{min-width:0;display:flex;flex-direction:column}.lstLibOpen b{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lstLibOpen small{color:#6f8590;font-size:11px}
 .lstLibDel{flex:none;display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:6px;background:transparent;color:#8a9aa0}
 .lstLibDel:hover{background:#fbeeed;color:#a23a34}
+/* Sólido de níveis — vistas e imagem HD */
+.lstToolSep{width:1px;height:20px;align-self:center;background:#dce5e8;margin:0 2px}
+.lstToolbar button:disabled{opacity:.4;cursor:default}
+.lstPop{position:absolute;left:16px;top:58px;z-index:3;width:276px;display:flex;flex-direction:column;gap:8px;padding:12px;background:#fff;border:1px solid #dce5e8;border-radius:10px;box-shadow:0 10px 26px rgba(36,58,68,.16);font-size:12px;color:#263e4b}
+.lstPop b{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#4d6570}
+.lstPop small{color:#6f8590;line-height:1.45}
+.lstViewGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.lstViewGrid.two{grid-template-columns:1fr}
+.lstViewGrid button{height:30px;border:1px solid #dce5e8;border-radius:7px;background:#fff;color:#263e4b;font:600 11.5px Inter,system-ui,sans-serif;cursor:pointer}
+.lstViewGrid button:hover{background:#eef6f4;border-color:#b7d6cf}.lstViewGrid button.active{background:#e7f4f1;border-color:#0d766e;color:#0d766e}
+.lstSlider{display:grid;grid-template-columns:72px 1fr 40px;align-items:center;gap:6px}.lstSlider input{accent-color:#0d766e;width:100%}.lstSlider em{font-style:normal;text-align:right;color:#4d6570;font-variant-numeric:tabular-nums}
+/* Barra lateral agrupada por uso: nome da categoria em texto vertical ao lado de cada grupo */
+.editorTools{padding-inline:3px}
+.editorToolButtons{gap:0}
+.editorToolGroup{display:grid;grid-template-columns:11px 1fr;column-gap:1px;width:100%;flex:none;padding:5px 0 4px;border-top:1px solid #e6edf0;min-height:62px;box-sizing:border-box}
+.editorToolGroupItems{justify-content:center}
+.editorToolGroup:first-child{border-top:0;padding-top:0}
+.editorToolGroupLabel{writing-mode:vertical-rl;transform:rotate(180deg);align-self:stretch;display:flex;align-items:center;justify-content:center;font:650 8px/1 Inter,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#9aadb4;white-space:nowrap;overflow:hidden;user-select:none;pointer-events:none}
+.editorToolGroupItems{display:flex;flex-direction:column;align-items:center;gap:2px;border-left:1px solid #edf2f4}
+.editorToolGroup .editorToolGroupItems button{width:38px;height:36px}
+.editorToolGroup:hover .editorToolGroupLabel{color:#0d766e}
+@media(max-width:340px){.editorToolGroup{grid-template-columns:9px 1fr}.editorToolGroupLabel{font-size:7px}.editorToolGroup .editorToolGroupItems button{width:34px;height:34px}}

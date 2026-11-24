@@ -132,6 +132,13 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
         vcol = f.createIfcColourRgb(None, 0.62, 0.66, 0.68)
         void_style = f.createIfcSurfaceStyle("CDM-4 recorte", "BOTH", [f.createIfcSurfaceStyleShading(vcol, 0.0)])
     voids_out = []
+    _rs = []
+
+    def rebar_style():
+        if not _rs:
+            c = f.createIfcColourRgb(None, 0.48, 0.37, 0.30)
+            _rs.append(f.createIfcSurfaceStyle("CDM-4 armadura exposta", "BOTH", [f.createIfcSurfaceStyleShading(c, 0.0)]))
+        return _rs[0]
     regions_out = [R for R in solid["regions"] if (int(R["id"]) in cavity if cavity else (not relief or int(R["id"]) in relief))]
     for R in regions_out:
         items, rep_type = [], "SurfaceModel"
@@ -144,6 +151,11 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
             f.create_entity("IfcIndexedColourMap", MappedTo=fs, Colours=cl, ColourIndex=[int(b) + 1 for b in L["band"]])
             f.createIfcStyledItem(fs, [styles[(len(levels) - 1) // 2]], None)
             items.append(fs)
+            # armadura exposta projetada: tubos fechados no mesmo corpo (representação do dano, não um IfcReinforcingBar)
+            for rb in cav.get("rebars") or []:
+                bf = face_set(np.asarray(rb["positions"], float).reshape(-1, 3), np.asarray(rb["indices"], int).reshape(-1, 3), True, "volume")
+                f.createIfcStyledItem(bf, [rebar_style()], None)
+                items.append(bf)
             rep_type = "Tessellation"
         elif relief:
             # relevo contínuo: IfcTriangulatedFaceSet fechada, cores por faixa de nível
@@ -214,6 +226,12 @@ def write_level_solid(ifc_in: Path | str, payload: dict[str, Any], ifc_out: Path
             ("Classe", f.createIfcLabel(cls)),
             ("Estilo", f.createIfcLabel(style_txt)),
             ("Sentido", f.createIfcLabel(dir_txt)),
+            *([("Armadura", f.createIfcText(
+                f"{len(cav['rebars'])} trecho(s) de armadura exposta projetado(s) · Ø "
+                + "; ".join(str(d).replace(".", ",") for d in sorted({b["d"] for b in cav["rebars"]})) + " mm ("
+                + ("estimado pela largura detectada" if (cavity_in.get("rebar") or {}).get("diameter", "auto") == "auto" else "informado") + ") · "
+                + (f"cobrimento {(cavity_in.get('rebar') or {}).get('coverMm')} mm" if (cavity_in.get("rebar") or {}).get("mode") == "cover" else "sobre o fundo da cavidade")
+                + " · posição aproximada, a partir da máscara de armadura exposta"))] if cav and cav.get("rebars") else []),
             *([("Recorte", f.createIfcLabel(
                 "IfcVoidingFeature + IfcRelVoidsElement (geometria do elemento inalterada; apagar o recorte restaura a vista original)"
                 if cut else "sem recorte"))] if cavity else []),

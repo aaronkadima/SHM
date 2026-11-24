@@ -186,6 +186,11 @@ export const DICT={
 "El análisis ya está guardado en el historial local.",
 "L’analyse est déjà enregistrée dans l’historique local."
 ],
+"A barra acompanha o fundo da cavidade, levemente embutida, para ficar sempre visível.": [
+"The bar follows the cavity floor, slightly embedded, so it is always visible.",
+"La barra sigue el fondo de la cavidad, ligeramente embebida, para que siempre sea visible.",
+"La barre suit le fond de la cavité, légèrement noyée, pour rester toujours visible."
+],
 "A cavidade passa da borda da face: na vista o elemento fica translúcido; o recorte no IFC continua.": [
 "The cavity goes past the face edge: in the view the element becomes translucent; the IFC cut-out is kept.",
 "La cavidad sobrepasa el borde de la cara: en la vista el elemento queda translúcido; el recorte en el IFC se mantiene.",
@@ -686,6 +691,11 @@ export const DICT={
 "Analizar de todos modos",
 "Analyser quand même"
 ],
+"Anotação": [
+"Annotation",
+"Anotación",
+"Annotation"
+],
 "Anotação Ground Truth": [
 "Ground Truth annotation",
 "Anotación Ground Truth",
@@ -775,6 +785,11 @@ export const DICT={
 "After NMS (IoU 0.45)",
 "Tras NMS (IoU 0,45)",
 "Après NMS (IoU 0,45)"
+],
+"Armadura": [
+"Reinforcement",
+"Armadura",
+"Armature"
 ],
 "Armadura exposta": [
 "Exposed rebar",
@@ -986,6 +1001,11 @@ export const DICT={
 "Automática (",
 "Automatique ("
 ],
+"Automático (largura detectada)": [
+"Automatic (detected width)",
+"Automático (ancho detectado)",
+"Automatique (largeur détectée)"
+],
 "Automático · translação t0→t1": [
 "Automatic · t0→t1 translation",
 "Automático · traslación t0→t1",
@@ -1105,6 +1125,11 @@ export const DICT={
 "Barriers/deck · Fr=1",
 "Barreras/calzada · Fr=1",
 "Barrières/chaussée · Fr=1"
+],
+"Base": [
+"Bottom",
+"Base",
+"Dessous"
 ],
 "Baseline clássico": [
 "Classical baseline",
@@ -1506,6 +1531,11 @@ export const DICT={
 "Lienzo de análisis; botón central, Espacio más arrastrar, flechas, rueda/trackpad o toque para desplazar; Ctrl o Command con rueda, pellizco, más y menos para zoom; cero para ajustar a la pantalla",
 "Canevas d’analyse ; bouton du milieu, Espace plus glisser, flèches, molette/pavé ou toucher pour déplacer ; Ctrl ou Commande avec molette, pincement, plus et moins pour zoomer ; zéro pour ajuster à l’écran"
 ],
+"Captura": [
+"Capture",
+"Captura",
+"Capture"
+],
 "Captura com detecções": [
 "Capture with detections",
 "Captura con detecciones",
@@ -1726,6 +1756,21 @@ export const DICT={
 "Cobertura de textura",
 "Couverture de texture"
 ],
+"Cobrimento": [
+"Cover",
+"Recubrimiento",
+"Enrobage"
+],
+"Cobrimento (mm)": [
+"Cover (mm)",
+"Recubrimiento (mm)",
+"Enrobage (mm)"
+],
+"Cobrimento fixo": [
+"Fixed cover",
+"Recubrimiento fijo",
+"Enrobage fixe"
+],
 "Cole apenas uma imagem por vez.": [
 "Paste only one image at a time.",
 "Pegue solo una imagen a la vez.",
@@ -1735,6 +1780,11 @@ export const DICT={
 "With Ctrl held, the cut length advances by this step",
 "Con Ctrl pulsado, la longitud del corte avanza en este paso",
 "Avec Ctrl enfoncé, la longueur de la coupe avance de ce pas"
+],
+"Com legenda (níveis e ressalva)": [
+"With legend (levels and caveat)",
+"Con leyenda (niveles y salvedad)",
+"Avec légende (niveaux et réserve)"
 ],
 "Com t entre 0,3 e 0,7, a IoU do walker fica entre {a} e {b}: o resultado não depende de um ajuste fino do limiar.": [
 "With t between 0.3 and 0.7, the walker IoU stays between {a} and {b}: the result does not depend on fine-tuning the threshold.",
@@ -1765,6 +1815,11 @@ export const DICT={
 "Comparator replied HTTP",
 "El comparador respondió HTTP",
 "Le comparateur a répondu HTTP"
+],
+"Comparar": [
+"Compare",
+"Comparar",
+"Comparer"
 ],
 "Comparar A × B": [
 "Compare A × B",
@@ -2421,6 +2476,11 @@ export const DICT={
 "Der.",
 "Dr."
 ],
+"Direita": [
+"Right",
+"Derecha",
+"Droite"
+],
 "Direto no navegador (": [
 "Directly in the browser (",
 "Directo en el navegador (",
@@ -2526,6 +2586,16 @@ export const DICT={
 "Divisor ·",
 "Séparateur ·"
 ],
+"Diâmetro": [
+"Diameter",
+"Diámetro",
+"Diamètre"
+],
+"Diâmetro da armadura": [
+"Reinforcement diameter",
+"Diámetro de la armadura",
+"Diamètre de l’armature"
+],
 "Dois ou mais motores ativam exclusivamente o comparador cloud.": [
 "Two or more engines activate the cloud comparator only.",
 "Dos o más motores activan exclusivamente el comparador cloud.",
@@ -2565,6 +2635,11 @@ export const DICT={
 "Efflorescence/reg…",
 "Eflorescencia/reg…",
 "Efflorescence/rég…"
+],
+"Eixo da barra a cobrimento + Ø/2 da face: a barra só aparece onde a cavidade é mais funda que ela, como numa inspeção real.": [
+"Bar axis at cover + Ø/2 from the face: the bar only shows where the cavity is deeper than it, as in a real inspection.",
+"Eje de la barra a recubrimiento + Ø/2 de la cara: la barra solo aparece donde la cavidad es más profunda, como en una inspección real.",
+"Axe de la barre à enrobage + Ø/2 de la face : la barre n’apparaît que là où la cavité est plus profonde, comme lors d’une inspection réelle."
 ],
 "Elemento": [
 "Element",
@@ -2735,6 +2810,11 @@ export const DICT={
 "Unsupported schema",
 "Esquema no compatible",
 "Schéma non pris en charge"
+],
+"Esquerda": [
+"Left",
+"Izquierda",
+"Gauche"
 ],
 "Esta lista": [
 "This list",
@@ -2945,6 +3025,11 @@ export const DICT={
 "Export code",
 "Exportar código",
 "Exporter le code"
+],
+"Exportar imagem da vista": [
+"Export view image",
+"Exportar imagen de la vista",
+"Exporter l’image de la vue"
 ],
 "Exportação CDM ·": [
 "CDM export ·",
@@ -3361,6 +3446,11 @@ export const DICT={
 "Forma aproximada del daño para identificarlo visualmente en el modelo. La altura de cada capa es el nivel del potencial × el espesor elegido; no es profundidad medida.",
 "Forme approximative du dommage pour l’identifier visuellement dans le modèle. La hauteur de chaque couche est le niveau du potentiel × l’épaisseur choisie ; ce n’est pas une profondeur mesurée."
 ],
+"Forma aproximada; não é profundidade medida": [
+"Approximate shape; not measured depth",
+"Forma aproximada; no es profundidad medida",
+"Forme approximative ; pas une profondeur mesurée"
+],
 "Formato": [
 "Format",
 "Formato",
@@ -3771,6 +3861,16 @@ export const DICT={
 "Imagen pegada desde el portapapeles",
 "Image collée depuis le presse-papiers"
 ],
+"Imagem da vista": [
+"View image",
+"Imagen de la vista",
+"Image de la vue"
+],
+"Imagem da vista atual (PNG)": [
+"Current view image (PNG)",
+"Imagen de la vista actual (PNG)",
+"Image de la vue actuelle (PNG)"
+],
 "Imagem inadequada (nota": [
 "Unsuitable image (score",
 "Imagen inadecuada (nota",
@@ -3855,6 +3955,21 @@ export const DICT={
 "Unsuitable: high risk of false positives",
 "Inadecuada: alto riesgo de falsos positivos",
 "Inadaptée : risque élevé de faux positifs"
+],
+"Inclinada (profundidade em perspectiva)": [
+"Tilted (depth in perspective)",
+"Inclinada (profundidad en perspectiva)",
+"Inclinée (profondeur en perspective)"
+],
+"Inclinação": [
+"Tilt",
+"Inclinación",
+"Inclinaison"
+],
+"Inclinação: ângulo a partir da frente, em direção ao topo da face. Rotação: giro em torno da normal da face. Vistas rasantes realçam o relevo e a profundidade da cavidade.": [
+"Tilt: angle from the front towards the top of the face. Rotation: turn around the face normal. Grazing views bring out the relief and the cavity depth.",
+"Inclinación: ángulo desde el frente hacia la parte superior de la cara. Rotación: giro alrededor de la normal de la cara. Las vistas rasantes resaltan el relieve y la profundidad de la cavidad.",
+"Inclinaison : angle depuis la face avant vers le haut de la face. Rotation : rotation autour de la normale de la face. Les vues rasantes font ressortir le relief et la profondeur de la cavité."
 ],
 "Indisponível": [
 "Unavailable",
@@ -4716,6 +4831,11 @@ export const DICT={
 "Ninguna anotación aceptada para exportar",
 "Aucune annotation acceptée à exporter"
 ],
+"Nenhuma armadura exposta detectada nesta imagem": [
+"No exposed reinforcement detected in this image",
+"No se detectó armadura expuesta en esta imagen",
+"Aucune armature apparente détectée sur cette image"
+],
 "Nenhuma captura ainda. Use o obturador para registrar fotos ou vídeos com as detecções.": [
 "No captures yet. Use the shutter to record photos or videos with the detections.",
 "Aún no hay capturas. Use el obturador para registrar fotos o vídeos con las detecciones.",
@@ -5531,10 +5651,20 @@ export const DICT={
 "Pose resuelta",
 "Pose résolue"
 ],
+"Posição da armadura": [
+"Reinforcement position",
+"Posición de la armadura",
+"Position de l’armature"
+],
 "Posição da foto": [
 "Photo position",
 "Posición de la foto",
 "Position de la photo"
+],
+"Posição e diâmetro aproximados, a partir da máscara de armadura exposta do CDM-4.": [
+"Approximate position and diameter, from the CDM-4 exposed reinforcement mask.",
+"Posición y diámetro aproximados, a partir de la máscara de armadura expuesta del CDM-4.",
+"Position et diamètre approximatifs, d’après le masque d’armature apparente du CDM-4."
 ],
 "Posição longitudinal ·": [
 "Longitudinal position ·",
@@ -5620,6 +5750,11 @@ export const DICT={
 "Production",
 "Producción",
 "Production"
+],
+"Projetar armadura exposta": [
+"Project exposed reinforcement",
+"Proyectar armadura expuesta",
+"Projeter l’armature apparente"
 ],
 "Projeto de pós-doutorado de": [
 "Postdoctoral project of",
@@ -6271,6 +6406,11 @@ export const DICT={
 "Rueda del ratón: zoom en el cursor (CAD) · Shift+rueda mueve",
 "Molette : zoom sur le curseur (CAO) · Maj+molette déplace"
 ],
+"Rotação": [
+"Rotation",
+"Rotación",
+"Rotation"
+],
 "Rugosidade (z, saudável = 0)": [
 "Roughness (z, healthy = 0)",
 "Rugosidad (z, sano = 0)",
@@ -6741,6 +6881,11 @@ export const DICT={
 "Acerca de SHM Studio · versión, proyecto y financiación",
 "À propos de SHM Studio · version, projet et financement"
 ],
+"Sobre o fundo": [
+"On the floor",
+"Sobre el fondo",
+"Sur le fond"
+],
 "Sobre:": [
 "About:",
 "Acerca de:",
@@ -7201,6 +7346,11 @@ export const DICT={
 "Vigas/pilares principales · Fr=5",
 "Poutres/piles principales · Fr=5"
 ],
+"Vista": [
+"View",
+"Vista",
+"Vue"
+],
 "Vista retificada (de frente)": [
 "Rectified view (front-on)",
 "Vista rectificada (de frente)",
@@ -7211,10 +7361,20 @@ export const DICT={
 "Vista transversal al puente",
 "Vue transversale du pont"
 ],
+"Vistas": [
+"Views",
+"Vistas",
+"Vues"
+],
 "Vistas fotométricas": [
 "Photometric views",
 "Vistas fotométricas",
 "Vues photométriques"
+],
+"Vistas padrão": [
+"Standard views",
+"Vistas estándar",
+"Vues standard"
 ],
 "Vistas registradas": [
 "Registered views",
@@ -7630,6 +7790,11 @@ export const DICT={
 "spalling as an anomalous community of colour and texture",
 "desprendimiento como comunidad anómala de color y textura",
 "épaufrure comme communauté anormale de couleur et de texture"
+],
+"detectado": [
+"detected",
+"detectado",
+"détecté"
 ],
 "deve usar HTTP ou HTTPS.": [
 "must use HTTP or HTTPS.",
@@ -8495,6 +8660,11 @@ export const DICT={
 "editable text",
 "texto editable",
 "texte modifiable"
+],
+"trechos detectados": [
+"segments detected",
+"tramos detectados",
+"tronçons détectés"
 ],
 "triângulos": [
 "triangles",

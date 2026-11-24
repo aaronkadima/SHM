@@ -245,3 +245,20 @@ camada é nível do potencial × espessura escolhida; a ressalva é gravada na d
   escolhida é refeita com a boca como furo (earcut do three) e o resto do elemento fica igual; paredes e piso do degrau
   mais fundo com o material do elemento; foto recortada; modo transparente = degraus como película translúcida.
   Placa de referência ≥ profundidade + 50 mm (não é atravessada).
+
+### Vistas, imagem HD e armadura exposta na cavidade
+
+- Vistas na moldura da face (n, ey, ex): padrão (frente, topo, base, laterais, isométrica) e inclinada (inclinação 0–85°,
+  rotação ±180°), com transição de câmera; imagem PNG da vista em 2×/3×/4× (limitada por `MAX_RENDERBUFFER_SIZE`), fundo
+  pontilhado do canvas e legenda opcional (quebra em duas linhas quando não cabe).
+- `rebarCenterlines.js`: Zhang–Suen sobre `final.exposed_rebar`, raio por transformada de distância (chanfro 3-4),
+  classificação do esqueleto por transições 0→1 (contar vizinhos transformava cada degrau de linha diagonal em junção),
+  rastreamento com passos ortogonais primeiro, ligação de trechos alinhados (pontas a ≤ max(48 px, 4r), direções opostas
+  a ≤ 30°) e Douglas–Peucker. Foto 24: 37 → 21 trechos; longitudinal de r ≈ 5,6 px e estribos visíveis. Diâmetro =
+  2r × escala local → bitola NBR 7480 mais próxima, ou informado; eixo sobre o fundo (fundo − 0,15 Ø, mín. Ø/2 + 1 mm) ou
+  a cobrimento + Ø/2. `rebarTubes`: tubos fechados (10 lados, tampas).
+- IFC: tubos como `IfcTriangulatedFaceSet` fechadas no corpo da `IfcSurfaceFeature` côncava (estilo aço oxidado) e
+  propriedade `Armadura`; não há `IfcReinforcingBar` (não entra em quantitativos).
+- Interface: janela do sólido com z-index abaixo das barras do Studio (os menus da barra superior abrem por cima); Esc com
+  menu aberto fecha só o menu. Barra lateral agrupada por uso (Vista, Análise, Anotação, Comparar, Captura) com o nome
+  em texto vertical; ícone do sólido de níveis = montanha.

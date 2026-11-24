@@ -140,6 +140,32 @@ for schema in ("IFC4", "IFC4X3"):
             for kk, val in checks.items():
                 print(schema, kk, "ok" if val else "FALHOU"); ok &= bool(val)
 
+# armadura exposta projetada na cavidade: tubo fechado no corpo da característica + propriedade "Armadura"
+def tube(p0, p1, d, n=8):
+    p0, p1 = np.array(p0, float), np.array(p1, float); t = (p1 - p0) / np.linalg.norm(p1 - p0)
+    a = np.cross(t, [0, 0, 1.0]); a /= np.linalg.norm(a); b = np.cross(t, a); r = d / 2
+    ring = lambda c: [c + r * (np.cos(2 * np.pi * j / n) * a + np.sin(2 * np.pi * j / n) * b) for j in range(n)]
+    P = ring(p0) + ring(p1) + [p0, p1]; I = []
+    for j in range(n):
+        k = (j + 1) % n; I += [j, k, n + k, j, n + k, n + j, 2 * n, k, j, 2 * n + 1, n + j, n + k]
+    return {"positions": [float(x) for q in P for x in q], "indices": I, "d": d}
+cav_rb = {**cav, "rebar": {"diameter": 12.5, "mode": "cover", "coverMm": 10},
+          "regions": [{**cav["regions"][0], "rebars": [tube([480, 1150, 16.25], [720, 1150, 16.25], 12.5)]}]}
+f, col, a = pier("IFC4X3")
+rot = lambda x, y: (x * np.cos(a) - y * np.sin(a), x * np.sin(a) + y * np.cos(a)); o = rot(600, 400)
+face = {"origin": [100000 + o[0], 50000 + o[1], 7000], "ex": [*rot(-1, 0), 0], "n": [*rot(0, 1), 0]}
+with tempfile.TemporaryDirectory() as td:
+    src, out = Path(td) / "in.ifc", Path(td) / "out.ifc"; f.write(str(src))
+    write_level_solid(src, {"host_guid": col.GlobalId, "face": face, "solid": square_solid(), "cavity": cav_rb, "meta": {}}, out)
+    g = ifcopenshell.open(str(out)); lg = ifcopenshell.validate.json_logger(); ifcopenshell.validate.validate(g, lg)
+    sf = g.by_type("IfcSurfaceFeature")[0]
+    props = {p.Name: p.NominalValue.wrappedValue for r in sf.IsDefinedBy for p in r.RelatingPropertyDefinition.HasProperties}
+    checks = {"armadura: sem erros": not lg.statements, "armadura: 2 itens (fundo + barra)": len(sf.Representation.Representations[0].Items) == 2,
+              "armadura: propriedade": "12,5 mm (informado)" in props.get("Armadura", "") and "cobrimento 10 mm" in props.get("Armadura", ""),
+              "armadura: sem IfcReinforcingBar": not g.by_type("IfcReinforcingBar")}
+    for kk, val in checks.items():
+        print("IFC4X3", kk, "ok" if val else "FALHOU"); ok &= bool(val)
+
 # modo sem importação: placa de referência gerada pelo navegador (ifcReferenceHost.js) + sólido gravado pelo backend
 for fx in ("host_IFC4.ifc", "host_IFC4X3.ifc"):
     src = Path(__file__).parent / "fixtures" / fx
